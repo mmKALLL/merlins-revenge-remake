@@ -1,0 +1,75 @@
+[#name: "tem_goblins", #type: #field]
+[
+#teamName: #goblins,
+#category: #enemies,
+#colour: rgb(0,255,0),
+#friends:[orcs],
+#hates: [[#aldevar, #monsterSummon, #karate, #magicalAlliance, #ninja, #undead, #scarlet, #village]],
+#maxMembers: 16
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,75 @@
+[#name: "tem_aldevar", #type: #field]
+[
+#teamName: #aldevar,
+#category: #friends,
+#colour: rgb(100,100,255),
+#friends:[#village, #monsterSummon],
+#hates: [[#blackSorcerer, #scarlet, #cave, #goblins, #karate, #ice, #magicalAlliance,  #monsters, #ninja, #swamp, #undead, #orcs], [#pitMonsters, #invisible, #collectables]],
+#maxMembers: 12
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

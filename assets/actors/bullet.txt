@@ -1,0 +1,82 @@
+[#name: "act_bullet", #type: #field]
+[
+#objType: #objBullet,
+#inherit: #actor,
+#attack:
+[
+#hits: [#teamMembers],
+#type: #bullet
+],
+#createOnSolid: true,
+#layerZ: gGameBulletLayer,
+#miniMapStatus: #clr,
+#recordInRoomState: true,
+#team: #none,
+#teamRole: #teamBullets
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

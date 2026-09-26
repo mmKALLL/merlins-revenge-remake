@@ -1,0 +1,81 @@
+[#name: "act_goblinArrow", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 3,
+#power: 0.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "gobarrow",
+#friction: point(5,5),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

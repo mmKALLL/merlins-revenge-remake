@@ -1,0 +1,84 @@
+[#name: "act_goblinBow", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 21,
+#animType: #weaponRanged,
+#bullet: #goblinArrow,
+#collisionLoc: point(0,-2),
+#cooldown: 200,
+#dexterity: 1,
+#firingType: #fullstrength,
+#name: #goblinBow,
+#reach: 100,
+#sound: "goblin_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

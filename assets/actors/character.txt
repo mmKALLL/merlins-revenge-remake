@@ -1,0 +1,78 @@
+[#name: "act_character", #type: #field]
+[
+#inherit: #actor,
+#agility: 1,
+#dexterity: 1,
+#eyestrain: 0,
+#mana_burst: 1,
+#mana_capacity: 10,
+#mana_flow: 1,
+#mana_regeneration: 1,
+#strength: 1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

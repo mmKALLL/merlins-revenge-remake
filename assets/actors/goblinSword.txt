@@ -1,0 +1,84 @@
+[#name: "act_goblinSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 7,
+#animType: #weaponMelee,
+#collisionLoc: point(15,0),
+#cooldown: 0,
+#damageMultiplier:2,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(15,0),
+#name: #goblinSword,
+#power: point(0.7, 0),
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

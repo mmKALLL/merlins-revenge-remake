@@ -1,0 +1,114 @@
+[#name: "act_player", #type: #field]
+[
+#objType: #objPlayerMerlinCharacter,
+#AiType: #objAiPlayer,
+#inherit: #actor,
+#agility: 1,
+#attack:
+[
+#animFrame: 3,
+#animType: #naturalMelee,
+#collisionLoc: point(9,-1),
+#cooldown: 20,
+#hits: [#teamMembers, #teamBuildings],
+#name: #punch,
+#power: point(2,0),
+#reach: point(7,10),
+#sound: "wizard_punch"
+],
+#character: #playerCharacter,
+#dexterity: 0.2,
+#armyMembers: [#warrior, #archer, #monk, #dwarf, #kingInGame],
+#gmgChargeLoc: point(10,-1),
+#energyIncPercentage: 2,
+#experienceAmountForNextLevel: 10,
+#eyestrain: 0,
+#energy: 200,
+#energyRecoverDelay: 30,
+#jumpPower: -15,
+#layerZ: gPlayerLayer,
+#mana_burst: 1,
+#mana_capacity: 10,
+#mana_capacityIncLevel: .5,
+#mana_flow: 1,
+#mana_regeneration: 30,
+#miniMapStatus: #clr,
+#name: "mer",
+#overlapToLeaveRoom: 14,
+#startingLevel: 0,
+#speechColor: rgb(100,100,255),
+#strength: 8,
+#stretchDeath: true,
+#takeHitSound: "wizard_hit",
+#takeHitSoundVolume: 100,
+#team: #aldevar,
+#teleportable: false,
+#walkAcceleration: 2,
+#weight: 0.2
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

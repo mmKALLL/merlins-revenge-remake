@@ -1,0 +1,77 @@
+[#name: "act_actor", #type: #field]
+[
+#actorType: #typ,
+#initLoc: point(random(450), 300),
+#initVect: point(0,0),
+#layerZ: gGameObjectLayer,
+#masterPrg: #actorMaster,
+#miniMapStatus: #inf,
+#startOffset: point(-16, -16),
+#team: #chatters
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

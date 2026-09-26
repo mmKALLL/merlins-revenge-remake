@@ -1,0 +1,75 @@
+[#name: "act_CPUCharacter", #type: #field]
+[
+#inherit: #character,
+#frictionReel: point(10,10),
+#miniMapStatus: #inf,
+#pathfinding: true,
+#walkType: #anyDirSpeed,
+#walkSpeed: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

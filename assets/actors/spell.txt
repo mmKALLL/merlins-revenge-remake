@@ -1,0 +1,28 @@
+[#name: "act_spell", #type: #field]
+[
+#objType: #objSpell,
+#inherit: #bullet,
+#character: #spell,
+#name: "spell",
+#friction: point(0,0),
+#freezeMultiplier: 1,
+#miniMapStatus: #clr
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

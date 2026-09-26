@@ -1,0 +1,86 @@
+[#name: "act_goblinArcher", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 50,
+#experienceImWorth: 3,
+#eyestrain: 5,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 8,
+#team: #goblins,
+#name: "gar",
+#walkSpeed: 4,
+#weapon: #goblinBow,
+#weaponTechnique: -75
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

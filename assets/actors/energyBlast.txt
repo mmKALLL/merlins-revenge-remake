@@ -1,0 +1,108 @@
+[#name: "act_energyBlast", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(255,200,0),
+#chargeSpeed: 1,
+#gmgChargeMax:15,
+#gmgChargeSpeed: 5,
+#gmgChargeStart: 5,
+#gmgAutoFire: true,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 5,
+#chargeMaxModifier: 0.75,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#randomSummon: false,
+#name: #energyBlast,
+#power: 0.75,
+#payloadFunction: #takeHit,
+#reach: 9999,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]]
+],
+#character: #energyBlast,
+#collectSound: "collect_powerup_01",
+#member: member("energyBlast_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
