@@ -1,0 +1,83 @@
+[#name: "bnd_arrow", #type: #field]
+[
+#up:126,
+#down:125,
+#left:123,
+#right:124,
+#wizard: 60,
+#escape: 120,
+#invincibility: 34,
+#killAll:40,
+#gmg: 44,
+#medikit: 46,
+#army: 23,
+#weaponSelector: 62,
+#wizardSelector:48,
+#spell1: 83,
+#spell2: 84,
+#spell3: 85,
+#spell4: 86,
+#spell5: 87,
+#spell6: 88,
+#spell7: 89,
+#spell8: 90,
+#spell9: 91
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

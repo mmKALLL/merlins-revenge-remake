@@ -1,0 +1,252 @@
+[#name: "tlk_merlinOpenObjects_key", #type: #field]
+tileSize | point(32,32)
+-- 10 cols per row
+-- row 1
+#none
+#player
+#berlinInGame
+#ulinInGame
+#prestotolinInGame
+#garonlinInGame
+#amotonlinInGame
+#foelinInGame
+#flaetorlinInGame
+#verdanlinInGame
+-- row 2
+#dwarf
+#warrior
+#archer
+#kingInGame
+#monk
+#monkGhost
+#dwarfTower
+#none
+#none
+#none
+-- row 3
+#energyBlast
+#armySummon
+#energyMines
+#energyPulseSpell
+#cBlast
+#energyPunch
+#monsterSummon
+#healBlast
+#arcticBlast
+#energyBeamSpell
+-- row 4
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#gmg
+#merlinSword
+#none
+-- row 5
+#manaCapacity
+#manaBurst
+#manaFlow
+#walkSpeed
+#medikit
+#maxikit
+#energyMine
+#fire
+#farmer
+#townWatch
+-- row 6
+#scarletInGame
+#ochreInGame
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- row 7
+#goblinArcher
+#goblinWarrior
+#goblinHero
+#goblinMage
+#goblinBuilder
+#goblinHut
+#goblinMageHut
+#goblinHouse
+#garTower
+#orcInvasion
+-- row 8
+#bowOrc
+#swordOrc
+#mageOrc
+#orcHouse
+#friendlyGoblinArcher
+#friendlyGoblinWarrior
+#friendlyGoblinHero
+#friendlyGoblinMage
+#friendlyGoblinHut
+#friendlyGoblinMageHut
+-- row 9
+#skeletonArcher
+#skeletonWarrior
+#skeletonThrower
+#greyGhost
+#necromancer
+#darkMage
+#skeletonDwelling
+#undeadInvasion
+#undeadDragon
+#skeletonComando
+-- row 10
+#skelitonLord
+#skelitonArm
+#skelitonFootSoldier
+#skelitonHead
+#skelitonLowerLeg
+#skelitonSword
+#skelitonTorsoTank
+#skelitonUpper
+#skeletonGiant
+#none
+-- row 11
+#bombMage
+#none
+#thunderMonk
+#shrouder
+#magicPortal
+#techMech
+#frostyMonk
+#iceRock
+#none
+#none
+-- row 12
+#shurikenNinja
+#ninja
+#mysteriousCloud
+#swordNinja
+#speedyGuy
+#karateGuy
+#kongFuChicken
+#dojo
+#sumo
+#none
+-- row 13
+#hydra1
+#hydra2
+#hydra3
+#pitMonster
+#dragon
+#lizard
+#vultureGuard
+#blackOrc
+#quadranid
+#cocoon
+-- row 14
+#darkCave
+#darkGolem
+#boulderCave
+#boulderMonster
+#fourArmGolem
+#doubleDarkGolem
+#batTree
+#bat
+#none
+#babyOstrich
+-- row 15
+#bug
+#lizardSoldier
+#fangBunnyBaby
+#fangBunny
+#fangBunnyPortal
+#druid
+#plant
+#none
+#none
+#none
+-- row 16
+#scWarrior 
+#scArcher
+#scMonk
+#none
+#lavaGolem
+#fireDragon
+#fireLizard
+#evilTv
+#tvBox
+#none
+-- row 17
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- row 18
+#magicLimit75
+#magicLimit50
+#magicLimit25
+#magicLimit1
+#musicOff
+#musicLastStand
+#musicWoodsOfEvil
+#musicBaroqueRock
+#musicBaroqueRockTechno
+#musicElectronicMerlin
+-- row 19
+#teamOverride
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- row 20
+#stones1
+#stones2
+#stones3
+#stones4
+#stones5
+#stones6
+#stones7
+#stones8
+#stones9
+#stones10
+-- row 21
+#orcAura
+#undeadAura
+#quadAura
+#snowAura
+#iceAura
+#none
+#none
+#none
+#none
+#none
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

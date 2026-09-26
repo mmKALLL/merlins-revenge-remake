@@ -1,0 +1,84 @@
+[#name: "bnd_wasd", #type: #field]
+[
+#up:13,
+#down:1,
+#left:256,
+#right:2,
+#wizard: 3,
+#escape: 120,
+#invincibility: 34,
+#killAll:40,
+#medikit: 46,
+#testHit: 17,
+#gmg: 14,
+#army: 8,
+#weaponSelector:12,
+#wizardSelector:15,
+#spell1: 18,
+#spell2: 19,
+#spell3: 20,
+#spell4: 21,
+#spell5: 22,
+#spell6: 23,
+#spell7: 24,
+#spell8: 25,
+#spell9: 26
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
