@@ -5,6 +5,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { roomMusic } from '../mr-open/mr-sound'
+import { isDead } from '../mr-open/mr-take-hit'
 import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
 import { stripNameFor } from './anim'
 import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type SimState } from './state'
@@ -21,7 +22,16 @@ export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OB
 export const isBullet = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objBullet'
 export const isSpell = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objSpell'
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
-export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && a.energy > 0
+export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
+
+/** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
+export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
+
+/** moveHorizReaction: facing follows horizontal movement; no horizontal movement keeps it. */
+export function faceAlong(a: ActorState, dx: number): void {
+  if (dx < 0) a.facingLeft = true
+  else if (dx > 0) a.facingLeft = false
+}
 
 /** The player actor (found by id, which is fixed at createSim). */
 export function playerOf(s: SimState): ActorState {

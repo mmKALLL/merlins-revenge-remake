@@ -60,7 +60,7 @@ export interface AiState {
   scenicTicks: number // remake cutoff: ticks walked on the current #scenic leg (ends at ActorDef.scenicMaxTicks)
   moveTarget: Vec | null // modMoveToLoc target; null = not moving
   walkTicks: number // remake detour: consecutive ticks spent walking toward the target
-  detourTicks: number // remake detour: pause ticks left in detourPause
+  detourTicks: number // remake detour: pause ticks left in detourPause, then ticks walked in detourMove
   detourGoal: Vec | null // remake detour: where detourMove walks to
   chargeKind: ChargeKind | null // player only
 }
