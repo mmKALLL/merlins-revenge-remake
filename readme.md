@@ -7,7 +7,7 @@ TypeScript port of the open-sourced Merlin Open engine.
     pnpm install
     pnpm assets:copy      # needs the original archive in assets-mr-original/ (not in git)
     pnpm assets:convert
-    pnpm dev
+    pnpm dev              # serves on http://localhost:3371/
 
 Query parameters: `?map=mriv_small|sam|tvsDemo` (default `mriv_small`, 5x1 rooms, MR4 tilesets), `?camera=room|follow`, `?debug=0`.
 
