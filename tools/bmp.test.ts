@@ -6,7 +6,7 @@ import { decodeBmp } from './bmp'
 function makeBmp(opts: {
   width: number
   height: number
-  bpp: 8 | 24
+  bpp: 1 | 8 | 24
   bottomUp: boolean
   palette?: [number, number, number][]
   rows: number[][] // 8-bit: palette indices; 24-bit: flat r,g,b triples per row
@@ -37,6 +37,8 @@ function makeBmp(opts: {
     const off = dataOffset + fileRow * rowBytes
     if (bpp === 8) {
       row.forEach((idx, x) => (buf[off + x] = idx))
+    } else if (bpp === 1) {
+      row.forEach((bit, x) => (buf[off + (x >> 3)]! |= bit << (7 - (x & 7))))
     } else {
       for (let x = 0; x < width; x++) {
         buf[off + x * 3] = row[x * 3 + 2]! // b
@@ -96,6 +98,38 @@ describe('decodeBmp', () => {
       0, 0, 0, 255, 255, 255, 255, 0, 1, 2, 3, 255, 1, 2, 3, 255, 0, 0, 0, 255,
       1, 2, 3, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 0, 1, 2, 3, 255,
     ])
+  })
+
+  it('decodes a 10x2 1-bit paletted bottom-up image, most significant bit first', () => {
+    const buf = makeBmp({
+      width: 10,
+      height: 2,
+      bpp: 1,
+      bottomUp: true,
+      palette: [
+        [255, 255, 255],
+        [0, 0, 0],
+      ],
+      rows: [
+        [1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+      ],
+    })
+    const img = decodeBmp(buf)
+    expect(img.width).toBe(10)
+    const alpha = [...img.rgba].filter((_, i) => i % 4 === 3).map((a) => (a === 255 ? 1 : 0))
+    expect(alpha).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1])
+    expect([...img.rgba.subarray(0, 4)]).toEqual([0, 0, 0, 255])
+  })
+
+  it('decodes the 1-bit spell charge frame with white transparent', () => {
+    const img = decodeBmp(readFileSync('assets/sprites/spell/anm_spell_charge_03_01.bmp'))
+    expect(img.width).toBe(63)
+    expect(img.height).toBe(63)
+    let opaque = 0
+    for (let i = 3; i < img.rgba.length; i += 4) if (img.rgba[i] === 255) opaque++
+    expect(opaque).toBeGreaterThan(50)
+    expect(opaque).toBeLessThan(63 * 63)
   })
 
   it('rejects a truncated BMP', () => {

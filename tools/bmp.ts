@@ -1,5 +1,6 @@
-// Minimal decoder for uncompressed 8-bit paletted and 24-bit Windows BMPs.
-// Merlin frames are 8-bit (e.g. anm_mer_walk_3_01 is 16x16, anm_mer_naturalMelee_* are 20x16).
+// Minimal decoder for uncompressed 1/4/8-bit paletted and 24-bit Windows BMPs.
+// Merlin frames are 8-bit (e.g. anm_mer_walk_3_01 is 16x16, anm_mer_naturalMelee_* are 20x16);
+// the spell charge frame is 1-bit.
 export interface RgbaImage {
   width: number
   height: number
@@ -24,8 +25,9 @@ export function decodeBmp(buf: Buffer, transparent: [number, number, number] = [
   const rgba = new Uint8Array(width * height * 4)
 
   const palette: [number, number, number][] = []
-  if (bpp === 8) {
-    const colours = buf.readUInt32LE(46) || 256
+  const paletted = bpp === 1 || bpp === 4 || bpp === 8
+  if (paletted) {
+    const colours = buf.readUInt32LE(46) || 1 << bpp
     const palOff = 14 + headerSize
     for (let i = 0; i < colours; i++) {
       const o = palOff + i * 4
@@ -40,8 +42,8 @@ export function decodeBmp(buf: Buffer, transparent: [number, number, number] = [
     const rowOff = dataOffset + srcRow * rowBytes
     for (let x = 0; x < width; x++) {
       let r: number, g: number, b: number
-      if (bpp === 8) {
-        ;[r, g, b] = palette[buf[rowOff + x]!] ?? [0, 0, 0]
+      if (paletted) {
+        ;[r, g, b] = palette[paletteIndex(buf, rowOff, x, bpp)] ?? [0, 0, 0]
       } else {
         const o = rowOff + x * 3
         ;[b, g, r] = [buf[o]!, buf[o + 1]!, buf[o + 2]!]
@@ -55,4 +57,11 @@ export function decodeBmp(buf: Buffer, transparent: [number, number, number] = [
     }
   }
   return { width, height, rgba }
+}
+
+function paletteIndex(buf: Buffer, rowOff: number, x: number, bpp: number): number {
+  if (bpp === 8) return buf[rowOff + x]!
+  const byte = buf[rowOff + Math.floor((x * bpp) / 8)]!
+  const shift = 8 - bpp - ((x * bpp) % 8)
+  return (byte >> shift) & ((1 << bpp) - 1)
 }
