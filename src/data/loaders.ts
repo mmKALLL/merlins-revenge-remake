@@ -30,7 +30,15 @@ interface SpriteAtlas {
 async function json<T>(url: string, check: (v: unknown) => v is T): Promise<T> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`failed to load ${url}: ${res.status}`)
-  const data: unknown = await res.json()
+  // The dev server answers unknown paths with the HTML index and status 200, so check the type too.
+  const type = res.headers.get('content-type') ?? ''
+  if (!type.includes('json')) throw new Error(`${url} is missing (got ${type || 'no content type'}); run pnpm assets:convert`)
+  let data: unknown
+  try {
+    data = await res.json()
+  } catch (e) {
+    throw new Error(`${url} is not valid JSON: ${e instanceof Error ? e.message : String(e)}`)
+  }
   if (!check(data)) throw new Error(`unexpected shape in ${url}`)
   return data
 }
