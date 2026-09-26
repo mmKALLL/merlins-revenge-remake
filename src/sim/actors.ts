@@ -1,6 +1,7 @@
 // Actor records: creation from resolved actor data (actorMaster.startActor, objGameObject.init),
 // spawning a room's objects layer (objTileLayer.activateActors, engine-mechanics-combat.md §2) and
-// the per-actor collision rect (modCollisionRect.initRectFromCurrentImage).
+// the per-actor collision rect (modCollisionRect: fixed for characters, dynamic for bullets).
+import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
@@ -26,13 +27,17 @@ export function playerOf(s: SimState): ActorState {
   return p
 }
 
+const initialMode = (def: ActorDef): ActorMode => (FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : 'walk')
+/** The strip an actor starts on: characters stand still (objGameObject initMode #stand), bullets and spells fly. */
+const initialAnim = (s: SimState, def: ActorDef): string =>
+  stripNameFor(s.anims[def.name], initialMode(def), false, def.objType === 'objSpell')
+
 /** Creates an actor at `pos` from `defs[defKey]` and allocates its id; returns it with the updated state. */
 export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState, SimState] {
   const def = s.defs[defKey]
   if (!def) throw new Error(`no actor definition for "${defKey}"`)
-  const mode: ActorMode = FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : 'walk'
-  const set = s.anims[def.name]
-  const anim = stripNameFor(set, mode, false, def.objType === 'objSpell')
+  const mode = initialMode(def)
+  const anim = initialAnim(s, def)
   const actor: ActorState = {
     id: s.nextId,
     def: defKey,
@@ -137,10 +142,19 @@ export function stripFor(s: SimState, actor: ActorState): AnimationStrip | undef
   return set[actor.anim] ?? set['stand'] ?? set['walk'] ?? Object.values(set)[0]
 }
 
-/** Collision rect from the current frame's size (modCollisionRect.initRectFromCurrentImage). */
+/**
+ * modCollisionRect.calcCollisionRect: the rect comes from a frame's size
+ * (initRectFromCurrentImage). Only bullets are `collisionRectType #dynamic` (objBullet) and
+ * recompute it from the current frame; everything else is `#fixed`, computed once on the first
+ * collision check, when a character still shows its stand frame. So a character's rect never
+ * follows a wider attack frame (the warrior's 27 px sword swing).
+ */
 export function collisionRectFor(s: SimState, actor: ActorState): CollisionRect {
-  const strip = stripFor(s, actor)
-  if (!strip) throw new Error(`actor ${actor.id} (${actor.def}) has no animation strips for "${actor.anim}"`)
+  const def = s.defs[actor.def]
+  if (!def) throw new Error(`no actor definition for "${actor.def}"`)
+  const anim = def.objType === 'objBullet' ? actor.anim : initialAnim(s, def)
+  const strip = stripFor(s, { ...actor, anim })
+  if (!strip) throw new Error(`actor ${actor.id} (${actor.def}) has no animation strips for "${anim}"`)
   return collisionRectForFrame(strip.w, strip.h)
 }
 

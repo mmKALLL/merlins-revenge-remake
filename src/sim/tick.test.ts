@@ -325,13 +325,20 @@ describe('spawnRoomActors', () => {
 })
 
 describe('collisionRectFor', () => {
-  it('uses the frame size of the actor’s current strip', () => {
+  it('gives a character the fixed rect of its stand frame whatever strip it shows (collisionRectType #fixed)', () => {
     const s = make(openMap({ objects: [{ room: 1, x: 10, y: 4, tile: GOBLIN }] }))
     const g = s.actors[1]!
     expect(g.anim).toBe('stand')
-    // stand 15x16: rect(-7.5,-8,7.5,8) inflated by -1
+    // stand 15x16: rect(-7.5,-8,7.5,8) inflated by -1; the 15x20 walk frame does not change it
     expect(collisionRectFor(s, g)).toEqual({ left: -6.5, top: -7, right: 6.5, bottom: 7 })
-    expect(collisionRectFor(s, { ...g, anim: 'walk' })).toEqual({ left: -6.5, top: -9, right: 6.5, bottom: 9 })
+    expect(collisionRectFor(s, { ...g, anim: 'walk' })).toEqual({ left: -6.5, top: -7, right: 6.5, bottom: 7 })
+  })
+
+  it('recomputes a bullet’s rect from its current frame (objBullet collisionRectType #dynamic)', () => {
+    const s0 = make()
+    const s = { ...s0, anims: { ...s0.anims, gobarrow: { fly: { frames: 1, delay: 3, w: 16, h: 16 }, land: { frames: 1, delay: 3, w: 8, h: 8 } } } }
+    const [arrow] = createActor(s, 'goblinArrow', { x: 200, y: 100 })
+    expect(collisionRectFor(s, { ...arrow, anim: 'land' })).toEqual({ left: -3, top: -3, right: 3, bottom: 3 })
   })
 
   it('falls back to stand for a strip the atlas lacks', () => {

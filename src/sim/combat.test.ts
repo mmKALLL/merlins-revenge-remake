@@ -576,8 +576,8 @@ describe('reel timing and wall impacts (modReel, objCPUCharacter.collisionWall)'
     expect(g.pos.x).toBeLessThan(340 + 9) // pushed out of the wall
     expect(g.vel.x).toBe(0)
     expect(g.energy).toBeCloseTo(100 - (9 - 3), 10) // speed after this tick's friction: 10 * 0.9
-    // vertical: the solid row 2 (y 32..63) above a warrior moving up
-    ;({ s, enemyId } = setup(WARRIOR, { x: 200, y: 80 }, { x: 100, y: 144 }, 1, reeling({ x: 0, y: -10 }, { x: 200, y: 80 }), wallMap))
+    // vertical: the solid row 2 (y 32..63) above a warrior moving up (fixed stand rect: top -7)
+    ;({ s, enemyId } = setup(WARRIOR, { x: 200, y: 78 }, { x: 100, y: 144 }, 1, reeling({ x: 0, y: -10 }, { x: 200, y: 78 }), wallMap))
     s = stepSim(s, NO_INPUT)
     g = actor(s, enemyId)!
     expect(g.vel.y).toBe(0) // objGameObject.collisionCeiling: setVectY(0)
@@ -589,6 +589,26 @@ describe('reel timing and wall impacts (modReel, objCPUCharacter.collisionWall)'
     ;({ s, enemyId } = setup(WARRIOR, { x: 340, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, vel: { x: 10, y: 0 } }, wallMap))
     s = stepSim(s, NO_INPUT)
     expect(actor(s, enemyId)!.energy).toBe(100)
+  })
+
+  it('a warrior leaving its wide sword frame with its back flush against a 1-tile wall stays on its side', () => {
+    // modCollisionRect #fixed: the rect comes from the stand frame (15x16 -> half-width 6.5). A rect
+    // from the 27 px weaponMelee frame (still shown on the tick the warrior walks off after its
+    // swing) would reach 6 px into the wall column, and the push-out against the walking direction
+    // would carry the warrior through the wall.
+    const wide = { ...anims, goblinWarrior: { ...anims['goblinWarrior']!, weaponMelee: { frames: 11, delay: 2, w: 27, h: 16 } } }
+    const flush = 384 + 6.5 // wall column 12 ends at x = 383
+    let s = createSim(grid(openMap([{ x: 3, y: 3, tile: WARRIOR }], { solid: wallAt(12) })), defs, teams, wide, 1, { x: flush + 80, y: 144 })
+    const g0 = s.actors.find((a) => a.id !== s.playerId)!
+    const afterSwing: ActorState = {
+      ...g0, pos: { x: flush, y: 144 }, prevPos: { x: flush, y: 144 }, mode: 'walk', anim: 'weaponMelee',
+      ai: { ...g0.ai, mode: 'moveToAttack', targetId: s.playerId },
+    }
+    s = { ...s, actors: s.actors.map((a) => (a.id === g0.id ? afterSwing : a)) }
+    for (let i = 0; i < 5; i++) {
+      s = stepSim(s, NO_INPUT)
+      expect(actor(s, g0.id)!.pos.x).toBeGreaterThanOrEqual(flush)
+    }
   })
 
   it('an arrow flies through a solid tile, slowing only by friction', () => {
