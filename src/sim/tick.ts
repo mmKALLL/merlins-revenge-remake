@@ -1,12 +1,15 @@
 // Fixed-step simulation orchestrator. Per tick, in order:
-//  1. player movement (walking notes §5-7: velocity, tile collision, closed-exit clamp, exit test)
-//  2. player attack input: charge / release (tick-combat.ts)
+//  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
+//     collision, closed-exit clamp, exit test; a dying player never changes rooms)
+//  2. player attack input: charge / resume / release (tick-combat.ts)
 //  3. CPU AI decisions (tick-ai.ts)
-//  4. movement of every other actor (walk velocity as set, friction for reel/land/bullets, spells free)
+//  4. movement of every other actor (walk velocity as set, friction for reel/die/land/bullets;
+//     characters collide with tiles and take wall damage while reeling; bullets and spells ignore tiles)
 //  5. animation advance for every actor, strip by mode (anim.ts)
 //  6. attack frames: melee strike, bullet spawn; 7. bullets; 8. spells (tick-combat.ts)
-//  9. reel and death progression; 10. cooldowns and regeneration
-// 11. exits open when the room's hostiles are dead; graves recorded; removed actors dropped
+//  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
+// 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
+//     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: living characters stored, the new room restored or spawned (combat notes §2)
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { resolveTileCollision } from '../mr-open/mr-collision'

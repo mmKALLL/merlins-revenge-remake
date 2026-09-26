@@ -906,3 +906,15 @@ Commit `git commit -m "Document combat controls, tuning overlay and port decisio
 - On `combat_test`, a human confirms: goblins approach and attack, arrows fly and hit, the blast charges, flies to the mouse, explodes and knocks goblins back, goblins die into graves, exits open only after both goblins in room 1 are dead, Merlin's bar drops and the map restarts on death.
 - `mriv_small` still loads; unsupported object types are skipped with a single console warning each.
 - `assets/tuning.json` overrides a value end to end (try `goblinArcher.attack.reach`).
+
+---
+
+## Deviations recorded during implementation
+
+- **AI reach uses the collision rect.** `targetInReach` tests the target's collision rect, not its sprite rect, as the engine does; the plan's wording implied the sprite rect.
+- **Bullets ignore tiles.** The plan had arrows collide with walls; the engine only does so with `gBulletsCollideWithBackground`, whose value is not in the export. The user confirmed from the original that arrows fly through walls, so bullets skip tile collision (they still slow by friction, stall, land and hit characters).
+- **The warrior stops 20 px from Merlin, not 15.** It walks 4 px per tick and stops on the first step that brings its strike point into Merlin's collision rect, which happens mid-step short of the ideal attack loc.
+- **Arrow damage falls with distance.** Arrow friction (5 %) slows it from the first move, so damage is `3 * 0.5 * speed at impact` (about 5.9 at 90 px), not the plan's 12, which is the point-blank maximum.
+- **A full charge takes 13 ticks.** The creation tick sets the start value 1; 11 more held ticks reach 12 and the 13th pins it at 12.5.
+- **Exits open after `#finish`.** Dying and dead goblins are still team members; the exits open on the tick after the last grave is recorded (`leaveTeam` -> `tellTeamDied` next update), not when the last goblin's energy reaches 0. Leaving the room at once can no longer lose a grave.
+- **Nav mode ported** with the engine default acceleration 6: a steady 6 px/tick in cleared rooms, 2 while hostiles live.
