@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { createSim, findStartPos, stepSim } from './tick'
-import { NO_INPUT } from './state'
+import { DEFAULT_SIM_CONFIG, NO_INPUT } from './state'
 import { buildWorldGrid } from './world-grid'
+
+// expectations below were derived for a 30x30 collision box
+const CFG30 = { ...DEFAULT_SIM_CONFIG, collisionRect: { left: -15, top: -15, right: 15, bottom: 15 } }
 
 const SOLID = 2
 const PLAYER = 3
@@ -39,7 +42,7 @@ const input = (x: number, y: number) => ({ ...NO_INPUT, move: { x, y } })
 describe('stepSim', () => {
   it('advances position by the velocity and keeps prevPos', () => {
     let s = make()
-    s = stepSim(s, input(1, 0))
+    s = stepSim(s, input(1, 0), CFG30)
     expect(s.player.prevPos).toEqual({ x: 100, y: 100 })
     expect(s.player.pos.x).toBe(101)
     expect(s.tick).toBe(1)
@@ -47,28 +50,28 @@ describe('stepSim', () => {
 
   it('faces left only on horizontal input and keeps facing on vertical', () => {
     let s = make()
-    s = stepSim(s, input(-1, 0))
+    s = stepSim(s, input(-1, 0), CFG30)
     expect(s.player.facingLeft).toBe(true)
-    s = stepSim(s, input(0, 1))
+    s = stepSim(s, input(0, 1), CFG30)
     expect(s.player.facingLeft).toBe(true)
-    s = stepSim(s, input(1, 0))
+    s = stepSim(s, input(1, 0), CFG30)
     expect(s.player.facingLeft).toBe(false)
   })
 
   it('plays walk while a key is held and stand otherwise, 3 ticks per frame', () => {
     let s = make()
     // tick 1 switches to walk (frame 0, counter 0); frame 1 appears after `delay` more ticks
-    for (let i = 0; i < 4; i++) s = stepSim(s, input(0, 1))
+    for (let i = 0; i < 4; i++) s = stepSim(s, input(0, 1), CFG30)
     expect(s.player.anim).toBe('walk')
     expect(s.player.animFrame).toBe(1)
-    s = stepSim(s, NO_INPUT)
+    s = stepSim(s, NO_INPUT, CFG30)
     expect(s.player.anim).toBe('stand')
   })
 
   it('changes room when the reg point crosses the room edge', () => {
     let s = make()
     s.player.pos = { x: 574, y: 100 }
-    for (let i = 0; i < 5; i++) s = stepSim(s, input(1, 0))
+    for (let i = 0; i < 5; i++) s = stepSim(s, input(1, 0), CFG30)
     expect(s.room).toEqual({ x: 2, y: 1 })
     expect(s.player.pos.x).toBeGreaterThanOrEqual(576)
   })
@@ -76,7 +79,7 @@ describe('stepSim', () => {
   it('cannot leave the map', () => {
     let s = make()
     s.player.pos = { x: 20, y: 100 }
-    for (let i = 0; i < 30; i++) s = stepSim(s, input(-1, 0))
+    for (let i = 0; i < 30; i++) s = stepSim(s, input(-1, 0), CFG30)
     expect(s.room).toEqual({ x: 1, y: 1 })
     expect(s.player.pos.x).toBeGreaterThanOrEqual(15)
   })
@@ -86,7 +89,7 @@ describe('stepSim', () => {
     let s = createSim(buildWorldGrid(openMap({ solidCol: 5 }), isSolid), anims, { x: 100, y: 100 })
     let hit = false
     for (let i = 0; i < 20; i++) {
-      s = stepSim(s, input(1, 1))
+      s = stepSim(s, input(1, 1), CFG30)
       if (s.player.vel.x === 0) {
         hit = true
         break
@@ -101,7 +104,7 @@ describe('stepSim', () => {
   it('keeps the player inside the room at the right edge when exits are closed', () => {
     let s = { ...make(), exitsOpen: false }
     s.player.pos = { x: 540, y: 100 }
-    for (let i = 0; i < 30; i++) s = stepSim(s, input(1, 0))
+    for (let i = 0; i < 30; i++) s = stepSim(s, input(1, 0), CFG30)
     expect(s.room).toEqual({ x: 1, y: 1 })
     expect(s.player.pos.x).toBe(560)
     expect(s.player.vel.x).toBeGreaterThan(0)

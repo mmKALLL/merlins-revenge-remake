@@ -1,3 +1,4 @@
+import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-map-format'
 import { PLAYER_WALK_ACCELERATION } from '../mr-open/mr-movement'
 import type { WorldGrid } from './world-grid'
@@ -47,6 +48,7 @@ export interface SimState {
 
 export interface SimConfig {
   walkAcceleration: number
+  collisionRect: CollisionRect
 }
 
-export const DEFAULT_SIM_CONFIG: SimConfig = { walkAcceleration: PLAYER_WALK_ACCELERATION }
+export const DEFAULT_SIM_CONFIG: SimConfig = { walkAcceleration: PLAYER_WALK_ACCELERATION, collisionRect: PLAYER_COLLISION_RECT }

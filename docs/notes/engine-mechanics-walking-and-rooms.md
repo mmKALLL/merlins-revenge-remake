@@ -200,7 +200,7 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 
 ## Prototype assumptions (walk-and-rooms slice)
 
-- Frames drawn at 2x so 16 px art is one tile tall; collision rect (-15,-15,15,15).
+- Frames drawn at native size (16 px, half a tile; confirmed visually against the original by the user); collision rect from modCollisionRect's formula is (-7,-7,7,7).
 - Play area at (32, 0) on a 640x320 logical screen.
 - `stand` aliases the first `walk` frame.
 - Exits always open (no enemies yet).

@@ -10,7 +10,7 @@ export interface RenderConfig {
   playOffset: { x: number; y: number } // where the room area sits on the logical screen, e.g. (32, 0)
   view: Size // play view size in px, e.g. 576x288
   cameraMode: CameraMode
-  spriteScale: number // 2: 16 px frames drawn at 32 px
+  spriteScale: number // 1: frames drawn at native size
   debug: boolean
 }
 

@@ -14,7 +14,7 @@ const cfg: RenderConfig = {
   playOffset: { x: 32, y: 0 }, // assumption: 32 px side margins; verify against the original stage
   view: { w: 576, h: 288 },
   cameraMode: params.get('camera') === 'follow' ? 'follow' : 'room',
-  spriteScale: 2,
+  spriteScale: 1,
   debug: params.get('debug') !== '0',
 }
 

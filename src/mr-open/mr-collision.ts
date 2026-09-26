@@ -4,8 +4,23 @@ import { TILE_PX as TILE, type Rect, type Vec } from './mr-geometry'
 
 /** A collision rect is relative to the object's registration point (modCollisionRect); see `rectAt`. */
 export type CollisionRect = Rect
-/** rect(-16,-16,16,16).inflate(-1,-1) for a 32x32 sprite with a centred reg point (modCollisionRect) */
-export const PLAYER_COLLISION_RECT: CollisionRect = { left: -15, top: -15, right: 15, bottom: 15 }
+/**
+ * Port of modCollisionRect.initRectFromCurrentImage:
+ * rect(-regX, -regY, width - regX, height - regY), clamped to rect(-16,-16,16,16), then inflate(-1,-1).
+ * The reg point defaults to the frame centre.
+ */
+export function collisionRectForFrame(width: number, height: number, regX = width / 2, regY = height / 2): CollisionRect {
+  const max = 16
+  return {
+    left: Math.max(-max, -regX) + 1,
+    top: Math.max(-max, -regY) + 1,
+    right: Math.min(max, width - regX) - 1,
+    bottom: Math.min(max, height - regY) - 1,
+  }
+}
+
+/** Merlin's frames are 16x16 drawn at native size, so the box is rect(-7,-7,7,7) around the reg point. */
+export const PLAYER_COLLISION_RECT: CollisionRect = collisionRectForFrame(16, 16)
 
 export type SolidAt = (tx: number, ty: number) => boolean
 

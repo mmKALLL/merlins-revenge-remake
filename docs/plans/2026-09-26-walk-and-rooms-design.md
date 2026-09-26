@@ -72,7 +72,7 @@ Each 30 Hz tick, in this order, reproducing the original:
 2. Add acceleration 2 per axis in the input direction.
 3. Apply friction: velocity loses 50% per axis.
 4. Clamp velocity to plus or minus 31 px.
-5. Resolve collision of the 30x30 rect around the registration point against the four tiles under its corners, testing only edges facing the velocity, pushing out along the axis with the smaller overlap (sliding), both axes at an exact convex corner. Horizontal wall hits zero horizontal velocity.
+5. Resolve collision of the rect derived from the frame size (14x14 for the 16 px frames) around the registration point against the four tiles under its corners, testing only edges facing the velocity, pushing out along the axis with the smaller overlap (sliding), both axes at an exact convex corner. Horizontal wall hits zero horizontal velocity.
 6. Exit test on the registration point against the current room rect. If it leaves and the exit is open, the current room changes; in world coordinates the position is already correct, so no wrap arithmetic is needed. Map edges stay solid.
 7. Animation: `walk` while a movement key is held this tick, else `stand`; each walk frame lasts its delay in ticks.
 

@@ -2,7 +2,7 @@
 // velocity (input, friction, clamp) -> tile collision (direction = sign of velocity) ->
 // closed-exit clamp -> exit test on the reg point -> wall hit zeroes horizontal velocity ->
 // facing from horizontal input -> animation.
-import { PLAYER_COLLISION_RECT, resolveTileCollision } from '../mr-open/mr-collision'
+import { resolveTileCollision } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-map-format'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
@@ -54,10 +54,10 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   // 5. collision, direction = sign of velocity (collisionMaster.checkCollisions)
   const dir = { x: Math.sign(vel.x), y: Math.sign(vel.y) }
   const before = loc
-  loc = resolveTileCollision(s.grid.solidAt, loc, dir, PLAYER_COLLISION_RECT)
+  loc = resolveTileCollision(s.grid.solidAt, loc, dir, cfg.collisionRect)
   const hitWallX = loc.x !== before.x
   const roomRect = s.grid.roomRectPx(s.room)
-  if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, PLAYER_COLLISION_RECT)
+  if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   // 6. exit test on the reg point (collisionMaster.checkLeaveScreen)
   let room = s.room
   if (s.exitsOpen) {
