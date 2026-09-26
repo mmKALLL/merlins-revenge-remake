@@ -1,5 +1,5 @@
 import { needsSprite } from './mr-open/mr-actor-data'
-import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadActors, loadMap, loadMapIndex, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import type { Vec } from './mr-open/mr-geometry'
 import { Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
@@ -41,15 +41,18 @@ function saveZoom(z: ZoomSetting): void {
   }
 }
 
-/** The 1x..4x / fit buttons below the canvas. */
-function setupZoomButtons(scene: Scene, row: HTMLElement): void {
-  // keep clicks on the buttons away from the game's mouse input (window listeners) and keyboard focus
+/** Keeps clicks on the controls away from the game's mouse input (window listeners) and keyboard focus. */
+function isolateControls(el: HTMLElement): void {
   for (const type of ['mousedown', 'mouseup', 'pointerdown', 'pointerup'] as const) {
-    row.addEventListener(type, (e) => {
+    el.addEventListener(type, (e) => {
       e.stopPropagation()
       if (type === 'mousedown') e.preventDefault()
     })
   }
+}
+
+/** The 1x..4x / fit buttons below the canvas; `reserved` is the controls block kept visible in 'fit' mode. */
+function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement): void {
   const buttons = ZOOM_SETTINGS.map((z) => {
     const b = document.createElement('button')
     b.type = 'button'
@@ -64,11 +67,40 @@ function setupZoomButtons(scene: Scene, row: HTMLElement): void {
     saveZoom(z)
     scene.setZoom(z)
   }
-  const game = row.parentElement
+  const game = reserved.parentElement
   const gap = game ? parseFloat(getComputedStyle(game).rowGap) || 0 : 0
   const pad = game ? parseFloat(getComputedStyle(game).paddingTop) + parseFloat(getComputedStyle(game).paddingBottom) : 0
-  scene.fitReserve = row.offsetHeight + gap + (pad || 0)
+  scene.fitReserve = reserved.offsetHeight + gap + (pad || 0)
   select(loadZoom())
+}
+
+/** Map list next to the zoom buttons: each entry reloads the page with ?map=<name>, keeping other params. */
+async function setupMapList(list: HTMLElement): Promise<void> {
+  let maps
+  try {
+    maps = await loadMapIndex()
+  } catch (e) {
+    console.warn('map list unavailable:', e)
+    list.hidden = true
+    return
+  }
+  let current: HTMLElement | null = null
+  for (const m of maps) {
+    const q = new URLSearchParams(location.search)
+    q.set('map', m.name)
+    const a = document.createElement('a')
+    a.href = `?${q.toString()}${location.hash}`
+    a.textContent = `${m.name} (${m.mapSize.x}x${m.mapSize.y})`
+    const li = document.createElement('li')
+    li.appendChild(a)
+    list.appendChild(li)
+    if (m.name === mapName) {
+      a.setAttribute('aria-current', 'page')
+      current = li
+    }
+  }
+  // scroll the list (not the page) so the current map shows; #maps is position: relative
+  if (current) list.scrollTop = current.offsetTop - (list.clientHeight - current.offsetHeight) / 2
 }
 
 async function main(): Promise<void> {
@@ -104,11 +136,15 @@ async function main(): Promise<void> {
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs)
   const game = document.getElementById('game') ?? document.body
+  const controls = document.getElementById('controls')
   const zoomRow = document.getElementById('zoom')
+  const mapList = document.getElementById('maps')
   await scene.init(game)
-  if (zoomRow) {
-    game.appendChild(zoomRow) // below the canvas
-    setupZoomButtons(scene, zoomRow)
+  if (controls) {
+    game.appendChild(controls) // below the canvas
+    isolateControls(controls)
+    if (mapList) await setupMapList(mapList)
+    if (zoomRow) setupZoomButtons(scene, zoomRow, controls)
   }
 
   const input = new InputTracker()

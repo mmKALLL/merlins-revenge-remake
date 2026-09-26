@@ -30,6 +30,7 @@ function readTxtDir(sub: string): Record<string, string> {
 
 function convertMaps(): MapDefinition[] {
   const maps: MapDefinition[] = []
+  const index: { name: string; mapSize: { x: number; y: number } }[] = []
   for (const file of sortedTxt(join(ASSETS, 'maps'))) {
     const name = stripTxt(file)
     let def: MapDefinition
@@ -50,9 +51,12 @@ function convertMaps(): MapDefinition[] {
       patched = ` (+${patch.objects.length} patched objects)`
     }
     maps.push(def)
+    index.push({ name, mapSize: { x: def.mapSize.x, y: def.mapSize.y } })
     writeFileSync(join(OUT, 'maps', `${name}.json`), JSON.stringify(def))
     console.log(`map ${name}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
   }
+  // the map menu below the game lists every converted map
+  writeFileSync(join(OUT, 'maps', 'index.json'), JSON.stringify(index))
   return maps
 }
 

@@ -9,17 +9,30 @@
       body { display: flex; min-height: 100vh; }
       #game { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; }
       canvas { display: block; image-rendering: pixelated; }
-      #zoom { display: flex; gap: 4px; font: 12px monospace; }
+      #controls { display: flex; gap: 16px; align-items: flex-start; font: 12px monospace; }
+      #zoom { display: flex; gap: 4px; }
       #zoom button {
         font: inherit; color: #aaa; background: #111; border: 1px solid #444; border-radius: 3px;
         padding: 2px 8px; cursor: pointer;
       }
       #zoom button:hover { color: #fff; border-color: #888; }
       #zoom button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
+      #maps {
+        position: relative; margin: 0; padding: 0; list-style: none; max-height: 5.5em; overflow-y: auto;
+        border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
+      }
+      #maps a { display: block; padding: 1px 8px; color: #aaa; text-decoration: none; white-space: nowrap; }
+      #maps a:hover { color: #fff; background: #222; }
+      #maps a[aria-current='page'] { color: #000; background: #ccc; }
     </style>
   </head>
   <body>
-    <div id="game"><div id="zoom" role="group" aria-label="Pixel size"></div></div>
+    <div id="game">
+      <div id="controls">
+        <div id="zoom" role="group" aria-label="Pixel size"></div>
+        <ul id="maps" aria-label="Maps"></ul>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

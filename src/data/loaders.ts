@@ -82,6 +82,20 @@ function subTexture(sheet: Texture, x: number, y: number, w: number, h: number):
   return nearest(new Texture({ source: sheet.source, frame: new Rectangle(x, y, w, h) }))
 }
 
+export interface MapIndexEntry {
+  name: string
+  mapSize: { x: number; y: number } // in rooms
+}
+
+const isMapIndex = (v: unknown): v is MapIndexEntry[] =>
+  Array.isArray(v) &&
+  v.every((e) => isObj(e) && typeof e['name'] === 'string' && isObj(e['mapSize']) && isNum(e['mapSize']['x']) && isNum(e['mapSize']['y']))
+
+/** Every converted map (maps/index.json, written by tools/convert-assets.ts). */
+export async function loadMapIndex(): Promise<MapIndexEntry[]> {
+  return json(`${GENERATED}maps/index.json`, isMapIndex)
+}
+
 export async function loadMap(name: string): Promise<MapDefinition> {
   return json(`${GENERATED}maps/${name}.json`, isMap)
 }
