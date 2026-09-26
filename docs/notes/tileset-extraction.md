@@ -76,3 +76,8 @@ Chunk/member indices for reference (map editor): merlinOpenPassive CASt 5968 / B
 
 - Old `tlk_merlin{Passive,Active,Objects}` colours are wrong (8-bit palette lookup / 16-bit RGB555 byte order in drxtract). Only relevant if those older sheets are ever needed.
 - The PNGs live in the session scratchpad; decide where in the repo (or outside it, given licensing) they should be stored and wire `tools/convert-assets.ts` to use them instead of the placeholder sheet (white -> transparent for Objects).
+
+
+## Update 2026-09-26: merlin4Objects
+
+The 16-bit decode of `tlk_merlin4Objects` was wrong (stretched 2-4x vertically, streaked, yellow tint). The archive's `mini_projects/correctMR4Objects/tlk_merlin4Objects.png` is a clean 256x448 RGBA export of the same sheet with a white background, so `tools/copy-assets.ts` now copies that file over `assets/tilesets/merlin4Objects.png`. The older `merlinActive/Passive/Objects` sheets remain placeholders (no map in the repo uses them).

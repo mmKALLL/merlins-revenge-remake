@@ -22,6 +22,9 @@ const copies: Copy[] = [
   { from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, 'maps/tvsDemo.txt'), why: 'default map' },
   { from: join(ARCHIVE, 'maps', 'works', 'sam.txt'), to: join(ASSETS, 'maps/sam.txt'), why: '3x3 test map' },
   { from: join(ARCHIVE, 'maps', 'not_fully_tested', 'mriv_small.txt'), to: join(ASSETS, 'maps/mriv_small.txt'), why: 'small 5-room MR4 map, main test map' },
+  // tileset: the archive ships a clean PNG of the MR4 objects sheet; the Director 16-bit cast member
+  // decodes badly (see docs/notes/tileset-extraction.md), so this replaces the extracted copy
+  { from: join(ARCHIVE, 'mini_projects', 'correctMR4Objects', 'tlk_merlin4Objects.png'), to: join(ASSETS, 'tilesets/merlin4Objects.png'), why: 'MR4 objects sheet (clean PNG from the archive)' },
   // key bindings
   { from: join(CASTS, 'bnd_wasd.txt'), to: join(ASSETS, 'keybindings/wasd.txt'), why: 'default bindings' },
   { from: join(CASTS, 'bnd_arrow.txt'), to: join(ASSETS, 'keybindings/arrow.txt'), why: 'arrow bindings' },
