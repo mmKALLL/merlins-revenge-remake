@@ -13,13 +13,28 @@ export interface AudioSettings {
 }
 
 const SETTINGS_KEY = 'mr-remake.audio'
+/** The master volume setting runs 0-100 (percent). */
+const MASTER_VOLUME_MAX = 100
+/** Key or pointer presses that resume a suspended AudioContext (browsers need a user gesture). */
+const UNLOCK_EVENTS = ['keydown', 'pointerdown'] as const
 /** Music change on entering a room: fade the old track out, pause, then start the new one (user request). */
 const MUSIC_FADE_S = 1
 const MUSIC_GAP_S = 0.5
 
 const DEFAULT_SETTINGS: AudioSettings = { music: true, effects: true, volume: 70 }
 
-export function loadAudioSettings(): AudioSettings {
+const clampMasterVolume = (v: number): number => Math.max(0, Math.min(MASTER_VOLUME_MAX, v))
+
+/** Stops a source, ignoring one that has already stopped. */
+function stopQuietly(src: AudioBufferSourceNode, when?: number): void {
+  try {
+    src.stop(when)
+  } catch {
+    // already stopped
+  }
+}
+
+function loadAudioSettings(): AudioSettings {
   try {
     const v: unknown = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')
     if (typeof v === 'object' && v !== null) {
@@ -27,7 +42,7 @@ export function loadAudioSettings(): AudioSettings {
       return {
         music: typeof o['music'] === 'boolean' ? o['music'] : DEFAULT_SETTINGS.music,
         effects: typeof o['effects'] === 'boolean' ? o['effects'] : DEFAULT_SETTINGS.effects,
-        volume: typeof o['volume'] === 'number' ? Math.max(0, Math.min(100, o['volume'])) : DEFAULT_SETTINGS.volume,
+        volume: typeof o['volume'] === 'number' ? clampMasterVolume(o['volume']) : DEFAULT_SETTINGS.volume,
       }
     }
   } catch {
@@ -108,12 +123,12 @@ export class AudioEngine {
     if (!ctx) return
     const unlock = () => {
       if (ctx.state === 'running') {
-        for (const type of ['keydown', 'pointerdown'] as const) target.removeEventListener(type, unlock, true)
+        for (const type of UNLOCK_EVENTS) target.removeEventListener(type, unlock, true)
         return
       }
       void ctx.resume()
     }
-    for (const type of ['keydown', 'pointerdown'] as const) target.addEventListener(type, unlock, true)
+    for (const type of UNLOCK_EVENTS) target.addEventListener(type, unlock, true)
   }
 
   /** Forwards one tick's sim events. */
@@ -168,7 +183,7 @@ export class AudioEngine {
   }
 
   setVolume(volume: number): void {
-    this.update({ volume: Math.max(0, Math.min(100, volume)) })
+    this.update({ volume: clampMasterVolume(volume) })
     this.applyVolume()
   }
 
@@ -178,17 +193,11 @@ export class AudioEngine {
   }
 
   private applyVolume(): void {
-    if (this.master) this.master.gain.value = this.settings.volume / 100
+    if (this.master) this.master.gain.value = this.settings.volume / MASTER_VOLUME_MAX
   }
 
   private stopEffects(): void {
-    for (const src of this.voices) {
-      try {
-        src.stop()
-      } catch {
-        // already stopped
-      }
-    }
+    for (const src of this.voices) stopQuietly(src)
     this.voices.clear()
   }
 
@@ -222,16 +231,21 @@ export class AudioEngine {
     void this.musicBuffer(desired).then((buf) => {
       if (token !== this.musicToken) return // superseded while loading
       this.pending = null
-      if (!buf || !this.musicBus) return
-      const gain = ctx.createGain()
-      gain.connect(this.musicBus)
-      const src = ctx.createBufferSource()
-      src.buffer = buf
-      src.loop = true // remake choice: the original plays each track once
-      src.connect(gain)
-      src.start(Math.max(ctx.currentTime, startAt))
-      this.playing = { track: desired, source: src, gain }
+      if (buf) this.startTrack(ctx, desired, buf, startAt)
     })
+  }
+
+  /** Starts `track` looping on the music bus at `startAt` (or now, if that has passed). */
+  private startTrack(ctx: AudioContext, track: string, buf: AudioBuffer, startAt: number): void {
+    if (!this.musicBus) return
+    const gain = ctx.createGain()
+    gain.connect(this.musicBus)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.loop = true // remake choice: the original plays each track once
+    src.connect(gain)
+    src.start(Math.max(ctx.currentTime, startAt))
+    this.playing = { track, source: src, gain }
   }
 
   private cancelPending(): void {
@@ -255,11 +269,7 @@ export class AudioEngine {
       this.fading.delete(entry)
       old.gain.disconnect()
     }
-    try {
-      old.source.stop(now + MUSIC_FADE_S)
-    } catch {
-      // already stopped
-    }
+    stopQuietly(old.source, now + MUSIC_FADE_S)
   }
 
   /** Stops the playing track and any fading ones at once. */
@@ -269,11 +279,7 @@ export class AudioEngine {
     this.fading.clear()
     this.playing = null
     for (const m of all) {
-      try {
-        m.source.stop()
-      } catch {
-        // already stopped
-      }
+      stopQuietly(m.source)
       m.source.disconnect()
       m.gain.disconnect()
     }
