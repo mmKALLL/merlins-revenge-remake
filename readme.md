@@ -22,6 +22,7 @@ Controls:
 - Hold Space or the left mouse button to charge the energy blast; releasing fires it at the mouse.
 - Hold E to charge and fire at the nearest enemy, F to fire 16 px short of it.
 - The bar at the bottom left is Merlin's energy; the map restarts when he dies.
+- The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom) or "fit", the largest whole multiple that fits the window. The choice is remembered.
 
 ### Tuning
 

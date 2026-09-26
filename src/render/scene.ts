@@ -17,6 +17,10 @@ export interface RenderConfig {
   debug: boolean
 }
 
+/** CSS pixels per game pixel, or 'fit': the largest integer multiple that fits the window. */
+export type ZoomSetting = 1 | 2 | 3 | 4 | 'fit'
+export const ZOOM_SETTINGS: readonly ZoomSetting[] = [1, 2, 3, 4, 'fit']
+
 const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActive']
 
 /** Engine draw layers (actor data `#layerZ`) -> z within the actor container; unknown layers draw with objects. */
@@ -78,6 +82,9 @@ export class Scene {
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
+  private zoom: ZoomSetting = 2
+  /** Window height (CSS px) kept free below the canvas in 'fit' mode, e.g. for the zoom buttons. */
+  fitReserve = 0
 
   constructor(
     private cfg: RenderConfig,
@@ -131,8 +138,19 @@ export class Scene {
     this.app.destroy()
   }
 
+  setZoom(zoom: ZoomSetting): void {
+    this.zoom = zoom
+    this.applyZoom()
+  }
+
+  /**
+   * Fixed multipliers are CSS pixels, so browser zoom scales the canvas on top of them;
+   * 'fit' fills the window instead.
+   */
   applyZoom(): void {
-    const z = chooseZoom(this.cfg.logical, { w: window.innerWidth, h: window.innerHeight })
+    const z = this.zoom === 'fit'
+      ? chooseZoom(this.cfg.logical, { w: window.innerWidth, h: window.innerHeight - this.fitReserve })
+      : this.zoom
     this.app.canvas.style.width = `${this.cfg.logical.w * z}px`
     this.app.canvas.style.height = `${this.cfg.logical.h * z}px`
   }

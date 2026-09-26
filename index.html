@@ -4,12 +4,22 @@
     <meta charset="utf-8" />
     <title>Merlin's Revenge Remake</title>
     <style>
-      html, body { margin: 0; background: #000; height: 100%; overflow: hidden; }
-      body { display: grid; place-items: center; }
+      html, body { margin: 0; background: #000; }
+      /* margin: auto centres #game but lets it scroll instead of clipping when it is larger than the window */
+      body { display: flex; min-height: 100vh; }
+      #game { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; }
       canvas { display: block; image-rendering: pixelated; }
+      #zoom { display: flex; gap: 4px; font: 12px monospace; }
+      #zoom button {
+        font: inherit; color: #aaa; background: #111; border: 1px solid #444; border-radius: 3px;
+        padding: 2px 8px; cursor: pointer;
+      }
+      #zoom button:hover { color: #fff; border-color: #888; }
+      #zoom button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
     </style>
   </head>
   <body>
+    <div id="game"><div id="zoom" role="group" aria-label="Pixel size"></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

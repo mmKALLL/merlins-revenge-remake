@@ -2,7 +2,7 @@ import { needsSprite } from './mr-open/mr-actor-data'
 import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import type { Vec } from './mr-open/mr-geometry'
-import { Scene, type RenderConfig } from './render/scene'
+import { Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
@@ -20,6 +20,56 @@ const cfg: RenderConfig = {
   debug: params.get('debug') !== '0',
 }
 
+const ZOOM_KEY = 'mr-remake.zoom'
+
+function loadZoom(): ZoomSetting {
+  try {
+    const v = localStorage.getItem(ZOOM_KEY)
+    const z = ZOOM_SETTINGS.find((s) => String(s) === v)
+    if (z !== undefined) return z
+  } catch {
+    // storage blocked: use the default
+  }
+  return 2
+}
+
+function saveZoom(z: ZoomSetting): void {
+  try {
+    localStorage.setItem(ZOOM_KEY, String(z))
+  } catch {
+    // storage blocked: the choice lasts for this page only
+  }
+}
+
+/** The 1x..4x / fit buttons below the canvas. */
+function setupZoomButtons(scene: Scene, row: HTMLElement): void {
+  // keep clicks on the buttons away from the game's mouse input (window listeners) and keyboard focus
+  for (const type of ['mousedown', 'mouseup', 'pointerdown', 'pointerup'] as const) {
+    row.addEventListener(type, (e) => {
+      e.stopPropagation()
+      if (type === 'mousedown') e.preventDefault()
+    })
+  }
+  const buttons = ZOOM_SETTINGS.map((z) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = z === 'fit' ? 'fit' : `${z}x`
+    b.title = z === 'fit' ? 'Largest whole multiple that fits the window' : `${z} screen pixels per game pixel`
+    b.addEventListener('click', () => select(z))
+    row.appendChild(b)
+    return [z, b] as const
+  })
+  const select = (z: ZoomSetting) => {
+    for (const [bz, b] of buttons) b.setAttribute('aria-pressed', String(bz === z))
+    saveZoom(z)
+    scene.setZoom(z)
+  }
+  const game = row.parentElement
+  const gap = game ? parseFloat(getComputedStyle(game).rowGap) || 0 : 0
+  const pad = game ? parseFloat(getComputedStyle(game).paddingTop) + parseFloat(getComputedStyle(game).paddingBottom) : 0
+  scene.fitReserve = row.offsetHeight + gap + (pad || 0)
+  select(loadZoom())
+}
 
 async function main(): Promise<void> {
   const map = await loadMap(mapName)
@@ -53,7 +103,13 @@ async function main(): Promise<void> {
   let runSeed = seed
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs)
-  await scene.init(document.body)
+  const game = document.getElementById('game') ?? document.body
+  const zoomRow = document.getElementById('zoom')
+  await scene.init(game)
+  if (zoomRow) {
+    game.appendChild(zoomRow) // below the canvas
+    setupZoomButtons(scene, zoomRow)
+  }
 
   const input = new InputTracker()
   input.attach(window)
