@@ -43,3 +43,12 @@ bitmaps.
 
 Only the 32-bit and 16-bit members decode with correct colours; the older 8-bit
 `tlk_merlin{Passive,Active,Objects}` come out with the wrong palette and are not used.
+
+## Engine movie: sounds, music and enemy bitmaps (2026-09-27)
+
+`assets/sounds/*.wav` (32 effects, PCM), `assets/music/*.mp3` (8 tracks, original MP3 data) and
+`assets/extracted/bitmaps/` (90 enemy/hut/spell frames with `regpoints.tsv`) were extracted from
+`merlin_engine_76_speed.dir` with the scripts in this folder. `walk.py` follows the file's own chunk
+index (drxtract's sequential walk fails on this file); `convert.py` writes the sounds, including
+IMA-ADPCM members decoded to PCM; `dump_bitmaps.py` writes the bitmaps. Details and the full file
+list: `docs/notes/sound-extraction.md`. How the engine plays them: `docs/notes/engine-mechanics-sound.md`.
