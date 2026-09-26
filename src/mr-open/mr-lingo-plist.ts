@@ -19,7 +19,9 @@ export function isSymbol(v: LingoValue, name?: string): v is LingoSymbol {
 export function parseLingo(text: string): LingoValue {
   const p = new Parser(text)
   const v = p.value()
-  p.skipWs()
+  // The original map files end with one or more unbalanced ']' after the root
+  // list (e.g. tvsDemo.txt); Lingo's value() tolerates them, so do we.
+  p.skipTrailingBrackets()
   if (!p.atEnd()) p.fail('trailing characters')
   return v
 }
@@ -38,6 +40,14 @@ class Parser {
 
   skipWs(): void {
     while (!this.atEnd() && /\s/.test(this.s[this.i]!)) this.i++
+  }
+
+  skipTrailingBrackets(): void {
+    this.skipWs()
+    while (this.peek() === ']') {
+      this.i++
+      this.skipWs()
+    }
   }
 
   private peek(): string {

@@ -28,6 +28,11 @@ describe('parseLingo', () => {
     expect(parseLingo('[\n#up:13,\n#down: 1\n]')).toEqual({ up: 13, down: 1 })
   })
 
+  it('tolerates stray closing brackets after the root value, as value() does', () => {
+    expect(parseLingo('[#a: 1]]\n')).toEqual({ a: 1 })
+    expect(() => parseLingo('[#a: 1] x')).toThrow(/offset 8.*trailing/)
+  })
+
   it('reports the offset of a syntax error', () => {
     expect(() => parseLingo('[#a: ]')).toThrow(/offset 5/)
   })
