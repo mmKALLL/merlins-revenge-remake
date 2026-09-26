@@ -1,0 +1,13 @@
+# Secrets
+.env
+.env.*
+
+# Original Director archive (not redistributed)
+assets-mr-original/
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
