@@ -126,9 +126,11 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
 }
 
 /**
- * 4. Movement of every non-player actor. Walking characters keep the AI-set velocity (no friction,
- * modMoveToLoc overwrites it each tick); reeling, dying and landing ones and bullets decay by their
- * friction. Spells fly free and bullets ignore tiles too (gBulletsCollideWithBackground off, as the
+ * 4. Movement of every non-player actor. Every velocity decays by the actor's friction before the
+ * move (objMoveXY.update). That includes walkers: modMoveToLoc sets a walkSpeed vector, but the
+ * same objMoveXY.update then takes the walking friction (50 %) off it before moving, so a goblin
+ * with walkSpeed 4 covers 2 px/tick; the AI overwrites the velocity again next tick. Reeling,
+ * dying and landing characters and bullets decay by their current friction the same way. Spells fly free and bullets ignore tiles too (gBulletsCollideWithBackground off, as the
  * original plays). Characters collide with tiles: the axis pushed out loses its speed
  * (objGameObject.collisionWall*: setVectX(0), collisionCeiling/Platform: setVectY(0)), a reeling
  * one taking wall damage first (objCPUCharacter.collisionWall/collisionVertical), and they stay
@@ -146,8 +148,7 @@ function stepMovement(t: Tick): void {
       continue
     }
     const character = isCharacter(s, a)
-    const walking = character && (a.mode === 'walk' || a.mode === 'stand' || a.mode === 'weaponMelee' || a.mode === 'weaponRanged')
-    let vel = walking ? a.vel : stepVelocity(a.vel, { x: 0, y: 0 }, 0, a.frictionPercent)
+    let vel = stepVelocity(a.vel, { x: 0, y: 0 }, 0, a.frictionPercent)
     const before: Vec = { x: a.pos.x + vel.x, y: a.pos.y + vel.y }
     let loc = before
     if (character) {

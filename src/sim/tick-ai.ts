@@ -1,6 +1,6 @@
 // CPU character AI step (combat notes §3): one `decide` per living CPU character in a walking
 // mode, acting on the decision: retarget via teamMaster.findTarget, walk via modPathFinding /
-// modMoveToLoc (the walk velocity overwrites the actor's velocity), stop in reach, or start an
+// modMoveToLoc (the walk velocity overwrites the actor's velocity; friction applies in the move step), stop in reach, or start an
 // attack strip. The #attack and #dazed AI modes are driven by the animation and reel state in
 // tick-combat.ts.
 import { rectAt } from '../mr-open/mr-collision'

@@ -39,7 +39,7 @@ export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathSta
 
 /**
  * One tick of findPathToLoc + modMoveToLoc.update. Returns the velocity to set (it overwrites the
- * walker's velocity; friction does not apply to walking) and the new path state.
+ * walker's velocity; objMoveXY friction then halves it before the move, see tick.ts stepMovement) and the new path state.
  * `movedLastTick` is whether the previous tick's actual displacement was non-zero (pMoveXY
  * getMoveVect): a move blocked by tiles, or standing on the goal or waypoint, yields (0,0), which is
  * what stalls the path. As in updateBeeline / updateScenic, the walker heads for the current mode's

@@ -50,7 +50,7 @@ export interface ActorDef {
   frictionReel: Vec // percent of speed lost per tick while reeling from a hit
   inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
-  walkSpeed: number // AI walking speed in px per tick (velocity is overwritten each tick)
+  walkSpeed: number // AI walk vector length in px per tick, set each tick before friction (50 % friction -> half of it moved)
   walkAcceleration: number // player acceleration per tick per axis while a key is held
   navModeAcceleration: number // player walk acceleration in a cleared room (modNavMode); 0 = no nav mode
   strength: number // scales melee push and fullstrength bullet speed

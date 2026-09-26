@@ -102,26 +102,27 @@ function runUntil(s: SimState, pred: (s: SimState) => boolean, max: number, inpu
 const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, moveTarget: null, chargeKind: null } }
 
 describe('warrior melee (combat notes §3-4, §6)', () => {
-  it('beelines at walkSpeed 4 to the strike position, then its sword hit pushes and damages the player', () => {
+  it('beelines at walkSpeed 4 less 50 % friction (2 px/tick) to the strike position, then its sword hit pushes and damages the player', () => {
     let { s, enemyId } = setup(WARRIOR, { x: 300, y: 144 })
     expect(s.exitsOpen).toBe(false)
     expect(actor(s, enemyId)!.ai.mode).toBe('findTarget')
-    // Beeline: x decreases by exactly 4 per tick, facing left, toward idealAttackLoc (115,144).
-    for (let i = 1; i <= 44; i++) {
+    // Beeline toward idealAttackLoc (115,144), facing left: modMoveToLoc sets a 4 px vector and
+    // objMoveXY.update takes the 50 % walking friction off it before moving, so x drops 2 per tick.
+    for (let i = 1; i <= 89; i++) {
       s = stepSim(s, NO_INPUT)
       const g = actor(s, enemyId)!
-      expect(g.pos).toEqual({ x: 300 - 4 * i, y: 144 })
+      expect(g.pos).toEqual({ x: 300 - 2 * i, y: 144 })
       expect(g.facingLeft).toBe(true)
       expect(g.ai.mode).toBe('moveToAttack')
       expect(g.ai.targetId).toBe(s.playerId)
       expect(g.anim).toBe('walk')
     }
-    // Tick 45 reaches x = 120. The plan's "15 px on the near side" is the ideal loc (115); the first
+    // Tick 90 reaches x = 120. The plan's "15 px on the near side" is the ideal loc (115); the first
     // reachable x whose left strike point (x - 15) falls inside the player's collision rect
-    // [93, 107) is 120 (from 124 the strike point 109 misses), so it stops 20 px away.
+    // [93, 107) is 120 (from 122 the strike point 107 misses), so it stops 20 px away.
     s = stepSim(s, NO_INPUT)
     expect(actor(s, enemyId)!.pos.x).toBe(120)
-    // Tick 46: in reach, cooldown ready (sword cooldown 0) -> weaponMelee starts from frame 0.
+    // Tick 91: in reach, cooldown ready (sword cooldown 0) -> weaponMelee starts from frame 0.
     s = stepSim(s, NO_INPUT)
     let g = actor(s, enemyId)!
     expect(g.mode).toBe('weaponMelee')
@@ -268,7 +269,7 @@ describe('player hit while charging (objPlayerMerlinCharacter.takeHit, objAiAtta
   /** Charges from tick 50 until the warrior's sword lands (tick 58); returns the hit state. */
   function hitWhileCharging(): { s: SimState; spellId: number; charge: number } {
     let { s } = setup(WARRIOR, { x: 300, y: 144 })
-    s = run(s, 50)
+    s = run(s, 95)
     const before = playerOf(s).energy
     let ticks: number
     ;[s, ticks] = runUntil(s, (t) => playerOf(t).energy < before, 20, holdSpace)
@@ -357,8 +358,8 @@ describe('death and exits (combat notes §7)', () => {
     let { s } = setup(WARRIOR, { x: 300, y: 144 })
     s = { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: 1 } : a)) }
     let ticks: number
-    ;[s, ticks] = runUntil(s, (t) => playerOf(t).mode === 'die', 80)
-    expect(ticks).toBe(58)
+    ;[s, ticks] = runUntil(s, (t) => playerOf(t).mode === 'die', 150)
+    expect(ticks).toBe(103)
     expect(s.events).toContainEqual({ kind: 'died', id: s.playerId })
     expect(s.restartRequested).toBe(false)
     s = run(s, PLAYER_DEATH_TICKS - 1)
