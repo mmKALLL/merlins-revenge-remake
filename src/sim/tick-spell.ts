@@ -19,7 +19,7 @@ export const EXPLODE_TICKS = 8
 /** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
 const AHEAD_PX = 100
 /** The push-back shot (Space with the F toggle on) lands this many px short of the nearest hostile, toward the player. */
-const SHORT_PX = 20
+const SHORT_PX = 18
 
 /** The input flag that holds each kind of charge; checked in this order when a charge starts. */
 const CHARGE_INPUT: Record<ChargeKind, 'chargeHeld' | 'shootNearest' | 'shootShort'> = {
