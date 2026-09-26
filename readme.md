@@ -20,7 +20,7 @@ Controls:
 
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
-- Hold Space to charge and fire at the nearest enemy, F to fire 16 px short of it.
+- Hold Space to charge and fire at the nearest enemy. Press F to toggle Space to a push-back shot that lands 20 px short of the nearest enemy; the current mode shows below the game.
 - The bar at the bottom left is Merlin's energy; the map restarts when he dies.
 - The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom) or "fit", the largest whole multiple that fits the window. The choice is remembered.
 - The list next to them shows every converted map with its size in rooms; picking one reloads the page with that `?map=`, keeping the other parameters.

@@ -11,6 +11,7 @@
       canvas { display: block; image-rendering: pixelated; }
       #controls { display: flex; gap: 16px; align-items: flex-start; font: 12px monospace; }
       #zoom { display: flex; gap: 4px; }
+      #space-mode { color: #aaa; font: 12px monospace; }
       #zoom button {
         font: inherit; color: #aaa; background: #111; border: 1px solid #444; border-radius: 3px;
         padding: 2px 8px; cursor: pointer;
@@ -30,6 +31,7 @@
     <div id="game">
       <div id="controls">
         <div id="zoom" role="group" aria-label="Pixel size"></div>
+        <div id="space-mode" aria-live="polite"></div>
         <ul id="maps" aria-label="Maps"></ul>
       </div>
     </div>

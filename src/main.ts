@@ -149,6 +149,14 @@ async function main(): Promise<void> {
 
   const input = new InputTracker()
   input.attach(window)
+  // shows what Space fires at; F toggles it
+  const spaceMode = document.getElementById('space-mode')
+  let shownShort: boolean | null = null
+  const showSpaceMode = () => {
+    if (!spaceMode || shownShort === input.spaceAimsShort) return
+    shownShort = input.spaceAimsShort
+    spaceMode.textContent = `Space: ${shownShort ? 'push-back shot' : 'nearest enemy'} (F to toggle)`
+  }
 
   // Pointer position on the canvas in CSS pixels; converted to world pixels each frame.
   let pointer: Vec | null = null
@@ -185,6 +193,7 @@ async function main(): Promise<void> {
       }
     }
     scene.draw(sim, acc / TICK_MS, fps)
+    showSpaceMode()
     requestAnimationFrame(frame)
   }
   requestAnimationFrame(frame)

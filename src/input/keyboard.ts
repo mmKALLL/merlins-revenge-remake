@@ -1,7 +1,7 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
-// E or the left button charges and fires at the mouse position; Space charges and fires at the
-// nearest enemy, F 16 px short of it.
+// E or the left button charges and fires at the mouse position. Space charges and fires at the
+// nearest enemy, or short of it (a push-back shot) while the F toggle is on.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -16,8 +16,14 @@ export class InputTracker {
   private held = new Set<string>()
   private mouseWorld: Vec | null = null
   private mouseDown = false
+  private spaceShort = false // F toggles Space between the nearest enemy and the push-back shot
 
-  keyDown(code: string): void { this.held.add(code) }
+  keyDown(code: string): void {
+    if (code === 'KeyF' && !this.held.has('KeyF')) this.spaceShort = !this.spaceShort
+    this.held.add(code)
+  }
+  /** Whether Space currently fires the push-back shot (toggled with F). */
+  get spaceAimsShort(): boolean { return this.spaceShort }
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
   setMouseButton(down: boolean): void { this.mouseDown = down }
@@ -40,8 +46,8 @@ export class InputTracker {
       move: { x: Math.sign(x), y: Math.sign(y) },
       mouseWorld: this.mouseWorld,
       chargeHeld: this.held.has('KeyE') || this.mouseDown,
-      shootNearest: this.held.has('Space'),
-      shootShort: this.held.has('KeyF'),
+      shootNearest: this.held.has('Space') && !this.spaceShort,
+      shootShort: this.held.has('Space') && this.spaceShort,
     }
   }
 

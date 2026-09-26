@@ -13,7 +13,7 @@ describe('InputTracker', () => {
     expect(t.snapshot().move).toEqual({ x: 0, y: 0 })
   })
 
-  it('maps E and left click to mouse aim, Space to nearest enemy, F to short', () => {
+  it('maps E and left click to mouse aim, Space to nearest enemy; F toggles Space to the push-back shot', () => {
     const t = new InputTracker()
     t.setMouseButton(true)
     expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
@@ -24,8 +24,18 @@ describe('InputTracker', () => {
     t.keyDown('Space')
     expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true, shootShort: false })
     t.keyUp('Space')
+    // F alone fires nothing; it flips Space's mode once per press (key repeat does not re-toggle)
     t.keyDown('KeyF')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: true })
+    t.keyDown('KeyF')
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: false })
+    t.keyUp('KeyF')
+    t.keyDown('Space')
+    expect(t.snapshot()).toMatchObject({ shootNearest: false, shootShort: true })
+    t.keyUp('Space')
+    t.keyDown('KeyF')
+    t.keyUp('KeyF')
+    t.keyDown('Space')
+    expect(t.snapshot()).toMatchObject({ shootNearest: true, shootShort: false })
   })
 
   it('releaseAll drops held keys and the mouse button', () => {

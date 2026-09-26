@@ -26,8 +26,8 @@ export const EXPLODE_TICKS = 8
 export const PLAYER_DEATH_TICKS = 30
 /** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
 const AHEAD_PX = 100
-/** F fires this many px short of the nearest hostile. */
-const SHORT_PX = 16
+/** The push-back shot (Space with the F toggle on) lands this many px short of the nearest hostile, toward the player. */
+const SHORT_PX = 20
 
 const isHeld = (input: InputSnapshot, kind: ChargeKind | null): boolean =>
   kind === 'mouse' ? input.chargeHeld : kind === 'nearest' ? input.shootNearest : kind === 'short' ? input.shootShort : false
