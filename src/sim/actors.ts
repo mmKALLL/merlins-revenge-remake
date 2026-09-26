@@ -155,7 +155,10 @@ export function collisionRectFor(s: SimState, actor: ActorState): CollisionRect 
   const anim = def.objType === 'objBullet' ? actor.anim : initialAnim(s, def)
   const strip = stripFor(s, { ...actor, anim })
   if (!strip) throw new Error(`actor ${actor.id} (${actor.def}) has no animation strips for "${anim}"`)
-  return collisionRectForFrame(strip.w, strip.h)
+  const r = collisionRectForFrame(strip.w, strip.h)
+  // remake: collisionRectScale shrinks or grows the rect about the reg point (goblinArrow 0.5)
+  const k = def.collisionRectScale
+  return k === 1 ? r : { left: r.left * k, top: r.top * k, right: r.right * k, bottom: r.bottom * k }
 }
 
 /** Sprite bounding rect at the actor's position (objGameObject.getRect / SpriteGetRect), from the current strip's frame size. */

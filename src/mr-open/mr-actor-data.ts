@@ -64,6 +64,7 @@ export interface ActorDef {
   weaponTechnique: number // modWeaponTechnique rating; negative values lengthen attack strips
   weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
   experienceImWorth: number // experience awarded on death (never granted in this engine build)
+  collisionRectScale: number // remake: scales the collision rect about the reg point (1 = engine size)
   attack: AttackDef // the installed current attack (from weapon, or the natural attack)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
@@ -106,6 +107,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     strength: 1, agility: 1, dexterity: 1, eyestrain: 0, // act_character fallbacks
     mana_burst: 1, mana_capacity: 10, mana_flow: 1, mana_regeneration: 1, // act_character fallbacks
     experienceImWorth: 0, // objGameObject
+    collisionRectScale: 1, // remake addition: engine-sized rect
     weaponTechnique: 0, // modWeaponTechnique.addModParams
     startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
   },
@@ -120,7 +122,7 @@ for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit'
   'startOffset', 'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'walkSpeed',
   'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
   'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
-  'teamName', 'category', 'hates', 'friends']) {
+  'teamName', 'category', 'hates', 'friends', 'collisionRectScale']) {
   CANONICAL.set(k.toLowerCase(), k)
 }
 export function canonicalKey(k: string): string {
@@ -301,7 +303,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       walkAcceleration: num(r, 'walkAcceleration', ctx), navModeAcceleration: num(r, 'navModeAcceleration', ctx), strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx),
       dexterity: num(r, 'dexterity', ctx), eyestrain: num(r, 'eyestrain', ctx), mana_burst: num(r, 'mana_burst', ctx),
       mana_capacity: num(r, 'mana_capacity', ctx), mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
-      weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
+      weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
+      collisionRectScale: num(r, 'collisionRectScale', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }
   return out
