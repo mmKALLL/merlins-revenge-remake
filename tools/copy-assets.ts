@@ -54,6 +54,15 @@ const actors: [name: string, why: string][] = [
   ['bullet', 'bullet base'],
   ['energyBlast', 'Merlin spell'],
   ['spell', 'spell base'],
+  // sound slice: music tiles (objMusic; not drawn, they pick the room's track)
+  ['game', 'music tile base (team #game)'],
+  ['music', 'music tile base (objMusic)'],
+  ['musicBaroqueRock', 'music tile'],
+  ['musicBaroqueRockTechno', 'music tile'],
+  ['musicElectronicMerlin', 'music tile'],
+  ['musicLastStand', 'music tile'],
+  ['musicWoodsOfEvil', 'music tile'],
+  ['musicOff', 'music tile: stops the music'],
 ]
 for (const [name, why] of actors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: `actor: ${why}` })

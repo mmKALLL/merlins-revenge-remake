@@ -7,6 +7,7 @@ const base: AttackDef = {
   reach: 25, cooldown: 0, power: { x: 0.7, y: 0 }, damageMultiplier: 2, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4,
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
+  volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] },
 }
 const sword: AttackDef = base
 const bow: AttackDef = { ...base, name: 'goblinBow', type: 'ranged', animType: 'weaponRanged', animFrame: 21, collisionLoc: { x: 0, y: -2 }, reach: 100, cooldown: 200, power: 0.5, firingType: 'fullstrength', bullet: 'goblinArrow' }

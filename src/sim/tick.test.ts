@@ -66,8 +66,9 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
       reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional',
       hits: ['teamMembers'], chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1,
       chargeSize: 1, chargeExplodeFactor: 4, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
-      sound: null, releaseSound: null, explodeSound: null,
+      sound: null, releaseSound: null, explodeSound: null, volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] },
     },
+    takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null,
     raw: {},
     ...over,
   }

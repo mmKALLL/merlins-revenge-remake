@@ -1,10 +1,11 @@
 // Converts ./assets into ./public/generated for the browser. Run: pnpm assets:convert
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { resolveActors, type ActorDef, type Plain, needsSprite } from '../src/mr-open/mr-actor-data'
 import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
+import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName } from './atlas'
@@ -187,6 +188,44 @@ function checkActorAtlases(actors: Record<string, ActorDef>, spriteNames: Set<st
   }
 }
 
+/**
+ * assets/sounds/*.wav and assets/music/*.mp3 -> public/generated/audio/, plus index.json
+ * { sounds, music } (names without extension). Warns (does not fail) when actor data names a
+ * sound or track that has no file.
+ */
+function convertAudio(actors: Record<string, ActorDef>): void {
+  const out = join(OUT, 'audio')
+  mkdirSync(out, { recursive: true })
+  const copyAll = (sub: string, ext: string): string[] => {
+    const names: string[] = []
+    for (const f of sortedDir(join(ASSETS, sub)).filter((n) => n.endsWith(ext))) {
+      copyFileSync(join(ASSETS, sub, f), join(out, f))
+      names.push(f.slice(0, -ext.length))
+    }
+    return names
+  }
+  const sounds = copyAll('sounds', '.wav')
+  const music = copyAll('music', '.mp3')
+  writeFileSync(join(out, 'index.json'), JSON.stringify({ sounds, music }))
+  console.log(`audio: ${sounds.length} sounds, ${music.length} music tracks`)
+  const soundSet = new Set(sounds)
+  const musicSet = new Set(music)
+  const missing: string[] = []
+  const want = (name: string | null, set: Set<string>, where: string) => {
+    if (name !== null && !set.has(name)) missing.push(`${where} -> ${name}`)
+  }
+  want(ROOM_CLEARED_SOUND, soundSet, 'objRoom.pRoomClearedSound')
+  for (const a of Object.values(actors)) {
+    want(a.attack.sound, soundSet, `${a.key}.attack.sound`)
+    want(a.attack.releaseSound, soundSet, `${a.key}.attack.releaseSound`)
+    want(a.attack.explodeSound, soundSet, `${a.key}.attack.explodeSound`)
+    want(a.takeHitSound, soundSet, `${a.key}.takeHitSound`)
+    want(a.dieSound, soundSet, `${a.key}.dieSound`)
+    want(a.musicTrack, musicSet, `${a.key}.musicName`)
+  }
+  if (missing.length > 0) console.warn(`WARNING: sounds referenced without a file in assets/sounds or assets/music: ${missing.join(', ')}`)
+}
+
 function readPng(path: string): RgbaImage {
   const png = PNG.sync.read(readFileSync(path))
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
@@ -208,3 +247,4 @@ convertTileSets(maxTileIndexByTileSet(maps))
 const actors = convertActors()
 convertTeams()
 checkActorAtlases(actors, convertSprites())
+convertAudio(actors)

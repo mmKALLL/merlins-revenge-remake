@@ -7,6 +7,7 @@ const energyBlast: AttackDef = {
   reach: 9999, cooldown: 30, power: 0.75, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4,
   chargeColour: { r: 255, g: 200, b: 0 }, spellSpeed: 20, limitMagic: false, sound: null, releaseSound: 'spell_release', explodeSound: 'spell_explode',
+  volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] },
 }
 const player = { key: 'player', mana_capacity: 10, mana_burst: 1, mana_flow: 1, mana_regeneration: 30, attack: energyBlast } as ActorDef
 

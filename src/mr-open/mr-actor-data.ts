@@ -3,6 +3,7 @@
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
+import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'none'
 
@@ -34,6 +35,8 @@ export interface AttackDef {
   sound: string | null // sound played on attack
   releaseSound: string | null // sound on spell release
   explodeSound: string | null // sound on spell impact
+  volume: number // 0-255 volume of `sound` for melee and ranged attacks (structAttack #volume, default 150)
+  chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
 }
 
 export interface ActorDef {
@@ -73,6 +76,12 @@ export interface ActorDef {
   projectileSpreadDeg: number // remake: fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
   knockbackSpreadDeg: number // remake: this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   collisionRectScale: number // remake: scales the collision rect about the reg point (1 = engine size)
+  takeHitSound: string | null // modEnergy.loseEnergy plays it on every energy loss (the player's wizard_hit)
+  takeHitVolume: number // 0-255; modEnergy #takeHitVolume, #none -> 150 (the player's #takeHitSoundVolume is never read)
+  dieSound: string | null // objCharacter.goMode(#die)
+  dieVolume: number // 0-255; objCharacter #dieVolume, default 100
+  /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
+  musicTrack: string | null
   attack: AttackDef // the installed current attack (from weapon, or the natural attack)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
@@ -99,7 +108,7 @@ const ATTACK_DEFAULTS = {
   animFrame: 2, animType: 'none', bullet: null, chargeColour: { r: 255, g: 255, b: 255 }, chargeExplodeFactor: 4,
   chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSize: 1, chargeSpeed: 1, chargeStart: 1,
   collisionLoc: { x: 25, y: 0 }, idealAttackLoc: 'collisionLoc', cooldown: 0, damageMultiplier: 1,
-  explodeSound: null, firingType: 'proportional', hits: ['teamMembers'], limitMagic: false, name: 'none',
+  explodeSound: null, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP, volume: DEFAULT_VOLUME, firingType: 'proportional', hits: ['teamMembers'], limitMagic: false, name: 'none',
   power: { x: 5, y: -1 }, reach: 25, releaseSound: null, sound: null, spellSpeed: 2, type: 'auto',
 } as const
 
@@ -120,6 +129,8 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // remake angular spread, off in the engine
     detourChance: 0.15, detourMoveTicks: 90, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // remake spreading detour
     weaponTechnique: 0, // modWeaponTechnique.addModParams
+    takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
+    dieSound: 'none', dieVolume: 100, // objCharacter.addModParams (the only dying objects ported)
     startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
   },
   objCharacter: { energyRecoverDelay: 30 },
@@ -134,7 +145,8 @@ for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit'
   'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
   'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
   'teamName', 'category', 'hates', 'friends', 'collisionRectScale', 'pathFindingStallTime',
-  'detourChance', 'detourMoveTicks', 'detourPauseTicks', 'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg']) {
+  'detourChance', 'detourMoveTicks', 'detourPauseTicks', 'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
+  'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName']) {
   CANONICAL.set(k.toLowerCase(), k)
 }
 export function canonicalKey(k: string): string {
@@ -241,6 +253,20 @@ function rgb(obj: Plain, field: string, ctx: string): { r: number; g: number; b:
   return bad(ctx, field, 'an rgb colour', v)
 }
 function strOrNull(v: unknown): string | null { return typeof v === 'string' && v !== 'none' ? v : null }
+/** A 0-255 volume; #none (or missing) means soundMaster's default (calcVolumeDefault). */
+function volumeOf(obj: Plain, field: string, ctx: string, fallback: number = DEFAULT_VOLUME): number {
+  const v = obj[field]
+  if (v === undefined || v === null || v === 'none') return fallback
+  return typeof v === 'number' ? v : bad(ctx, field, 'a volume (number or #none)', v)
+}
+function pair(v: unknown): v is [number, number] {
+  return Array.isArray(v) && v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number'
+}
+function chargeVolumeMap(obj: Plain, field: string, ctx: string): ChargeVolumeMap {
+  const v = obj[field]
+  if (isPlain(v) && pair(v['charge']) && pair(v['vol'])) return { charge: [v['charge'][0], v['charge'][1]], vol: [v['vol'][0], v['vol'][1]] }
+  return bad(ctx, field, 'a [#charge: [a,b], #vol: [c,d]] list', v)
+}
 
 function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
   const a: Plain = { ...ATTACK_DEFAULTS, ...(rawAttack ?? {}) }
@@ -263,6 +289,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     chargeExplodeFactor: num(a, 'chargeExplodeFactor', ctx), chargeColour: rgb(a, 'chargeColour', ctx),
     spellSpeed: num(a, 'spellSpeed', ctx), limitMagic: a['limitMagic'] === true,
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
+    volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
   }
 }
 
@@ -320,7 +347,11 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
       detourPauseTicks: num(r, 'detourPauseTicks', ctx), detourDistance: num(r, 'detourDistance', ctx),
       detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
-      projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
+      projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
+      takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
+      dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, 100),
+      musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
+      attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }
   return out

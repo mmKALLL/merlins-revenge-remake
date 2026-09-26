@@ -1,0 +1,74 @@
+[#name: "act_music", #type: #field]
+[
+#objType: #objMusic,
+#inherit: #game,
+#character: #mapMusic,
+#minimapStatus: #clr,
+#weight: 1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
