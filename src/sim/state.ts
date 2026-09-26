@@ -41,7 +41,11 @@ export type ActorMode =
   | 'stand' | 'walk' | 'weaponMelee' | 'weaponRanged' | 'charge' | 'release' | 'reel'
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
 
-export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none'
+/**
+ * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
+ * the original AI: stand still, then walk a short way in a random direction, then retarget.
+ */
+export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove'
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
 export type ChargeKind = 'mouse' | 'nearest' | 'short'
@@ -54,6 +58,9 @@ export interface AiState {
   waypoint: Vec | null
   pathStall: number // consecutive stalled ticks (switches path mode at ActorDef.pathFindingStallTime)
   moveTarget: Vec | null // modMoveToLoc target; null = not moving
+  walkTicks: number // remake detour: consecutive ticks spent walking toward the target
+  detourTicks: number // remake detour: pause ticks left in detourPause
+  detourGoal: Vec | null // remake detour: where detourMove walks to
   chargeKind: ChargeKind | null // player only
 }
 

@@ -16,8 +16,11 @@ import { PLAYER_DEATH_TICKS } from './tick-combat'
 import { buildWorldGrid } from './world-grid'
 
 // Original engine values (not assets/tuning.json balance tweaks), resolved from the copied actor files.
+// The remake's random spreading detour is off here (engine AI); its own test turns it on.
 const actorFiles = Object.fromEntries(readdirSync('assets/actors').map((f) => [f.replace(/\.txt$/, ''), readFileSync(`assets/actors/${f}`, 'utf8')]))
-const defs: Record<string, ActorDef> = resolveActors(actorFiles, { player: { weapon: 'energyBlast' } })
+const defs: Record<string, ActorDef> = resolveActors(actorFiles, {
+  player: { weapon: 'energyBlast' }, goblinWarrior: { detourChance: 0 }, goblinArcher: { detourChance: 0 },
+})
 const teams = JSON.parse(readFileSync('public/generated/teams.json', 'utf8')) as Record<string, TeamDef>
 
 // Real frame sizes and strip lengths (tools/convert-assets.ts output), see docs/notes §9.
@@ -99,7 +102,7 @@ function runUntil(s: SimState, pred: (s: SimState) => boolean, max: number, inpu
   return [s, -1]
 }
 /** A stationary target: no AI, so it never chases (the reel still returns it to walk/findTarget). */
-const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, moveTarget: null, chargeKind: null } }
+const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null } }
 
 describe('warrior melee (combat notes §3-4, §6)', () => {
   it('beelines at walkSpeed 4 less 50 % friction (2 px/tick) to the strike position, then its sword hit pushes and damages the player', () => {
@@ -374,6 +377,45 @@ describe('death and exits (combat notes §7)', () => {
   })
 })
 
+describe('spreading detour (remake, user request)', () => {
+  it('after a melee attack: pauses, walks detourDistance in a random direction, then retargets', () => {
+    const forced = { ...defs, goblinWarrior: { ...defs['goblinWarrior']!, detourChance: 1 } }
+    const s0 = createSim(grid(openMap([{ x: 10, y: 5, tile: WARRIOR }])), forced, teams, anims, 1, { x: 100, y: 144 })
+    const g0 = s0.actors.find((a) => a.id !== s0.playerId)!
+    let s: SimState = { ...s0, actors: s0.actors.map((a) => (a.id === g0.id ? { ...a, pos: { x: 120, y: 144 }, prevPos: { x: 120, y: 144 } } : a)) }
+    const def = forced['goblinWarrior']!
+    // the sword strip loops, the roll succeeds: stop and pause
+    let ticks: number
+    ;[s, ticks] = runUntil(s, (t) => actor(t, g0.id)!.ai.mode === 'detourPause', 40)
+    expect(ticks).toBeGreaterThan(0)
+    const at = actor(s, g0.id)!.pos
+    expect(actor(s, g0.id)!.ai.targetId).toBeNull()
+    for (let i = 1; i < def.detourPauseTicks; i++) {
+      s = stepSim(s, NO_INPUT)
+      expect(actor(s, g0.id)!.ai.mode).toBe('detourPause')
+      expect(actor(s, g0.id)!.pos).toEqual(at)
+    }
+    s = stepSim(s, NO_INPUT)
+    const g = actor(s, g0.id)!
+    expect(g.ai.mode).toBe('detourMove')
+    const goal = g.ai.detourGoal!
+    expect(Math.hypot(goal.x - at.x, goal.y - at.y)).toBeCloseTo(def.detourDistance, 10)
+    // walks toward the goal until within the arrival distance (or stalled), then retargets at once
+    let dist = Infinity
+    ;[s, ticks] = runUntil(s, (t) => {
+      const w = actor(t, g0.id)!
+      if (w.ai.mode !== 'detourMove') return true
+      const d = Math.hypot(goal.x - w.pos.x, goal.y - w.pos.y)
+      expect(d).toBeLessThan(dist)
+      dist = d
+      return false
+    }, 80)
+    expect(ticks).toBeGreaterThan(10) // ~2 px/tick over most of 50 px
+    expect(actor(s, g0.id)!.ai.mode).toBe('moveToAttack')
+    expect(actor(s, g0.id)!.ai.targetId).toBe(s.playerId)
+  })
+})
+
 describe('archer (combat notes §3-4)', () => {
   it('stands still inside reach 100, shoots on frame 21 and the arrow hits the player', () => {
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 })
@@ -433,7 +475,7 @@ describe('archer (combat notes §3-4)', () => {
   it('waiting in reach resets only the path stall; a scenic detour resumes toward its waypoint once out of reach', () => {
     // #arrivedAtAttackLoc resets the stall counter and stops the walk but leaves the path mode and
     // waypoint alone (modPathFinding.internalEvent), so a wandering archer keeps its detour.
-    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, moveTarget: null, chargeKind: null }
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 }, undefined, 1, { cooldown: 200, ai })
     for (let i = 0; i < 10; i++) {
       s = stepSim(s, NO_INPUT)

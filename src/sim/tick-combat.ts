@@ -17,7 +17,7 @@ import { collisionRectFor, createActor, isAlive, isBullet, isCharacter, isSpell,
 import { onFreshFrame } from './anim'
 import type { ActorState, ChargeKind, InputSnapshot, SimState } from './state'
 import { actorIn, playerIn, type Tick } from './tick-context'
-import { targetables } from './tick-ai'
+import { rollDetour, targetables } from './tick-ai'
 
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
 export const EXPLODE_TICKS = 8
@@ -163,8 +163,9 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
     victim.mode = 'reel'
     victim.frictionPercent = { ...def.frictionReel }
     victim.stall = 0
-    victim.ai.mode = 'dazed'
+    victim.ai.mode = 'dazed' // also ends a remake detour
     victim.ai.moveTarget = null
+    victim.ai.walkTicks = 0
   }
   loseEnergy(t, victim, hit.damage)
   return hit.push
@@ -196,6 +197,8 @@ export function stepAttackFrames(t: Tick): void {
       a.ai.mode = 'findTarget'
       a.ai.targetId = null
       a.vel = { x: 0, y: 0 }
+      // remake: a finished melee attack may start a spreading detour
+      if (atk.type === 'melee') rollDetour(t, a, def)
     }
   }
 }
