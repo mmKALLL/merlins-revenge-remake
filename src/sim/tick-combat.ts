@@ -238,12 +238,15 @@ export function stepSpells(t: Tick): void {
 
 /**
  * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
- * spell stops where it passed the target (finishConditionMet zeroes the vector without snapping the
- * loc); prevPos is pinned so the renderer does not slide the explosion.
+ * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
+ * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
+ * original explodes centred on the cursor. prevPos is pinned so the renderer does not slide the
+ * explosion.
  */
 function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
+  if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
   const hated = hatedTeams(spell.team, t.s.teams)
   const victims: SplashVictim[] = t.actors
     .filter((v) => !t.removed.has(v.id) && isCharacter(t.s, v) && isAlive(v) && hated.includes(v.team))

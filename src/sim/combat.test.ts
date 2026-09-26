@@ -194,15 +194,15 @@ describe('energy blast (combat notes §5)', () => {
     expect(flight).toBe(10)
     s = after
     const ev = s.events.find((e) => e.kind === 'explode')!
-    // Explosion where the spell passed the target on both axes: radius = 12.5 * 4 / 2 = 25.
+    // Explosion on the target point (the spell is placed there on arrival): radius = 12.5 * 4 / 2 = 25.
     expect(ev.kind === 'explode' && ev.radius).toBe(25)
     const centre = ev.kind === 'explode' ? ev.pos : { x: 0, y: 0 }
-    expect(centre.x).toBeCloseTo(100 + (11 * 20 * 200) / Math.hypot(200, dy), 10)
-    // Victim radius = sprite width / 2 = 7.5 (stand 15x16). dist ~ 19.5 -> speed (25 + 7.5 - 19.5) * 0.75 ~ 9.8,
-    // scaled by (100 - inertia 30) / 100 -> push ~ 6.8, damage ~ 7.3 (Manhattan length, multiplier 1).
+    expect(centre).toEqual({ x: 300, y: 144 })
+    // Victim radius = sprite width / 2 = 7.5 (stand 15x16). A direct hit: speed (25 + 7.5) * 0.75 = 24.375
+    // straight down, scaled by (100 - inertia 30) / 100 -> push ~ 17.06, damage ~ 17.06 (multiplier 1).
     const g = actor(s, enemyId)!
     const expected = resolveHit(defs['goblinWarrior']!, explode(centre, 12.5, defs['player']!.attack, [{ id: g.id, pos: { x: 300, y: 144 }, radius: 7.5 }]).pushes[0]!.push, 1)
-    expect(expected.damage).toBeCloseTo(7.3, 1)
+    expect(expected.damage).toBeCloseTo(17.06, 1)
     expect(g.energy).toBeCloseTo(100 - expected.damage, 10)
     expect(g.mode).toBe('reel')
     expect(g.ai.mode).toBe('dazed')
@@ -216,17 +216,18 @@ describe('energy blast (combat notes §5)', () => {
     expect(s.actors.find((a) => a.def === 'spell')!.mode).toBe('explode')
     s = run(s, 8)
     expect(s.actors.find((a) => a.def === 'spell')).toBeUndefined()
-    // Reel: the push (~6.8 px/tick) decays 10 %/tick to under 0.2 in ~34 ticks, then 10 stalled ticks end it.
+    // Reel: the push (~17 px/tick) decays 10 %/tick until the warrior stalls (sooner if a wall stops it),
+    // then 10 stalled ticks end it.
     let g2 = actor(s, enemyId)!
     expect(g2.mode).toBe('reel')
     let ticks: number
     ;[s, ticks] = runUntil(s, (t) => actor(t, enemyId)!.mode === 'walk', 80)
-    expect(ticks).toBeGreaterThan(20)
-    expect(ticks).toBeLessThan(50)
+    expect(ticks).toBeGreaterThan(10)
+    expect(ticks).toBeLessThan(60)
     g2 = actor(s, enemyId)!
     expect(g2.ai.mode).toBe('findTarget')
     expect(g2.frictionPercent).toEqual({ x: 50, y: 50 })
-    expect(g2.pos.x).toBeLessThan(300 - 40) // knocked back to the left
+    expect(g2.pos.y).toBeGreaterThan(144 + 40) // a direct hit knocks straight down
   })
 
   it('fires at the mouse with Space and 100 px ahead without a mouse position', () => {
