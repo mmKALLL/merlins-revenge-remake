@@ -7,6 +7,9 @@ import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
 
+/** Converter output under public/, resolved against Vite's `base` so the build works from any path. */
+const GENERATED = `${import.meta.env.BASE_URL}generated/`
+
 export interface TilesetData {
   tileSize: { x: number; y: number }
   tilesPerRow: number
@@ -80,25 +83,25 @@ function subTexture(sheet: Texture, x: number, y: number, w: number, h: number):
 }
 
 export async function loadMap(name: string): Promise<MapDefinition> {
-  return json(`/generated/maps/${name}.json`, isMap)
+  return json(`${GENERATED}maps/${name}.json`, isMap)
 }
 
 /** Resolved actor definitions keyed by act_<key> name (tools/convert-assets.ts). */
 export async function loadActors(): Promise<Record<string, ActorDef>> {
-  const actors = await json('/generated/actors.json', isActors)
-  if (!actors['player']) throw new Error('/generated/actors.json has no "player" definition')
+  const actors = await json(`${GENERATED}actors.json`, isActors)
+  if (!actors['player']) throw new Error(`${GENERATED}actors.json has no "player" definition`)
   return actors
 }
 
 export async function loadTeams(): Promise<Record<string, TeamDef>> {
-  return json('/generated/teams.json', isTeams)
+  return json(`${GENERATED}teams.json`, isTeams)
 }
 
 export async function loadTileset(name: string): Promise<LoadedTileset> {
-  const url = `/generated/tilesets/${name}.json`
+  const url = `${GENERATED}tilesets/${name}.json`
   const data = await json(url, isTileset)
   if (data.tileSize.x !== TILE_PX || data.tileSize.y !== TILE_PX) throw new Error(`${url}: tileSize must be ${TILE_PX}`)
-  const sheet = nearest(await Assets.load<Texture>(`/generated/tilesets/${name}.png`))
+  const sheet = nearest(await Assets.load<Texture>(`${GENERATED}tilesets/${name}.png`))
   // Keys can list more slots than the sheet holds (objTileSet sizes the grid from the bitmap);
   // indices past the sheet get no texture and draw nothing.
   const textures = data.symbols.map((_, i) => {
@@ -111,8 +114,8 @@ export async function loadTileset(name: string): Promise<LoadedTileset> {
 }
 
 export async function loadSprite(name: string): Promise<LoadedSprite> {
-  const atlas = await json(`/generated/sprites/${name}.json`, isSpriteAtlas)
-  const sheet = nearest(await Assets.load<Texture>(`/generated/sprites/${name}.png`))
+  const atlas = await json(`${GENERATED}sprites/${name}.json`, isSpriteAtlas)
+  const sheet = nearest(await Assets.load<Texture>(`${GENERATED}sprites/${name}.png`))
   const anims: AnimationSet = {}
   const frames: Record<string, Texture[]> = {}
   for (const [anim, def] of Object.entries(atlas.animations)) {

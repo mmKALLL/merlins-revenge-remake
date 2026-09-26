@@ -72,6 +72,17 @@ export interface ActorDef {
   raw: Record<string, unknown>
 }
 
+/** Object types drawn with an animation atlas. */
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell'])
+
+/**
+ * Whether an actor is drawn with its own atlas (`anm_<name>_*`). Abstract bases such as `bullet`
+ * have a drawable objType but never set `#name`; only concrete actors that name themselves have art.
+ */
+export function needsSprite(def: ActorDef): boolean {
+  return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
+}
+
 // structMaster.structAttack (only the fields this port reads; others stay in raw)
 const ATTACK_DEFAULTS = {
   animFrame: 2, animType: 'none', bullet: null, chargeColour: { r: 255, g: 255, b: 255 }, chargeExplodeFactor: 4,

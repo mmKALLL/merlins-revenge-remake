@@ -1,3 +1,4 @@
+import { needsSprite } from './mr-open/mr-actor-data'
 import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import type { Vec } from './mr-open/mr-geometry'
@@ -19,7 +20,6 @@ const cfg: RenderConfig = {
   debug: params.get('debug') !== '0',
 }
 
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell'])
 
 async function main(): Promise<void> {
   const map = await loadMap(mapName)
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     loadTeams(),
   ])
   // One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist).
-  const spriteNames = [...new Set(Object.values(defs).filter((d) => SPRITE_OBJ_TYPES.has(d.objType)).map((d) => d.name))]
+  const spriteNames = [...new Set(Object.values(defs).filter(needsSprite).map((d) => d.name))]
   const sprites: Record<string, LoadedSprite> = {}
   const anims: Record<string, AnimationSet> = {}
   for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {

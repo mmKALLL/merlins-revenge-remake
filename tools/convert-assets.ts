@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
-import { resolveActors, type ActorDef, type Plain } from '../src/mr-open/mr-actor-data'
+import { resolveActors, type ActorDef, type Plain, needsSprite } from '../src/mr-open/mr-actor-data'
 import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
@@ -160,12 +160,11 @@ function convertSprites(): Set<string> {
   return names
 }
 
-const NEEDS_ATLAS = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell'])
 
 /** Every character, bullet and spell that the data names must have frames; abstract bases (no #name) are skipped. */
 function checkActorAtlases(actors: Record<string, ActorDef>, spriteNames: Set<string>): void {
   const missing = Object.values(actors)
-    .filter((a) => NEEDS_ATLAS.has(a.objType) && typeof a.raw['name'] === 'string' && !spriteNames.has(a.name))
+    .filter((a) => needsSprite(a) && !spriteNames.has(a.name))
     .map((a) => `${a.key} (name "${a.name}", ${a.objType})`)
   if (missing.length > 0) {
     console.error(`ERROR: actors without a sprite atlas under assets/sprites: ${missing.join(', ')}`)
