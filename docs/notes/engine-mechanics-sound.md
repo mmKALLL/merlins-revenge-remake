@@ -128,3 +128,21 @@ The actor-to-sound mapping (e.g. which weapons use `skeleton_fire`) is listed in
 - Default gain 150/255. Pass per-event volumes through as `vol/255`.
 - Spell release and explode volume scale linearly with charge 1-100 -> 10-255.
 - Sound off: block new SFX. Faithfully it also leaves playing sounds alone and does not stop music; muting everything is the sensible choice.
+
+## 7. Remake port (sound slice) and deviations
+
+The sim emits `sound` / `music` events (`src/sim/state.ts` `SimEvent`) at the triggers in section 5; the pure rules are in `src/mr-open/mr-sound.ts`, playback in `src/audio/audio.ts`.
+
+Ported triggers: melee attack sound on the strike frame whether or not it hits, ranged attack sound when the bullet spawns (both `attack.volume`, default 150); spell `releaseSound` / `explodeSound` at `VarMapRange(charge, chargeVolumeMap)` (explode uses the charge before `chargeExplodeFactor`); `modEnergy.loseEnergy` `takeHitSound` on every energy loss including the killing one (the player's `wizard_hit`; bullets hit twice, so an arrow plays it twice, as in the engine); `objCharacter` `dieSound` on `#die` (no ported actor sets one yet); `end_screen` when a room's exits open; room-activation music at sim start (and restart), first entry and re-entry.
+
+Not ported (no such objects yet): exploders, exploding bullets, dwellings, power-ups, level up, game complete, cut-scene and title/credits music.
+
+Deviations:
+
+- **Music loops** (user decision). The original plays each track once.
+- **Room cleared**: the engine skips `end_screen` when `pMap.isMapClear()`; the port has no game-complete sound and always plays it.
+- **Sound toggles**: separate music and effects toggles plus a master volume (localStorage). Effects off stops the effects already playing; music off stops the bus, and turning it back on restarts the current room's track. The engine's single toggle left playing sounds alone and did not stop music.
+- **Suspended audio context**: effects requested before the first key or click are dropped rather than queued, so they do not all burst out on unlock; the room's music starts on unlock.
+- **Music volume** is the `playMusic` default 150/255, times the master volume.
+- **Several music tiles in one room**: each would call `playMusic` in activation order; the port assumes row-major order, so the last tile wins.
+- The player's `#takeHitSoundVolume: 100` is never read by the engine (modEnergy reads `#takeHitVolume`), so `wizard_hit` plays at 150, as in the original.
