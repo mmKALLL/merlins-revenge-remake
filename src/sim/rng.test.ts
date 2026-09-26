@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextRandom, roughly, type Rng } from './rng'
+import { nextRandom, roughly, spreadVec, type Rng } from './rng'
 
 function sequence(seed: number, n: number): number[] {
   let r: Rng = { seed }
@@ -47,5 +47,25 @@ describe('roughly', () => {
 
   it('is 0 for e = 0', () => {
     expect(roughly({ seed: 99 }, 0)[0]).toBe(0)
+  })
+})
+
+describe('spreadVec (remake angular spread)', () => {
+  it('turns a vector by at most the spread, keeping its length', () => {
+    let r: Rng = { seed: 7 }
+    const v = { x: 3, y: -4 }
+    const base = Math.atan2(v.y, v.x)
+    for (let i = 0; i < 200; i++) {
+      const [w, next] = spreadVec(r, v, 5)
+      r = next
+      expect(Math.hypot(w.x, w.y)).toBeCloseTo(5, 10)
+      const turn = Math.atan2(w.y, w.x) - base
+      expect(Math.abs((turn * 180) / Math.PI)).toBeLessThanOrEqual(5 + 1e-9)
+    }
+  })
+
+  it('leaves the vector and the rng untouched with no spread', () => {
+    const r: Rng = { seed: 7 }
+    expect(spreadVec(r, { x: 1, y: 2 }, 0)).toEqual([{ x: 1, y: 2 }, r])
   })
 })

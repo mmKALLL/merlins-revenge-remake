@@ -1,6 +1,7 @@
 {
   "player": {
-    "weapon": "energyBlast"
+    "weapon": "energyBlast",
+    "knockbackSpreadDeg": 3
   },
   "goblinWarrior": {
     "energy": 50,
@@ -8,7 +9,8 @@
   },
   "goblinArcher": {
     "energy": 25,
-    "pathFindingStallTime": 2
+    "pathFindingStallTime": 2,
+    "projectileSpreadDeg": 5
   },
   "goblinArrow": {
     "collisionRectScale": 0.5

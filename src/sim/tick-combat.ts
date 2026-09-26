@@ -16,6 +16,7 @@ import { hostileTeamsTo } from '../mr-open/mr-team-data'
 import { collisionRectFor, createActor, isAlive, isBullet, isCharacter, isSpell, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
 import type { ActorState, ChargeKind, InputSnapshot, SimState } from './state'
+import { spreadVec } from './rng'
 import { actorIn, playerIn, type Tick } from './tick-context'
 import { rollDetour, targetables } from './tick-ai'
 
@@ -187,7 +188,10 @@ export function stepAttackFrames(t: Tick): void {
           const [aim, rng] = aimWithEyestrain(a.pos, target.pos, def, t.rng)
           t.rng = rng
           const shot = rangedShot(a.pos, aim, def, a.facingLeft)
-          spawn(t, atk.bullet, shot.spawn, { mode: 'fly', vel: shot.vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
+          // remake: projectileSpreadDeg turns the shot by a small random angle
+          const [vel, rng2] = spreadVec(t.rng, shot.vel, def.projectileSpreadDeg)
+          t.rng = rng2
+          spawn(t, atk.bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
           a.cooldown = resetCooldown(atk)
         }
       }
@@ -269,9 +273,15 @@ function explodeSpell(t: Tick, spell: ActorState): void {
       return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
     })
   const ex = explode(spell.pos, spell.charge, atk, victims)
+  // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
+  const caster = t.actors.find((c) => c.id === spell.ownerId)
+  const spread = caster ? t.s.defs[caster.def]!.knockbackSpreadDeg : 0
   for (const { id, push } of ex.pushes) {
     const victim = actorIn(t, id)
-    if (victim) applyHit(t, victim, push, atk.damageMultiplier)
+    if (!victim) continue
+    const [turned, rng] = spreadVec(t.rng, push, spread)
+    t.rng = rng
+    applyHit(t, victim, turned, atk.damageMultiplier)
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
   spell.charge *= atk.chargeExplodeFactor

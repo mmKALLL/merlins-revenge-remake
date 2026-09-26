@@ -1,5 +1,7 @@
 // Seeded random numbers for the simulation (mulberry32). Pure: every call returns the next state
 // instead of mutating, so ticks stay replayable from a seed.
+import type { Vec } from '../mr-open/mr-geometry'
+
 export type Rng = { seed: number }
 
 /** Returns [value in [0,1), next rng]. */
@@ -14,4 +16,18 @@ export function nextRandom(r: Rng): [number, Rng] {
 export function roughly(r: Rng, e: number): [number, Rng] {
   const [v, n] = nextRandom(r)
   return [Math.round(v * 2 * e - e), n]
+}
+
+/**
+ * Remake angular spread: `v` rotated by a uniform random angle in [-maxDeg, +maxDeg] degrees,
+ * length unchanged. A spread of 0 or less returns `v` without drawing, so engine behaviour keeps
+ * its random sequence.
+ */
+export function spreadVec(r: Rng, v: Vec, maxDeg: number): [Vec, Rng] {
+  if (maxDeg <= 0) return [v, r]
+  const [u, n] = nextRandom(r)
+  const a = ((u * 2 - 1) * maxDeg * Math.PI) / 180
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+  return [{ x: v.x * c - v.y * s, y: v.x * s + v.y * c }, n]
 }

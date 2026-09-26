@@ -69,6 +69,8 @@ export interface ActorDef {
   detourMoveTicks: number // remake: ticks of continuous walking between detour rolls
   detourPauseTicks: number // remake: ticks a detour stands still before walking off
   detourDistance: number // remake: px a detour walks in a random direction before retargeting
+  projectileSpreadDeg: number // remake: fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
+  knockbackSpreadDeg: number // remake: this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   collisionRectScale: number // remake: scales the collision rect about the reg point (1 = engine size)
   attack: AttackDef // the installed current attack (from weapon, or the natural attack)
   /**
@@ -114,6 +116,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     experienceImWorth: 0, // objGameObject
     collisionRectScale: 1, // remake addition: engine-sized rect
     pathFindingStallTime: 5, // modPathFinding.addModParams
+    projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // remake angular spread, off in the engine
     detourChance: 0.15, detourMoveTicks: 90, detourPauseTicks: 15, detourDistance: 50, // remake spreading detour
     weaponTechnique: 0, // modWeaponTechnique.addModParams
     startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
@@ -130,7 +133,7 @@ for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit'
   'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
   'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
   'teamName', 'category', 'hates', 'friends', 'collisionRectScale', 'pathFindingStallTime',
-  'detourChance', 'detourMoveTicks', 'detourPauseTicks', 'detourDistance']) {
+  'detourChance', 'detourMoveTicks', 'detourPauseTicks', 'detourDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg']) {
   CANONICAL.set(k.toLowerCase(), k)
 }
 export function canonicalKey(k: string): string {
@@ -314,7 +317,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
       collisionRectScale: num(r, 'collisionRectScale', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
-      detourPauseTicks: num(r, 'detourPauseTicks', ctx), detourDistance: num(r, 'detourDistance', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
+      detourPauseTicks: num(r, 'detourPauseTicks', ctx), detourDistance: num(r, 'detourDistance', ctx),
+      projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }
   return out
