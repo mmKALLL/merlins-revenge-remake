@@ -7,6 +7,7 @@ import { resolveActors, type ActorDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { explode } from '../mr-open/mr-spell'
+import { chargeVolume } from '../mr-open/mr-sound'
 import { resolveHit } from '../mr-open/mr-take-hit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { createActor, playerOf } from './actors'
@@ -780,5 +781,70 @@ describe('player knockback (remake decision, see applyHit)', () => {
     // the knockback has died out and walking is back at its steady 2 px/tick, not 18
     expect(Math.abs(playerOf(s).knockback.x)).toBeLessThan(0.01)
     expect(playerOf(s).vel.x).toBeCloseTo(2, 3)
+  })
+})
+
+describe('sound and music events (engine notes sound §3, §5)', () => {
+  const sounds = (s: SimState) => s.events.filter((e) => e.kind === 'sound')
+
+  it('warrior: the sword sound on the strike tick, wizard_hit at 150 on the player\'s energy loss', () => {
+    const { s } = setup(WARRIOR, { x: 300, y: 144 })
+    const before = playerOf(s).energy
+    const [hit] = runUntil(s, (t) => playerOf(t).energy < before, 150)
+    expect(sounds(hit)).toContainEqual({ kind: 'sound', name: 'skeleton_fire', volume: 150 })
+    expect(sounds(hit)).toContainEqual({ kind: 'sound', name: 'wizard_hit', volume: 150 })
+  })
+
+  it('archer: goblin_fire when the arrow spawns', () => {
+    const { s } = setup(ARCHER, { x: 190, y: 144 })
+    const [shot] = runUntil(s, (t) => t.actors.some((x) => x.def === 'goblinArrow'), 40)
+    expect(sounds(shot)).toContainEqual({ kind: 'sound', name: 'goblin_fire', volume: 150 })
+  })
+
+  it('energy blast: release and explode volumes follow the charge (10-255 over 1-100)', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = run(s, 13, holdE)
+    const charge = s.actors.find((a) => a.def === 'spell')!.charge
+    s = stepSim(s, NO_INPUT)
+    expect(sounds(s)).toContainEqual({ kind: 'sound', name: 'spell_release', volume: chargeVolume(charge) })
+    ;[s] = runUntil(s, (t) => t.events.some((e) => e.kind === 'explode'), 20)
+    expect(sounds(s)).toContainEqual({ kind: 'sound', name: 'spell_explode', volume: chargeVolume(charge) })
+  })
+
+  it('end_screen plays once, on the tick the exits open', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, energy: 1 })
+    s = run(s, 13, holdE)
+    const cleared: number[] = []
+    for (let i = 0; i < 60; i++) {
+      s = stepSim(s, NO_INPUT)
+      if (s.events.some((e) => e.kind === 'sound' && e.name === 'end_screen')) cleared.push(i)
+      if (s.events.some((e) => e.kind === 'exitsOpened')) expect(cleared.at(-1)).toBe(i)
+    }
+    expect(cleared).toHaveLength(1)
+  })
+
+  it('room activation plays the room\'s music tile: start, re-entry, musicOff; rooms without one stay silent', () => {
+    const symbols = ['none', 'musicLastStand', 'musicOff']
+    const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
+    const withTile = (tile: number) => { const o = fill(0); o[0]![0] = tile; return o }
+    const objects = [withTile(2), fill(0), withTile(3)]
+    const map: MapDefinition = {
+      mapSize: { x: 3, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+      layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
+      rooms: objects.map((o, i) => ({ num: i + 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: o } })),
+    }
+    let s = createSim(buildWorldGrid(map, () => false, symbols), defs, teams, anims, 1, { x: 288, y: 144 })
+    const heard: (string | null)[] = []
+    const collect = (t: SimState) => { for (const e of t.events) if (e.kind === 'music') heard.push(e.track) }
+    collect(s)
+    const right: InputSnapshot = { ...NO_INPUT, move: { x: 1, y: 0 } }
+    const left: InputSnapshot = { ...NO_INPUT, move: { x: -1, y: 0 } }
+    const walk = (input: InputSnapshot, room: number) => {
+      for (let i = 0; i < 600 && s.room.x !== room; i++) { s = stepSim(s, input); collect(s) }
+      expect(s.room.x).toBe(room)
+    }
+    walk(right, 3)
+    walk(left, 1)
+    expect(heard).toEqual(['last_stand_v4', null, 'last_stand_v4'])
   })
 })

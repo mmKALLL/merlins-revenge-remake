@@ -4,6 +4,7 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { roomMusic } from '../mr-open/mr-sound'
 import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
 import { stripNameFor } from './anim'
 import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type SimState } from './state'
@@ -12,6 +13,8 @@ import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type Sim
 const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter'])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
 const CHARACTER_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter'])
+/** objMusic tiles create no actor here; their track is read by roomMusicTrack on room activation. */
+const MUSIC_OBJ_TYPE = 'objMusic'
 
 /** Characters (as opposed to bullets and spells): they have energy, cooldowns and can die. */
 export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
@@ -120,6 +123,7 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
         warnOnce(symbol, 'no actor definition')
         continue
       }
+      if (def.objType === MUSIC_OBJ_TYPE) continue
       if (!SPAWNABLE_OBJ_TYPES.has(def.objType)) {
         warnOnce(symbol, `objType ${def.objType} is not spawnable yet`)
         continue
@@ -136,6 +140,31 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
     actors: [...next.actors, ...spawned],
     rooms: { ...next.rooms, [key]: { spawned: true, actors: [], graves: [], clear: false } },
   }
+}
+
+/** Calls `fn` with the objects-layer symbol of every tile of `room`, row-major. */
+function forEachRoomSymbol(s: SimState, room: Vec, fn: (symbol: string) => void): void {
+  const { roomSize } = s.grid.map
+  for (let ty = 1; ty <= roomSize.y; ty++) {
+    for (let tx = 1; tx <= roomSize.x; tx++) {
+      const symbol = s.grid.objectSymbolAt((room.x - 1) * roomSize.x + tx, (room.y - 1) * roomSize.y + ty)
+      if (symbol !== null) fn(symbol)
+    }
+  }
+}
+
+/**
+ * The music `room`'s activation asks for (objMusic.start -> soundMaster.playMusic, on the first
+ * entry and every re-entry via objRoom.restoreState): a track, null for musicOff, or undefined when
+ * the room has no music tile and the current track keeps playing.
+ */
+export function roomMusicTrack(s: SimState, room: Vec): string | null | undefined {
+  const tracks: (string | null)[] = []
+  forEachRoomSymbol(s, room, (symbol) => {
+    const def = s.defs[symbol]
+    if (def?.objType === MUSIC_OBJ_TYPE) tracks.push(def.musicTrack)
+  })
+  return roomMusic(tracks)
 }
 
 /** The actor's current strip: its anim, else stand, else walk (objAnimSet.symExistsOrDefault), else the atlas's first strip. */

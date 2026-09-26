@@ -9,6 +9,7 @@ import {
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
+import { chargeVolume } from '../mr-open/mr-sound'
 import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity, type SplashVictim } from '../mr-open/mr-spell'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
 import { findTarget, hatedTeams } from '../mr-open/mr-targeting'
@@ -17,7 +18,7 @@ import { collisionRectFor, createActor, isAlive, isBullet, isCharacter, isSpell,
 import { onFreshFrame } from './anim'
 import type { ActorState, ChargeKind, InputSnapshot, SimState } from './state'
 import { spreadVec } from './rng'
-import { actorIn, playerIn, type Tick } from './tick-context'
+import { actorIn, playerIn, playSound, type Tick } from './tick-context'
 import { rollDetour, targetables } from './tick-ai'
 
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
@@ -92,9 +93,12 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
       return
     }
     const target = releaseTarget(t, p, input, p.ai.chargeKind)
+    const atk = spell.attack ?? def.attack
     spell.mode = 'fly'
     spell.targetPoint = target
-    spell.vel = releaseVelocity(spell.pos, target, (spell.attack ?? def.attack).spellSpeed)
+    spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
+    // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
+    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
     p.mode = 'release'
     p.ai.chargeKind = null
     p.cooldown = resetCooldown(def.attack)
@@ -122,13 +126,18 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
  * character's energy becomes -100 in the engine; only the sign matters here.
  */
 function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
+  const def = t.s.defs[victim.def]!
   victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })
   if (isDead(victim.energy)) {
     victim.mode = 'die'
     victim.age = 0
     t.events.push({ kind: 'died', id: victim.id })
+    playSound(t, def.dieSound, def.dieVolume) // objCharacter.goMode(#die) (objCharacter.txt:201-202)
   }
+  // modEnergy.loseEnergy (modEnergy.txt:206): every energy loss, the killing one included; for the
+  // player that is wizard_hit (objPlayerMerlinCharacter -> objCharacter installs modEnergy)
+  playSound(t, def.takeHitSound, def.takeHitVolume)
 }
 
 /**
@@ -183,6 +192,8 @@ export function stepAttackFrames(t: Tick): void {
       if (target && isAlive(target)) {
         if (atk.type === 'melee') {
           if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyHit(t, target, meleePush(def, a.facingLeft), atk.damageMultiplier)
+          // objAiAttack.performAttack (objAiAttack.txt:303-306): the swing sounds whether or not it hits
+          playSound(t, atk.sound, atk.volume)
           a.cooldown = resetCooldown(atk)
         } else if (atk.type === 'ranged' && atk.bullet) {
           const [aim, rng] = aimWithEyestrain(a.pos, target.pos, def, t.rng)
@@ -192,6 +203,7 @@ export function stepAttackFrames(t: Tick): void {
           const [vel, rng2] = spreadVec(t.rng, shot.vel, def.projectileSpreadDeg)
           t.rng = rng2
           spawn(t, atk.bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
+          playSound(t, atk.sound, atk.volume) // objAiAttack.performAttack (objAiAttack.txt:308-314)
           a.cooldown = resetCooldown(atk)
         }
       }
@@ -272,6 +284,8 @@ function explodeSpell(t: Tick, spell: ActorState): void {
       const r = spriteRectFor(t.s, v)
       return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
     })
+  // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
+  const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)
   // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
   const caster = t.actors.find((c) => c.id === spell.ownerId)
@@ -284,6 +298,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
     applyHit(t, victim, turned, atk.damageMultiplier)
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
+  playSound(t, atk.explodeSound, explodeVolume)
   spell.charge *= atk.chargeExplodeFactor
   spell.mode = 'explode'
   spell.vel = { x: 0, y: 0 }

@@ -10,15 +10,17 @@
 //  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
 // 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
-// 12. room change: living characters stored, the new room restored or spawned (combat notes §2)
+// 12. room change: living characters stored, the new room restored or spawned (combat notes §2);
+//     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { resolveTileCollisionHits } from '../mr-open/mr-collision'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
+import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
-import { collisionRectFor, createActor, isAlive, isCharacter, isSpell, playerOf, spawnRoomActors, stripFor } from './actors'
+import { collisionRectFor, createActor, isAlive, isCharacter, isSpell, playerOf, roomMusicTrack, spawnRoomActors, stripFor } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
   DEFAULT_SIM_CONFIG, roomKey,
@@ -60,7 +62,16 @@ export function createSim(
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
-  return withExitsEvaluated(spawnRoomActors({ ...s, playerId: player.id, actors: [player] }, s.room))
+  return withRoomMusic(withExitsEvaluated(spawnRoomActors({ ...s, playerId: player.id, actors: [player] }, s.room)))
+}
+
+/**
+ * Room activation starts the room's music actor (objMusic.start -> playMusic; engine notes sound §3),
+ * on the first entry and on every re-entry; a room without one leaves the current track playing.
+ */
+function withRoomMusic(s: SimState): SimState {
+  const track = roomMusicTrack(s, s.room)
+  return track === undefined ? s : { ...s, events: [...s.events, { kind: 'music', track }] }
 }
 
 /** Start position for a map: centre of the #player tile in the start room's objects layer, else room centre. */
@@ -220,9 +231,9 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   }
   const target = next.rooms[toKey]
   if (target?.spawned) {
-    return withExitsEvaluated({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } })
+    return withRoomMusic(withExitsEvaluated({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } }))
   }
-  return withExitsEvaluated(spawnRoomActors(next, to))
+  return withRoomMusic(withExitsEvaluated(spawnRoomActors(next, to)))
 }
 
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
@@ -249,6 +260,10 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
     exitsOpen = true
     roomState = { ...roomState, clear: true }
     t.events.push({ kind: 'exitsOpened' })
+    // objRoom.openExits (objRoom.txt:200-206): the room-cleared sound, once per room (pRoomCleared).
+    // The engine skips it when pMap.isMapClear() so it does not clash with the game-complete sound;
+    // there is no game-complete screen yet, so the port always plays it.
+    t.events.push({ kind: 'sound', name: ROOM_CLEARED_SOUND, volume: DEFAULT_VOLUME })
   }
   const next: SimState = {
     ...s,

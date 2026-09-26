@@ -40,6 +40,11 @@ export function actorIn(t: Tick, id: number): ActorState | undefined {
   return t.actors.find((a) => a.id === id)
 }
 
+/** modSoundFX.playSound: #none (null) plays nothing. */
+export function playSound(t: Tick, name: string | null, volume: number): void {
+  if (name !== null) t.events.push({ kind: 'sound', name, volume })
+}
+
 export function playerIn(t: Tick): ActorState {
   const p = actorIn(t, t.s.playerId)
   if (!p) throw new Error('sim state has no player actor')

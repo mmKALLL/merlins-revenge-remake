@@ -108,6 +108,10 @@ export type SimEvent =
   | { kind: 'hit'; id: number }
   | { kind: 'died'; id: number }
   | { kind: 'exitsOpened' }
+  /** a one-shot effect (soundMaster.playSound); volume 0-255 */
+  | { kind: 'sound'; name: string; volume: number }
+  /** room activation with a music tile (soundMaster.playMusic); null = musicOff stops the music */
+  | { kind: 'music'; track: string | null }
 
 export interface SimState {
   tick: number
