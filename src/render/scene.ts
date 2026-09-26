@@ -69,6 +69,8 @@ export class Scene {
   private graveLayer = new Container()
   private actorLayer = new Container()
   private actorSprites = new Map<number, Sprite>()
+  /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
+  private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; graves: RoomState['graves'] | null } = { room: '', graves: null }
   private spellTexture: Texture | null = null
   private bar = new Graphics()
@@ -184,7 +186,8 @@ export class Scene {
       const pos = lerp(a)
       // Wide frames (attacks) grow toward the facing direction so the back edge stays where the
       // stand frame's back edge is, instead of the body jumping as a centred frame would.
-      const shift = spell ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
+      const bullet = def.objType === 'objBullet'
+      const shift = spell || bullet ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) {
         // the spell carries its caster's attack (objSpell.setSpellProperties); the sim already
@@ -197,7 +200,16 @@ export class Scene {
         const c = atk.chargeColour
         spr.tint = (c.r << 16) | (c.g << 8) | c.b
         spr.alpha = exploding ? Math.max(0, 1 - a.age / EXPLODE_TICKS) : 1
+        spr.rotation = 0
+      } else if (bullet) {
+        // modRotational #once: turned to the launch velocity, never mirrored; the art points along +x
+        if (a.vel.x !== 0 || a.vel.y !== 0) this.bulletAngles.set(a.id, Math.atan2(a.vel.y, a.vel.x))
+        spr.rotation = this.bulletAngles.get(a.id) ?? 0
+        spr.scale.set(this.cfg.spriteScale)
+        spr.tint = 0xffffff
+        spr.alpha = 1
       } else {
+        spr.rotation = 0
         spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
         spr.tint = 0xffffff
         spr.alpha = 1
@@ -207,6 +219,7 @@ export class Scene {
       if (seen.has(id)) continue
       spr.destroy()
       this.actorSprites.delete(id)
+      this.bulletAngles.delete(id)
     }
   }
 
