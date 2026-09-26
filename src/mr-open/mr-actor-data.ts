@@ -40,6 +40,7 @@ export interface AttackDef {
 }
 
 export interface ActorDef {
+  // --- engine: identity, allegiance and drawing (actorMaster, objGameObject)
   key: string // actor file key, e.g. goblinWarrior (act_goblinWarrior.txt)
   name: string // sprite/character name used for animation strips (anm_<name>_*), e.g. gar
   objType: string // Lingo object class: objCPUCharacter, objPlayerMerlinCharacter, objBullet, objSpell, ...
@@ -47,15 +48,20 @@ export interface ActorDef {
   team: string // team name used for allegiance and targeting (goblins, aldevar)
   layerZ: string // engine draw-layer global name; bullets and spells draw above characters
   startOffset: Vec // offset from the spawn tile's bottom-right corner to the reg point; (-16,-16) = tile centre
+  experienceImWorth: number // experience awarded on death (never granted in this engine build)
+  // --- engine: energy and physics (modEnergy, objMoveXY)
   energy: number // starting and maximum health
   energyRecoverDelay: number // ticks between +1 passive health regeneration
   friction: Vec // percent of speed lost per tick per axis while walking
   frictionReel: Vec // percent of speed lost per tick while reeling from a hit
   inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
+  // --- engine: movement (modMoveToLoc, modNavMode, modPathFinding)
   walkSpeed: number // AI walk vector length in px per tick, set each tick before friction (50 % friction -> half of it moved)
   walkAcceleration: number // player acceleration per tick per axis while a key is held
   navModeAcceleration: number // player walk acceleration in a cleared room (modNavMode); 0 = no nav mode
+  pathFindingStallTime: number // stalled ticks before a #beeline walker takes a #scenic detour (and back); also ends a remake detourMove
+  // --- engine: character stats (act_character)
   strength: number // scales melee push and fullstrength bullet speed
   agility: number // cooldown progress per tick for melee attacks
   dexterity: number // cooldown progress per tick for ranged attacks
@@ -64,27 +70,28 @@ export interface ActorDef {
   mana_capacity: number // scales the spell's maximum charge
   mana_flow: number // multiplies the spell's charge speed
   mana_regeneration: number // cooldown progress per tick for magic attacks
-  weaponTechnique: number // modWeaponTechnique rating; negative values lengthen attack strips
+  // --- engine: weapon and attack (modWeaponManager, modWeaponTechnique)
   weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
-  experienceImWorth: number // experience awarded on death (never granted in this engine build)
-  pathFindingStallTime: number // modPathFinding: stalled ticks before a #beeline walker takes a #scenic detour (and back)
-  scenicMaxTicks: number // remake: a #scenic detour also ends (back to #beeline) after this many ticks
-  detourChance: number // remake: chance of a spreading detour after a melee attack and every detourMoveTicks of walking; 0 = off
-  detourMoveTicks: number // remake: ticks of continuous walking between detour rolls
-  detourMoveMaxTicks: number // remake: a detourMove that has not arrived or stalled ends (and retargets) after this many ticks
-  detourPauseTicks: number // remake: ticks a detour stands still before walking off
-  detourDistance: number // remake: px a detour walks in a random direction before retargeting
-  detourMinTargetDistance: number // remake: no walking detour roll while the target is closer than this (px)
-  projectileSpreadDeg: number // remake: fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
-  knockbackSpreadDeg: number // remake: this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
-  collisionRectScale: number // remake: scales the collision rect about the reg point (1 = engine size)
+  weaponTechnique: number // modWeaponTechnique rating; negative values lengthen attack strips
+  attack: AttackDef // the installed current attack (from weapon, or the natural attack)
+  // --- engine: sound (modEnergy, objCharacter, objMusic)
   takeHitSound: string | null // modEnergy.loseEnergy plays it on every energy loss (the player's wizard_hit)
   takeHitVolume: number // 0-255; modEnergy #takeHitVolume, #none -> 150 (the player's #takeHitSoundVolume is never read)
   dieSound: string | null // objCharacter.goMode(#die)
   dieVolume: number // 0-255; objCharacter #dieVolume, default 100
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
-  attack: AttackDef // the installed current attack (from weapon, or the natural attack)
+  // --- remake additions (not in the engine; the defaults keep engine behaviour where noted)
+  collisionRectScale: number // scales the collision rect about the reg point (1 = engine size)
+  scenicMaxTicks: number // a #scenic detour also ends (back to #beeline) after this many ticks
+  detourChance: number // chance of a spreading detour after a melee attack and every detourMoveTicks of walking; 0 = off
+  detourMoveTicks: number // ticks of continuous walking between detour rolls
+  detourMoveMaxTicks: number // a detourMove that has not arrived or stalled ends (and retargets) after this many ticks
+  detourPauseTicks: number // ticks a detour stands still before walking off
+  detourDistance: number // px a detour walks in a random direction before retargeting
+  detourMinTargetDistance: number // no walking detour roll while the target is closer than this (px)
+  projectileSpreadDeg: number // fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
+  knockbackSpreadDeg: number // this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -107,34 +114,45 @@ export function needsSprite(def: ActorDef): boolean {
 
 // structMaster.structAttack (only the fields this port reads; others stay in raw)
 const ATTACK_DEFAULTS = {
-  animFrame: 2, animType: 'none', bullet: null, chargeColour: { r: 255, g: 255, b: 255 }, chargeExplodeFactor: 4,
-  chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSize: 1, chargeSpeed: 1, chargeStart: 1,
-  collisionLoc: { x: 25, y: 0 }, idealAttackLoc: 'collisionLoc', cooldown: 0, damageMultiplier: 1,
-  explodeSound: null, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP, volume: DEFAULT_VOLUME, firingType: 'proportional', hits: ['teamMembers'], limitMagic: false, name: 'none',
-  power: { x: 5, y: -1 }, reach: 25, releaseSound: null, sound: null, spellSpeed: 2, type: 'auto',
+  name: 'none', type: 'auto', animType: 'none', animFrame: 2,
+  collisionLoc: { x: 25, y: 0 }, idealAttackLoc: 'collisionLoc', reach: 25, cooldown: 0,
+  power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
+  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1,
+  chargeExplodeFactor: 4, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
+  sound: null, releaseSound: null, explodeSound: null, volume: DEFAULT_VOLUME, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP,
 } as const
 
-// Object-level defaults by objType. '*' applies to everything; entries marked "act_actor" /
-// "act_character" mirror what those data files set (a fallback in case a file skips the chain),
-// the rest are engine object defaults (objGameObject / modEnergy / objMoveXY / modMoveToLoc).
+/** objCharacter #dieVolume default. */
+const DEFAULT_DIE_VOLUME = 100
+
+// Object-level defaults by objType, grouped like ActorDef. '*' applies to everything; entries marked
+// "act_actor" / "act_character" mirror what those data files set (a fallback in case a file skips
+// the chain), the rest are engine object defaults or remake additions.
 const OBJECT_DEFAULTS: Record<string, Plain> = {
   '*': {
+    // engine: identity, allegiance and drawing
+    startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
+    experienceImWorth: 0, // objGameObject
+    // engine: energy and physics
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
+    // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
     navModeAcceleration: 0, // only Merlin installs modNavMode
+    pathFindingStallTime: 5, // modPathFinding.addModParams
+    // engine: character stats
     strength: 1, agility: 1, dexterity: 1, eyestrain: 0, // act_character fallbacks
     mana_burst: 1, mana_capacity: 10, mana_flow: 1, mana_regeneration: 1, // act_character fallbacks
-    experienceImWorth: 0, // objGameObject
-    collisionRectScale: 1, // remake addition: engine-sized rect
-    pathFindingStallTime: 5, // modPathFinding.addModParams
-    scenicMaxTicks: 60, // remake cutoff on #scenic detours (none in the engine)
-    projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // remake angular spread, off in the engine
-    detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // remake spreading detour
+    // engine: weapon
     weaponTechnique: 0, // modWeaponTechnique.addModParams
+    // engine: sound
     takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
-    dieSound: 'none', dieVolume: 100, // objCharacter.addModParams (the only dying objects ported)
-    startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
+    dieSound: 'none', dieVolume: DEFAULT_DIE_VOLUME, // objCharacter.addModParams (the only dying objects ported)
+    // remake additions
+    collisionRectScale: 1, // engine-sized rect
+    scenicMaxTicks: 60, // cutoff on #scenic detours (none in the engine)
+    detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
+    projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -143,16 +161,23 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
 
 /** Canonical camelCase spellings; Lingo symbols are case-insensitive. Keys not listed here are lowercased. */
 const CANONICAL = new Map<string, string>()
-for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ',
-  'startOffset', 'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'walkSpeed',
-  'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
-  'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
-  'teamName', 'category', 'hates', 'friends', 'collisionRectScale', 'pathFindingStallTime', 'scenicMaxTicks',
-  'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks', 'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
-  'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName']) {
+for (const k of [
+  ...Object.keys(ATTACK_DEFAULTS),
+  // engine properties read by the port
+  'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
+  'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed',
+  'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
+  'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
+  'weapon', 'weaponTechnique', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
+  // engine properties kept in raw only
+  'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends',
+  // remake additions
+  'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
+  'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
+]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
-export function canonicalKey(k: string): string {
+function canonicalKey(k: string): string {
   const lower = k.toLowerCase()
   return CANONICAL.get(lower) ?? lower
 }
@@ -164,7 +189,7 @@ function isPlain(v: unknown): v is Plain {
 }
 
 /** Lingo value -> plain data: symbols and identifiers become strings (TRUE/FALSE become booleans), calls (random(), member()) become null. */
-export function toPlain(v: LingoValue): unknown {
+function toPlain(v: LingoValue): unknown {
   if (Array.isArray(v)) return v.map(toPlain)
   if (isSymbol(v)) return v.sym
   if (isIdent(v)) {
@@ -306,6 +331,25 @@ export function withContext<T>(ctx: string, fn: () => T): T {
 }
 
 /**
+ * The raw attack list an actor ends up with: its starting weapon's (modWeaponManager.start installs
+ * it), else its own natural attack, with the tuning overlay's `attack` merged on top.
+ */
+function installedRawAttack(r: Plain, weapon: string | null, parsed: Record<string, Plain>, overlay: unknown, ctx: string): Plain | undefined {
+  let rawAttack = isPlain(r['attack']) ? r['attack'] : undefined
+  if (weapon) {
+    if (!parsed[weapon]) throw new Error(`${ctx}: unknown weapon ${weapon}`)
+    const weaponAttack = resolveChain(weapon, parsed)['attack']
+    if (!isPlain(weaponAttack)) throw new Error(`${ctx}: weapon ${weapon} has no attack list`)
+    rawAttack = weaponAttack
+  }
+  if (overlay !== undefined) {
+    if (!isPlain(overlay)) bad(ctx, 'tuning attack', 'a property list', overlay)
+    rawAttack = deepMerge(rawAttack ?? {}, overlay)
+  }
+  return rawAttack
+}
+
+/**
  * files: actor key (e.g. "goblinWarrior") -> raw text of act_<key>.txt.
  * tuning: optional deep overlay per actor key. Everything but `attack` is merged into the resolved
  * properties before the weapon is derived (so an overlay can swap `weapon`); `attack` is then merged
@@ -324,38 +368,35 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
     r = { ...OBJECT_DEFAULTS['*'], ...(OBJECT_DEFAULTS[objType] ?? {}), ...r }
     const { attack: attackOverlay, ...overlay } = tuning[key] ?? {}
     r = deepMerge(r, overlay)
-    // starting weapon installs its attack (modWeaponManager.start)
     const weapon = typeof r['weapon'] === 'string' ? r['weapon'] : null
-    let rawAttack = isPlain(r['attack']) ? r['attack'] : undefined
-    if (weapon) {
-      if (!parsed[weapon]) throw new Error(`${ctx}: unknown weapon ${weapon}`)
-      const weaponAttack = resolveChain(weapon, parsed)['attack']
-      if (!isPlain(weaponAttack)) throw new Error(`${ctx}: weapon ${weapon} has no attack list`)
-      rawAttack = weaponAttack
-    }
-    if (attackOverlay !== undefined) {
-      if (!isPlain(attackOverlay)) bad(ctx, 'tuning attack', 'a property list', attackOverlay)
-      rawAttack = deepMerge(rawAttack ?? {}, attackOverlay)
-    }
+    const rawAttack = installedRawAttack(r, weapon, parsed, attackOverlay, ctx)
     out[key] = {
+      // engine: identity, allegiance and drawing
       key, name: String(r['name'] ?? key), objType, aiType: strOrNull(r['AiType']), team: str(r, 'team', ctx),
-      layerZ: str(r, 'layerZ', ctx), startOffset: vec(r, 'startOffset', ctx), energy: num(r, 'energy', ctx),
-      energyRecoverDelay: num(r, 'energyRecoverDelay', ctx), friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
-      inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx), walkSpeed: num(r, 'walkSpeed', ctx),
-      walkAcceleration: num(r, 'walkAcceleration', ctx), navModeAcceleration: num(r, 'navModeAcceleration', ctx), strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx),
-      dexterity: num(r, 'dexterity', ctx), eyestrain: num(r, 'eyestrain', ctx), mana_burst: num(r, 'mana_burst', ctx),
-      mana_capacity: num(r, 'mana_capacity', ctx), mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
-      weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
-      collisionRectScale: num(r, 'collisionRectScale', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
-      scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
-      detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
-      detourMoveMaxTicks: num(r, 'detourMoveMaxTicks', ctx),
-      detourPauseTicks: num(r, 'detourPauseTicks', ctx), detourDistance: num(r, 'detourDistance', ctx),
-      detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
-      projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
+      layerZ: str(r, 'layerZ', ctx), startOffset: vec(r, 'startOffset', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
+      // engine: energy and physics
+      energy: num(r, 'energy', ctx), energyRecoverDelay: num(r, 'energyRecoverDelay', ctx),
+      friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
+      inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx),
+      // engine: movement
+      walkSpeed: num(r, 'walkSpeed', ctx), walkAcceleration: num(r, 'walkAcceleration', ctx),
+      navModeAcceleration: num(r, 'navModeAcceleration', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
+      // engine: character stats
+      strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx), dexterity: num(r, 'dexterity', ctx), eyestrain: num(r, 'eyestrain', ctx),
+      mana_burst: num(r, 'mana_burst', ctx), mana_capacity: num(r, 'mana_capacity', ctx),
+      mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
+      // engine: weapon (the attack is built last, below)
+      weapon, weaponTechnique: num(r, 'weaponTechnique', ctx),
+      // engine: sound
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
-      dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, 100),
+      dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
+      // remake additions
+      collisionRectScale: num(r, 'collisionRectScale', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
+      detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
+      detourMoveMaxTicks: num(r, 'detourMoveMaxTicks', ctx), detourPauseTicks: num(r, 'detourPauseTicks', ctx),
+      detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
+      projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
       attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }
