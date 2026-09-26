@@ -182,7 +182,10 @@ export class Scene {
       spr.texture = tex
       spr.zIndex = LAYER_Z[def.layerZ] ?? 0
       const pos = lerp(a)
-      spr.position.set(Math.round(pos.x), Math.round(pos.y))
+      // Wide frames (attacks) grow toward the facing direction so the back edge stays where the
+      // stand frame's back edge is, instead of the body jumping as a centred frame would.
+      const shift = spell ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
+      spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) {
         // the spell carries its caster's attack (objSpell.setSpellProperties); the sim already
         // multiplied `charge` by chargeExplodeFactor when it switched to explode
@@ -205,6 +208,12 @@ export class Scene {
       spr.destroy()
       this.actorSprites.delete(id)
     }
+  }
+
+  /** Width of the sprite's stand frame (or first walk frame); `fallback` if it has neither. */
+  private standWidth(spriteName: string, fallback: number): number {
+    const frames = this.sprites[spriteName]?.frames
+    return (frames?.['stand']?.[0] ?? frames?.['walk']?.[0])?.width ?? fallback
   }
 
   /** Atlas frame for (sprite, anim, frame), falling back to stand, then the first walk frame. */
