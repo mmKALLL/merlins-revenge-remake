@@ -1,3 +1,4 @@
+import { AudioEngine } from './audio/audio'
 import { needsSprite } from './mr-open/mr-actor-data'
 import { loadActors, loadMap, loadMapIndex, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
@@ -41,14 +42,50 @@ function saveZoom(z: ZoomSetting): void {
   }
 }
 
-/** Keeps clicks on the controls away from the game's mouse input (window listeners) and keyboard focus. */
+/**
+ * Keeps clicks on the controls away from the game's mouse input (window listeners) and keyboard
+ * focus. Sliders need their mousedown default to drag; they give focus back on release instead.
+ */
 function isolateControls(el: HTMLElement): void {
   for (const type of ['mousedown', 'mouseup', 'pointerdown', 'pointerup'] as const) {
     el.addEventListener(type, (e) => {
       e.stopPropagation()
-      if (type === 'mousedown') e.preventDefault()
+      if (type === 'mousedown' && !(e.target instanceof HTMLInputElement)) e.preventDefault()
     })
   }
+}
+
+/** Music and Effects toggles and the master volume slider next to the zoom buttons. */
+function setupSoundControls(audio: AudioEngine, row: HTMLElement): void {
+  const toggle = (label: string, title: string, get: () => boolean, set: (on: boolean) => void) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = label
+    b.title = title
+    const show = () => b.setAttribute('aria-pressed', String(get()))
+    b.addEventListener('click', () => {
+      set(!get())
+      show()
+    })
+    show()
+    row.appendChild(b)
+  }
+  toggle('Music', 'Music on/off', () => audio.current.music, (on) => audio.setMusic(on))
+  toggle('Effects', 'Sound effects on/off', () => audio.current.effects, (on) => audio.setEffects(on))
+  const label = document.createElement('label')
+  label.textContent = 'Vol'
+  label.title = 'Master volume'
+  const slider = document.createElement('input')
+  slider.type = 'range'
+  slider.min = '0'
+  slider.max = '100'
+  slider.value = String(audio.current.volume)
+  slider.setAttribute('aria-label', 'Master volume')
+  slider.addEventListener('input', () => audio.setVolume(Number(slider.value)))
+  // hand the keyboard back to the game (Space and the arrows must not stay on the slider)
+  for (const type of ['change', 'pointerup'] as const) slider.addEventListener(type, () => slider.blur())
+  label.appendChild(slider)
+  row.appendChild(label)
 }
 
 /** The 1x..4x / fit buttons below the canvas; `reserved` is the controls block kept visible in 'fit' mode. */
@@ -104,6 +141,10 @@ async function setupMapList(list: HTMLElement): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // effects decode in the background; the context resumes on the first key or click
+  const audio = new AudioEngine()
+  audio.attachUnlock(window)
+  void audio.preload()
   const map = await loadMap(mapName)
   const tilesetFor = (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
@@ -132,18 +173,21 @@ async function main(): Promise<void> {
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
   const startPos = findStartPos(grid, playerTile)
   let sim = createSim(grid, defs, teams, anims, seed, startPos)
+  audio.handle(sim.events) // the start room's music
   let runSeed = seed
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs)
   const game = document.getElementById('game') ?? document.body
   const controls = document.getElementById('controls')
   const zoomRow = document.getElementById('zoom')
+  const soundRow = document.getElementById('sound')
   const mapList = document.getElementById('maps')
   await scene.init(game)
   if (controls) {
     game.appendChild(controls) // below the canvas
     isolateControls(controls)
     if (mapList) await setupMapList(mapList)
+    if (soundRow) setupSoundControls(audio, soundRow)
     if (zoomRow) setupZoomButtons(scene, zoomRow, controls)
   }
 
@@ -185,11 +229,13 @@ async function main(): Promise<void> {
     input.setMouseWorld(mouseWorld())
     while (acc >= TICK_MS) {
       sim = stepSim(sim, input.snapshot())
+      audio.handle(sim.events) // every tick stepped this frame, not just the last
       acc -= TICK_MS
       if (sim.restartRequested) {
         // the player died: start the map again with the loaded assets and a fresh seed
         runSeed = (Math.imul(runSeed ^ (runSeed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
         sim = createSim(grid, defs, teams, anims, runSeed, startPos)
+        audio.handle(sim.events) // the start room's music again
       }
     }
     scene.draw(sim, acc / TICK_MS, fps)

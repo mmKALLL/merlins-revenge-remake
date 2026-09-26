@@ -10,14 +10,16 @@
       #game { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; }
       canvas { display: block; image-rendering: pixelated; }
       #controls { display: flex; gap: 16px; align-items: flex-start; font: 12px monospace; }
-      #zoom { display: flex; gap: 4px; }
+      #zoom, #sound { display: flex; gap: 4px; align-items: center; }
       #space-mode { color: #aaa; font: 12px monospace; }
-      #zoom button {
+      #zoom button, #sound button {
         font: inherit; color: #aaa; background: #111; border: 1px solid #444; border-radius: 3px;
         padding: 2px 8px; cursor: pointer;
       }
-      #zoom button:hover { color: #fff; border-color: #888; }
-      #zoom button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
+      #zoom button:hover, #sound button:hover { color: #fff; border-color: #888; }
+      #zoom button[aria-pressed='true'], #sound button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
+      #sound label { color: #aaa; display: flex; gap: 4px; align-items: center; }
+      #sound input[type='range'] { width: 72px; margin: 0; accent-color: #ccc; }
       #maps {
         position: relative; margin: 0; padding: 0; list-style: none; max-height: 5.5em; overflow-y: auto;
         border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
@@ -31,6 +33,7 @@
     <div id="game">
       <div id="controls">
         <div id="zoom" role="group" aria-label="Pixel size"></div>
+        <div id="sound" role="group" aria-label="Sound"></div>
         <div id="space-mode" aria-live="polite"></div>
         <ul id="maps" aria-label="Maps"></ul>
       </div>
