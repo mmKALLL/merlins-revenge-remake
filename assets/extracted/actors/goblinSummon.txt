@@ -1,0 +1,119 @@
+[#name: "act_goblinSummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(255,255,0),
+#chargeExplodeFactor: 1,
+#chargeSize: 2,
+#chargeSpeed: 0.4,
+#chargeStart: 0,
+#chargeMax: 37,
+#chargeSpeedMax: 0.4,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 15,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers],
+#limitMagic: false,
+#randomSummon: true,
+#multistage:
+[
+#goblinWarrior: 15,
+#goblinArcher: 17,
+#goblinMage: 20,
+#bowOrc: 25,
+#swordOrc: 30,
+#mageOrc:34,
+#blackOrc:36
+],
+#name: #goblinSummon,
+#payloadFunction: #takeHit,
+#payloadFunctionNonBlank: #takeHit,
+#power: 1,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #enemies,
+#spellSpeed: 20,
+#targetAllegiance: #enemy,
+#targetTileWhenNotBlank: true
+],
+#character: #goblinSummon,
+#collectSound: "collect_powerup_01",
+#member: member("undeadSummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

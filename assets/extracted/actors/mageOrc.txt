@@ -1,0 +1,91 @@
+[#name: "act_mageOrc", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #enemyCharacter,
+#chargeOffsetSide: #top,
+#chargeLoc: point(0,-16),
+#collisionDetection: true,
+#damageSpeed: 4,
+#dexterity: 1,
+#energy: 300,
+#experienceImWorth: 30,
+#inertia: 65,
+#mana_capacity: 31,
+#mana_flow: 1.5,
+#mana_capacityIncLevel: 1.5,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #orcs,
+#name: "mageOrc",
+#walkSpeed: 4,
+#weapon: #goblinSummon
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,86 @@
+[#name: "act_swordOrc", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#character: #friendlyCharacter,
+#damageSpeed: 2,
+#dexterity: 4,
+#energy: 300,
+#inertia: 70,
+#eyestrain: 70,
+#experienceImWorth: 20,
+#miniMapStatus: #inf,
+#stallSpeed: 3,
+#strength: 3,
+#team: #orcs,
+#name: "swordOrc",
+#walkSpeed: 8,
+#weapon: #orcSword
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

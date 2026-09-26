@@ -1,0 +1,91 @@
+[#name: "act_goblinHut", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "goblin_hut_die_02",
+#energy: 25,
+#experienceImWorth: 15,
+#residentGroups: 
+[
+[
+#typ: #goblinArcher,
+#buildTime: [40,50],
+#groupSize: [3,7],
+#releaseInterval: [30,50]
+],
+[
+#typ: #goblinWarrior,
+#buildTime: [35,45],
+#groupSize: [3,7],
+#releaseInterval: [25,45]
+]
+],
+#team: #goblins,
+#name: "goblinHut"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

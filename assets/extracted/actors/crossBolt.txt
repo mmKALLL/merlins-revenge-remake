@@ -1,0 +1,81 @@
+[#name: "act_crossBolt", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 4,
+#power: 0.7,
+#type: #bullet
+],
+#character: #bullet,
+#name: "crossBolt",
+#friction: point(5,5),
+#recordInRoomState: false,
+#weight: 1.6
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

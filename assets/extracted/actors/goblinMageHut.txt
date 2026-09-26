@@ -1,0 +1,86 @@
+[#name: "act_goblinMageHut", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "goblin_hut_die_02",
+#energy: 15,
+#experienceImWorth: 20,
+#residentGroups: 
+[
+[
+#typ: #goblinMage,
+#buildTime: [50,60],
+#groupSize: [1,2],
+#releaseInterval: [20,50]
+]
+],
+#name: "goblinMageHut",
+#team: #goblins,
+#totalResidents: 5
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

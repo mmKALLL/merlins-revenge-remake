@@ -1,0 +1,86 @@
+[#name: "act_goblinMage", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #goblinMage,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 50,
+#experienceAmountForNextLevel: 3,
+#experienceImWorth: 6,
+#inertia: 60,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #goblins,
+#name: "goblinMage",
+#walkSpeed: 3.5,
+#weapon: #energyBlast
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

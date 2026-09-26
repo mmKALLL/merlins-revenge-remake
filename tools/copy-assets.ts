@@ -68,6 +68,15 @@ for (const [name, why] of actors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: `actor: ${why}` })
 }
 
+// Staged for the enemy slice (goblin mage, dwellings, orcs): kept out of assets/actors until their
+// sprites are wired into the converter, so the converter's atlas check keeps passing meanwhile.
+const stagedActors = ['goblinMage', 'goblinHut', 'goblinMageHut', 'dwelling', 'bowOrc', 'swordOrc', 'orcHouse', 'mageOrc',
+  'crossBow', 'crossBolt', 'orcSword', 'goblinSummon']
+for (const name of stagedActors) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for the enemy slice' })
+}
+copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'extracted/teams/orcs.txt'), why: 'staged for the enemy slice' })
+
 // every file in fromDir matching pattern -> toDir/<same name>
 function copyGlob(fromDir: string, pattern: RegExp, toDir: string, why: string): void {
   for (const name of readdirSync(fromDir).sort()) {

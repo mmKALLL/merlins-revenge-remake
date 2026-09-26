@@ -1,0 +1,86 @@
+[#name: "act_bowOrc", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 2,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 300,
+#experienceImWorth: 30,
+#eyestrain: 50,
+#inertia: 55,
+#startingLevel: 0,
+#strength: 8,
+#team: #orcs,
+#name: "bowOrc",
+#walkSpeed: 6,
+#weapon: #crossBow,
+#weaponTechnique: -5
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

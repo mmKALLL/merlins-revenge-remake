@@ -1,0 +1,83 @@
+[#name: "act_crossBow", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: [2,4,6],
+#animType: #weaponRanged,
+#bullet: #crossBolt,
+#collisionLoc: point(0,-2),
+#cooldown: 8,
+#firingType: #fullstrength,
+#name: #crossBow,
+#reach: 100,
+#sound: "orc_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

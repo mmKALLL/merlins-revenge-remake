@@ -1,0 +1,85 @@
+[#name: "act_orcSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: [6,10,12],
+#animType: #weaponMelee,
+#collisionLoc: point(10,6),
+#cooldown: 0,
+#damageMultiplier: 8,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(10,6),
+#name: #orcSword,
+#power: point(1, 0),
+#sound: "skeleton_fire",
+#targetRoles: [[#teamMembers, #teamBuildings]]
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

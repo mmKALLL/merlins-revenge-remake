@@ -1,0 +1,98 @@
+[#name: "act_orcHouse", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "boulder_die",
+#energy: 100,
+#experienceImWorth: 20,
+#frictionReel: point(85,85),
+#residentGroups: 
+[
+[
+#typ: #bowOrc,
+#buildTime: [52,62],
+#groupSize: [1,6],
+#releaseInterval: [30,60]
+],
+[
+#typ: #swordOrc,
+#buildTime: [55,65],
+#groupSize: [1,6],
+#releaseInterval: [30,60]
+],
+[
+#typ: #mageOrc,
+#buildTime: [60,70],
+#groupSize: [2,3],
+#releaseInterval: [40,60]
+]
+],
+#team: #goblins,
+#name: "orcHouse"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
