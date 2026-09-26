@@ -5,7 +5,17 @@
   },
   "goblinWarrior": {
     "energy": 50,
-    "pathFindingStallTime": 2
+    "pathFindingStallTime": 2,
+    "attack": {
+      "collisionLoc": {
+        "x": 13,
+        "y": 0
+      },
+      "idealAttackLoc": {
+        "x": 13,
+        "y": 0
+      }
+    }
   },
   "goblinArcher": {
     "energy": 25,

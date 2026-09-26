@@ -416,6 +416,35 @@ describe('spreading detour (remake, user request)', () => {
   })
 })
 
+describe('detour interrupted by a hit (regression: goblins froze and became unhittable)', () => {
+  it('a goblin blasted during its detour pause reels, recovers, moves again and can be hit again', () => {
+    const forced = { ...defs, goblinWarrior: { ...defs['goblinWarrior']!, detourChance: 1 } }
+    const s0 = createSim(grid(openMap([{ x: 10, y: 5, tile: WARRIOR }])), forced, teams, anims, 1, { x: 100, y: 144 })
+    const g0 = s0.actors.find((a) => a.id !== s0.playerId)!
+    let s: SimState = { ...s0, actors: s0.actors.map((a) => (a.id === g0.id ? { ...a, pos: { x: 120, y: 144 }, prevPos: { x: 120, y: 144 } } : a)) }
+    ;[s] = runUntil(s, (t) => actor(t, g0.id)!.ai.mode === 'detourPause', 40)
+    const blastAt = (st: SimState): SimState => {
+      const aim = actor(st, g0.id)!.pos
+      st = run(st, 4, { ...NO_INPUT, chargeHeld: true, mouseWorld: aim })
+      return run(st, 1, { ...NO_INPUT, mouseWorld: aim })
+    }
+    const e0 = actor(s, g0.id)!.energy
+    s = blastAt(s)
+    ;[s] = runUntil(s, (t) => actor(t, g0.id)!.energy < e0, 20)
+    expect(actor(s, g0.id)!.mode).toBe('reel')
+    // recovers from the reel and resumes the AI instead of freezing
+    ;[s] = runUntil(s, (t) => actor(t, g0.id)!.mode !== 'reel', 120)
+    s = run(s, 30)
+    const g = actor(s, g0.id)!
+    expect(g.ai.mode).not.toBe('dazed')
+    // still hittable
+    const e1 = g.energy
+    s = blastAt(s)
+    ;[s] = runUntil(s, (t) => (actor(t, g0.id)?.energy ?? -1) < e1, 20)
+    expect(actor(s, g0.id)?.energy ?? -1).toBeLessThan(e1)
+  })
+})
+
 describe('archer (combat notes §3-4)', () => {
   it('stands still inside reach 100, shoots on frame 21 and the arrow hits the player', () => {
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 })
