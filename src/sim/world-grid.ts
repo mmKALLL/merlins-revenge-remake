@@ -1,8 +1,6 @@
 import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { roomNumToXY, type LayerName, type MapDefinition } from '../mr-open/mr-map-format'
 
-export { TILE_PX }
-
 export interface WorldGrid {
   map: MapDefinition
   widthTiles: number

@@ -17,3 +17,5 @@ Next: merge walk-and-rooms into main, then brainstorm and plan the combat slice 
 - `assets/tile-keys/merlinOpenPassive.txt` has no symbols (all blank), so its parsed symbol list is empty. The placeholder tileset for the passive layer must size itself from the tile indices used in maps, not from the key. Task 7 needs a small adjustment: count tiles as max(key length, highest index referenced by any map layer using that tileset).
 - Quality review minor items for `tools/copy-assets.ts`: anchor paths on the script location, give a clear error when the archive is missing, use `dirname`, sort `readdirSync` output. Fold into Task 7 when writing `convert-assets.ts`.
 - TypeScript resolved to 7.0.2. Works so far; pin to 5.x if it misbehaves.
+- Design items deliberately not built in this slice: the debug overlay's collision-rect toggle, and a URL parameter for the viewport size (it is configured in code in main.ts).
+- In room camera mode, for the frames right after a room change (alpha < 1) Merlin is drawn from the new room's origin at an interpolated position and is briefly outside the mask; invisible in practice.

@@ -1,6 +1,7 @@
 // Loads public/generated JSON and PNG (produced by tools/convert-assets.ts) into typed structures
 // and PixiJS textures. Tile and frame textures are sub-rectangles of one shared sheet texture.
 import { Assets, Rectangle, Texture } from 'pixi.js'
+import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { AnimationSet } from '../sim/state'
 
@@ -37,7 +38,8 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const isNum = (v: unknown): v is number => typeof v === 'number'
 
 const isMap = (v: unknown): v is MapDefinition =>
-  isObj(v) && isObj(v['mapSize']) && isObj(v['roomSize']) && Array.isArray(v['layers']) && Array.isArray(v['rooms'])
+  isObj(v) && isObj(v['mapSize']) && isObj(v['roomSize']) && isObj(v['startRoom']) &&
+  isNum(v['startRoom']['x']) && isNum(v['startRoom']['y']) && Array.isArray(v['layers']) && Array.isArray(v['rooms'])
 
 const isTileset = (v: unknown): v is TilesetData =>
   isObj(v) && isObj(v['tileSize']) && isNum(v['tileSize']['x']) && isNum(v['tileSize']['y']) &&
@@ -59,7 +61,9 @@ export async function loadMap(name: string): Promise<MapDefinition> {
 }
 
 export async function loadTileset(name: string): Promise<LoadedTileset> {
-  const data = await json(`/generated/tilesets/${name}.json`, isTileset)
+  const url = `/generated/tilesets/${name}.json`
+  const data = await json(url, isTileset)
+  if (data.tileSize.x !== TILE_PX || data.tileSize.y !== TILE_PX) throw new Error(`${url}: tileSize must be ${TILE_PX}`)
   const sheet = nearest(await Assets.load<Texture>(`/generated/tilesets/${name}.png`))
   const textures = data.symbols.map((_, i) => {
     const x = (i % data.tilesPerRow) * data.tileSize.x

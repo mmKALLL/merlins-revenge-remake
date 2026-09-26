@@ -1,8 +1,8 @@
 import { Application, Container, Graphics, Sprite, Text } from 'pixi.js'
 import type { LoadedSprite, LoadedTileset } from '../data/loaders'
-import type { LayerName, Vec } from '../mr-open/mr-map-format'
+import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
+import type { LayerName } from '../mr-open/mr-map-format'
 import type { SimState } from '../sim/state'
-import { TILE_PX } from '../sim/world-grid'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 
 export interface RenderConfig {

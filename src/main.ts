@@ -1,6 +1,6 @@
 import { loadMap, loadSprite, loadTileset } from './data/loaders'
 import { InputTracker } from './input/keyboard'
-import type { Vec } from './mr-open/mr-map-format'
+import type { Vec } from './mr-open/mr-geometry'
 import { Scene, type RenderConfig } from './render/scene'
 import { TICK_MS } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'

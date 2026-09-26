@@ -3,7 +3,6 @@
 import { isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 
 import type { Vec } from './mr-geometry'
-export type { Vec }
 
 export type LayerName = 'backgroundPassive' | 'backgroundActive' | 'objects'
 

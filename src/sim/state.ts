@@ -1,5 +1,5 @@
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
-import type { Vec } from '../mr-open/mr-map-format'
+import type { Vec } from '../mr-open/mr-geometry'
 import { PLAYER_WALK_ACCELERATION } from '../mr-open/mr-movement'
 import type { WorldGrid } from './world-grid'
 

@@ -1,6 +1,6 @@
 // Port of modMoveToLoc.moveHoriz/moveVert (acceleration) and objMoveXY.update
 // (friction, clamp). Friction is a percentage of current speed per axis.
-import type { Vec } from './mr-map-format'
+import type { Vec } from './mr-geometry'
 
 /** act_player.txt: #walkAcceleration: 2 */
 export const PLAYER_WALK_ACCELERATION = 2

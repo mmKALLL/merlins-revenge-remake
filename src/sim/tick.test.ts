@@ -101,6 +101,21 @@ describe('stepSim', () => {
     expect(s.player.pos.y).toBeGreaterThan(100)
   })
 
+  it('stops at walls and the map edge with the shipped 14x14 collision box', () => {
+    // wall column 5 has left edge location (5-1)*32 - 1 = 127; rect.right (+7) rests there, so x = 120
+    let s = createSim(buildWorldGrid(openMap({ solidCol: 5 }), isSolid), anims, { x: 100, y: 100 })
+    for (let i = 0; i < 30; i++) s = stepSim(s, input(1, 0), DEFAULT_SIM_CONFIG)
+    expect(s.player.pos.x).toBe(120)
+    expect(s.player.vel.x).toBe(0)
+
+    // the map's left border has right edge location 0; rect.left (-7) rests there, so x >= 7
+    let t = make()
+    t.player.pos = { x: 20, y: 100 }
+    for (let i = 0; i < 30; i++) t = stepSim(t, input(-1, 0), DEFAULT_SIM_CONFIG)
+    expect(t.room).toEqual({ x: 1, y: 1 })
+    expect(t.player.pos.x).toBe(7)
+  })
+
   it('keeps the player inside the room at the right edge when exits are closed', () => {
     let s = { ...make(), exitsOpen: false }
     s.player.pos = { x: 540, y: 100 }

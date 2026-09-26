@@ -1,6 +1,6 @@
 // Port of objTileSetKey: maps a 1-based tile index to its key symbol.
 import { parseLingo } from './mr-lingo-plist'
-import type { Vec } from './mr-map-format'
+import type { Vec } from './mr-geometry'
 
 export interface TileKey {
   tileSize: Vec

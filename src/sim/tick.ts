@@ -3,11 +3,11 @@
 // closed-exit clamp -> exit test on the reg point -> wall hit zeroes horizontal velocity ->
 // facing from horizontal input -> animation.
 import { resolveTileCollision } from '../mr-open/mr-collision'
-import type { Vec } from '../mr-open/mr-map-format'
+import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import { DEFAULT_SIM_CONFIG, type AnimationSet, type InputSnapshot, type SimConfig, type SimState } from './state'
-import { TILE_PX, type WorldGrid } from './world-grid'
+import type { WorldGrid } from './world-grid'
 
 export function createSim(grid: WorldGrid, anims: AnimationSet, startPos: Vec): SimState {
   return {

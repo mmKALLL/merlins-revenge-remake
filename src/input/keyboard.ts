@@ -1,7 +1,7 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
 // Left click, Space, E, F and the mouse position are captured for later slices.
-import type { Vec } from '../mr-open/mr-map-format'
+import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
 const MOVE_KEYS: Record<string, Vec> = {

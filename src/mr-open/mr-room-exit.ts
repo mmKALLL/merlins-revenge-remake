@@ -31,8 +31,8 @@ export function roomAfterMove(roomRect: Rect, loc: Vec, room: Vec): Vec {
  * room's right edge therefore has left edge location `roomRect.right - 1`, and the push-out
  * (`rect.right - leftEdge`) leaves `rect.right == roomRect.right - 1`. The border tile before the
  * room's left edge has right edge location `roomRect.left`, leaving `rect.left == roomRect.left`.
- * Hence the `- 1` on the right/bottom bounds only. For the 18x9 room and the 30x30 player rect
- * this gives x in [15, 560] and y in [15, 272].
+ * Hence the `- 1` on the right/bottom bounds only. As an example, for the 18x9 room and a 30x30
+ * collision rect (not the shipped `PLAYER_COLLISION_RECT`) this gives x in [15, 560] and y in [15, 272].
  */
 export function clampToRoom(roomRect: Rect, loc: Vec, cr: CollisionRect): Vec {
   return {

@@ -1,11 +1,10 @@
-import type { Vec } from '../mr-open/mr-map-format'
+import type { Rect, Vec } from '../mr-open/mr-geometry'
 
 export type CameraMode = 'room' | 'follow'
 export interface Size { w: number; h: number }
-export interface RectPx { left: number; top: number; right: number; bottom: number }
 
 /** Top-left world pixel shown at the top-left of the play view. */
-export function cameraOrigin(mode: CameraMode, roomRect: RectPx, player: Vec, view: Size, world: Size): Vec {
+export function cameraOrigin(mode: CameraMode, roomRect: Rect, player: Vec, view: Size, world: Size): Vec {
   if (mode === 'room') return { x: roomRect.left, y: roomRect.top }
   const x = Math.round(player.x - view.w / 2)
   const y = Math.round(player.y - view.h / 2)
