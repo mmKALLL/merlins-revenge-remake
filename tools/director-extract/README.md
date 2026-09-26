@@ -1,0 +1,45 @@
+# director-extract
+
+`extract_tlk.py` pulls the `tlk_*` tileset bitmaps out of a Macromedia Director MX 2004
+`.dir` movie. The PNGs in `assets/tilesets/` were produced with it from the original
+map editor movie (`map_editor_open_40_adjustableDisplayScaleAndUpdatedTiles.dir`, not in
+this repository). Full spike notes: `docs/notes/tileset-extraction.md`.
+
+## Setup
+
+Needs a Python venv with [drxtract](https://github.com/System25/drxtract) and Pillow:
+
+```
+python3 -m venv venv
+git clone https://github.com/System25/drxtract.git
+./venv/bin/pip install ./drxtract pillow
+```
+
+## Run
+
+drxtract's `riffxtract` stage is run first to split the movie into chunks; the script
+then reads the `bin/` chunk folder it produces. Byte order is `pc` (the file magic is
+`XFIR`, a little-endian RIFX).
+
+```
+./venv/bin/riffxtract pc mapeditor.dir out_mapeditor
+./venv/bin/python extract_tlk.py out_mapeditor/bin png_out [tlk_name ...]
+```
+
+Only the `riffxtract` stage of the full `drxtract` pipeline is used; `casxtract` and
+`vwscxtract` crash on this movie (it has several casts), which does not matter for
+bitmaps.
+
+## drxtract quirks the script works around
+
+- `drxtract/cast/image.py` reads the D5+ bitmap header's `flags2` byte and
+  `bitsPerPixel` byte as a single big-endian int16, so a 32-bit member with
+  `flags2 = 0x20` reports depth 0x2020. The script masks with `& 0xff` when depth > 32.
+- drxtract's 24/32-bit decoder discards the alpha plane, so the script decodes 32-bit
+  BITD chunks itself (PackBits RLE, each row four planes A, R, G, B of `width` bytes).
+  The alpha plane turned out to be 0xFF everywhere anyway; transparency in the original
+  comes from the blit ink (pure white is transparent for the Active and Objects layers),
+  which `tools/convert-assets.ts` applies.
+
+Only the 32-bit and 16-bit members decode with correct colours; the older 8-bit
+`tlk_merlin{Passive,Active,Objects}` come out with the wrong palette and are not used.

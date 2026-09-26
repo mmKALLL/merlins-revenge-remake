@@ -1,5 +1,5 @@
 // Converts ./assets into ./public/generated for the browser. Run: pnpm assets:convert
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
@@ -8,6 +8,7 @@ import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas } from './atlas'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
+import { tileCapacity, tilesPerRow, usesWhiteTransparency, whiteToAlpha } from './tileset-sheet'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const ASSETS = join(ROOT, 'assets')
@@ -47,22 +48,32 @@ for (const def of maps) {
   }
 }
 
-// tile keys and placeholder sheets
+// tile keys and sheets: real art from assets/tilesets when present, else a placeholder
 const convertedTileSets = new Set<string>()
 for (const file of sortedTxt(join(ASSETS, 'tile-keys'))) {
   const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', file), 'utf8'))
   const name = file.replace(/\.txt$/, '')
   convertedTileSets.add(name)
   const symbols = [...key.symbols]
-  const needed = maxIndexByTileSet.get(name) ?? 0
+  const sheetPath = join(ASSETS, 'tilesets', `${name}.png`)
+  const sheet = existsSync(sheetPath) ? readPng(sheetPath) : undefined
+  const perRow = sheet ? tilesPerRow(sheet.width, key.tileSize.x) : TILES_PER_ROW
+  const capacity = sheet ? tileCapacity(sheet.width, sheet.height, key.tileSize) : 0
+  const needed = Math.max(maxIndexByTileSet.get(name) ?? 0, capacity)
   const padded = Math.max(0, needed - symbols.length)
   while (symbols.length < needed) symbols.push('none')
   writeFileSync(
     join(OUT, 'tilesets', `${name}.json`),
-    JSON.stringify({ tileSize: key.tileSize, tilesPerRow: TILES_PER_ROW, symbols }),
+    JSON.stringify({ tileSize: key.tileSize, tilesPerRow: perRow, symbols }),
   )
-  writePng(join(OUT, 'tilesets', `${name}.png`), buildPlaceholderTileset(symbols, key.tileSize))
-  console.log(`tileset ${name}: ${symbols.length} tiles (placeholder art${padded ? `, ${padded} padded from map usage` : ''})`)
+  const img = sheet
+    ? usesWhiteTransparency(name)
+      ? whiteToAlpha(sheet)
+      : sheet
+    : buildPlaceholderTileset(symbols, key.tileSize)
+  writePng(join(OUT, 'tilesets', `${name}.png`), img)
+  const art = sheet ? `real art, ${sheet.width}x${sheet.height}, ${perRow} per row` : 'placeholder art'
+  console.log(`tileset ${name}: ${symbols.length} tiles (${art}${padded ? `, ${padded} padded` : ''})`)
 }
 const missingTileSets = [...maxIndexByTileSet.keys()].filter((n) => !convertedTileSets.has(n)).sort()
 if (missingTileSets.length > 0) {
@@ -78,6 +89,11 @@ const atlas = buildAtlas(frames)
 writePng(join(OUT, 'sprites', 'merlin.png'), atlas.sheet)
 writeFileSync(join(OUT, 'sprites', 'merlin.json'), JSON.stringify({ animations: atlas.animations }))
 console.log(`sprites merlin: ${Object.keys(atlas.animations).length} animations`)
+
+function readPng(path: string): RgbaImage {
+  const png = PNG.sync.read(readFileSync(path))
+  return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
+}
 
 function writePng(path: string, img: RgbaImage): void {
   const png = new PNG({ width: img.width, height: img.height })
