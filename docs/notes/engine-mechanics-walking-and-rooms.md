@@ -197,3 +197,12 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - Exact semantics of `keyPressed(256)` for `#left` in `bnd_wasd` (expected to map to the A key).
 - Ink 36 assumed to be Director's "Background Transparent" (white -> transparent) for both tiles and sprites; confirm against the actual tileset bitmaps' background colour.
 - The Active key has 261 entries and Objects 228 versus the 10-per-row comments (23 and 21 labelled rows); trailing entries are blank lines, so the sheets are at least 27 and 23 rows tall respectively -- confirm from the bitmaps.
+
+## Prototype assumptions (walk-and-rooms slice)
+
+- Frames drawn at 2x so 16 px art is one tile tall; collision rect (-15,-15,15,15).
+- Play area at (32, 0) on a 640x320 logical screen.
+- `stand` aliases the first `walk` frame.
+- Exits always open (no enemies yet).
+- Both archive copies of mr4Demo.txt are corrupt and were dropped.
+- Tile key slot counts: merlinOpenActive 261, merlinOpenObjects 228, merlinOpenPassive 58; merlin4Passive has 66 slots but mriv_small references index 91, so the converter pads.
