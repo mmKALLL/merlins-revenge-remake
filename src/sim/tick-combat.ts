@@ -100,7 +100,7 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
     return
   }
   if (p.mode === 'charge') {
-    // the spell went away under the charge (e.g. dropped with the room)
+    // the spell went away under the charge
     p.mode = 'walk'
     p.ai.chargeKind = null
   }

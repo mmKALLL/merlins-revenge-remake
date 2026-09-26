@@ -12,7 +12,7 @@
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: living characters stored, the new room restored or spawned (combat notes §2)
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { resolveTileCollision } from '../mr-open/mr-collision'
+import { resolveTileCollision, resolveTileCollisionHits } from '../mr-open/mr-collision'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
@@ -100,9 +100,9 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const accel = s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration
   const vel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
   let loc: Vec = { x: p.pos.x + vel.x, y: p.pos.y + vel.y }
-  const before = loc
-  loc = resolveTileCollision(s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cfg.collisionRect)
-  const hitWallX = loc.x !== before.x
+  // objGameObject.collisionWallLeft/Right: setVectX(0); collisionCeiling/collisionPlatform: setVectY(0)
+  const pushed = resolveTileCollisionHits(s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cfg.collisionRect)
+  loc = pushed.loc
   const roomRect = s.grid.roomRectPx(s.room)
   if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   let room = s.room
@@ -113,7 +113,7 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   }
   p.prevPos = p.pos
   p.pos = loc
-  p.vel = { x: hitWallX ? 0 : vel.x, y: vel.y }
+  p.vel = { x: pushed.wallX ? 0 : vel.x, y: pushed.wallY ? 0 : vel.y }
   if (dir.x < 0) p.facingLeft = true
   else if (dir.x > 0) p.facingLeft = false
   return room
@@ -181,21 +181,23 @@ function stepAnimation(t: Tick, input: InputSnapshot): void {
 function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   const fromKey = roomKey(from)
   const toKey = roomKey(to)
-  let player = playerOf(s)
-  // a charging or releasing player leaves its spell behind (dropped with the room)
-  if (player.mode === 'charge' || player.mode === 'release') player = { ...player, mode: 'walk' }
-  player = { ...player, ai: { ...player.ai, chargeKind: null } }
+  // objPlayerMerlinCharacter #leaveRoom restores the mode it left in (pLeaveMode), and
+  // objRoom.getRoomObjects takes the player's charging spell out of the room before freezing it:
+  // the spell stays with the player (modSpellMultistage #enteringNewRoom), so the charge goes on.
+  const player = playerOf(s)
+  const charging = s.actors.filter((a) => isSpell(s, a) && a.ownerId === s.playerId && a.mode === 'charge')
   const survivors = s.actors.filter((a) => a.id !== s.playerId && isCharacter(s, a) && isAlive(a))
   const stored = s.rooms[fromKey] ?? EMPTY_ROOM
+  const carried = [player, ...charging]
   const next: SimState = {
     ...s,
     room: to,
-    actors: [player],
+    actors: carried,
     rooms: { ...s.rooms, [fromKey]: { ...stored, actors: survivors } },
   }
   const target = next.rooms[toKey]
   if (target?.spawned) {
-    return withExitsEvaluated({ ...next, actors: [player, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } })
+    return withExitsEvaluated({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } })
   }
   return withExitsEvaluated(spawnRoomActors(next, to))
 }

@@ -21,17 +21,19 @@ const UNSUPPORTED = 7 // def exists but objType is not spawnable from the map
 const VILLAGER = 8 // spawnable character of a team that is not hostile to the player (exits stay open)
 
 /**
- * Two 18x9 rooms side by side. `solidCol` fills that 1-based column of room 1's active layer with SOLID;
+ * Two 18x9 rooms side by side. `solidCol`/`solidRow` fill that 1-based column/row of room 1's active layer with SOLID;
  * `playerAt` puts a PLAYER tile in room 1's objects layer; `objects` places other object tiles by room.
  */
 function openMap(opts: {
   solidCol?: number
+  solidRow?: number
   playerAt?: { x: number; y: number }
   objects?: { room: number; x: number; y: number; tile: number }[]
 } = {}): MapDefinition {
   const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
   const active = fill(1)
   if (opts.solidCol) for (const row of active) row[opts.solidCol - 1] = SOLID
+  if (opts.solidRow) active[opts.solidRow - 1]!.fill(SOLID)
   const objects = [fill(0), fill(0)]
   if (opts.playerAt) objects[0]![opts.playerAt.y - 1]![opts.playerAt.x - 1] = PLAYER
   for (const o of opts.objects ?? []) objects[o.room - 1]![o.y - 1]![o.x - 1] = o.tile
@@ -188,6 +190,21 @@ describe('stepSim', () => {
     expect(player(s).pos.x).toBe(112)
     expect(player(s).vel.y).toBeGreaterThan(0)
     expect(player(s).pos.y).toBeGreaterThan(100)
+  })
+
+  it('zeroes vel.y on a floor or ceiling hit and keeps vel.x (collisionPlatform / collisionCeiling)', () => {
+    // floor row 5 has top edge location (5-1)*32 - 1 = 127; rect.bottom (+15) rests there, so y = 112
+    let s = make(openMap({ solidRow: 5 }))
+    for (let i = 0; i < 20 && player(s).pos.y !== 112; i++) s = stepSim(s, input(1, 1), CFG30)
+    expect(player(s).pos.y).toBe(112)
+    expect(player(s).vel.y).toBe(0)
+    expect(player(s).vel.x).toBeGreaterThan(0)
+    // ceiling: row 5's bottom edge location is 5*32 = 160; rect.top (-15) rests there, so y = 175
+    let c = withPlayerAt(make(openMap({ solidRow: 5 })), { x: 100, y: 200 })
+    for (let i = 0; i < 20 && player(c).pos.y !== 175; i++) c = stepSim(c, input(-1, -1), CFG30)
+    expect(player(c).pos.y).toBe(175)
+    expect(player(c).vel.y).toBe(0)
+    expect(player(c).vel.x).toBeLessThan(0)
   })
 
   it('stops at walls and the map edge with the shipped 14x14 collision box', () => {

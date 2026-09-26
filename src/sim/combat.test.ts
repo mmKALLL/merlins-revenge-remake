@@ -508,6 +508,24 @@ describe('spell details (objSpell)', () => {
     }
   })
 
+  it('stays with the player across a room change and keeps charging (objRoom.removeChargingSpell, #enteringNewRoom)', () => {
+    let s = createSim(grid(openMap([], { rooms: 2 })), defs, teams, anims, 1, { x: 560, y: 144 })
+    const holdRight: InputSnapshot = { ...NO_INPUT, chargeHeld: true, move: { x: 1, y: 0 }, mouseWorld: { x: 800, y: 144 } }
+    s = stepSim(s, holdRight)
+    const spellId = s.actors.find((a) => a.def === 'spell')!.id
+    ;[s] = runUntil(s, (t) => t.room.x === 2, 20, holdRight)
+    expect(s.room).toEqual({ x: 2, y: 1 })
+    const carried = actor(s, spellId)!
+    expect(carried.mode).toBe('charge')
+    expect(playerOf(s).mode).toBe('charge')
+    expect(playerOf(s).ai.chargeKind).toBe('mouse')
+    // the next tick keeps counting on the same spell, re-aligned on the player
+    s = stepSim(s, holdRight)
+    const after = actor(s, spellId)!
+    expect(after.charge).toBe(carried.charge + 1)
+    expect(after.pos.x).toBe(playerOf(s).pos.x)
+    expect(s.actors.filter((a) => a.def === 'spell')).toHaveLength(1)
+  })
 })
 
 describe('reel timing and wall impacts (modReel, objCPUCharacter.collisionWall)', () => {

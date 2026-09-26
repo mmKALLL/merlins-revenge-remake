@@ -35,8 +35,20 @@ export function tileOfPx(px: number): number {
 }
 
 export function resolveTileCollision(solidAt: SolidAt, newLoc: Vec, dir: Vec, cr: CollisionRect): Vec {
-  if (dir.x === 0 && dir.y === 0) return newLoc
-  let loc = { ...newLoc }
+  return resolveTileCollisionHits(solidAt, newLoc, dir, cr).loc
+}
+
+/**
+ * Which objGameObject callbacks a push fires: a push on the x axis, including a corner push
+ * (axisToChange = #both takes the non-vertical branch), calls collisionWallLeft/Right; a push on
+ * the y axis alone calls collisionCeiling (pushed down) or collisionPlatform (pushed up).
+ */
+export interface TileCollision { loc: Vec; wallX: boolean; wallY: boolean }
+
+export function resolveTileCollisionHits(solidAt: SolidAt, newLoc: Vec, dir: Vec, cr: CollisionRect): TileCollision {
+  const hits: TileCollision = { loc: { ...newLoc }, wallX: false, wallY: false }
+  if (dir.x === 0 && dir.y === 0) return hits
+  let loc = hits.loc
   const r0 = rectAt(loc, cr)
   // selectTilesFromCollisionRect visits the corners in the order TL, TR, BR, BL
   // (point(left,top), point(right,top), point(right,bottom), point(left,bottom)).
@@ -55,18 +67,18 @@ export function resolveTileCollision(solidAt: SolidAt, newLoc: Vec, dir: Vec, cr
     const rect = rectAt(loc, cr)
     const o = overlapForTile(solidAt, tx!, ty!, rect, dir)
     if (o.x === null && o.y === null) continue
-    if (o.corner) {
-      loc = { x: loc.x - (o.x ?? 0), y: loc.y - (o.y ?? 0) }
-    } else if (o.x !== null && o.y !== null) {
-      if (Math.abs(o.x) > Math.abs(o.y)) loc = { ...loc, y: loc.y - o.y }
-      else loc = { ...loc, x: loc.x - o.x }
-    } else if (o.x !== null) {
-      loc = { ...loc, x: loc.x - o.x }
-    } else if (o.y !== null) {
-      loc = { ...loc, y: loc.y - o.y }
-    }
+    let axis: 'x' | 'y' | 'both'
+    if (o.corner) axis = 'both'
+    else if (o.x !== null && o.y !== null) axis = Math.abs(o.x) > Math.abs(o.y) ? 'y' : 'x'
+    else axis = o.x !== null ? 'x' : 'y'
+    if (axis === 'both') loc = { x: loc.x - (o.x ?? 0), y: loc.y - (o.y ?? 0) }
+    else if (axis === 'x') loc = { ...loc, x: loc.x - o.x! }
+    else loc = { ...loc, y: loc.y - o.y! }
+    if (axis === 'y') hits.wallY = true
+    else hits.wallX = true
   }
-  return loc
+  hits.loc = loc
+  return hits
 }
 
 interface Overlap { x: number | null; y: number | null; corner: boolean }
