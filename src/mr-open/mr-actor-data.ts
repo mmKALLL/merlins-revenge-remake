@@ -1,7 +1,7 @@
 // Port of actorMaster.retrieveActorData (inheritance), structMaster.structAttack (attack defaults),
 // AttackSetTypeFromAnimType, and the object/module defaults from objGameObject, modEnergy,
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
-import { isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
+import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
 
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'none'
@@ -97,11 +97,14 @@ export function canonicalKey(k: string): string { return CANONICAL.get(k.toLower
 
 export type Plain = Record<string, unknown>
 
-/** Lingo value -> plain data: symbols and identifiers become strings, calls (random(), member()) become null. */
+/** Lingo value -> plain data: symbols and identifiers become strings (TRUE/FALSE become booleans), calls (random(), member()) become null. */
 export function toPlain(v: LingoValue): unknown {
   if (Array.isArray(v)) return v.map(toPlain)
   if (isSymbol(v)) return v.sym
-  if (typeof v === 'object' && v !== null && 'ident' in v) return v.ident
+  if (isIdent(v)) {
+    const lower = v.ident.toLowerCase()
+    return lower === 'true' ? true : lower === 'false' ? false : v.ident
+  }
   if (typeof v === 'object' && v !== null && 'call' in v) return null // random(), member(): not data we use
   if (typeof v === 'object' && v !== null && !('x' in v) && !('r' in v)) {
     const out: Plain = {}

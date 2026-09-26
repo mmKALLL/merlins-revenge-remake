@@ -57,6 +57,8 @@ describe('resolveActors', () => {
     expect(p.attack.chargeMaxBasic).toBe(5)
     expect(p.attack.spellSpeed).toBe(20)
     expect(p.attack.power).toBe(0.75)
+    expect(p.attack.limitMagic).toBe(true) // Lingo TRUE identifier
+    expect(p.raw['stretchDeath']).toBe(true)
   })
 
   it('resolves the arrow as a bullet with power 0.5 and friction 5%', () => {
