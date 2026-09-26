@@ -12,7 +12,7 @@
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: living characters stored, the new room restored or spawned (combat notes §2)
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { resolveTileCollision, resolveTileCollisionHits } from '../mr-open/mr-collision'
+import { resolveTileCollisionHits } from '../mr-open/mr-collision'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
@@ -146,12 +146,14 @@ function stepMovement(t: Tick): void {
     let loc = before
     if (character) {
       const cr = collisionRectFor(s, a)
-      loc = resolveTileCollision(s.grid.solidAt, before, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
-      if (loc.x !== before.x) {
+      // A corner push moves both axes but the engine only calls the wall callbacks for it
+      // (objCollisionMap.checkCollisions), so it zeroes x and takes wall damage once.
+      const hit = resolveTileCollisionHits(s.grid.solidAt, before, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
+      loc = hit.loc
+      if (hit.wallX) {
         takeWallDamage(t, a, vel.x)
         vel = { x: 0, y: vel.y }
-      }
-      if (loc.y !== before.y) {
+      } else if (hit.wallY) {
         takeWallDamage(t, a, vel.y)
         vel = { x: vel.x, y: 0 }
       }

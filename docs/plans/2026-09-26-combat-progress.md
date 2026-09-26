@@ -25,7 +25,7 @@ Playtest fixes after Task 11: 834dcb9 (direct blast hits, eyestrain rounding, wa
 
 - Movement and room changes on `mriv_small` and `combat_test` still behave as in the walk-and-rooms slice.
 - Combat feel on `combat_test` is "quite accurate" compared with the original.
-- Five playtest corrections, each fixed and re-checked: a hit while charging keeps the spell and holding resumes it; arrows fly through walls, as in the original; the exits open only after the last goblin's grave is down, so leaving at once no longer loses a grave; the release strip ends on its fourth frame; cleared rooms use the faster nav-mode walk.
+- Playtest corrections from the user, all fixed: arrows fly through walls (settles `gBulletsCollideWithBackground` as off); the charging spell is anchored at its bottom point on Merlin's head and grows upward; the explosion stays where the spell hit; Merlin can start a new charge during his release animation; the release strip ends on its fourth frame and goes straight back to walk or stand (it used to flash its first frame for a tick). The user also asked for nav mode (faster walking in cleared rooms, engine default acceleration 6) and more goblins in the test map's second room.
 
 ## Open items
 
