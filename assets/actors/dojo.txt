@@ -1,0 +1,98 @@
+[#name: "act_dojo", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "goblin_hut_die_02",
+#energy: 50,
+#experienceImWorth: 20,
+#residentGroups: 
+[
+[
+#typ: #karateGuy,
+#buildTime: [40,50],
+#groupSize: [1,3],
+#releaseInterval: [10,50]
+],
+[
+#typ: #kongFuChicken,
+#buildTime: [30,40],
+#groupSize: [1,3],
+#releaseInterval: [10,30]
+],
+[
+#typ: #SpeedyGuy,
+#buildTime: [40,50],
+#groupSize: [1,3],
+#releaseInterval: [10,50]
+]
+],
+#team: #karate,
+#totalResidents: 7,
+#name: "dojo"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

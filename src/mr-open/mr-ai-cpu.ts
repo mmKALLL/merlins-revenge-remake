@@ -72,7 +72,7 @@ export type AiDecision =
  * cooldown is not finished (#arrivedAtAttackLoc stops movement; attack() returns early).
  */
 export function decide(aiMode: AiMode, me: AiView, target: TargetView | null, retargetCounter: number): AiDecision {
-  if (aiMode === 'dazed' || aiMode === 'attack' || aiMode === 'none' || aiMode === 'detourPause' || aiMode === 'detourMove') return { kind: 'idle' }
+  if (aiMode === 'dazed' || aiMode === 'attack' || aiMode === 'none' || aiMode === 'detourPause' || aiMode === 'detourMove' || aiMode === 'runReload') return { kind: 'idle' }
   if (aiMode === 'findTarget' || target === null || !target.alive || retargetCounter >= RETARGET_TICKS) return { kind: 'retarget' }
   if (targetInReach(me, target)) {
     return me.cooldownReady ? { kind: 'startAttack', faceLeft: target.pos.x < me.pos.x } : { kind: 'stop' }

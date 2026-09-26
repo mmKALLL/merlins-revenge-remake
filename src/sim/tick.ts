@@ -180,6 +180,8 @@ function stepMovement(t: Tick): void {
  */
 function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: Rect): { loc: Vec; vel: Vec } {
   const cr = collisionRectFor(t.s, a)
+  // collisionDetection false (bats, ghosts): no tiles, only the play area (constrainToPlayArea #auto)
+  if (!defOf(t.s, a).collisionDetection) return { loc: clampToRoom(roomRect, loc, cr), vel }
   // A corner push moves both axes but the engine only calls the wall callbacks for it
   // (objCollisionMap.checkCollisions), so it zeroes x and takes wall damage once.
   const hit = resolveTileCollisionHits(t.s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)

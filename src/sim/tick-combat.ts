@@ -16,7 +16,7 @@ import { onFreshFrame } from './anim'
 import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
 import { actorIn, playSound, spawn, type Tick } from './tick-context'
-import { rollDetour } from './tick-ai'
+import { nearestHostileId, rollDetour } from './tick-ai'
 
 /** Ticks the player's die mode lasts before the map restart is requested. */
 export const PLAYER_DEATH_TICKS = 30
@@ -29,7 +29,7 @@ function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
   const def = defOf(t.s, victim)
   victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })
-  if (isDead(victim.energy)) startDeath(t, victim)
+  if (isDead(victim.energy, def.minEnergy)) startDeath(t, victim)
   // modEnergy.loseEnergy (modEnergy.txt:206): every energy loss, the killing one included; for the
   // player that is wizard_hit (objPlayerMerlinCharacter -> objCharacter installs modEnergy)
   playSound(t, def.takeHitSound, def.takeHitVolume)
@@ -77,6 +77,9 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
   if (victim.id === t.s.playerId) {
     victim.knockback = { x: victim.knockback.x + hit.push.x, y: victim.knockback.y + hit.push.y }
     victim.mode = 'walk'
+  } else if (def.reelProof) {
+    // modReel.takeHit: objGameObject.takeHit still adds the push, but no #reel follows
+    victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
   } else {
     victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
     victim.mode = 'reel'
@@ -133,12 +136,21 @@ function fireBullet(t: Tick, a: ActorState, def: ActorDef, bullet: string, targe
   spawn(t, bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
 }
 
-/** The attack strip has looped: back to walking and looking for a target. */
+/**
+ * The attack strip has looped: back to walking and looking for a target (objAiCPU.attackFin). A
+ * runReload character (bats, evil TVs, vulture guards) re-picks its nearest target and backs away
+ * from it until the cooldown is done (see stepRunReload).
+ */
 function finishAttack(t: Tick, a: ActorState, def: ActorDef): void {
   a.mode = 'walk'
   a.ai.mode = 'findTarget'
   a.ai.targetId = null
   a.vel = { x: 0, y: 0 }
+  if (def.runReload) {
+    const target = nearestHostileId(t, a)
+    if (target !== null) a.ai = { ...a.ai, mode: 'runReload', targetId: target, retargetCounter: 0 }
+    return
+  }
   // remake: a finished melee attack may start a spreading detour
   if (def.attack.type === 'melee') rollDetour(t, a, def)
 }
@@ -202,10 +214,12 @@ export function stepReelAndDeath(t: Tick): void {
         }
         break
       case 'dead':
-        if (a.animLooped) {
+        // objCPUCharacter.updateDead: with graveOn false there is no grave strip to wait for
+        if (a.animLooped || !def.graveOn) {
           a.mode = 'finish'
-          t.graves.push({ def: a.def, pos: a.pos })
+          if (def.graveOn) t.graves.push({ def: a.def, pos: a.pos })
           t.removed.add(a.id)
+          reincarnate(t, a, def)
         }
         break
       case 'release':
@@ -217,13 +231,25 @@ export function stepReelAndDeath(t: Tick): void {
   }
 }
 
+/**
+ * modReincarnate.reincarnate on #leftTeam when killed in action: each reincarnateAs actor is created
+ * on the dead one's reg point (useOffset false: the loop resets its counter every pass), e.g. hydra3
+ * -> hydra2 -> hydra1, a four-arm golem -> two dark golems.
+ */
+function reincarnate(t: Tick, a: ActorState, def: ActorDef): void {
+  for (const key of def.reincarnateAs) {
+    if (!t.s.defs[key]) continue // not ported yet
+    spawn(t, key, a.pos, { facingLeft: a.facingLeft })
+  }
+}
+
 /** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every team unit (a dwelling: +1 per 1000 ticks). */
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isUnit(t.s, a)) continue
     const def = defOf(t.s, a)
     a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(def))
-    const [energy, counter] = regenStep(a.energy, def.energy, a.regenCounter, def.energyRecoverDelay)
+    const [energy, counter] = regenStep(a.energy, def.maxEnergy, a.regenCounter, def.energyRecoverDelay)
     a.energy = energy
     a.regenCounter = counter
   }

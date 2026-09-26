@@ -66,6 +66,10 @@ export interface ActorDef {
   inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
   stallSpeed: number // objMoveXY: a tick moving |dx| + |dy| <= this counts as stalled (ends a reel after 10)
+  reelProof: boolean // modReel: a hit still pushes and damages but never starts a reel
+  collisionDetection: boolean // objGameObject: false = ignores tiles (bats, ghosts), still kept in the room
+  minEnergy: number // modEnergy: dies at energy <= this (multistage enemies: hydra3 dies at 1000 into a hydra2)
+  maxEnergy: number // modEnergy: regeneration cap; #auto = the starting energy
   teamRole: string // teamMembers (characters), teamBuildings (dwellings), teamBullets (bullets, spells)
   // --- engine: movement (modMoveToLoc, modNavMode, modPathFinding)
   walkSpeed: number // AI walk vector length in px per tick, set each tick before friction (50 % friction -> half of it moved)
@@ -90,6 +94,9 @@ export interface ActorDef {
   takeHitVolume: number // 0-255; modEnergy #takeHitVolume, #none -> 150 (the player's #takeHitSoundVolume is never read)
   dieSound: string | null // objCharacter.goMode(#die)
   dieVolume: number // 0-255; objCharacter #dieVolume, default 100
+  graveOn: boolean // modGrave: false = no grave strip and no grave stamp on death
+  reincarnateAs: string[] // modReincarnate: actor keys created on the spot when killed
+  runReload: boolean // objCPUCharacter: after an attack, move away from the target until the cooldown is done
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
   // --- engine: dwellings (modResidents)
@@ -151,7 +158,12 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     // engine: energy and physics
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
-    stallSpeed: 0.2, teamRole: 'teamMembers', // objGameObject
+    stallSpeed: 0.2, teamRole: 'teamMembers', collisionDetection: true, // objGameObject
+    reelProof: false, // modReel
+    minEnergy: 0, maxEnergy: 'auto', // modEnergy
+    graveOn: true, // modGrave
+    reincarnateAs: [], // modReincarnate ([#none, #none, #none])
+    runReload: false, // objCPUCharacter
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
     navModeAcceleration: 0, // only Merlin installs modNavMode
@@ -185,6 +197,7 @@ for (const k of [
   // engine properties read by the port
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
+  'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
@@ -317,6 +330,17 @@ function frameList(obj: Plain, field: string, ctx: string): number[] | null {
   if (typeof v === 'number') return [v]
   return Array.isArray(v) && v.every((n): n is number => typeof n === 'number') ? [...v] : bad(ctx, field, 'a frame number, a list of them or #none', v)
 }
+function bool(obj: Plain, field: string, ctx: string): boolean {
+  const v = obj[field]
+  return typeof v === 'boolean' ? v : bad(ctx, field, 'TRUE or FALSE', v)
+}
+/** A symbol or a list of them, #none entries dropped (modReincarnate's [#none, #none, #none] default). */
+function symbolList(obj: Plain, field: string, ctx: string): string[] {
+  const v = obj[field]
+  const list = typeof v === 'string' ? [v] : v
+  if (!Array.isArray(list) || !list.every((s): s is string => typeof s === 'string')) return bad(ctx, field, 'a symbol or a list of symbols', v)
+  return list.filter((s) => s !== 'none')
+}
 function range(obj: Plain, field: string, ctx: string): [number, number] {
   const v = obj[field]
   return pair(v) ? [v[0], v[1]] : bad(ctx, field, 'a [min, max] pair', v)
@@ -402,6 +426,9 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
   const parsed: Record<string, Plain> = {}
   for (const [k, text] of Object.entries(files)) parsed[k] = withContext(`actor ${k}`, () => parseDataField(text))
   const out: Record<string, ActorDef> = {}
+  // actor symbols are case-insensitive in Lingo (dojo's #SpeedyGuy is act_speedyGuy)
+  const keyByLower = new Map(Object.keys(parsed).map((k) => [k.toLowerCase(), k]))
+  const actorKey = (sym: string): string => keyByLower.get(sym.toLowerCase()) ?? sym
   for (const key of Object.keys(parsed)) {
     const ctx = `actor ${key}`
     let r = resolveChain(key, parsed)
@@ -420,6 +447,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
       inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx),
       stallSpeed: num(r, 'stallSpeed', ctx), teamRole: str(r, 'teamRole', ctx),
+      reelProof: bool(r, 'reelProof', ctx), collisionDetection: bool(r, 'collisionDetection', ctx),
+      minEnergy: num(r, 'minEnergy', ctx), maxEnergy: r['maxEnergy'] === 'auto' ? num(r, 'energy', ctx) : num(r, 'maxEnergy', ctx),
       // engine: movement
       walkSpeed: num(r, 'walkSpeed', ctx), walkAcceleration: num(r, 'walkAcceleration', ctx),
       navModeAcceleration: num(r, 'navModeAcceleration', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
@@ -432,9 +461,11 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: sound
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
       dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
+      graveOn: bool(r, 'graveOn', ctx), reincarnateAs: symbolList(r, 'reincarnateAs', ctx).map(actorKey), runReload: bool(r, 'runReload', ctx),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
       // engine: dwellings
-      residentGroups: residentGroups(r, 'residentGroups', ctx), totalResidents: num(r, 'totalResidents', ctx),
+      residentGroups: residentGroups(r, 'residentGroups', ctx).map((g) => ({ ...g, typ: actorKey(g.typ) })),
+      totalResidents: num(r, 'totalResidents', ctx),
       // remake additions
       collisionRectScale: num(r, 'collisionRectScale', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),

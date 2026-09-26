@@ -14,7 +14,7 @@ import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathf
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
-import type { ActorState } from './state'
+import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, type Tick } from './tick-context'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
@@ -164,9 +164,33 @@ function stopInReach(a: ActorState): void {
 /** Starts the attack strip; stepAttackFrames performs and finishes it. */
 function startAttack(a: ActorState, def: ActorDef, faceLeft: boolean): void {
   a.facingLeft = faceLeft
-  a.mode = def.attack.animType === 'weaponRanged' ? 'weaponRanged' : 'weaponMelee'
+  // objAiAttack.attack -> goMode(attack.animType): the strip named after the attack's animType
+  a.mode = ATTACK_STRIPS.has(def.attack.animType) ? (def.attack.animType as AttackStrip) : 'weaponMelee'
   a.ai = { ...a.ai, pathStall: 0, mode: 'attack', moveTarget: null, walkTicks: 0 }
   a.vel = { x: 0, y: 0 }
+}
+
+/** Distance factor of GeomMirrorPoint: a run-away goal far beyond the runner. */
+const RUN_AWAY_PX = 2000
+
+/**
+ * objAiCPU #runReload (updateRunReload): walk away from the target until the cooldown is done, then
+ * #moveToAttack. modMoveToLoc.moveAwayFromLoc calls GeomMirrorPoint without a distance (void x 20);
+ * the port follows the evident intent (away from the target) rather than a zero-length mirror.
+ */
+function stepRunReload(t: Tick, a: ActorState, def: ActorDef): void {
+  a.ai.retargetCounter++
+  if (cooldownReady(a.cooldown)) {
+    a.ai.mode = 'moveToAttack'
+    return
+  }
+  const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
+  if (!target) return
+  const away = { x: a.pos.x - target.pos.x, y: a.pos.y - target.pos.y }
+  const d = Math.hypot(away.x, away.y) || 1
+  a.vel = frameMove(a.pos, { x: a.pos.x + (away.x / d) * RUN_AWAY_PX, y: a.pos.y + (away.y / d) * RUN_AWAY_PX }, def.walkSpeed)
+  a.mode = 'walk'
+  faceAlong(a, a.vel.x)
 }
 
 export function stepCpuAi(t: Tick): void {
@@ -174,6 +198,10 @@ export function stepCpuAi(t: Tick): void {
     if (t.removed.has(a.id)) continue
     const def = defOf(t.s, a)
     if (def.aiType !== 'objAiCPU' || (a.mode !== 'walk' && a.mode !== 'stand')) continue
+    if (a.ai.mode === 'runReload') {
+      stepRunReload(t, a, def)
+      if (a.ai.mode === 'runReload') continue
+    }
     if (stepDetour(t, a, def)) continue
     let decision: AiDecision | null = decideFor(t, a)
     if (decision.kind === 'retarget') decision = retarget(t, a)

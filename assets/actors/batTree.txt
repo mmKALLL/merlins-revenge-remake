@@ -1,0 +1,87 @@
+[#name: "act_batTree", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "tree_die",
+#energy: 100,
+#experienceImWorth: 20,
+#frictionReel: point(100,100),
+#residentGroups: 
+[
+[
+#typ: #bat,
+#buildTime: [20,30],
+#groupSize: [1,6],
+#releaseInterval: [10,50]
+]
+],
+#team: #cave,
+#totalResidents: 10,
+#name: "batTree"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

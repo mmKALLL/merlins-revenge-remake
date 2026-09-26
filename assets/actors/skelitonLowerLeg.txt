@@ -1,0 +1,100 @@
+[#name: "act_skelitonLowerLeg", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 5,
+#animType: #naturalMelee,
+#damageMultiplier: 1.5,
+#collisionLoc: point(20,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #highKick,
+#power: point(3,-2),
+#sound: "wizard_punch"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 120,
+#experienceImWorth: 6,
+#eyestrain: 25,
+#graveOn: true,
+#inertia: 85,
+#reincarnateAs: [#skelitonFootSoldier, #skelitonFootSoldier],
+#reincarnateRadius: 20,
+#startingLevel: 0,
+#strength: 3,
+#team: #undead,
+#name: "skelitonLowerLeg",
+#walkSpeed: 7,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

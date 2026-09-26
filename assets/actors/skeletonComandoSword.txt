@@ -1,0 +1,83 @@
+[#name: "act_skeletonComandoSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 3,
+#animType: #weaponMelee,
+#collisionLoc: point(27,-3),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: skeletonComandoSword,
+#power: point(1, 0),
+#dammageMultiplier: 14,
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

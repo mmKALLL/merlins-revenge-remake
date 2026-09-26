@@ -1,0 +1,102 @@
+[#name: "act_vultureGuard", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 7,
+#animType: #naturalRanged,
+#bullet: #lightning,
+#collisionLoc: point(50,-5),
+#cooldown: 30,
+#firingType: #fullstrength,
+#name: #spitBullet,
+#reach: 180,
+#sound: "vulture_fire",
+#volume: 25
+],
+#damageSpeed: 3,
+#dexterity: 1,
+#dieSound: #none,
+#energy: 1300,
+#experienceImWorth: 25,
+#eyestrain: 20,
+#inertia: 50,
+#runReload: true,
+#stallSpeed: 3,
+#startingLevel: 0,
+#strength: 15,
+#takeHitSound: "vulture_hit",
+#takeHitVolume: 15,
+#team: #monsters,
+#name: "vultureGuard",
+#walkSpeed: 12,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,98 @@
+[#name: "act_caveBat", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 2,
+#animType: #naturalRanged,
+#bullet: #batBullet,
+#collisionLoc: point(0,-2),
+#cooldown: 80,
+#firingType: #fullstrength,
+#name: #dropPoo,
+#reach: 80,
+#sound: #none
+],
+#character: #friendlyCharacter,
+#collisionDetection:true,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 50,
+#experienceImWorth: 10,
+#inertia: 60,
+#miniMapStatus: #inf,
+#runReload: true,
+#stallSpeed: 2,
+#strength: 6,
+#team: #cave,
+#name: "bat",
+#walkSpeed: 12
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,87 @@
+[#name: "act_archer", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#character: #friendlyCharacter,
+#damageSpeed: 4,
+#dexterity: 1,
+#energy: 200,
+#inertia: 60,
+#leaveWhenFinished: true,
+#miniMapStatus: #fre,
+#stallSpeedIncLevel: 0.25,
+#strength: 10,
+#strenghtIncLevel: 0.5,
+#team: #aldevar,
+#name: "archer",
+#walkSpeed: 5,
+#weapon: #archerBow,
+#weaponTechniqueInc: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

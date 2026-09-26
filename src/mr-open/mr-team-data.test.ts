@@ -23,8 +23,11 @@ describe('parseTeams', () => {
   })
 
   it('lists the teams hostile to the player team', () => {
-    expect(hostileTeamsTo('aldevar', teams)).toEqual(['goblins', 'orcs'])
-    expect(hostileTeamsTo('goblins', teams)).toEqual(['aldevar'])
+    const hostile = hostileTeamsTo('aldevar', teams)
+    expect(hostile).toEqual(expect.arrayContaining(['goblins', 'orcs', 'undead']))
+    expect(hostile).not.toContain('village')
+    expect(hostile).not.toContain('aldevar')
+    expect(hostileTeamsTo('goblins', teams)).toContain('aldevar')
   })
 
   it('treats a first-priority "all" hate group as hostile to everyone', () => {

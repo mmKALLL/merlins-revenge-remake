@@ -1,0 +1,82 @@
+[#name: "act_fangBunnyBabyBullet", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 3,
+#power: 0.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "fangBunnyBabyBullet",
+#friction: point(4,4),
+#recordInRoomState: false,
+#rotational: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

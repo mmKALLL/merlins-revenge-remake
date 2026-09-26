@@ -59,7 +59,7 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
   return {
     aiType: null, layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 }, energy: 100, energyRecoverDelay: 300,
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', walkSpeed: 0,
-    residentGroups: [], totalResidents: 10, productionTimeScale: 1,
+    residentGroups: [], totalResidents: 10, productionTimeScale: 1, reelProof: false, collisionDetection: true, minEnergy: 0, maxEnergy: over.energy ?? 100, graveOn: true, reincarnateAs: [], runReload: false,
     walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
     mana_flow: 1, mana_regeneration: 1, weapon: null, experienceImWorth: 0,
     attack: {

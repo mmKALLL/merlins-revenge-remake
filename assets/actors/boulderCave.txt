@@ -1,0 +1,87 @@
+[#name: "act_boulderCave", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "boulder_die",
+#energy: 700,
+#experienceImWorth: 20,
+#frictionReel: point(100,100),
+#residentGroups: 
+[
+[
+#typ: #boulderMonster,
+#buildTime: [90,150],
+#groupSize: [1,2],
+#releaseInterval: [30,50]
+]
+],
+#team: #monsters,
+#totalResidents: 5,
+#name: "boulderCave"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

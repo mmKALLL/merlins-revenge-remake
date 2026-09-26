@@ -37,7 +37,7 @@ const anims: Record<string, AnimationSet> = Object.fromEntries(
   }),
 )
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /** One open 18x9 room with the given objects (1-based tiles). */
@@ -186,5 +186,77 @@ describe('dwellings (objDwelling + modResidents)', () => {
     const h = after.actors.find((a) => a.id === hut.id)
     expect(h === undefined || h.energy < defs['goblinHut']!.energy).toBe(true)
     if (h) expect(h.pos).not.toEqual(hut.pos)
+  })
+})
+
+describe('every spawnable actor', () => {
+  const spawnable = Object.values(defs).filter((d) => (d.objType === 'objCPUCharacter' || d.objType === 'objDwelling') && typeof d.raw['name'] === 'string')
+  const symbols = ['none', 'player', ...spawnable.map((d) => d.key)]
+
+  it.each(spawnable.map((d) => d.key))('%s spawns and fights for 600 ticks', (key) => {
+    const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
+    const obj = fill(0)
+    obj[4]![7] = symbols.indexOf(key) + 1
+    const map: MapDefinition = {
+      mapSize: { x: 1, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+      layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
+      rooms: [{ num: 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: obj } }],
+    }
+    let s = createSim(buildWorldGrid(map, () => false, symbols), defs, teams, anims, 3, { x: 100, y: 144 })
+    expect(s.actors.some((a) => a.def === key)).toBe(true)
+    let hurt = false
+    for (let i = 0; i < 600; i++) {
+      s = stepSim(s, NO_INPUT)
+      hurt ||= s.events.some((e) => e.kind === 'hit' && e.id === s.playerId)
+      s = pinPlayer(s)
+    }
+    const hatesPlayer = (teams[defs[key]!.team]?.hates[0] ?? []).includes('aldevar')
+    if (hatesPlayer && defs[key]!.objType === 'objCPUCharacter') expect(hurt).toBe(true)
+  })
+})
+
+describe('multistage and special units', () => {
+  /** Sets one actor's fields directly (a quick way to deal damage or place it). */
+  const patch = (s: SimState, key: string, over: Partial<ActorState>): SimState => ({
+    ...s, actors: s.actors.map((a) => (a.def === key ? { ...a, ...over } : a)),
+  })
+  const holdE: InputSnapshot = { ...NO_INPUT, shootNearest: true }
+
+  it('hydra3 dies at its minEnergy and comes back as a hydra2 on the same spot (modReincarnate)', () => {
+    let s = sim([{ x: 7, y: 5, symbol: 'hydra3' }])
+    // one blast more than takes it below 1000
+    s = patch(s, 'hydra3', { energy: 1001, ai: { ...ofDef(s, 'hydra3')[0]!.ai, mode: 'none' } })
+    let hydra2: ActorState | undefined
+    for (let i = 0; i < 120 && !hydra2; i++) {
+      s = stepSim(s, i < 13 ? holdE : NO_INPUT)
+      hydra2 = ofDef(s, 'hydra2')[0]
+    }
+    expect(hydra2).toBeDefined()
+    expect(hydra2!.energy).toBe(defs['hydra2']!.energy)
+    expect(ofDef(s, 'hydra3')).toHaveLength(0)
+    expect(s.exitsOpen).toBe(false)
+  })
+
+  it('a reelProof plant takes damage from the blast but never reels', () => {
+    let s = sim([{ x: 7, y: 5, symbol: 'plant' }])
+    const before = ofDef(s, 'plant')[0]!.energy
+    const modes = new Set<string>()
+    for (let i = 0; i < 40; i++) {
+      s = pinPlayer(stepSim(s, i < 13 ? holdE : NO_INPUT))
+      for (const p of ofDef(s, 'plant')) modes.add(p.mode)
+    }
+    expect(ofDef(s, 'plant')[0]!.energy).toBeLessThan(before)
+    expect(modes.has('reel')).toBe(false)
+  })
+
+  it('a runReload bat backs away from its target after attacking', () => {
+    let s = sim([{ x: 6, y: 5, symbol: 'bat' }])
+    let backedOff = false
+    for (let i = 0; i < 300 && !backedOff; i++) {
+      s = pinPlayer(stepSim(s, NO_INPUT))
+      const bat = ofDef(s, 'bat')[0]!
+      if (bat.ai.mode === 'runReload' && bat.vel.x !== 0) backedOff = Math.sign(bat.vel.x) === Math.sign(bat.pos.x - 100)
+    }
+    expect(backedOff).toBe(true)
   })
 })

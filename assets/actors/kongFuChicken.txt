@@ -1,0 +1,97 @@
+[#name: "act_kongFuChicken", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [5, 14, 18],
+#animType: #naturalMelee,
+#damageMultiplier: 120,
+#collisionLoc: point(15,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #punchKick,
+#power: point(0.01,0),
+#sound: "wizard_punch"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 15,
+#eyestrain: 25,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 10,
+#team: #karate,
+#name: "kongFuChicken",
+#walkSpeed: 6,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

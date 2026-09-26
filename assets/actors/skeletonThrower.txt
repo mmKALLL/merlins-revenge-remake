@@ -1,0 +1,99 @@
+[#name: "act_skeletonThrower", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 14,
+#animType: #naturalRanged,
+#bullet: #skeletonHead,
+#collisionLoc: point(0,-5),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwHead,
+#reach: 200,
+#sound: #none
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 50,
+#experienceImWorth: 7,
+#eyestrain: 5,
+#inertia: 50,
+#pathFindingTime: 300,
+#pathFindingStallTime: 30,
+#startingLevel: 0,
+#strength: 8,
+#team: #undead,
+#name: "skeletonThrower",
+#walkSpeed: 1,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

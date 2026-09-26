@@ -42,15 +42,19 @@ export interface AnimationSet {
   [name: string]: AnimationStrip
 }
 
+/** Character strips an AI attack plays (the attack's animType): weapon or natural, melee or ranged. */
+export type AttackStrip = 'weaponMelee' | 'weaponRanged' | 'naturalMelee' | 'naturalRanged' | 'magicMelee'
+export const ATTACK_STRIPS: ReadonlySet<string> = new Set<AttackStrip>(['weaponMelee', 'weaponRanged', 'naturalMelee', 'naturalRanged', 'magicMelee'])
+
 export type ActorMode =
-  | 'stand' | 'walk' | 'weaponMelee' | 'weaponRanged' | 'charge' | 'release' | 'reel'
+  | 'stand' | 'walk' | AttackStrip | 'charge' | 'release' | 'reel'
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
 
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
  * the original AI: stand still, then walk a short way in a random direction, then retarget.
  */
-export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove'
+export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload'
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
 export type ChargeKind = 'mouse' | 'nearest' | 'short'

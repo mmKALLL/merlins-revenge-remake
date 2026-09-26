@@ -1,0 +1,99 @@
+[#name: "act_skelitonSword", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 8,
+#animType: #naturalMelee,
+#damageMultiplier: 0.7,
+#collisionLoc: point(15,40),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #swordSwipe,
+#power: point(3,4),
+#sound: "skeleton_fire"
+],
+#collisionDetection: false,
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 20,
+#eyestrain: 25,
+#graveOn: true,
+#inertia: 80,
+#startingLevel: 0,
+#strength: 6,
+#team: #undead,
+#name: "skelitonSword",
+#walkSpeed: 7,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

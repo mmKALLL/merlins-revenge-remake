@@ -6,7 +6,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { tileOfPx } from '../mr-open/mr-collision'
 import { afterRelease, permissionToRelease, releaseCountdown, startProduction, type DwellingState } from '../mr-open/mr-residents'
 import { DEFAULT_VOLUME } from '../mr-open/mr-sound'
-import { defOf, isAlive, isCharacter, isDwelling } from './actors'
+import { defOf, isAlive, isDwelling, isUnit } from './actors'
 import type { ActorState } from './state'
 import { playSound, spawn, type Tick } from './tick-context'
 import { startDeath } from './tick-combat'
@@ -45,11 +45,11 @@ const withRng = (t: Tick, [d, rng]: [DwellingState, Tick['rng']]): DwellingState
 }
 
 /**
- * reservationsMaster currentMembers: the team's characters in the room (#teamMembers joins; a dying
- * one leaves the team only on #finish).
+ * reservationsMaster currentMembers: the team's #teamMembers in the room (towers and plants are
+ * characters in the #teamBuildings role and do not count; a dying one leaves the team only on #finish).
  */
 function teamMembers(t: Tick, team: string): number {
-  return t.actors.filter((o) => !t.removed.has(o.id) && o.team === team && isCharacter(t.s, o) && o.mode !== 'finish').length
+  return t.actors.filter((o) => !t.removed.has(o.id) && o.team === team && isUnit(t.s, o) && defOf(t.s, o).teamRole === 'teamMembers' && o.mode !== 'finish').length
 }
 
 /** reservationsMaster reservedSlots: slots the team's living dwellings reserved and have not released yet. */

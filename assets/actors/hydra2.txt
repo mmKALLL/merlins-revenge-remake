@@ -1,0 +1,102 @@
+[#name: "act_hydra2", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [5, 8],
+#animType: #naturalMelee,
+#damageMultiplier: 1,
+#collisionLoc: point(35,-5),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point (35,-5),
+#name: #bite,
+#power: point(0.5,0),
+#sound: "hydra2_fire",
+#volume: 40
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 1000,
+#experienceImWorth: 60,
+#eyestrain: 25,
+#frictionReel: point(30,30),
+#inertia: 50,
+#maxEnergy: 1500,
+#minEnergy: 500,
+#reincarnateAs: #hydra1,
+#startingLevel: 0,
+#strength: 10,
+#team: #swamp,
+#name: "hydra2",
+#walkSpeed: 6
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,87 @@
+[#name: "act_darkMage", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#chargeOffsetSide: #top,
+#character: #darkMage,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 150,
+#experienceAmountForNextLevel: 5,
+#experienceImWorth: 40,
+#inertia: 60,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #undead,
+#name: "darkMage",
+#walkSpeed: 3.5,
+#weapon: #darkBlast
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

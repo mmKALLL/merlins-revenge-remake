@@ -1,0 +1,16 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_skelitonHead_grave_03_01	gfx	2944	18	14	32	9	7	alpha=255..255
+anm_skelitonHead_grave_03_02	gfx	2945	18	14	32	9	7	alpha=255..255
+anm_skelitonHead_naturalRanged_02_01	gfx	2931	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_02	gfx	2932	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_03	gfx	2933	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_04	gfx	2934	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_05	gfx	2935	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_06	gfx	2936	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_07	gfx	2937	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_naturalRanged_02_08	gfx	2938	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_reel_01_01	gfx	2939	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_reel_01_03	gfx	2940	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_reel_01_05	gfx	2941	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_reel_01_07	gfx	2942	16	27	32	8	13	alpha=255..255
+anm_skelitonHead_stand_03_01	gfx	2943	16	27	32	8	13	alpha=255..255

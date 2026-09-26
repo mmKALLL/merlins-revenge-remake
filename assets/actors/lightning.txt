@@ -1,0 +1,81 @@
+[#name: "act_lightning", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 1,
+#power: 3.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "lightning",
+#friction: point(3,3),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

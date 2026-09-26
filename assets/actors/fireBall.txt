@@ -1,0 +1,81 @@
+[#name: "act_fireBall", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 6,
+#power: 0.2,
+#type: #bullet
+],
+#character: #bullet,
+#name: "fireBall",
+#friction: point(4,4),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

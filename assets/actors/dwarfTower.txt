@@ -1,0 +1,99 @@
+[#name: "act_dwarfTower", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 31,
+#animType: #naturalRanged,
+#bullet: #towerAxe,
+#collisionLoc: point(0,-88),
+#cooldown: 10,
+#name: #fireAxe,
+#firingType: #proportional,
+#reach: 600,
+#sound: #none,
+#targetRoles: [[#teamBuildings], [#teamMembers]]
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 100,
+#eyestrain: 40,
+#inertia: 95,
+#miniMapStatus: #clr,
+#reelProof: true,
+#strength: 15,
+#team: #aldevar,
+#teamRole: #teamBuildings,
+#name: "dwarfTower",
+#walkSpeedIncLevel: 0,
+#walkSpeed: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

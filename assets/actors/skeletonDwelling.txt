@@ -1,0 +1,110 @@
+[#name: "act_skeletonDwelling", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "boulder_die",
+#energy: 100,
+#experienceImWorth: 20,
+#frictionReel: point(85,85),
+#residentGroups: 
+[
+[
+#typ: #skeletonArcher,
+#buildTime: [50,62],
+#groupSize: [1,6],
+#releaseInterval: [30,60]
+],
+[
+#typ: #skeletonThrower,
+#buildTime: [50,65],
+#groupSize: [1,3],
+#releaseInterval: [30,60]
+],
+[
+#typ: #skeletonWarrior,
+#buildTime: [40,60],
+#groupSize: [3,5],
+#releaseInterval: [30,60]
+],
+[
+#typ: #skeletonGiant,
+#buildTime: [40,60],
+#groupSize: [1,3],
+#releaseInterval: [55,65]
+],
+[
+#typ: #skeletonComando,
+#buildTime: [40,60],
+#groupSize: [1,2],
+#releaseInterval: [55,65]
+]
+],
+#team: #undead,
+#name: "skeletonDwelling"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

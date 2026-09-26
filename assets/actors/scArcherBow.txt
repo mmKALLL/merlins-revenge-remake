@@ -1,0 +1,84 @@
+[#name: "act_scArcherBow", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 9,
+#animType: #weaponRanged,
+#bullet: #scArcherArrow,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #scArcherBow,
+#reach: 110,
+#sound: "goblin_fire",
+#targetRoles: [[#teamMembers, #teamBuildings]]
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

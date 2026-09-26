@@ -1,0 +1,85 @@
+[#name: "act_townMace", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 9,
+#animType: #weaponMelee,
+#collisionLoc: point(12,3),
+#cooldown: 0,
+#damageMultiplier: 5,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(12,0),
+#name: #townMace,
+#power: point(2, 0),
+#sound: "skeleton_fire",
+#targetRoles: [[#teamMembers, #teamBuildings]]
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

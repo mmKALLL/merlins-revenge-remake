@@ -1,0 +1,13 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_skeletonHead_fly_01_01	gfx	1621	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_02	gfx	1622	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_03	gfx	1623	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_04	gfx	1624	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_05	gfx	1625	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_06	gfx	1626	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_07	gfx	1627	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_08	gfx	1628	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_09	gfx	1629	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_fly_01_10	gfx	1630	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_land_01_02	gfx	1632	9	10	32	4	5	alpha=255..255
+anm_skeletonHead_land_30_01	gfx	1631	9	10	32	4	5	alpha=255..255

@@ -1,0 +1,98 @@
+[#name: "act_skelitonArm", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 8,
+#animType: #weaponMelee,
+#damageMultiplier: 1,
+#collisionLoc: point(20,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #swordSwipe,
+#power: point(3,0),
+#sound: "skeleton_fire"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 110,
+#experienceImWorth: 3,
+#eyestrain: 25,
+#graveOn: true,
+#inertia: 80,
+#startingLevel: 0,
+#strength: 4,
+#team: #undead,
+#name: "skelitonArm",
+#walkSpeed: 3.4,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

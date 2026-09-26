@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_tvBox_grave_03_01	gfx	4272	50	31	32	28	14	alpha=255..255
+anm_tvBox_grave_03_02	gfx	4273	50	31	32	28	14	alpha=255..255
+anm_tvBox_stand_03_01	gfx	4271	50	36	32	28	18	alpha=255..255

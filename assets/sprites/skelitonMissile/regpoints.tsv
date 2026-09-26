@@ -1,0 +1,7 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_skelitonMissile_fly_02_01	gfx	3001	14	8	32	7	4	alpha=255..255
+anm_skelitonMissile_fly_02_02	gfx	3002	14	8	32	7	4	alpha=255..255
+anm_skelitonMissile_fly_02_03	gfx	3003	14	8	32	7	4	alpha=255..255
+anm_skelitonMissile_land_02_01	gfx	3004	14	8	32	7	4	alpha=255..255
+anm_skelitonMissile_land_02_02	gfx	3005	14	8	32	7	4	alpha=255..255
+anm_skelitonMissile_land_02_03	gfx	3006	14	8	32	7	4	alpha=255..255

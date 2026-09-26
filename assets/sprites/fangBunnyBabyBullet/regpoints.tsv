@@ -1,0 +1,9 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_fangBunnyBabyBullet_fly_01_01	gfx	2231	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_fly_01_02	gfx	2232	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_fly_01_03	gfx	2233	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_fly_01_04	gfx	2234	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_fly_01_05	gfx	2235	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_fly_01_06	gfx	2236	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_land_01_01	gfx	2237	4	4	32	2	2	alpha=0..255
+anm_fangBunnyBabyBullet_land_01_02	gfx	2238	4	4	32	2	2	alpha=0..255

@@ -1,6 +1,6 @@
 // Copies the original files this project uses from the (git-ignored) archive
 // into ./assets with a sensible structure. Run: pnpm assets:copy
-import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,9 +28,6 @@ const copies: Copy[] = [
   // key bindings
   { from: join(CASTS, 'bnd_wasd.txt'), to: join(ASSETS, 'keybindings/wasd.txt'), why: 'default bindings' },
   { from: join(CASTS, 'bnd_arrow.txt'), to: join(ASSETS, 'keybindings/arrow.txt'), why: 'arrow bindings' },
-  // combat slice: team data
-  { from: join(CASTS, 'tem_goblins.txt'), to: join(ASSETS, 'teams/goblins.txt'), why: 'goblin team (hates aldevar)' },
-  { from: join(CASTS, 'tem_aldevar.txt'), to: join(ASSETS, 'teams/aldevar.txt'), why: 'player team' },
   // combat slice: the goblin grave is one cast member registered under two names
   // (goblinWarrior and gar both play it as their grave strip); copy it twice to make that explicit
   { from: join(GFX, 'goblinArcher', 'goblin_grave.bmp'), to: join(ASSETS, 'sprites/goblinWarrior/anm_goblinWarrior_grave_3_01.bmp'), why: 'goblin grave (shared cast member) as goblinWarrior grave frame' },
@@ -79,13 +76,8 @@ for (const [name, why] of actors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: `actor: ${why}` })
 }
 
-copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'teams/orcs.txt'), why: 'orc team (hates aldevar)' })
-
 // Staged for a later slice (the orc house's mage resident): kept out of assets/actors until its
 // sprites and summon spell are ported, so the converter's atlas check keeps passing meanwhile.
-// The enemy slice's sprites (assets/sprites/{bowOrc,swordOrc,goblinMage,goblinHut,goblinMageHut,orcHouse})
-// are PNG frames with regpoints.tsv dumped from the engine's Director file by
-// tools/director-extract/dump_bitmaps.py, not copied from the archive's gfx folder.
 const stagedActors = ['mageOrc', 'goblinSummon']
 for (const name of stagedActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for a later slice' })
@@ -111,6 +103,65 @@ copyGlob(join(GFX, 'merlin'), /^anm_mer_.*\.bmp$/, join(ASSETS, 'sprites/mer'), 
 copyGlob(join(GFX, 'goblinWarrior'), /^anm_.*\.bmp$/, join(ASSETS, 'sprites/goblinWarrior'), 'goblin warrior frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gar_.*\.bmp$/, join(ASSETS, 'sprites/gar'), 'goblin archer frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gobarrow_.*\.bmp$/, join(ASSETS, 'sprites/gobarrow'), 'goblin arrow frames')
+
+// More enemies (their weapons, bullets and dwellings): act_<name>.txt -> actors/<name>.txt. Chosen
+// because they only need mechanics the port has; see docs/plans/2026-09-27-enemies-progress.md.
+const moreActors = [
+  'acid', 'archer', 'archerArrow', 'archerBow', 'babyOstrich', 'bat', 'batBullet', 'batTree', 'blackAxe',
+  'blackOrc', 'blueFlame', 'boulder', 'boulderCave', 'boulderMonster', 'bug', 'caveBat', 'cocoon',
+  'darkBlast', 'darkMage', 'dojo', 'dragon', 'dwarfTower', 'evilTv', 'fangBunny', 'fangBunnyBaby',
+  'fangBunnyBabyBullet', 'fangBunnyPortal', 'farmer', 'fireBall', 'fireDragon', 'fireLizard', 'flameThrower',
+  'friendlyGoblinArcher', 'friendlyGoblinHero', 'friendlyGoblinHut', 'friendlyGoblinMage',
+  'friendlyGoblinMageHut', 'friendlyGoblinWarrior', 'garTower', 'goblinHero', 'hydra1', 'hydra2', 'hydra3',
+  'karateGuy', 'kingInGame', 'kingSword', 'kongFuChicken', 'laser', 'lightning', 'lizard', 'lizardEgg',
+  'lizardSoldier', 'needle', 'ostrichEgg', 'pitchFork', 'plant', 'powerOstrich', 'quadranid', 'scArcher',
+  'scArcherArrow', 'scArcherBow', 'scWarrior', 'scWarriorSword', 'shuriken', 'shurikenNinja',
+  'skeletonArcher', 'skeletonBow', 'skeletonComando', 'skeletonComandoSword', 'skeletonDwelling',
+  'skeletonGiant', 'skeletonGiantSword', 'skeletonHead', 'skeletonSword', 'skeletonThrower',
+  'skeletonWarrior', 'skelitonArm', 'skelitonFootSoldier', 'skelitonHead', 'skelitonLord',
+  'skelitonLordSword', 'skelitonLowerLeg', 'skelitonMissile', 'skelitonSword', 'skelitonTorsoTank', 'spark',
+  'speedyGuy', 'towerAxe', 'townMace', 'townWatch', 'tvBox', 'undeadDragon', 'vultureGuard', 'warrior',
+  'warriorSword',
+]
+for (const name of moreActors) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: more enemies' })
+}
+// every team file (enemy teams also fight each other through their hate lists)
+for (const file of readdirSync(CASTS).sort()) {
+  const m = /^tem_(.+)\.txt$/.exec(file)
+  if (m) copies.push({ from: join(CASTS, file), to: join(ASSETS, `teams/${m[1]}.txt`), why: `${m[1]} team` })
+}
+
+// Sprites dumped from the engine's Director cast (tools/director-extract/dump_bitmaps.py writes
+// anm_*.png plus regpoints.tsv; the owner's reference bundle ships them as cast_bitmaps/). Copied
+// per sprite name with the matching regpoints.tsv rows, when that dump is present.
+const CAST_BITMAPS = join(ROOT, 'assets-mr-original', 'cast_bitmaps')
+const castSprites = [
+  'acid', 'archer', 'archerArrow', 'babyOstrich', 'bat', 'batBullet', 'batTree', 'blackOrc', 'blueFlame',
+  'boulder', 'boulderCave', 'boulderMonster', 'bowOrc', 'bug', 'cocoon', 'crossBolt', 'darkMage', 'dojo',
+  'dragon', 'dwarfTower', 'evilTv', 'fangBunny', 'fangBunnyBaby', 'fangBunnyBabyBullet', 'fangBunnyPortal',
+  'farmer', 'fireBall', 'garTower', 'goblinHut', 'goblinMage', 'goblinMageHut', 'hydra1', 'hydra2', 'hydra3',
+  'karateGuy', 'kingInGame', 'kongFuChicken', 'laser', 'lightning', 'lizard', 'lizardEgg', 'lizardSoldier',
+  'needle', 'orcHouse', 'ostrichEgg', 'plant', 'powerOstrich', 'quadranid', 'scArcher', 'scArcherArrow',
+  'scWarrior', 'shuriken', 'shurikenNinja', 'skeletonArcher', 'skeletonComando', 'skeletonDwelling',
+  'skeletonGiant', 'skeletonHead', 'skeletonThrower', 'skelitonArm', 'skelitonFootSoldier', 'skelitonHead',
+  'skelitonLord', 'skelitonLowerLeg', 'skelitonMissile', 'skelitonSword', 'skelitonTorsoTank', 'skw',
+  'spark', 'speedyGuy', 'swordOrc', 'towerAxe', 'townWatch', 'tvBox', 'undeadDragon', 'vultureGuard',
+  'warrior',
+]
+if (existsSync(CAST_BITMAPS)) {
+  const [header, ...rows] = readFileSync(join(CAST_BITMAPS, 'regpoints.tsv'), 'utf8').split('\n')
+  for (const sprite of castSprites) {
+    const frame = new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`)
+    const names = new Set<string>()
+    copyGlob(CAST_BITMAPS, frame, join(ASSETS, `sprites/${sprite}`), `${sprite} frames (Director cast dump)`)
+    for (const f of readdirSync(CAST_BITMAPS)) if (frame.test(f)) names.add(f.slice(0, -4))
+    mkdirSync(join(ASSETS, `sprites/${sprite}`), { recursive: true })
+    writeFileSync(join(ASSETS, `sprites/${sprite}/regpoints.tsv`), [header, ...rows.filter((r) => names.has(r.split('\t')[0]!))].join('\n') + '\n')
+  }
+} else {
+  console.log(`no Director cast dump at ${CAST_BITMAPS}: cast sprites not refreshed`)
+}
 
 for (const c of copies) {
   mkdirSync(dirname(c.to), { recursive: true })

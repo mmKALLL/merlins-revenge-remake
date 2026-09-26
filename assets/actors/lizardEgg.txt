@@ -1,0 +1,83 @@
+[#name: "act_lizardEgg", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 5,
+#power: 0.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "lizardEgg",
+#friction: point(2,2),
+#recordInRoomState: false,
+#reincarnateAs: [#bug, #bug, #bug],
+#rotational: true,
+#weight: 1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

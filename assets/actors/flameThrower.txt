@@ -1,0 +1,83 @@
+[#name: "act_flameThrower", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: [1,3,5,7],
+#animType: #weaponRanged,
+#bullet: #fireBall,
+#collisionLoc: point(35,-20),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #flameThrower,
+#reach: 150,
+#sound: "dragon_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

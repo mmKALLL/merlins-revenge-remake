@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_skeletonDwelling_grave_01_01	gfx	892	72	60	32	36	41	alpha=255..255
+anm_skeletonDwelling_grave_01_02	gfx	893	72	60	32	36	41	alpha=255..255
+anm_skeletonDwelling_stand_03_01	gfx	891	32	60	32	16	41	alpha=255..255

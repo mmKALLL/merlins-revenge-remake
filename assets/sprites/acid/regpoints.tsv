@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_acid_fly_03_01	gfx	2420	20	9	32	15	4	alpha=255..255
+anm_acid_land_01_01	gfx	2421	20	9	32	15	4	alpha=255..255
+anm_acid_land_01_02	gfx	2422	20	9	32	15	4	alpha=255..255

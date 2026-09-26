@@ -1,0 +1,82 @@
+[#name: "act_skeletonHead", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 3.5,
+#power: 1,
+#type: #bullet
+],
+#character: #bullet,
+#name: "skeletonHead",
+#friction: point(3,3),
+#recordInRoomState: false,
+#rotational: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

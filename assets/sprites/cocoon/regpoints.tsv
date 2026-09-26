@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_cocoon_grave_01_01	gfx	2131	32	32	32	16	16	alpha=255..255
+anm_cocoon_grave_01_02	gfx	2132	32	32	32	16	16	alpha=255..255
+anm_cocoon_stand_03_01	gfx	2133	32	32	32	16	16	alpha=255..255

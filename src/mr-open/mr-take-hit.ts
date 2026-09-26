@@ -30,8 +30,8 @@ export function resolveHit(victim: ActorDef, push: Vec, attackerMultiplier: numb
   return { push: p, damage: (Math.abs(p.x) + Math.abs(p.y)) * attackerMultiplier }
 }
 
-/** modEnergy.checkDead. */
-export const isDead = (energy: number): boolean => energy <= 0
+/** modEnergy.checkDead: at or below minEnergy (0, or a multistage enemy's threshold). */
+export const isDead = (energy: number, minEnergy = 0): boolean => energy <= minEnergy
 
 /** objMoveXY.stallUpdate: counts consecutive ticks with |vx| + |vy| <= the stall speed, resets on movement. */
 export function stallStep(stall: number, moveVect: Vec, stallSpeed = STALL_SPEED): number {

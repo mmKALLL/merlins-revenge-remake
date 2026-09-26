@@ -1,0 +1,99 @@
+[#name: "act_babyOstrich", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 3,
+#animType: #naturalRanged,
+#bullet: #laser,
+#collisionLoc: point(5,-9),
+#cooldown: 100,
+#firingType: #fullstrength,
+#name: #babyLaser,
+#reach: 100,
+#sound: "quadranid_fire",
+#volume: 10
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 100,
+#experienceImWorth: 4,
+#eyestrain: 25,
+#inertia: 30,
+#startingLevel: 0,
+#strength: 10,
+#takeHitSound: "dragon_hit",
+#takeHitVolume: 50,
+#team: #monsters,
+#name: "babyOstrich",
+#walkSpeed: 1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,88 @@
+[#name: "act_skeletonArcher", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 120,
+#experienceImWorth: 6,
+#eyestrain: 7,
+#inertia: 50,
+#pathFindingTime: 300,
+#pathFindingStallTime: 30,
+#startingLevel: 0,
+#strength: 11,
+#team: #undead,
+#name: "skeletonArcher",
+#walkSpeed: 4,
+#weapon: #skeletonBow,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
