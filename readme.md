@@ -9,9 +9,30 @@ TypeScript port of the open-sourced Merlin Open engine.
     pnpm assets:convert
     pnpm dev              # serves on http://localhost:3371/
 
-Query parameters: `?map=mriv_small|sam|tvsDemo|combat_test` (default `mriv_small`, 5x1 rooms, MR4 tilesets), `?camera=room|follow`, `?debug=0`, `?seed=<n>` (the sim's random seed; a restart after death picks a new one).
+Query parameters:
 
-Controls: arrow keys/WASD move; hold Space or the left mouse button to charge the energy blast and release it at the mouse; E fires at the nearest enemy, F 16 px short of it. The bar at the bottom left is Merlin's energy; the map restarts when he dies.
+- `?map=mriv_small|sam|tvsDemo|combat_test`: the map (default `mriv_small`, 5x1 rooms, MR4 tilesets). Use `?map=combat_test` for combat: a 2x1 test map with a goblin warrior and archer in room 1 and a cluster of goblins in room 2. Regenerate it with `node tools/make-combat-test-map.mjs`, then `pnpm assets:convert`.
+- `?camera=room|follow`: hard cut per room (default) or a camera that follows Merlin.
+- `?seed=<n>`: the sim's random seed (default: the current time); a restart after death picks a new one.
+- `?debug=0`: hides the debug text next to the energy bar.
+
+Controls:
+
+- WASD or the arrow keys move.
+- Hold Space or the left mouse button to charge the energy blast; releasing fires it at the mouse.
+- Hold E to charge and fire at the nearest enemy, F to fire 16 px short of it.
+- The bar at the bottom left is Merlin's energy; the map restarts when he dies.
+
+### Tuning
+
+`assets/tuning.json` is overlaid on the original actor data by `pnpm assets:convert` (see `assets/README.md`). For example, to let the goblin archer shoot from further away:
+
+    {
+      "player": { "weapon": "energyBlast" },
+      "goblinArcher": { "attack": { "reach": 160 } }
+    }
+
+Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the energy blast.
 
 ## Check
 

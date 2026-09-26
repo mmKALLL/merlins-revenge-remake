@@ -1,8 +1,8 @@
 // Port of objBullet.updateFly pieces: checkStalled (stallSpeed point(2,2)) and
 // checkCollisionWithTarget via the general function CollisionCheck (target reg point inside the
 // bullet's collision rect grown by the target's collision rect offsets). Flight itself is the normal
-// objMoveXY friction path (friction point(5,5) percent); tile collision stops the arrow (the tick
-// uses resolveTileCollision and zeroes the velocity on any push).
+// objMoveXY friction path (friction point(5,5) percent); arrows ignore tiles
+// (gBulletsCollideWithBackground off, as the original plays).
 import type { Rect, Vec } from './mr-geometry'
 
 /** objBullet stallSpeed: both axes under 2 px/tick -> #bulletLanded. */

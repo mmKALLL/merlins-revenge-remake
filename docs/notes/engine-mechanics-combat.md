@@ -255,3 +255,17 @@ So damage falls off **linearly with distance from the centre** and scales with c
 - `getRect()` (full sprite rect) vs `getCollisionRect()` (clamped 32x32): the melee hit test and the AI in-reach test use different rects, so a goblin can decide it is in reach (collision rect) yet `calcAttackHitMelee` tests the sprite rect -- always a superset, so no missed hits, but the port should pick one.
 - `damageSpeed` is only a wall-impact damage threshold in this build; confirm no other use before exposing it as "damage speed".
 - The `< 5 enemies alive` switch between full-team scan and unit-map shell search changes only performance, not results, except that the shell search stops at the first non-empty ring (nearest by tile ring, then by distance within the ring), which can differ slightly from true nearest.
+
+## Port decisions
+
+Choices the remake made where the engine is ambiguous, depends on values outside the exported casts, or was simplified on purpose. Each is local to the file named.
+
+- **One takeHit per arrow.** `objBullet.updateFly` calls `takeHit` and then the `#takeHit` payload function for the same collision (Open questions); the port applies the hit once (`src/sim/tick-combat.ts`, `stepBullets`), i.e. 12 damage and a push of 4 for a full-speed arrow before inertia.
+- **No experience.** Nothing in the exported scripts sets `#lastAttacker`, so kills award nothing; `experienceImWorth` is carried in `ActorDef` but unused, and there are no level-ups or stars.
+- **`LANDED_TICKS = 30`.** A landed arrow stays 30 ticks before removal (`src/mr-open/mr-bullet.ts`); the engine removes it once its one-frame `land` strip has played.
+- **Magic limit fixed at 100 %.** `gMagicLimit` is set outside the export; `chargeLimits` takes the percentage as a parameter with default 100 (`src/mr-open/mr-spell.ts`), so the player's blast charges 1..12.5.
+- **Energy blast granted via tuning.** The original gives the blast through the `energyBlast` scroll pickup; pickups are not ported, so `assets/tuning.json` sets `player.weapon = energyBlast`.
+- **Full-scan targeting.** `findTarget` always scans every hated-team member for the nearest one (`findATarget`); the engine's unit-map shell search for 5+ enemies, which can pick a slightly different target by tile ring, is not ported (`src/mr-open/mr-targeting.ts`).
+- **Arrows ignore tiles.** `gBulletsCollideWithBackground` is not in the export; the user confirmed from the original that arrows fly through walls. They still slow by friction, stall, land and hit characters.
+- **Counters use N-tick timing.** Lingo counters start at 1 and finish on reaching their length, one step earlier than a plain countdown; cooldowns, retarget and path-stall counters and reel stall counts here are "ready after ceil(length / increment) ticks" (`src/mr-open/mr-attack.ts`, `mr-ai-cpu.ts`, `mr-pathfinding.ts`, `mr-take-hit.ts`). Most shipped values give the same tick; a few are one tick later.
+- **Nav mode with the engine default 6.** `gNavMode` is set outside the export and taken as on: in a cleared room the player walks with `navModeAcceleration` 6 (modNavMode default) instead of `walkAcceleration` 2, a steady 6 px/tick under 50 % friction.
