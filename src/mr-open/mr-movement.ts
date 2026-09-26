@@ -15,8 +15,10 @@ export const MOVE_SPEED_LIMIT = 31
  *
  * Clamping differs slightly from the original: there `setMoveSpeedLimit` clamps only the
  * per-tick displacement and leaves the stored velocity unclamped, whereas this port clamps the
- * stored velocity itself. With walking accelerations (steady state 2 px/tick, limit 31) the
- * velocity never reaches the limit, so the two are identical for the player.
+ * stored velocity itself. Under walking friction (steady state 2 px/tick, limit 31) the velocity
+ * never reaches the limit. Once a hit has left the player on frictionReel (10 %), nav mode's
+ * acceleration 6 would settle at 54 px/tick unclamped: the displacement is 31 px/tick either way,
+ * only the slow-down after releasing the keys starts from 31 here instead of 54.
  */
 export function stepVelocity(v: Vec, dir: Vec, accel: number, friction: Vec = FRICTION_PERCENT): Vec {
   let x = v.x + accel * dir.x

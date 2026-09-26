@@ -146,8 +146,10 @@ describe('warrior melee (combat notes §3-4, §6)', () => {
     expect(g.mode).toBe('walk')
     expect(g.ai.mode).toBe('findTarget')
     expect(g.ai.targetId).toBeNull()
-    // The player slid left: friction halves the velocity before each move (1.4 + 0.7 + ...), 2.8 px in total.
-    expect(playerOf(s).pos.x).toBeCloseTo(100 - 2.8, 1)
+    // modReel.goMode(#reel) left the player on frictionReel (10 %/tick; #walk does not restore it for
+    // the player), so the push slides it much farther than walking friction would (2.8 px in total).
+    expect(playerOf(s).frictionPercent).toEqual({ x: 10, y: 10 })
+    expect(playerOf(s).pos.x).toBeLessThan(100 - 10)
   })
 
   it('regenerates 1 player energy every 30 ticks while below the maximum', () => {
@@ -402,8 +404,8 @@ describe('archer (combat notes §3-4)', () => {
     // travels at the full 8 px/tick: after n moves it has covered 152 * (1 - 0.95^n) px. It hits when
     // the player's reg point enters the arrow rect grown by the player's collision rect, i.e. within
     // 14 px: 190 - 100 - 14 = 76 px -> 0.95^n < 0.5 -> n = 14. The impact push is velocity * 0.5 and
-    // damage its Manhattan length * 3: 3 * 0.5 * 8 * 0.95^14 ~ 5.9, not the 12 the plan lists (12 is
-    // the point-blank maximum for a full-speed arrow).
+    // damage its Manhattan length * 3, applied twice (objBullet.updateFly calls takeHit and then the
+    // #takeHit payload): 2 * 3 * 0.5 * 8 * 0.95^14 ~ 11.7.
     const before = playerOf(s).energy
     let ticks: number
     let lastVel = arrow.vel
@@ -414,19 +416,17 @@ describe('archer (combat notes §3-4)', () => {
     }, 20)
     expect(ticks).toBe(14)
     const damage = before - playerOf(s).energy
-    // the player stood still, so its velocity is exactly the push: arrow velocity (one more 5 % step
-    // after the last one observed) times power 0.5; damage = Manhattan length * damageMultiplier 3
+    // the player stood still, so its velocity is exactly the two pushes: arrow velocity (one more 5 %
+    // step after the last one observed) times power 0.5, twice; damage = Manhattan length * damageMultiplier 3
     const push = playerOf(s).vel
-    expect(push.x).toBeCloseTo(lastVel.x * 0.95 * 0.5, 10)
-    expect(push.y).toBeCloseTo(lastVel.y * 0.95 * 0.5, 10)
+    expect(push.x).toBeCloseTo(2 * lastVel.x * 0.95 * 0.5, 10)
+    expect(push.y).toBeCloseTo(2 * lastVel.y * 0.95 * 0.5, 10)
     expect(damage).toBeCloseTo(3 * (Math.abs(push.x) + Math.abs(push.y)), 10)
-    expect(damage).toBeCloseTo(3 * 0.5 * 8 * 0.95 ** 14, 0)
     expect(s.actors.find((x) => x.def === 'goblinArrow')).toBeUndefined()
-    // the bow needs 200 / dexterity 10 = 20 ticks; the strip looped at tick 22 and the archer waits in reach
+    // the strip loops at the end of frame 21: back to walking (the knocked-back player may now be out of reach)
     s = run(s, 4)
     a = actor(s, enemyId)!
     expect(a.mode).toBe('walk')
-    expect(a.pos).toEqual({ x: 190, y: 144 })
   })
 
   it('waiting in reach resets only the path stall; a scenic detour resumes toward its waypoint once out of reach', () => {

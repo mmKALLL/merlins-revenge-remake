@@ -141,18 +141,22 @@ export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
 
 /**
  * Victim side of a hit: objGameObject.takeHit (inertia scaling, velocity add), modReel.takeHit
- * (reel, dazed AI; objPlayerMerlinCharacter.takeHit forces the player back to #walk instead),
- * modEnergy.takeHit / loseEnergy. Ignored for victims already dying or dead
- * (objCPUCharacter.takeHit: #dead or checkDead; the player: #die).
+ * (goMode(#reel): frictionReel, stall reset, dazed AI), modEnergy.takeHit / loseEnergy. Ignored for
+ * victims already dying or dead (objCPUCharacter.takeHit: #dead or checkDead; the player: #die).
+ * objPlayerMerlinCharacter.takeHit forces the player back to #walk afterwards, but only
+ * objCPUCharacter.goMode(#walk) calls frictionNormal: the player keeps frictionReel from its first
+ * hit on (nothing in the engine restores it). Returns the inertia-scaled push, which objGameObject
+ * writes back into the caller's point (Lingo points are passed by reference).
  */
-export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): void {
-  if (victim.mode === 'die' || victim.mode === 'dead' || victim.mode === 'finish' || isDead(victim.energy)) return
+export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): Vec {
+  if (victim.mode === 'die' || victim.mode === 'dead' || victim.mode === 'finish' || isDead(victim.energy)) return push
   const def = t.s.defs[victim.def]!
   const hit = resolveHit(def, push, attackerMultiplier)
   victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
   t.hit.add(victim.id)
   if (victim.id === t.s.playerId) {
     victim.mode = 'walk'
+    victim.frictionPercent = { ...def.frictionReel }
   } else {
     victim.mode = 'reel'
     victim.frictionPercent = { ...def.frictionReel }
@@ -161,6 +165,7 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
     victim.ai.moveTarget = null
   }
   loseEnergy(t, victim, hit.damage)
+  return hit.push
 }
 
 /** objAiAttack.updateAttack: perform the attack on its strip frame, finish when the strip has looped. */
@@ -208,8 +213,12 @@ export function stepBullets(t: Tick): void {
       const target = a.targetId === null ? undefined : actorIn(t, a.targetId)
       if (!target || !isAlive(target)) continue
       if (bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), target.pos, collisionRectFor(t.s, target))) {
+        // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
+        // same collisionVect: two pushes and two damage applications, the second with the vector
+        // objGameObject.takeHit already scaled by the victim's inertia in place
         const def = t.s.defs[a.def]!
-        applyHit(t, target, bulletPush(a.vel, def), def.attack.damageMultiplier)
+        const scaled = applyHit(t, target, bulletPush(a.vel, def), def.attack.damageMultiplier)
+        applyHit(t, target, scaled, def.attack.damageMultiplier)
         t.removed.add(a.id)
       }
     } else if (a.mode === 'land') {
