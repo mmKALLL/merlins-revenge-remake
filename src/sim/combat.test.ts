@@ -751,6 +751,19 @@ describe('nav mode (modNavMode)', () => {
   })
 })
 
+describe('stall detection on a wall slide (regression: a goblin stayed in #scenic for 10+ s)', () => {
+  it('a walker pressed against a wall whose slide has shrunk below a pixel per tick stalls and leaves #scenic', () => {
+    // Waypoint behind a full-height wall, 3 px off the walker's row: the push-out blocks x and the
+    // walk vector's y component decays geometrically, so the float position keeps creeping. The
+    // stall test is on the on-screen (whole-pixel) move (objMoveXY pMoveVect = pSpr.loc delta).
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 200, y: 83 }, pathStall: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
+    const map = openMap([{ x: 10, y: 5, tile: WARRIOR }], { solid: wallAt(9) })
+    let { s, enemyId } = setup(WARRIOR, { x: 310, y: 80 }, { x: 40, y: 40 }, 1, { ai }, map)
+    let [, ticks] = runUntil(s, (t) => actor(t, enemyId)!.ai.pathMode === 'beeline', 40)
+    expect(ticks).toBeGreaterThan(0)
+  })
+})
+
 describe('determinism', () => {
   it('two sims with the same seed agree after 300 ticks; another seed differs', () => {
     const seed = 42

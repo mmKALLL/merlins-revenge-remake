@@ -8,7 +8,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { rectAt } from '../mr-open/mr-collision'
 import { decide, type AiView, type TargetView } from '../mr-open/mr-ai-cpu'
 import { cooldownReady } from '../mr-open/mr-attack'
-import { arrived, frameMove, pathStep } from '../mr-open/mr-pathfinding'
+import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { collisionRectFor, isAlive, isCharacter } from './actors'
 import { nextRandom } from './rng'
@@ -73,7 +73,7 @@ function stepDetour(t: Tick, a: ActorState, def: ActorDef): boolean {
   }
   if (a.ai.mode !== 'detourMove') return false
   const goal = a.ai.detourGoal ?? a.pos
-  const moved = a.pos.x !== a.prevPos.x || a.pos.y !== a.prevPos.y
+  const moved = movedOnScreen(a.pos, a.prevPos)
   const pathStall = a.ai.detourTicks === 0 || moved ? 0 : a.ai.pathStall + 1
   if (arrived(a.pos, goal) || pathStall >= def.pathFindingStallTime) {
     a.vel = { x: 0, y: 0 }
@@ -114,7 +114,7 @@ export function stepCpuAi(t: Tick): void {
     }
     switch (decision.kind) {
       case 'move': {
-        const moved = a.pos.x !== a.prevPos.x || a.pos.y !== a.prevPos.y
+        const moved = movedOnScreen(a.pos, a.prevPos)
         const path = { pathMode: a.ai.pathMode, waypoint: a.ai.waypoint, pathStall: a.ai.pathStall }
         const r = pathStep(path, a.pos, decision.goal, def.walkSpeed, moved, t.rng, def.pathFindingStallTime)
         t.rng = r.rng

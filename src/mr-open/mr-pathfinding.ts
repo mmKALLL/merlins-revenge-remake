@@ -29,6 +29,16 @@ export function arrived(from: Vec, to: Vec): boolean {
   return (to.x - from.x) ** 2 + (to.y - from.y) ** 2 <= ARRIVAL_DISTANCE ** 2
 }
 
+/**
+ * objMoveXY getMoveVect: `pMoveVect = pSpr.loc - pOldSpriteLoc`, the move of the on-screen sprite,
+ * whose loc Director keeps in whole pixels (the float pLoc is rounded when assigned to the sprite).
+ * A walker pressed against a wall keeps sliding along it by a geometrically shrinking fraction of a
+ * pixel, so comparing the float positions never reports a stall; comparing the rounded ones does.
+ */
+export function movedOnScreen(pos: Vec, prevPos: Vec): boolean {
+  return Math.round(pos.x) !== Math.round(prevPos.x) || Math.round(pos.y) !== Math.round(prevPos.y)
+}
+
 export interface PathState {
   pathMode: 'beeline' | 'scenic'
   waypoint: Vec | null
