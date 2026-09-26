@@ -2,19 +2,23 @@
 
 Plan: `docs/plans/2026-09-26-walk-and-rooms-plan.md`. Branch: `walk-and-rooms`. Method: subagent-driven development (fresh implementer per task batch, then spec review, then code quality review).
 
-## Status (2026-09-26)
+## Status (2026-09-26, later)
 
 | Task | Implemented | Spec review | Quality review |
 |------|-------------|-------------|----------------|
-| 1 Scaffold | 4fd4cee | pass | approve (minor notes below) |
-| 2 Copy assets | 2dc1e7e | pass | approve |
-| 3 Lingo plist parser | abce769 | pending | pending |
-| 4 Map format | aaa84b6 | pending | pending |
-| 5 Tile key parser | 342991f | pending | pending |
-| 6-17 | not started | | |
-| 18 tileset extraction spike | not started | | |
+| 1-2 Scaffold, copy assets | 4fd4cee, 2dc1e7e | pass | approve |
+| 3-5 Parsers | abce769, aaa84b6, 342991f, hardened in dc10245 | pass | approve, follow-ups done |
+| 6-7 BMP, atlas, converter | 04eaddf, 9c5e376, follow-ups 92af0f7 | pass | approve, follow-ups done |
+| 8-11 Movement, grid, collision, exits | 0455f66..1347b76 | pass | approve, follow-ups in progress |
+| 12-13 Sim tick, input | 5799570, 42961da | pass | in progress |
+| 14-16 Loaders, renderer, main | 3baab97, 5efd634, e61bb73 | followed plan + adjustments | in progress |
+| 17 Readme and notes | d2b553e | | |
+| 18 Tileset extraction spike | not started | | |
+| Extra: mriv_small map + all tile keys | 793ba6b | | |
 
-Next action: run spec review for Tasks 3-5 (lines 226-710 of the plan), then quality review, then implement Tasks 6-7 (BMP decoder, atlas, converter).
+Headless run of the simulation on mriv_small (real data) behaves as expected: 2 px/tick, walk cycle, cut to room 2 at x=576.
+
+Open gate: in-browser verification by a human (Task 16 step 2 checklist) has NOT been done yet.
 
 ## Findings from implementers and reviewers
 
