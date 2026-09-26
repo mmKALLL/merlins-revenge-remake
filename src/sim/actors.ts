@@ -3,7 +3,7 @@
 // the per-actor collision rect (modCollisionRect: fixed for characters, dynamic for bullets).
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
-import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { roomMusic } from '../mr-open/mr-sound'
 import { isDead } from '../mr-open/mr-take-hit'
 import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
@@ -140,8 +140,7 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
         continue
       }
       if (s.grid.solidAt(wx, wy)) continue
-      const pos = { x: (wx - 1) * TILE_PX + TILE_PX / 2, y: (wy - 1) * TILE_PX + TILE_PX / 2 }
-      const [actor, after] = createActor(next, symbol, pos)
+      const [actor, after] = createActor(next, symbol, tileCentre(wx, wy))
       spawned.push(actor)
       next = after
     }
