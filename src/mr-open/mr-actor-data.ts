@@ -7,62 +7,62 @@ import type { Vec } from './mr-geometry'
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'none'
 
 export interface AttackDef {
-  name: string
-  type: AttackType
-  animType: string
-  animFrame: number | null
-  collisionLoc: Vec
-  idealAttackLoc: Vec
+  name: string // weapon or spell name, e.g. goblinSword, energyBlast
+  type: AttackType // melee, ranged, magic or bullet; derived from animType when the data says #auto
+  animType: string // character strip played while attacking (weaponMelee, weaponRanged, magic, naturalMelee)
+  animFrame: number | null // 1-based strip frame on which the hit lands or the bullet is spawned
+  collisionLoc: Vec // offset from the reg point (x mirrored by facing): melee strike point or bullet spawn point
+  idealAttackLoc: Vec // where an AI wants to stand relative to its target (melee: beside it)
   /** a point for the player's natural punch (act_player); a number everywhere else */
-  reach: number | Vec
-  cooldown: number
-  power: number | Vec
-  damageMultiplier: number
-  bullet: string | null
-  firingType: 'proportional' | 'fullstrength'
-  hits: string[]
-  chargeStart: number
-  chargeMax: number
-  chargeMaxBasic: number
-  chargeMaxModifier: number
-  chargeSpeed: number
-  chargeSize: number
-  chargeExplodeFactor: number
-  chargeColour: { r: number; g: number; b: number }
-  spellSpeed: number
-  limitMagic: boolean
-  sound: string | null
-  releaseSound: string | null
-  explodeSound: string | null
+  reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
+  cooldown: number // counter length between attacks; advanced per tick by agility/dexterity/mana_regeneration
+  power: number | Vec // melee: push vector applied to the victim (x mirrored); bullet/spell: scalar push factor
+  damageMultiplier: number // damage = (|push.x| + |push.y|) * damageMultiplier after the victim's inertia scaling
+  bullet: string | null // actor key spawned by a ranged attack (goblinArrow)
+  firingType: 'proportional' | 'fullstrength' // bullet velocity: distance/10, or a vector of length strength
+  hits: string[] // team roles that can be hit (teamMembers, teamBuildings)
+  chargeStart: number // spell charge at the first tick (plus the caster's mana_burst)
+  chargeMax: number // hard cap on charge; the effective max is mana_capacity * chargeMaxModifier + chargeMaxBasic
+  chargeMaxBasic: number // flat part of the effective charge max
+  chargeMaxModifier: number // multiplier on mana_capacity for the effective charge max
+  chargeSpeed: number // charge gained per tick (times the caster's mana_flow)
+  chargeSize: number // sprite pixels per unit of charge while charging
+  chargeExplodeFactor: number // charge is multiplied by this on impact; explosion radius = charge / 2 afterwards
+  chargeColour: { r: number; g: number; b: number } // tint of the charging/flying spell sprite
+  spellSpeed: number // spell flight speed in px per tick
+  limitMagic: boolean // whether the magic limiter percentage scales the charge max
+  sound: string | null // sound played on attack
+  releaseSound: string | null // sound on spell release
+  explodeSound: string | null // sound on spell impact
 }
 
 export interface ActorDef {
-  key: string
-  name: string
-  objType: string
-  aiType: string | null
-  team: string
-  layerZ: string
-  startOffset: Vec
-  energy: number
-  energyRecoverDelay: number
-  friction: Vec
-  frictionReel: Vec
-  inertia: number
-  damageSpeed: number
-  walkSpeed: number
-  walkAcceleration: number
-  strength: number
-  agility: number
-  dexterity: number
-  eyestrain: number
-  mana_burst: number
-  mana_capacity: number
-  mana_flow: number
-  mana_regeneration: number
-  weapon: string | null
-  experienceImWorth: number
-  attack: AttackDef
+  key: string // actor file key, e.g. goblinWarrior (act_goblinWarrior.txt)
+  name: string // sprite/character name used for animation strips (anm_<name>_*), e.g. gar
+  objType: string // Lingo object class: objCPUCharacter, objPlayerMerlinCharacter, objBullet, objSpell, ...
+  aiType: string | null // Lingo AI class (objAiCPU for enemies, objAiPlayer for Merlin)
+  team: string // team name used for allegiance and targeting (goblins, aldevar)
+  layerZ: string // engine draw-layer global name; bullets and spells draw above characters
+  startOffset: Vec // offset from the spawn tile's bottom-right corner to the reg point; (-16,-16) = tile centre
+  energy: number // starting and maximum health
+  energyRecoverDelay: number // ticks between +1 passive health regeneration
+  friction: Vec // percent of speed lost per tick per axis while walking
+  frictionReel: Vec // percent of speed lost per tick while reeling from a hit
+  inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
+  damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
+  walkSpeed: number // AI walking speed in px per tick (velocity is overwritten each tick)
+  walkAcceleration: number // player acceleration per tick per axis while a key is held
+  strength: number // scales melee push and fullstrength bullet speed
+  agility: number // cooldown progress per tick for melee attacks
+  dexterity: number // cooldown progress per tick for ranged attacks
+  eyestrain: number // max aiming error in px at full reach for ranged attacks
+  mana_burst: number // added to the spell's starting charge
+  mana_capacity: number // scales the spell's maximum charge
+  mana_flow: number // multiplies the spell's charge speed
+  mana_regeneration: number // cooldown progress per tick for magic attacks
+  weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
+  experienceImWorth: number // experience awarded on death (never granted in this engine build)
+  attack: AttackDef // the installed current attack (from weapon, or the natural attack)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
