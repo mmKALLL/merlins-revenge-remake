@@ -4,7 +4,12 @@ import type { Vec } from './mr-map-format'
 
 export interface TileKey {
   tileSize: Vec
-  /** symbols[i] is the symbol for tile index i+1 */
+  /**
+   * symbols[i] is the symbol for tile index i+1. Every non-comment line after
+   * the tileSize line is one slot, blank lines included (they are 'none'), so
+   * the length equals the engine's slot count for the key (e.g. 261 for the
+   * Merlin Open Active key, 228 for Objects, 58 for the all-blank Passive key).
+   */
   symbols: string[]
   isSolid(tileIndex: number): boolean
 }
@@ -15,8 +20,9 @@ export function parseTileKey(text: string): TileKey {
   const m = /^tileSize\s*\|\s*(point\([^)]*\))/.exec(sizeLine)
   if (!m) throw new Error('tile key: missing "tileSize | point(w,h)" on line 2')
   const tileSize = parseLingo(m[1]!) as Vec
-  // trailing blank lines are not tiles
-  while (lines.length > 0 && lines[lines.length - 1]!.trim() === '') lines.pop()
+  // The file's final newline yields one empty element from split; it is not a
+  // slot. Every other blank line is an empty slot, as in the original engine.
+  if (lines.length > 2 && lines[lines.length - 1] === '') lines.pop()
   const symbols: string[] = []
   for (const raw of lines.slice(2)) {
     const line = raw.trim()

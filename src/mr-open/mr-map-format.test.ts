@@ -47,3 +47,36 @@ describe('parseMapFile', () => {
     expect(() => parseMapFile(bad)).toThrow(/room 1.*backgroundActive/)
   })
 })
+
+// minimal 2x1-room map builder for validation tests
+function mapText(opts: { mapSize?: string; rooms: string; layerDefs?: string }): string {
+  const layerDefs = opts.layerDefs ?? '[[#name: #backgroundActive, #tileSet: #t, #displayScale: 1], [#name: #objects, #tileSet: #o, #displayScale: 1]]'
+  return `[#map: [#mapSize: ${opts.mapSize ?? 'point(2,1)'}, #roomSize: point(2,1), #startRoom: point(1,1), #layerDefinitions: ${layerDefs}, #rooms: ${opts.rooms}]]`
+}
+const room = (num: number, layers = '[[#name: #backgroundActive, #map: [[1, 2]]]]') => `[#num: ${num}, #layers: ${layers}]`
+
+describe('parseMapFile validation', () => {
+  it('pads missing rooms with empty rooms for every defined layer', () => {
+    const m = parseMapFile(mapText({ rooms: `[${room(1)}]` }))
+    expect(m.rooms).toHaveLength(2)
+    expect(m.rooms[1]).toEqual({ num: 2, layers: { backgroundActive: [[0, 0]], objects: [[0, 0]] } })
+  })
+
+  it('rejects more rooms than mapSize allows', () => {
+    expect(() => parseMapFile(mapText({ rooms: `[${room(1)}, ${room(2)}, ${room(3)}]` }))).toThrow(/3 rooms.*mapSize 2x1/)
+  })
+
+  it('rejects unknown layer names, naming the room', () => {
+    expect(() => parseMapFile(mapText({ rooms: `[${room(1, '[[#name: #backgroundActive, #map: [[1, 2]]], [#name: #bogus, #map: [[1, 2]]]]')}, ${room(2)}]` }))).toThrow(/room 1.*unknown layer.*bogus/)
+    expect(() => parseMapFile(mapText({ rooms: '[]', layerDefs: '[[#name: #bogus, #tileSet: #t, #displayScale: 1]]' }))).toThrow(/unknown layer.*bogus/)
+  })
+
+  it('requires every room to have a backgroundActive layer', () => {
+    expect(() => parseMapFile(mapText({ rooms: `[${room(1)}, ${room(2, '[[#name: #objects, #map: [[1, 2]]]]')}]` }))).toThrow(/room 2.*backgroundActive/)
+  })
+
+  it('prefixes helper errors with the room number and layer', () => {
+    expect(() => parseMapFile(mapText({ rooms: `[${room(1)}, ${room(2, '[[#name: #backgroundActive, #map: [[1, #x]]]]')}]` }))).toThrow(/room 2.*backgroundActive.*expected number/)
+    expect(() => parseMapFile(mapText({ rooms: `[${room(1)}, [#num: 2]]` }))).toThrow(/room 2.*missing #layers/)
+  })
+})

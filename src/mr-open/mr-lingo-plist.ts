@@ -106,7 +106,7 @@ class Parser {
   }
 
   private propList(): { [key: string]: LingoValue } {
-    const out: { [key: string]: LingoValue } = {}
+    const out: { [key: string]: LingoValue } = Object.create(null) as { [key: string]: LingoValue }
     for (;;) {
       this.skipWs()
       const key = this.symbol().sym

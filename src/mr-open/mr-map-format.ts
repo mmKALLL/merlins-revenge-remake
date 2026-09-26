@@ -35,52 +35,88 @@ export function roomXYToNum(xy: Vec, mapSize: Vec): number {
   return (xy.y - 1) * mapSize.x + xy.x
 }
 
+const LAYER_NAMES: readonly LayerName[] = ['backgroundPassive', 'backgroundActive', 'objects']
+
 export function parseMapFile(text: string): MapDefinition {
   const root = parseLingo(text)
-  const map = prop(root, 'map')
-  const mapSize = point(prop(map, 'mapSize'))
-  const roomSize = point(prop(map, 'roomSize'))
-  const startRoom = point(prop(map, 'startRoom'))
-  const layers = list(prop(map, 'layerDefinitions')).map((l) => ({
-    name: sym(prop(l, 'name')) as LayerName,
-    tileSet: sym(prop(l, 'tileSet')),
+  const map = getProp(root, 'map')
+  const mapSize = asPoint(getProp(map, 'mapSize'))
+  const roomSize = asPoint(getProp(map, 'roomSize'))
+  const startRoom = asPoint(getProp(map, 'startRoom'))
+  const layers = asList(getProp(map, 'layerDefinitions')).map((l) => ({
+    name: asLayerName(asSymbol(getProp(l, 'name'))),
+    tileSet: asSymbol(getProp(l, 'tileSet')),
   }))
-  const rooms = list(prop(map, 'rooms')).map((r) => {
-    const num = num_(prop(r, 'num'))
-    const out: RoomDefinition = { num, layers: {} }
-    for (const l of list(prop(r, 'layers'))) {
-      const name = sym(prop(l, 'name')) as LayerName
-      const grid = list(prop(l, 'map')).map((row) => list(row).map(num_))
-      if (grid.length !== roomSize.y || grid.some((row) => row.length !== roomSize.x)) {
-        throw new Error(`room ${num} layer ${name}: expected ${roomSize.x}x${roomSize.y} tiles`)
-      }
-      out.layers[name] = grid
-    }
-    return out
-  })
+  const roomCount = mapSize.x * mapSize.y
+  const roomValues = asList(getProp(map, 'rooms'))
+  if (roomValues.length > roomCount) {
+    throw new Error(`map has ${roomValues.length} rooms but mapSize ${mapSize.x}x${mapSize.y} allows ${roomCount}`)
+  }
+  const rooms = roomValues.map((r, i) => parseRoom(r, i + 1, roomSize))
   rooms.forEach((r, i) => {
     if (r.num !== i + 1) throw new Error(`rooms must be in order; found num ${r.num} at position ${i + 1}`)
   })
+  // The original engine fills rooms missing from the file with empty rooms.
+  for (let num = rooms.length + 1; num <= roomCount; num++) {
+    const empty: RoomDefinition = { num, layers: {} }
+    for (const l of layers) empty.layers[l.name] = emptyGrid(roomSize)
+    rooms.push(empty)
+  }
   return { mapSize, roomSize, startRoom, layers, rooms }
 }
 
-function prop(v: LingoValue, key: string): LingoValue {
-  if (typeof v !== 'object' || v === null || Array.isArray(v) || !(key in v)) throw new Error(`missing #${key}`)
+function parseRoom(r: LingoValue, position: number, roomSize: Vec): RoomDefinition {
+  let num = position
+  let layerName = ''
+  try {
+    num = asNumber(getProp(r, 'num'))
+    const out: RoomDefinition = { num, layers: {} }
+    for (const l of asList(getProp(r, 'layers'))) {
+      layerName = asSymbol(getProp(l, 'name'))
+      const name = asLayerName(layerName)
+      const grid = asList(getProp(l, 'map')).map((row) => asList(row).map(asNumber))
+      if (grid.length !== roomSize.y || grid.some((row) => row.length !== roomSize.x)) {
+        throw new Error(`expected ${roomSize.x}x${roomSize.y} tiles`)
+      }
+      out.layers[name] = grid
+    }
+    layerName = ''
+    if (!out.layers.backgroundActive) throw new Error('missing backgroundActive layer')
+    return out
+  } catch (err) {
+    const where = layerName ? `room ${num} layer ${layerName}` : `room ${num}`
+    throw new Error(`${where}: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
+function emptyGrid(roomSize: Vec): TileGrid {
+  return Array.from({ length: roomSize.y }, () => new Array<number>(roomSize.x).fill(0))
+}
+
+function asLayerName(name: string): LayerName {
+  if (!(LAYER_NAMES as readonly string[]).includes(name)) {
+    throw new Error(`unknown layer name #${name} (expected one of ${LAYER_NAMES.join(', ')})`)
+  }
+  return name as LayerName
+}
+
+function getProp(v: LingoValue, key: string): LingoValue {
+  if (typeof v !== 'object' || v === null || Array.isArray(v) || !Object.hasOwn(v, key)) throw new Error(`missing #${key}`)
   return (v as { [k: string]: LingoValue })[key]!
 }
-function list(v: LingoValue): LingoValue[] {
+function asList(v: LingoValue): LingoValue[] {
   if (!Array.isArray(v)) throw new Error('expected list')
   return v
 }
-function num_(v: LingoValue): number {
+function asNumber(v: LingoValue): number {
   if (typeof v !== 'number') throw new Error('expected number')
   return v
 }
-function sym(v: LingoValue): string {
+function asSymbol(v: LingoValue): string {
   if (!isSymbol(v)) throw new Error('expected symbol')
   return v.sym
 }
-function point(v: LingoValue): Vec {
+function asPoint(v: LingoValue): Vec {
   if (typeof v !== 'object' || v === null || !('x' in v)) throw new Error('expected point')
   return { x: (v as Vec).x, y: (v as Vec).y }
 }
