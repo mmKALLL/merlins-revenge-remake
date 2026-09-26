@@ -1,9 +1,9 @@
 // Integration tests for the combat tick against the converted actor and team data
 // (public/generated/actors.json, teams.json) with an animation fixture that carries the real frame
 // sizes and strip lengths of the shipped atlases (frame counts and delays matter for attack timing).
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import { resolveActors, type ActorDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { explode } from '../mr-open/mr-spell'
@@ -15,7 +15,9 @@ import { createSim, stepSim } from './tick'
 import { PLAYER_DEATH_TICKS } from './tick-combat'
 import { buildWorldGrid } from './world-grid'
 
-const defs = JSON.parse(readFileSync('public/generated/actors.json', 'utf8')) as Record<string, ActorDef>
+// Original engine values (not assets/tuning.json balance tweaks), resolved from the copied actor files.
+const actorFiles = Object.fromEntries(readdirSync('assets/actors').map((f) => [f.replace(/\.txt$/, ''), readFileSync(`assets/actors/${f}`, 'utf8')]))
+const defs: Record<string, ActorDef> = resolveActors(actorFiles, { player: { weapon: 'energyBlast' } })
 const teams = JSON.parse(readFileSync('public/generated/teams.json', 'utf8')) as Record<string, TeamDef>
 
 // Real frame sizes and strip lengths (tools/convert-assets.ts output), see docs/notes §9.
@@ -452,9 +454,12 @@ describe('archer (combat notes §3-4)', () => {
     // 8 * 0.95^n < 2 -> n = 28 moves
     ;[s, ticks] = runUntil(s, (t) => actor(t, arrowId)!.mode === 'land', 40, down)
     expect(ticks).toBe(28)
-    expect(Math.abs(actor(s, arrowId)!.vel.x)).toBeLessThan(2)
+    // objBullet.goMode(#land) zeroes the vector: the landed arrow stays put
+    expect(actor(s, arrowId)!.vel).toEqual({ x: 0, y: 0 })
+    const landedAt = actor(s, arrowId)!.pos
     s = run(s, 29, down)
     expect(actor(s, arrowId)!.mode).toBe('land')
+    expect(actor(s, arrowId)!.pos).toEqual(landedAt)
     s = stepSim(s, down)
     expect(actor(s, arrowId)).toBeUndefined()
     expect(playerOf(s).energy).toBe(200)

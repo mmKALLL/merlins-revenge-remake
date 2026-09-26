@@ -199,8 +199,10 @@ export function stepBullets(t: Tick): void {
     if (t.removed.has(a.id) || !isBullet(t.s, a)) continue
     if (a.mode === 'fly') {
       if (bulletStalled(a.vel)) {
+        // objBullet.goMode(#land): setVect(point(0,0)) - the landed arrow does not drift
         a.mode = 'land'
         a.age = 0
+        a.vel = { x: 0, y: 0 }
         continue
       }
       const target = a.targetId === null ? undefined : actorIn(t, a.targetId)
