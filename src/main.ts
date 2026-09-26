@@ -80,5 +80,10 @@ async function main(): Promise<void> {
 
 main().catch((e: unknown) => {
   console.error(e)
-  document.body.textContent = String(e)
+  const pre = document.createElement('pre')
+  pre.style.color = '#fff'
+  pre.style.padding = '16px'
+  pre.style.whiteSpace = 'pre-wrap'
+  pre.textContent = e instanceof Error ? (e.stack ?? e.message) : String(e)
+  document.body.replaceChildren(pre)
 })

@@ -1,19 +1,39 @@
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { createSim, stepSim } from './tick'
+import { createSim, findStartPos, stepSim } from './tick'
 import { NO_INPUT } from './state'
 import { buildWorldGrid } from './world-grid'
 
-function openMap(): MapDefinition {
-  const grid = Array.from({ length: 9 }, () => Array(18).fill(1))
-  const rooms = [1, 2].map((num) => ({ num, layers: { backgroundActive: grid, backgroundPassive: grid } }))
+const SOLID = 2
+const PLAYER = 3
+
+/**
+ * Two 18x9 rooms side by side. `solidCol` fills that 1-based column of room 1's active layer with SOLID;
+ * `playerAt` puts a PLAYER tile in room 1's objects layer.
+ */
+function openMap(opts: { solidCol?: number; playerAt?: { x: number; y: number } } = {}): MapDefinition {
+  const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
+  const active = fill(1)
+  if (opts.solidCol) for (const row of active) row[opts.solidCol - 1] = SOLID
+  const objects = fill(0)
+  if (opts.playerAt) objects[opts.playerAt.y - 1]![opts.playerAt.x - 1] = PLAYER
+  const rooms = [1, 2].map((num) => ({
+    num,
+    layers: { backgroundActive: num === 1 ? active : fill(1), backgroundPassive: fill(1), objects: num === 1 ? objects : fill(0) },
+  }))
   return {
     mapSize: { x: 2, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
-    layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }], rooms,
+    layers: [
+      { name: 'backgroundPassive', tileSet: 'p' },
+      { name: 'backgroundActive', tileSet: 'a' },
+      { name: 'objects', tileSet: 'o' },
+    ],
+    rooms,
   }
 }
+const isSolid = (i: number) => i === SOLID
 const anims = { walk: { frames: 8, delay: 3 } }
-const make = () => createSim(buildWorldGrid(openMap(), () => false), anims, { x: 100, y: 100 })
+const make = () => createSim(buildWorldGrid(openMap(), isSolid), anims, { x: 100, y: 100 })
 const input = (x: number, y: number) => ({ ...NO_INPUT, move: { x, y } })
 
 describe('stepSim', () => {
@@ -59,5 +79,44 @@ describe('stepSim', () => {
     for (let i = 0; i < 30; i++) s = stepSim(s, input(-1, 0))
     expect(s.room).toEqual({ x: 1, y: 1 })
     expect(s.player.pos.x).toBeGreaterThanOrEqual(15)
+  })
+
+  it('zeroes vel.x on a wall hit and keeps vel.y', () => {
+    // wall column 5 spans x 128..160; the 30 px rect stops with its right edge at the tile's left edge (127)
+    let s = createSim(buildWorldGrid(openMap({ solidCol: 5 }), isSolid), anims, { x: 100, y: 100 })
+    let hit = false
+    for (let i = 0; i < 20; i++) {
+      s = stepSim(s, input(1, 1))
+      if (s.player.vel.x === 0) {
+        hit = true
+        break
+      }
+    }
+    expect(hit).toBe(true)
+    expect(s.player.pos.x).toBe(112)
+    expect(s.player.vel.y).toBeGreaterThan(0)
+    expect(s.player.pos.y).toBeGreaterThan(100)
+  })
+
+  it('keeps the player inside the room at the right edge when exits are closed', () => {
+    let s = { ...make(), exitsOpen: false }
+    s.player.pos = { x: 540, y: 100 }
+    for (let i = 0; i < 30; i++) s = stepSim(s, input(1, 0))
+    expect(s.room).toEqual({ x: 1, y: 1 })
+    expect(s.player.pos.x).toBe(560)
+    expect(s.player.vel.x).toBeGreaterThan(0)
+  })
+})
+
+describe('findStartPos', () => {
+  it('returns the centre of the player tile when present', () => {
+    const grid = buildWorldGrid(openMap({ playerAt: { x: 4, y: 3 } }), isSolid)
+    expect(findStartPos(grid, PLAYER)).toEqual({ x: 3 * 32 + 16, y: 2 * 32 + 16 })
+  })
+
+  it('falls back to the start room centre without a player tile', () => {
+    const grid = buildWorldGrid(openMap(), isSolid)
+    expect(findStartPos(grid, PLAYER)).toEqual({ x: 288, y: 144 })
+    expect(findStartPos(buildWorldGrid(openMap({ playerAt: { x: 4, y: 3 } }), isSolid), null)).toEqual({ x: 288, y: 144 })
   })
 })

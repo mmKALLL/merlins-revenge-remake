@@ -1,4 +1,4 @@
-import { Application, Container, Sprite, Text } from 'pixi.js'
+import { Application, Container, Graphics, Sprite, Text } from 'pixi.js'
 import type { LoadedSprite, LoadedTileset } from '../data/loaders'
 import type { LayerName, Vec } from '../mr-open/mr-map-format'
 import type { SimState } from '../sim/state'
@@ -24,6 +24,7 @@ export class Scene {
   private player = new Sprite()
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace' } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
+  private onResize = () => this.applyZoom()
 
   constructor(
     private cfg: RenderConfig,
@@ -47,6 +48,10 @@ export class Scene {
     parent.appendChild(this.app.canvas)
     this.world.position.set(this.cfg.playOffset.x, this.cfg.playOffset.y)
     this.app.stage.addChild(this.world)
+    // Clip tiles and the player to the play view so nothing spills into the HUD margins.
+    const mask = new Graphics().rect(0, 0, this.cfg.view.w, this.cfg.view.h).fill(0xffffff)
+    this.world.addChild(mask)
+    this.world.mask = mask
     for (const name of TILE_LAYERS) {
       const c = new Container()
       this.layers[name] = c
@@ -58,7 +63,12 @@ export class Scene {
     this.debugText.position.set(2, this.cfg.logical.h - 12)
     this.app.stage.addChild(this.debugText)
     this.applyZoom()
-    window.addEventListener('resize', () => this.applyZoom())
+    window.addEventListener('resize', this.onResize)
+  }
+
+  destroy(): void {
+    window.removeEventListener('resize', this.onResize)
+    this.app.destroy()
   }
 
   applyZoom(): void {

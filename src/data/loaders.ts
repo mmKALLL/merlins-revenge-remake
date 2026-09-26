@@ -24,11 +24,26 @@ interface SpriteAtlas {
   animations: Record<string, { delay: number; frames: { x: number; y: number; w: number; h: number }[] }>
 }
 
-async function json<T>(url: string): Promise<T> {
+async function json<T>(url: string, check: (v: unknown) => v is T): Promise<T> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`failed to load ${url}: ${res.status}`)
-  return (await res.json()) as T
+  const data: unknown = await res.json()
+  if (!check(data)) throw new Error(`unexpected shape in ${url}`)
+  return data
 }
+
+// Shape checks: just enough to fail early with the asset URL instead of deep inside the sim.
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+const isNum = (v: unknown): v is number => typeof v === 'number'
+
+const isMap = (v: unknown): v is MapDefinition =>
+  isObj(v) && isObj(v['mapSize']) && isObj(v['roomSize']) && Array.isArray(v['layers']) && Array.isArray(v['rooms'])
+
+const isTileset = (v: unknown): v is TilesetData =>
+  isObj(v) && isObj(v['tileSize']) && isNum(v['tileSize']['x']) && isNum(v['tileSize']['y']) &&
+  isNum(v['tilesPerRow']) && Array.isArray(v['symbols'])
+
+const isSpriteAtlas = (v: unknown): v is SpriteAtlas => isObj(v) && isObj(v['animations'])
 
 function nearest(t: Texture): Texture {
   t.source.scaleMode = 'nearest'
@@ -40,11 +55,11 @@ function subTexture(sheet: Texture, x: number, y: number, w: number, h: number):
 }
 
 export async function loadMap(name: string): Promise<MapDefinition> {
-  return json<MapDefinition>(`/generated/maps/${name}.json`)
+  return json(`/generated/maps/${name}.json`, isMap)
 }
 
 export async function loadTileset(name: string): Promise<LoadedTileset> {
-  const data = await json<TilesetData>(`/generated/tilesets/${name}.json`)
+  const data = await json(`/generated/tilesets/${name}.json`, isTileset)
   const sheet = nearest(await Assets.load<Texture>(`/generated/tilesets/${name}.png`))
   const textures = data.symbols.map((_, i) => {
     const x = (i % data.tilesPerRow) * data.tileSize.x
@@ -55,7 +70,10 @@ export async function loadTileset(name: string): Promise<LoadedTileset> {
 }
 
 export async function loadSprite(name: string): Promise<LoadedSprite> {
-  const atlas = await json<SpriteAtlas>(`/generated/sprites/${name}.json`)
+  const atlas = await json(`/generated/sprites/${name}.json`, isSpriteAtlas)
+  if (!atlas.animations['walk'] && !atlas.animations['stand']) {
+    throw new Error(`sprite ${name} has no walk or stand animation`)
+  }
   const sheet = nearest(await Assets.load<Texture>(`/generated/sprites/${name}.png`))
   const anims: AnimationSet = {}
   const frames: Record<string, Texture[]> = {}
