@@ -1,19 +1,33 @@
 // Port of the subset of Lingo literal syntax that value()/XMLmaster.interpretXML
-// accepts in the map, key and binding text files.
+// accepts in the map, key, binding and actor text files. Bare identifiers
+// (globals like gGameObjectLayer) and calls other than numeric point()/rgb()
+// (random(450), member("x", "gfx")) are kept unevaluated for the consumer.
 export type LingoSymbol = { sym: string }
 export type LingoPoint = { x: number; y: number }
 export type LingoRgb = { r: number; g: number; b: number }
+export type LingoIdent = { ident: string }
+export type LingoCall = { call: string; args: LingoValue[] }
 export type LingoValue =
   | number
   | string
   | LingoSymbol
   | LingoPoint
   | LingoRgb
+  | LingoIdent
+  | LingoCall
   | LingoValue[]
   | { [key: string]: LingoValue }
 
 export function isSymbol(v: LingoValue, name?: string): v is LingoSymbol {
   return typeof v === 'object' && v !== null && 'sym' in v && (name === undefined || v.sym === name)
+}
+
+export function isIdent(v: LingoValue, name?: string): v is LingoIdent {
+  return typeof v === 'object' && v !== null && 'ident' in v && (name === undefined || v.ident === name)
+}
+
+export function isCall(v: LingoValue, name?: string): v is LingoCall {
+  return typeof v === 'object' && v !== null && 'call' in v && (name === undefined || v.call === name)
 }
 
 export function parseLingo(text: string): LingoValue {
@@ -66,7 +80,7 @@ class Parser {
     if (c === '"') return this.string()
     if (c === '#') return this.symbol()
     if (/[-0-9.]/.test(c)) return this.number()
-    if (/[A-Za-z]/.test(c)) return this.call()
+    if (/[A-Za-z]/.test(c)) return this.identOrCall()
     this.fail('unexpected character')
   }
 
@@ -150,26 +164,32 @@ class Parser {
     return v
   }
 
-  private call(): LingoValue {
+  private identOrCall(): LingoValue {
     const start = this.i
-    while (/[A-Za-z]/.test(this.peek())) this.i++
+    while (/[A-Za-z0-9_]/.test(this.peek())) this.i++
     const name = this.s.slice(start, this.i)
     this.skipWs()
-    this.expect('(')
-    const args: number[] = []
-    for (;;) {
-      this.skipWs()
-      args.push(this.number())
-      this.skipWs()
-      if (this.peek() === ',') {
-        this.i++
-        continue
+    if (this.peek() !== '(') return { ident: name }
+    this.i++
+    const args: LingoValue[] = []
+    this.skipWs()
+    if (this.peek() === ')') {
+      this.i++
+    } else {
+      for (;;) {
+        args.push(this.value())
+        this.skipWs()
+        if (this.peek() === ',') {
+          this.i++
+          continue
+        }
+        this.expect(')')
+        break
       }
-      this.expect(')')
-      break
     }
-    if (name === 'point' && args.length === 2) return { x: args[0]!, y: args[1]! }
-    if (name === 'rgb' && args.length === 3) return { r: args[0]!, g: args[1]!, b: args[2]! }
-    this.fail(`unknown call ${name}`)
+    const nums = args.every((a) => typeof a === 'number') ? (args as number[]) : null
+    if (nums && name === 'point' && nums.length === 2) return { x: nums[0]!, y: nums[1]! }
+    if (nums && name === 'rgb' && nums.length === 3) return { r: nums[0]!, g: nums[1]!, b: nums[2]! }
+    return { call: name, args }
   }
 }

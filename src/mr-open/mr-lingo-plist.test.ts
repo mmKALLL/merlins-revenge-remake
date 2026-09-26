@@ -36,4 +36,21 @@ describe('parseLingo', () => {
   it('reports the offset of a syntax error', () => {
     expect(() => parseLingo('[#a: ]')).toThrow(/offset 5/)
   })
+
+  it('parses bare identifiers as references', () => {
+    expect(parseLingo('[#layerZ: gGameObjectLayer]')).toEqual({ layerZ: { ident: 'gGameObjectLayer' } })
+  })
+
+  it('parses generic calls with nested arguments', () => {
+    expect(parseLingo('point(random(450), 300)')).toEqual({ call: 'point', args: [{ call: 'random', args: [450] }, 300] })
+    expect(parseLingo('member("a", "gfx")')).toEqual({ call: 'member', args: ['a', 'gfx'] })
+  })
+
+  it('still returns plain points and colours for numeric point() and rgb()', () => {
+    expect(parseLingo('point(1, 2)')).toEqual({ x: 1, y: 2 })
+  })
+
+  it('parses numbers without a leading zero', () => {
+    expect(parseLingo('[#a: .5, #b: -.25]')).toEqual({ a: 0.5, b: -0.25 })
+  })
 })
