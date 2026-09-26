@@ -2,23 +2,13 @@
 
 Plan: `docs/plans/2026-09-26-walk-and-rooms-plan.md`. Branch: `walk-and-rooms`. Method: subagent-driven development (fresh implementer per task batch, then spec review, then code quality review).
 
-## Status (2026-09-26, later)
+## Status (2026-09-26, evening)
 
-| Task | Implemented | Spec review | Quality review |
-|------|-------------|-------------|----------------|
-| 1-2 Scaffold, copy assets | 4fd4cee, 2dc1e7e | pass | approve |
-| 3-5 Parsers | abce769, aaa84b6, 342991f, hardened in dc10245 | pass | approve, follow-ups done |
-| 6-7 BMP, atlas, converter | 04eaddf, 9c5e376, follow-ups 92af0f7 | pass | approve, follow-ups done |
-| 8-11 Movement, grid, collision, exits | 0455f66..1347b76 | pass | approve, follow-ups in progress |
-| 12-13 Sim tick, input | 5799570, 42961da | pass | in progress |
-| 14-16 Loaders, renderer, main | 3baab97, 5efd634, e61bb73 | followed plan + adjustments | in progress |
-| 17 Readme and notes | d2b553e | | |
-| 18 Tileset extraction spike | not started | | |
-| Extra: mriv_small map + all tile keys | 793ba6b | | |
+All plan tasks 1-17 are implemented, reviewed and committed; review follow-ups landed in dc10245, 92af0f7, ea8e783, b1e5114. Browser check done by the user on mriv_small: tiles, movement, sliding, room cuts and follow camera all work. Sprite scale corrected to native 16 px and the collision box to 14x14 (b8eb288). Dev server on port 3371 (3fbab32).
 
-Headless run of the simulation on mriv_small (real data) behaves as expected: 2 px/tick, walk cycle, cut to room 2 at x=576.
+In progress: final whole-branch review; Task 18 tileset extraction spike (notes will land in docs/notes/tileset-extraction.md); engine digest for the combat slice (docs/notes/engine-mechanics-combat.md).
 
-Open gate: in-browser verification by a human (Task 16 step 2 checklist) has NOT been done yet.
+Next: merge walk-and-rooms into main, then brainstorm and plan the combat slice (goblin warrior/archer, energy blast, reeling) from the KanbanFlow cards and the combat digest.
 
 ## Findings from implementers and reviewers
 
