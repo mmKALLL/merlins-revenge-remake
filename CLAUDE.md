@@ -20,7 +20,8 @@ through data. Long-term goals: recreate the original faithfully, then build a ro
   Read the relevant one before porting behaviour. `docs/plans/`: designs, plans, progress.
 
 The original archive `assets-mr-original/` is git-ignored and only exists on the owner's machine.
-Everything the build needs is copied into `assets/`.
+Everything the build needs is copied into `assets/`. For sessions without the archive, the owner can
+attach `mr-open-reference.zip` (Lingo source, maps and all cast bitmaps; see the enemy handoff doc).
 
 ## Rules
 
