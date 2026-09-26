@@ -12,6 +12,11 @@ export const MOVE_SPEED_LIMIT = 31
 /**
  * One tick of velocity update. dir components are -1, 0 or 1.
  * Order matches objMoveXY.update: input, friction, clamp.
+ *
+ * Clamping differs slightly from the original: there `setMoveSpeedLimit` clamps only the
+ * per-tick displacement and leaves the stored velocity unclamped, whereas this port clamps the
+ * stored velocity itself. With walking accelerations (steady state 2 px/tick, limit 31) the
+ * velocity never reaches the limit, so the two are identical for the player.
  */
 export function stepVelocity(v: Vec, dir: Vec, accel: number, friction: Vec = FRICTION_PERCENT): Vec {
   let x = v.x + accel * dir.x

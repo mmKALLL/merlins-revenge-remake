@@ -2,7 +2,8 @@
 // objTileLayer (see docs/notes/engine-mechanics-walking-and-rooms.md §1).
 import { isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 
-export type Vec = { x: number; y: number }
+import type { Vec } from './mr-geometry'
+export type { Vec }
 
 export type LayerName = 'backgroundPassive' | 'backgroundActive' | 'objects'
 

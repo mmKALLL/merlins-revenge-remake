@@ -1,8 +1,7 @@
-import { roomNumToXY, type LayerName, type MapDefinition, type Vec } from '../mr-open/mr-map-format'
+import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { roomNumToXY, type LayerName, type MapDefinition } from '../mr-open/mr-map-format'
 
-export const TILE_PX = 32
-
-export interface RectPx { left: number; top: number; right: number; bottom: number }
+export { TILE_PX }
 
 export interface WorldGrid {
   map: MapDefinition
@@ -14,7 +13,7 @@ export interface WorldGrid {
   solidAt(tx: number, ty: number): boolean
   roomOfTile(tx: number, ty: number): Vec
   roomOfPoint(px: number, py: number): Vec
-  roomRectPx(room: Vec): RectPx
+  roomRectPx(room: Vec): Rect
   roomExists(room: Vec): boolean
 }
 
@@ -24,7 +23,11 @@ export function buildWorldGrid(map: MapDefinition, isSolid: (tileIndex: number) 
   const layerNames = map.layers.map((l) => l.name)
   const grids = new Map<LayerName, Int32Array>()
   for (const name of layerNames) grids.set(name, new Int32Array(widthTiles * heightTiles))
+  const roomCount = map.mapSize.x * map.mapSize.y
   for (const room of map.rooms) {
+    if (!Number.isInteger(room.num) || room.num < 1 || room.num > roomCount) {
+      throw new Error(`room number ${room.num} is outside the ${map.mapSize.x}x${map.mapSize.y} map (1..${roomCount})`)
+    }
     const xy = roomNumToXY(room.num, map.mapSize)
     for (const name of layerNames) {
       const src = room.layers[name]

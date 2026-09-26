@@ -1,11 +1,10 @@
 // Port of objCollisionMap.checkCollisions / selectTilesFromCollisionRect and
 // objCollisionTile (edge locations, mergeEdges, calcOverlapEdges, calcOverlapCorners).
-import type { Vec } from './mr-map-format'
+import { TILE_PX as TILE, type Rect, type Vec } from './mr-geometry'
 
-export const TILE = 32
-
+/** A collision rect is relative to the object's registration point (modCollisionRect); see `rectAt`. */
+export type CollisionRect = Rect
 /** rect(-16,-16,16,16).inflate(-1,-1) for a 32x32 sprite with a centred reg point (modCollisionRect) */
-export interface CollisionRect { left: number; top: number; right: number; bottom: number }
 export const PLAYER_COLLISION_RECT: CollisionRect = { left: -15, top: -15, right: 15, bottom: 15 }
 
 export type SolidAt = (tx: number, ty: number) => boolean
@@ -24,11 +23,13 @@ export function resolveTileCollision(solidAt: SolidAt, newLoc: Vec, dir: Vec, cr
   if (dir.x === 0 && dir.y === 0) return newLoc
   let loc = { ...newLoc }
   const r0 = rectAt(loc, cr)
+  // selectTilesFromCollisionRect visits the corners in the order TL, TR, BR, BL
+  // (point(left,top), point(right,top), point(right,bottom), point(left,bottom)).
   const corners = [
     [tileOfPx(r0.left), tileOfPx(r0.top)],
     [tileOfPx(r0.right), tileOfPx(r0.top)],
-    [tileOfPx(r0.left), tileOfPx(r0.bottom)],
     [tileOfPx(r0.right), tileOfPx(r0.bottom)],
+    [tileOfPx(r0.left), tileOfPx(r0.bottom)],
   ]
   const seen = new Set<string>()
   for (const [tx, ty] of corners) {
@@ -76,8 +77,12 @@ function overlapForTile(solidAt: SolidAt, tx: number, ty: number, rect: Collisio
   if (dir.y > 0 && exposed.top) o.y = rect.bottom - e.top
   if (dir.y < 0 && exposed.bottom) o.y = rect.top - e.bottom
   if (o.x !== null || o.y !== null) return o
-  // calcOverlapCorners: exact diagonal approach to a convex corner with no facing edge hit
-  if (dir.x !== 0 && dir.y !== 0) {
+  // calcOverlapCorners: diagonal approach with no facing edge hit. The tile must be a "solid
+  // corner" (identifyAsCornerTile / calcSolidCorner): both facing neighbours are solid (their
+  // edges were merged away above) AND the diagonal neighbour the mover comes from is not solid,
+  // i.e. the vertical neighbour's side edge and the side neighbour's vertical edge are both
+  // still solid. A tile inside a solid block therefore never corner-pushes.
+  if (dir.x !== 0 && dir.y !== 0 && !solidAt(tx - dir.x, ty - dir.y)) {
     const cornerTop = dir.y > 0 ? e.top : e.bottom
     const cornerSide = dir.x > 0 ? e.left : e.right
     o.y = dir.y > 0 ? rect.bottom - cornerTop : rect.top - cornerTop

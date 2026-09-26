@@ -9,7 +9,8 @@ describe('stepVelocity', () => {
       v = stepVelocity(v, { x: 1, y: 0 }, PLAYER_WALK_ACCELERATION)
       seen.push(v.x)
     }
-    expect(seen.map((n) => Number(n.toFixed(5)))).toEqual([1, 1.5, 1.75, 1.875, 1.9375, 1.96875])
+    // exact binary fractions: (v + 2) / 2 from rest
+    expect(seen).toEqual([1, 1.5, 1.75, 1.875, 1.9375, 1.96875])
   })
 
   it('halves speed each tick when no key is held', () => {

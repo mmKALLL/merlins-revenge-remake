@@ -15,6 +15,17 @@ function tinyMap(): MapDefinition {
 }
 const isSolid = (i: number) => i === 2
 
+function fullSizeMap(): MapDefinition {
+  // 2x1 rooms of the original 18x9 tile size, all open
+  const grid = () => Array.from({ length: 9 }, () => Array.from({ length: 18 }, () => 1))
+  const room = (num: number) => ({ num, layers: { backgroundActive: grid(), backgroundPassive: grid() } })
+  return {
+    mapSize: { x: 2, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+    layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }],
+    rooms: [room(1), room(2)],
+  }
+}
+
 describe('buildWorldGrid', () => {
   it('has the combined size of all rooms', () => {
     const g = buildWorldGrid(tinyMap(), isSolid)
@@ -42,5 +53,29 @@ describe('buildWorldGrid', () => {
     const g = buildWorldGrid(tinyMap(), isSolid)
     expect(g.roomOfTile(4, 1)).toEqual({ x: 2, y: 1 })
     expect(g.roomRectPx({ x: 2, y: 1 })).toEqual({ left: 96, top: 0, right: 192, bottom: 64 })
+  })
+
+  it('maps pixel points to rooms at the 18x9 room boundaries', () => {
+    const g = buildWorldGrid(fullSizeMap(), isSolid)
+    expect(g.roomOfPoint(575, 0)).toEqual({ x: 1, y: 1 })
+    expect(g.roomOfPoint(576, 0)).toEqual({ x: 2, y: 1 })
+    expect(g.roomOfPoint(-1, 0)).toEqual({ x: 0, y: 1 })
+  })
+
+  it('reports whether a room exists on the map', () => {
+    const g = buildWorldGrid(fullSizeMap(), isSolid)
+    expect(g.roomExists({ x: 1, y: 1 })).toBe(true)
+    expect(g.roomExists({ x: 2, y: 1 })).toBe(true)
+    expect(g.roomExists({ x: 0, y: 1 })).toBe(false)
+    expect(g.roomExists({ x: 3, y: 1 })).toBe(false)
+    expect(g.roomExists({ x: 1, y: 2 })).toBe(false)
+  })
+
+  it('throws when a room number is outside the map', () => {
+    const map = tinyMap()
+    map.rooms[1]!.num = 3
+    expect(() => buildWorldGrid(map, isSolid)).toThrow(/3/)
+    map.rooms[1]!.num = 0
+    expect(() => buildWorldGrid(map, isSolid)).toThrow(/0/)
   })
 })

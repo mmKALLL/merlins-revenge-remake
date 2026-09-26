@@ -14,6 +14,10 @@ describe('roomAfterMove', () => {
   it('moves up when y goes negative', () => {
     expect(roomAfterMove(room, { x: 10, y: -0.5 }, { x: 1, y: 2 })).toEqual({ x: 1, y: 1 })
   })
+  it('moves diagonally when both axes leave', () => {
+    expect(roomAfterMove(room, { x: 576, y: 288 }, { x: 1, y: 1 })).toEqual({ x: 2, y: 2 })
+    expect(roomAfterMove(room, { x: -1, y: -1 }, { x: 2, y: 2 })).toEqual({ x: 1, y: 1 })
+  })
 })
 
 describe('clampToRoom', () => {
@@ -24,5 +28,11 @@ describe('clampToRoom', () => {
     // right edge location is 0, so rect.left = 0 and x = 15 (see mr-collision tests).
     expect(clampToRoom(room, { x: 570, y: 5 }, PLAYER_COLLISION_RECT)).toEqual({ x: 560, y: 15 })
     expect(clampToRoom(room, { x: 100, y: 100 }, PLAYER_COLLISION_RECT)).toEqual({ x: 100, y: 100 })
+  })
+  it('clamps on the left and bottom bounds', () => {
+    // Left: border tile 0's right edge location is 0 -> rect.left = 0 -> x = 15.
+    // Bottom: border tile 10's top edge location is 9*32 - 1 = 287 -> rect.bottom = 287 -> y = 272.
+    expect(clampToRoom(room, { x: 5, y: 280 }, PLAYER_COLLISION_RECT)).toEqual({ x: 15, y: 272 })
+    expect(clampToRoom(room, { x: -20, y: 400 }, PLAYER_COLLISION_RECT)).toEqual({ x: 15, y: 272 })
   })
 })
