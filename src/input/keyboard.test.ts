@@ -13,17 +13,19 @@ describe('InputTracker', () => {
     expect(t.snapshot().move).toEqual({ x: 0, y: 0 })
   })
 
-  it('reports reserved action keys and left click', () => {
+  it('maps E and left click to mouse aim, Space to nearest enemy, F to short', () => {
     const t = new InputTracker()
-    t.keyDown('KeyE'); t.keyDown('KeyF')
     t.setMouseButton(true)
-    expect(t.snapshot().chargeHeld).toBe(true)
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
     t.setMouseButton(false)
+    t.keyDown('KeyE')
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
+    t.keyUp('KeyE')
     t.keyDown('Space')
-    const s = t.snapshot()
-    expect(s.chargeHeld).toBe(true)
-    expect(s.shootNearest).toBe(true)
-    expect(s.shootShort).toBe(true)
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true, shootShort: false })
+    t.keyUp('Space')
+    t.keyDown('KeyF')
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: true })
   })
 
   it('carries the latest mouse world position', () => {

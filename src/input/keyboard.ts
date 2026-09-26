@@ -1,7 +1,7 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
-// Space or the left button charges and fires at the mouse position; E and F charge and fire at
-// (or 16 px short of) the nearest enemy.
+// E or the left button charges and fires at the mouse position; Space charges and fires at the
+// nearest enemy, F 16 px short of it.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -39,8 +39,8 @@ export class InputTracker {
     return {
       move: { x: Math.sign(x), y: Math.sign(y) },
       mouseWorld: this.mouseWorld,
-      chargeHeld: this.held.has('Space') || this.mouseDown,
-      shootNearest: this.held.has('KeyE'),
+      chargeHeld: this.held.has('KeyE') || this.mouseDown,
+      shootNearest: this.held.has('Space'),
       shootShort: this.held.has('KeyF'),
     }
   }
