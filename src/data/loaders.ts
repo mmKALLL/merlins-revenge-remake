@@ -13,7 +13,7 @@ export interface TilesetData {
 
 export interface LoadedTileset {
   data: TilesetData
-  textures: Texture[] // index i -> tile index i+1
+  textures: (Texture | undefined)[] // index i -> tile index i+1; undefined past the sheet
 }
 
 export interface LoadedSprite {
@@ -65,9 +65,12 @@ export async function loadTileset(name: string): Promise<LoadedTileset> {
   const data = await json(url, isTileset)
   if (data.tileSize.x !== TILE_PX || data.tileSize.y !== TILE_PX) throw new Error(`${url}: tileSize must be ${TILE_PX}`)
   const sheet = nearest(await Assets.load<Texture>(`/generated/tilesets/${name}.png`))
+  // Keys can list more slots than the sheet holds (objTileSet sizes the grid from the bitmap);
+  // indices past the sheet get no texture and draw nothing.
   const textures = data.symbols.map((_, i) => {
     const x = (i % data.tilesPerRow) * data.tileSize.x
     const y = Math.floor(i / data.tilesPerRow) * data.tileSize.y
+    if (y + data.tileSize.y > sheet.height) return undefined
     return subTexture(sheet, x, y, data.tileSize.x, data.tileSize.y)
   })
   return { data, textures }
