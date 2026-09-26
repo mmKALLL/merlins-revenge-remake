@@ -9,7 +9,7 @@ Sound effects and music from the original, extracted into `assets/sounds/` and `
 ## Decisions
 
 - Follow the engine: one music bus (one track at a time, same track not restarted, switching is an
-  immediate stop-and-start), music started by room activation when the room has a music tile, the
+  stop-and-start, later changed by the user to a 1 s fade-out and 0.5 s pause before the new track), music started by room activation when the room has a music tile, the
   music-off tile stops it; a 7-voice effects pool that drops new sounds when all voices are busy;
   default volume 150/255, per-event volumes passed through as vol/255; spell release and explode
   volume mapped from charge (chargeVolumeMap 1-100 -> 10-255).

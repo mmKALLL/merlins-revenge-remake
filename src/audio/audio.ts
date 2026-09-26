@@ -13,6 +13,10 @@ export interface AudioSettings {
 }
 
 const SETTINGS_KEY = 'mr-remake.audio'
+/** Music change on entering a room: fade the old track out, pause, then start the new one (user request). */
+const MUSIC_FADE_S = 1
+const MUSIC_GAP_S = 0.5
+
 const DEFAULT_SETTINGS: AudioSettings = { music: true, effects: true, volume: 70 }
 
 export function loadAudioSettings(): AudioSettings {
@@ -53,7 +57,8 @@ export class AudioEngine {
   private settings: AudioSettings
   /** the track the current room asked for (null: musicOff or none yet); resumed when music is turned back on */
   private wanted: string | null = null
-  private playing: { track: string; source: AudioBufferSourceNode } | null = null
+  private playing: { track: string; source: AudioBufferSourceNode; gain: GainNode } | null = null
+  private readonly fading = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>() // old tracks fading out
   private pending: string | null = null // track being fetched/decoded
   private musicToken = 0
 
@@ -143,7 +148,10 @@ export class AudioEngine {
     src.start()
   }
 
-  /** A room's music request: the same track keeps playing, another replaces it at once, null stops it. */
+  /**
+   * A room's music request: the same track keeps playing; another replaces it after the old one fades
+   * out (MUSIC_FADE_S) and a short silence (MUSIC_GAP_S); null fades the music out.
+   */
   playMusic(track: string | null): void {
     this.wanted = track
     this.syncMusic()
@@ -193,7 +201,17 @@ export class AudioEngine {
       this.cancelPending() // back to the playing track before another finished loading: keep it
       return
     }
-    this.stopMusic()
+    // A room change fades the old track out, then a short silence, then the new one (remake choice;
+    // the engine cuts over at once). Turning music off in the controls stops it at once.
+    const fade = this.settings.music && this.playing !== null
+    let startAt = ctx.currentTime
+    if (fade) {
+      this.fadeOutMusic()
+      startAt += MUSIC_FADE_S + MUSIC_GAP_S
+    } else {
+      this.stopMusic()
+    }
+    this.cancelPending()
     if (desired === null) return
     if (this.index && !this.index.music.includes(desired)) {
       this.warnOnce(`music "${desired}" has no file`)
@@ -205,12 +223,14 @@ export class AudioEngine {
       if (token !== this.musicToken) return // superseded while loading
       this.pending = null
       if (!buf || !this.musicBus) return
+      const gain = ctx.createGain()
+      gain.connect(this.musicBus)
       const src = ctx.createBufferSource()
       src.buffer = buf
       src.loop = true // remake choice: the original plays each track once
-      src.connect(this.musicBus)
-      src.start()
-      this.playing = { track: desired, source: src }
+      src.connect(gain)
+      src.start(Math.max(ctx.currentTime, startAt))
+      this.playing = { track: desired, source: src, gain }
     })
   }
 
@@ -219,16 +239,44 @@ export class AudioEngine {
     this.pending = null
   }
 
-  private stopMusic(): void {
-    this.cancelPending()
-    if (!this.playing) return
+  /** Ramps the playing track to silence over MUSIC_FADE_S, then stops it. */
+  private fadeOutMusic(): void {
+    const ctx = this.ctx
+    const old = this.playing
+    if (!ctx || !old) return
+    this.playing = null
+    const now = ctx.currentTime
+    old.gain.gain.cancelScheduledValues(now)
+    old.gain.gain.setValueAtTime(old.gain.gain.value, now)
+    old.gain.gain.linearRampToValueAtTime(0, now + MUSIC_FADE_S)
+    const entry = { source: old.source, gain: old.gain }
+    this.fading.add(entry)
+    old.source.onended = () => {
+      this.fading.delete(entry)
+      old.gain.disconnect()
+    }
     try {
-      this.playing.source.stop()
+      old.source.stop(now + MUSIC_FADE_S)
     } catch {
       // already stopped
     }
-    this.playing.source.disconnect()
+  }
+
+  /** Stops the playing track and any fading ones at once. */
+  private stopMusic(): void {
+    this.cancelPending()
+    const all = [...this.fading, ...(this.playing ? [this.playing] : [])]
+    this.fading.clear()
     this.playing = null
+    for (const m of all) {
+      try {
+        m.source.stop()
+      } catch {
+        // already stopped
+      }
+      m.source.disconnect()
+      m.gain.disconnect()
+    }
   }
 
   private musicBuffer(track: string): Promise<AudioBuffer | null> {
