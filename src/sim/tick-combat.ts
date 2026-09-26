@@ -173,7 +173,7 @@ export function stepReelAndDeath(t: Tick): void {
     switch (a.mode) {
       case 'reel':
         if (t.hit.has(a.id)) break // modReel.updateReel first runs on the update after the hit
-        a.stall = stallStep(a.stall, { x: a.pos.x - a.prevPos.x, y: a.pos.y - a.prevPos.y })
+        a.stall = stallStep(a.stall, { x: a.pos.x - a.prevPos.x, y: a.pos.y - a.prevPos.y }, def.stallSpeed)
         if (reelFinished(a.stall)) {
           a.mode = 'walk'
           a.vel = { x: 0, y: 0 }

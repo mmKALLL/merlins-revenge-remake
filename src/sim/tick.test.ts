@@ -58,11 +58,12 @@ const grid = (map: MapDefinition = openMap()) => buildWorldGrid(map, isSolid, OB
 function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType' | 'team'>): ActorDef {
   return {
     aiType: null, layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 }, energy: 100, energyRecoverDelay: 300,
-    friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, walkSpeed: 0,
+    friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', walkSpeed: 0,
+    residentGroups: [], totalResidents: 10, productionTimeScale: 1,
     walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
     mana_flow: 1, mana_regeneration: 1, weapon: null, experienceImWorth: 0,
     attack: {
-      name: 'none', type: 'none', animType: 'none', animFrame: 2, collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
+      name: 'none', type: 'none', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
       reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional',
       hits: ['teamMembers'], chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1,
       chargeSize: 1, chargeExplodeFactor: 4, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
@@ -82,8 +83,8 @@ const defs: Record<string, ActorDef> = {
   goblinArrow: def({ key: 'goblinArrow', name: 'gobarrow', objType: 'objBullet', team: 'none', friction: { x: 5, y: 5 } }),
 }
 const teams: Record<string, TeamDef> = {
-  aldevar: { key: 'aldevar', teamName: 'aldevar', category: 'friends', hates: [['goblins']], friends: [] },
-  goblins: { key: 'goblins', teamName: 'goblins', category: 'enemies', hates: [['aldevar']], friends: [] },
+  aldevar: { key: 'aldevar', teamName: 'aldevar', category: 'friends', hates: [['goblins']], friends: [], maxMembers: null },
+  goblins: { key: 'goblins', teamName: 'goblins', category: 'enemies', hates: [['aldevar']], friends: [], maxMembers: null },
 }
 const anims = {
   mer: { walk: { frames: 8, delay: 3, w: 16, h: 16 } },

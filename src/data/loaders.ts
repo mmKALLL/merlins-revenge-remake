@@ -24,10 +24,12 @@ export interface LoadedTileset {
 export interface LoadedSprite {
   anims: AnimationSet
   frames: Record<string, Texture[]>
+  /** per strip, each frame's registration point when the atlas records one (else the frame centre) */
+  regs: Record<string, ({ x: number; y: number } | undefined)[]>
 }
 
 interface SpriteAtlas {
-  animations: Record<string, { delay: number; frames: { x: number; y: number; w: number; h: number }[] }>
+  animations: Record<string, { delay: number; frames: { x: number; y: number; w: number; h: number; delay?: number; reg?: { x: number; y: number } }[] }>
 }
 
 async function json<T>(url: string, check: (v: unknown) => v is T): Promise<T> {
@@ -148,16 +150,24 @@ export async function loadSprite(name: string): Promise<LoadedSprite> {
   const sheet = nearest(await Assets.load<Texture>(`${GENERATED}sprites/${name}.png`))
   const anims: AnimationSet = {}
   const frames: Record<string, Texture[]> = {}
+  const regs: LoadedSprite['regs'] = {}
   for (const [anim, def] of Object.entries(atlas.animations)) {
     const first = def.frames[0]!
-    anims[anim] = { frames: def.frames.length, delay: def.delay, w: first.w, h: first.h }
+    const delays = def.frames.map((f) => f.delay ?? def.delay)
+    anims[anim] = {
+      frames: def.frames.length, delay: def.delay, w: first.w, h: first.h,
+      ...(delays.some((d) => d !== def.delay) ? { delays } : {}),
+      ...(first.reg ? { reg: first.reg } : {}),
+    }
     frames[anim] = def.frames.map((f) => subTexture(sheet, f.x, f.y, f.w, f.h))
+    regs[anim] = def.frames.map((f) => f.reg)
   }
   // objAnimSet.symExistsOrDefault falls back to #stand; Merlin's export has no stand strip, so alias walk frame 1
   const walk = anims['walk']
   if (!frames['stand'] && frames['walk'] && walk) {
     frames['stand'] = [frames['walk'][0]!]
-    anims['stand'] = { frames: 1, delay: 1, w: walk.w, h: walk.h }
+    anims['stand'] = { frames: 1, delay: 1, w: walk.w, h: walk.h, ...(walk.reg ? { reg: walk.reg } : {}) }
+    regs['stand'] = [regs['walk']?.[0]]
   }
-  return { anims, frames }
+  return { anims, frames, regs }
 }

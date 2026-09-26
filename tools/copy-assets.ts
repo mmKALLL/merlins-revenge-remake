@@ -63,19 +63,33 @@ const actors: [name: string, why: string][] = [
   ['musicLastStand', 'music tile'],
   ['musicWoodsOfEvil', 'music tile'],
   ['musicOff', 'music tile: stops the music'],
+  // enemy slice: goblin mage, dwellings, orcs
+  ['goblinMage', 'goblin spell caster (objAiCPUSpellCaster)'],
+  ['dwelling', 'dwelling base (objDwelling parent)'],
+  ['goblinHut', 'goblin dwelling: archers and warriors'],
+  ['goblinMageHut', 'goblin dwelling: mages'],
+  ['orcHouse', 'orc dwelling (team #goblins in the data)'],
+  ['bowOrc', 'orc archer'],
+  ['swordOrc', 'orc fighter'],
+  ['crossBow', 'orc archer weapon'],
+  ['crossBolt', 'crossbow bullet'],
+  ['orcSword', 'orc fighter weapon'],
 ]
 for (const [name, why] of actors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: `actor: ${why}` })
 }
 
-// Staged for the enemy slice (goblin mage, dwellings, orcs): kept out of assets/actors until their
-// sprites are wired into the converter, so the converter's atlas check keeps passing meanwhile.
-const stagedActors = ['goblinMage', 'goblinHut', 'goblinMageHut', 'dwelling', 'bowOrc', 'swordOrc', 'orcHouse', 'mageOrc',
-  'crossBow', 'crossBolt', 'orcSword', 'goblinSummon']
+copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'teams/orcs.txt'), why: 'orc team (hates aldevar)' })
+
+// Staged for a later slice (the orc house's mage resident): kept out of assets/actors until its
+// sprites and summon spell are ported, so the converter's atlas check keeps passing meanwhile.
+// The enemy slice's sprites (assets/sprites/{bowOrc,swordOrc,goblinMage,goblinHut,goblinMageHut,orcHouse})
+// are PNG frames with regpoints.tsv dumped from the engine's Director file by
+// tools/director-extract/dump_bitmaps.py, not copied from the archive's gfx folder.
+const stagedActors = ['mageOrc', 'goblinSummon']
 for (const name of stagedActors) {
-  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for the enemy slice' })
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for a later slice' })
 }
-copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'extracted/teams/orcs.txt'), why: 'staged for the enemy slice' })
 
 // every file in fromDir matching pattern -> toDir/<same name>
 function copyGlob(fromDir: string, pattern: RegExp, toDir: string, why: string): void {

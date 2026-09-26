@@ -5,7 +5,7 @@
 import type { Vec } from './mr-geometry'
 import type { ActorDef } from './mr-actor-data'
 
-/** objMoveXY pStallSpeed for characters. */
+/** objGameObject #stallSpeed default (ActorDef.stallSpeed; swordOrc 3, goblinMage 0.5). */
 export const STALL_SPEED = 0.2
 /**
  * objMoveXY pStallCount length: the reel ends after 10 stalled ticks. Lingo counters start at 1 and
@@ -33,9 +33,9 @@ export function resolveHit(victim: ActorDef, push: Vec, attackerMultiplier: numb
 /** modEnergy.checkDead. */
 export const isDead = (energy: number): boolean => energy <= 0
 
-/** objMoveXY.stallUpdate: counts consecutive ticks with |vx| + |vy| <= 0.2, resets on movement. */
-export function stallStep(stall: number, moveVect: Vec): number {
-  return Math.abs(moveVect.x) + Math.abs(moveVect.y) <= STALL_SPEED ? stall + 1 : 0
+/** objMoveXY.stallUpdate: counts consecutive ticks with |vx| + |vy| <= the stall speed, resets on movement. */
+export function stallStep(stall: number, moveVect: Vec, stallSpeed = STALL_SPEED): number {
+  return Math.abs(moveVect.x) + Math.abs(moveVect.y) <= stallSpeed ? stall + 1 : 0
 }
 
 /** modReel.updateReel: finished once the stall counter has run its course. */

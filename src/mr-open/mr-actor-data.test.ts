@@ -36,7 +36,7 @@ describe('resolveActors', () => {
   it('installs the starting weapon attack with struct defaults filled in', () => {
     const a = defs['goblinWarrior']!.attack
     expect(a.type).toBe('melee') // derived from animType weaponMelee
-    expect(a.animFrame).toBe(7) // from #animframe (case-insensitive key)
+    expect(a.animFrame).toEqual([7]) // from #animframe (case-insensitive key)
     expect(a.collisionLoc).toEqual({ x: 15, y: 0 })
     expect(a.idealAttackLoc).toEqual({ x: 15, y: 0 })
     expect(a.power).toEqual({ x: 0.7, y: 0 })

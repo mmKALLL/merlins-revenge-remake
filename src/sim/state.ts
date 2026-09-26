@@ -27,9 +27,13 @@ export const NO_INPUT: InputSnapshot = {
 
 export interface AnimationStrip {
   frames: number
-  delay: number // ticks per frame
+  delay: number // ticks per frame (the first frame's when `delays` is given)
+  /** per-frame delays when the strip mixes them (anm_bowOrc_weaponRanged_02_01 .. _04_09); absent = `delay` for every frame */
+  delays?: number[]
   w: number // frame size in px (first frame of the strip)
   h: number
+  /** registration point in the first frame when known; absent = the frame centre */
+  reg?: Vec
 }
 
 export interface AnimationSet {

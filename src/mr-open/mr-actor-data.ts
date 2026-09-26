@@ -11,7 +11,8 @@ export interface AttackDef {
   name: string // weapon or spell name, e.g. goblinSword, energyBlast
   type: AttackType // melee, ranged, magic or bullet; derived from animType when the data says #auto
   animType: string // character strip played while attacking (weaponMelee, weaponRanged, magic, naturalMelee)
-  animFrame: number | null // 1-based strip frame on which the hit lands or the bullet is spawned
+  /** 1-based strip frames on which the hit lands or the bullet is spawned (a list strikes on each: orcSword [6,10,12]); null for spells (#none) */
+  animFrame: number[] | null
   collisionLoc: Vec // offset from the reg point (x mirrored by facing): melee strike point or bullet spawn point
   idealAttackLoc: Vec // where an AI wants to stand relative to its target (melee: beside it)
   /** a point for the player's natural punch (act_player); a number everywhere else */
@@ -39,6 +40,14 @@ export interface AttackDef {
   chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
 }
 
+/** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
+export interface ResidentGroup {
+  typ: string // actor key of the resident
+  buildTime: [number, number] // ticks to build one resident
+  groupSize: [number, number] // residents per group
+  releaseInterval: [number, number] // ticks between releases of a finished group
+}
+
 export interface ActorDef {
   // --- engine: identity, allegiance and drawing (actorMaster, objGameObject)
   key: string // actor file key, e.g. goblinWarrior (act_goblinWarrior.txt)
@@ -56,6 +65,8 @@ export interface ActorDef {
   frictionReel: Vec // percent of speed lost per tick while reeling from a hit
   inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
+  stallSpeed: number // objMoveXY: a tick moving |dx| + |dy| <= this counts as stalled (ends a reel after 10)
+  teamRole: string // teamMembers (characters), teamBuildings (dwellings), teamBullets (bullets, spells)
   // --- engine: movement (modMoveToLoc, modNavMode, modPathFinding)
   walkSpeed: number // AI walk vector length in px per tick, set each tick before friction (50 % friction -> half of it moved)
   walkAcceleration: number // player acceleration per tick per axis while a key is held
@@ -81,6 +92,9 @@ export interface ActorDef {
   dieVolume: number // 0-255; objCharacter #dieVolume, default 100
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
+  // --- engine: dwellings (modResidents)
+  residentGroups: ResidentGroup[] // groups a dwelling picks from at random; empty for everything else
+  totalResidents: number // residents a dwelling releases before it destroys itself
   // --- remake additions (not in the engine; the defaults keep engine behaviour where noted)
   collisionRectScale: number // scales the collision rect about the reg point (1 = engine size)
   scenicMaxTicks: number // a #scenic detour also ends (back to #beeline) after this many ticks
@@ -92,6 +106,7 @@ export interface ActorDef {
   detourMinTargetDistance: number // no walking detour roll while the target is closer than this (px)
   projectileSpreadDeg: number // fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
   knockbackSpreadDeg: number // this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
+  productionTimeScale: number // dwelling group production time = groupSize * buildTime * this (see engine notes enemies-2 §7)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -102,7 +117,7 @@ export interface ActorDef {
 }
 
 /** Object types drawn with an animation atlas. */
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell'])
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling'])
 
 /**
  * Whether an actor is drawn with its own atlas (`anm_<name>_*`). Abstract bases such as `bullet`
@@ -136,6 +151,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     // engine: energy and physics
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
+    stallSpeed: 0.2, teamRole: 'teamMembers', // objGameObject
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
     navModeAcceleration: 0, // only Merlin installs modNavMode
@@ -147,12 +163,15 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     weaponTechnique: 0, // modWeaponTechnique.addModParams
     // engine: sound
     takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
-    dieSound: 'none', dieVolume: DEFAULT_DIE_VOLUME, // objCharacter.addModParams (the only dying objects ported)
+    dieSound: 'none', dieVolume: DEFAULT_DIE_VOLUME, // objCharacter.addModParams (objDwelling reads the same fields)
+    // engine: dwellings
+    residentGroups: [], totalResidents: 10, // modResidents.addModParams
     // remake additions
     collisionRectScale: 1, // engine-sized rect
     scenicMaxTicks: 60, // cutoff on #scenic detours (none in the engine)
     detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
+    productionTimeScale: 1, // groupSize * buildTime, the evident intent of modResidents.startProduction
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -165,15 +184,16 @@ for (const k of [
   ...Object.keys(ATTACK_DEFAULTS),
   // engine properties read by the port
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
-  'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed',
+  'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
+  'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
   // engine properties kept in raw only
-  'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends',
+  'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
   // remake additions
   'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
-  'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
+  'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -290,6 +310,27 @@ function volumeOf(obj: Plain, field: string, ctx: string, fallback: number = DEF
 function pair(v: unknown): v is [number, number] {
   return Array.isArray(v) && v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number'
 }
+/** #animframe: a frame number, a list of them, or #none (spells). */
+function frameList(obj: Plain, field: string, ctx: string): number[] | null {
+  const v = obj[field]
+  if (v === null || v === 'none') return null
+  if (typeof v === 'number') return [v]
+  return Array.isArray(v) && v.every((n): n is number => typeof n === 'number') ? [...v] : bad(ctx, field, 'a frame number, a list of them or #none', v)
+}
+function range(obj: Plain, field: string, ctx: string): [number, number] {
+  const v = obj[field]
+  return pair(v) ? [v[0], v[1]] : bad(ctx, field, 'a [min, max] pair', v)
+}
+function residentGroups(obj: Plain, field: string, ctx: string): ResidentGroup[] {
+  const v = obj[field]
+  if (!Array.isArray(v)) return bad(ctx, field, 'a list of resident groups', v)
+  return v.map((g, i) => {
+    const f = `${field}[${i + 1}]`
+    if (!isPlain(g)) return bad(ctx, f, 'a property list', g)
+    const c = `${ctx}: ${f}`
+    return { typ: str(g, 'typ', c), buildTime: range(g, 'buildTime', c), groupSize: range(g, 'groupSize', c), releaseInterval: range(g, 'releaseInterval', c) }
+  })
+}
 function chargeVolumeMap(obj: Plain, field: string, ctx: string): ChargeVolumeMap {
   const v = obj[field]
   if (isPlain(v) && pair(v['charge']) && pair(v['vol'])) return { charge: [v['charge'][0], v['charge'][1]], vol: [v['vol'][0], v['vol'][1]] }
@@ -304,7 +345,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
   return {
     name: str(a, 'name', ctx), animType,
     type: attackTypeFromAnim(animType, a['type'], ctx),
-    animFrame: typeof a['animFrame'] === 'number' ? a['animFrame'] : null, // #none for spells
+    animFrame: frameList(a, 'animFrame', ctx),
     collisionLoc: vec(a, 'collisionLoc', ctx), idealAttackLoc: vec(a, 'idealAttackLoc', ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),
@@ -378,6 +419,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       energy: num(r, 'energy', ctx), energyRecoverDelay: num(r, 'energyRecoverDelay', ctx),
       friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
       inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx),
+      stallSpeed: num(r, 'stallSpeed', ctx), teamRole: str(r, 'teamRole', ctx),
       // engine: movement
       walkSpeed: num(r, 'walkSpeed', ctx), walkAcceleration: num(r, 'walkAcceleration', ctx),
       navModeAcceleration: num(r, 'navModeAcceleration', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
@@ -391,12 +433,15 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
       dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
+      // engine: dwellings
+      residentGroups: residentGroups(r, 'residentGroups', ctx), totalResidents: num(r, 'totalResidents', ctx),
       // remake additions
       collisionRectScale: num(r, 'collisionRectScale', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
       detourMoveMaxTicks: num(r, 'detourMoveMaxTicks', ctx), detourPauseTicks: num(r, 'detourPauseTicks', ctx),
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
+      productionTimeScale: num(r, 'productionTimeScale', ctx),
       attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }

@@ -18,10 +18,12 @@ describe('parseTeams', () => {
     expect(teams['aldevar']!.hates).toHaveLength(2)
     expect(teams['goblins']!.friends).toEqual(['orcs']) // bare identifier in the original
     expect(teams['goblins']!.hates[0]).toContain('aldevar')
+    expect(teams['goblins']!.maxMembers).toBe(16)
+    expect(teams['orcs']!.friends).toEqual(['goblins'])
   })
 
   it('lists the teams hostile to the player team', () => {
-    expect(hostileTeamsTo('aldevar', teams)).toEqual(['goblins'])
+    expect(hostileTeamsTo('aldevar', teams)).toEqual(['goblins', 'orcs'])
     expect(hostileTeamsTo('goblins', teams)).toEqual(['aldevar'])
   })
 

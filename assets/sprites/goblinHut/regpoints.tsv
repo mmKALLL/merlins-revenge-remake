@@ -1,0 +1,5 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_goblinHut_beBuilt_15_01	gfx	847	14	8	32	7	1	alpha=255..255
+anm_goblinHut_beBuilt_15_02	gfx	848	14	12	32	7	5	alpha=255..255
+anm_goblinHut_grave_01_02	gfx	852	20	20	32	10	10	alpha=255..255
+anm_goblinHut_stand_03_01	gfx	851	20	20	32	10	10	alpha=255..255

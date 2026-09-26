@@ -35,6 +35,8 @@ describe('stall and reel', () => {
   it('resets on movement above 0.2', () => {
     expect(stallStep(7, { x: 0.15, y: 0.1 })).toBe(0)
     expect(stallStep(7, { x: 0, y: 0 })).toBe(8)
+    // a per-actor stall speed (swordOrc 3) counts faster pushes as stalled
+    expect(stallStep(7, { x: 2, y: 0.5 }, 3)).toBe(8)
   })
 })
 
