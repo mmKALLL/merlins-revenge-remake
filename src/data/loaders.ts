@@ -111,6 +111,22 @@ export async function loadTeams(): Promise<Record<string, TeamDef>> {
   return json(`${GENERATED}teams.json`, isTeams)
 }
 
+export interface AudioIndex {
+  sounds: string[] // effect names, files at soundUrl(name)
+  music: string[] // track names, files at musicUrl(name)
+}
+
+const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string')
+const isAudioIndex = (v: unknown): v is AudioIndex => isObj(v) && isStrings(v['sounds']) && isStrings(v['music'])
+
+/** audio/index.json (tools/convert-assets.ts): every sound effect and music track. */
+export async function loadAudioIndex(): Promise<AudioIndex> {
+  return json(`${GENERATED}audio/index.json`, isAudioIndex)
+}
+
+export const soundUrl = (name: string): string => `${GENERATED}audio/${encodeURIComponent(name)}.wav`
+export const musicUrl = (name: string): string => `${GENERATED}audio/${encodeURIComponent(name)}.mp3`
+
 export async function loadTileset(name: string): Promise<LoadedTileset> {
   const url = `${GENERATED}tilesets/${name}.json`
   const data = await json(url, isTileset)
