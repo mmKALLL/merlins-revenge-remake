@@ -5,7 +5,7 @@ import { aimWithEyestrain, attackLoc, bulletPush, cooldownIncrement, cooldownRea
 const attack = (o: Partial<AttackDef>): AttackDef => ({
   name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
   reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
-  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false,
+  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
   volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, ...o,
 })

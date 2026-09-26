@@ -1,0 +1,100 @@
+[#name: "act_monk", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 14,
+#animType: #naturalMelee,
+#collisionLoc: point(35,-1),
+#cooldown: 10,
+#name: #stretchyPunch,
+#power: point(30,0),
+#reach: point(25,10),
+#sound: "wizard_punch"
+],
+#character: #friendlyCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 50,
+#experienceAmountForNextLevel: 50,
+#inertia: 60,
+#mana_capacityIncLevel: 0.5,
+#leaveWhenFinished: true,
+#mana_regenerationIncLevel: 1,
+#miniMapStatus: #fre,
+#reincarnateAs: [#monkGhost],
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #aldevar,
+#name: "monk",
+#walkSpeed: 3.5,
+#weapon: #healBlast
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

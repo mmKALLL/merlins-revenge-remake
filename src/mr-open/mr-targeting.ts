@@ -16,6 +16,14 @@ export function hatedTeams(myTeam: string, teams: Record<string, { hates: string
   return teams[myTeam]?.hates[0] ?? []
 }
 
+/**
+ * calcTargetTeamsByAllegiance #friendly: the team's friends plus itself (the first-priority group
+ * for healers). A friends entry that is not a team key (goblins' bare `orcs`, void in Lingo) matches nothing.
+ */
+export function friendlyTeams(myTeam: string, teams: Record<string, { friends: string[] }>): string[] {
+  return [...(teams[myTeam]?.friends ?? []), myTeam]
+}
+
 /** Nearest living member of any first-priority hated team by squared reg-point distance; ties keep the first. */
 export function findTarget(me: Targetable, candidates: Targetable[], hated: string[]): number | null {
   let best: number | null = null

@@ -37,7 +37,7 @@ const anims: Record<string, AnimationSet> = Object.fromEntries(
   }),
 )
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /** One open 18x9 room with the given objects (1-based tiles). */
@@ -211,7 +211,8 @@ describe('every spawnable actor', () => {
       s = pinPlayer(s)
     }
     const hatesPlayer = (teams[defs[key]!.team]?.hates[0] ?? []).includes('aldevar')
-    if (hatesPlayer && defs[key]!.objType === 'objCPUCharacter') expect(hurt).toBe(true)
+    const fights = defs[key]!.attack.targetAllegiance === 'enemy' && defs[key]!.objType === 'objCPUCharacter'
+    if (hatesPlayer && fights) expect(hurt).toBe(true)
   })
 })
 
@@ -277,6 +278,17 @@ describe('multistage and special units', () => {
     }
     expect(summoned).toBeDefined()
     expect(summoned!.team).toBe('undead')
+  })
+
+  it('a monk (team aldevar) heals a hurt Merlin with its heal blast', () => {
+    let s = sim([{ x: 7, y: 5, symbol: 'monk' }])
+    s = { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: 60 } : a)) }
+    let healed = false
+    for (let i = 0; i < 300 && !healed; i++) {
+      s = stepSim(s, NO_INPUT)
+      healed = playerOf(s).energy > 70
+    }
+    expect(healed).toBe(true)
   })
 
   it('a reelProof plant takes damage from the blast but never reels', () => {

@@ -3,6 +3,7 @@
 // of an explosion push is applyHit in tick-combat.ts.
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { tileOfPx } from '../mr-open/mr-collision'
+import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { cooldownReady, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
 import { chargeVolume } from '../mr-open/mr-sound'
@@ -160,6 +161,17 @@ export function stepSpells(t: Tick): void {
   }
 }
 
+const TAKE_HIT = 'takeHit'
+const TAKE_HEAL = 'takeHeal'
+/** modEnergy.takeHeal: energy += (|vx| + |vy|) * this, up to the maximum. */
+const HEAL_PER_PUSH = 2
+
+/** modEnergy.takeHeal (no push, no reel): the healed unit gains twice the collision vector's Manhattan length. */
+function takeHeal(t: Tick, victim: ActorState, push: Vec): void {
+  const max = defOf(t.s, victim).maxEnergy
+  victim.energy = Math.min(max, victim.energy + (Math.abs(push.x) + Math.abs(push.y)) * HEAL_PER_PUSH)
+}
+
 /**
  * modSpellMultistage.summonPayload -> armyMaster.createUnit: the stage's unit on the spell's
  * position with its own data (a solid tile cancels it), and the reserved slot is given back.
@@ -183,7 +195,9 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
   if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
-  const victims = splashVictims(t, spell.team, atk.hits)
+  // impactAttack's teams by the attack's allegiance: hated ones, or friends and the own team (heal)
+  const teams = atk.targetAllegiance === 'friendly' ? friendlyTeams(spell.team, t.s.teams) : hatedTeams(spell.team, t.s.teams)
+  const victims = splashVictims(t, teams, atk.hits)
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
   const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)
@@ -193,6 +207,9 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   for (const { id, push } of ex.pushes) {
     const victim = actorIn(t, id)
     if (!victim) continue
+    // CallPayloadFunction: takeHeal heals by the collision vector, takeHit pushes and damages
+    if (atk.payloadFunction.includes(TAKE_HEAL)) takeHeal(t, victim, push)
+    if (!atk.payloadFunction.includes(TAKE_HIT)) continue
     const [turned, rng] = spreadVec(t.rng, push, spread)
     t.rng = rng
     applyHit(t, victim, turned, atk.damageMultiplier)

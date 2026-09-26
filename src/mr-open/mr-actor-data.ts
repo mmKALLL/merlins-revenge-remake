@@ -38,6 +38,9 @@ export interface AttackDef {
   multistage: { payload: string; chargeRequired: number }[] // summon stages in order: the unit a charge of at least chargeRequired summons
   randomSummon: boolean // an AI caster's charge max is randomised per cast (calcAttackChargeMax), so it summons a random stage
   targetTileWhenNotBlank: boolean // a spell carrying a payload is aimed at the centre of the target's tile
+  targetAllegiance: 'enemy' | 'friendly' // teamMaster.calcTargetTeamsByAllegiance: hated teams, or friends plus the own team
+  targetCriteria: 'closestDistance' | 'lowestHealth' // findTargetInTeam: nearest, or lowest energy percentage (healers)
+  payloadFunction: string[] // what an impact calls on each unit hit: takeHit (push and damage), takeHeal, takeFreeze
   limitMagic: boolean // whether the magic limiter percentage scales the charge max
   sound: string | null // sound played on attack
   releaseSound: string | null // sound on spell release
@@ -157,6 +160,7 @@ const ATTACK_DEFAULTS = {
   chargeExplodeFactor: 4, explodeCharge: 10, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
   sound: null, releaseSound: null, explodeSound: null, volume: DEFAULT_VOLUME, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP,
   explodeFunction: 'none', multistage: 'none', randomSummon: false, targetTileWhenNotBlank: false,
+  targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
 } as const
 
 /** objCharacter #dieVolume default. */
@@ -410,6 +414,9 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     chargeSpeedMax: a['chargeSpeedMax'] === 'unlimited' ? null : num(a, 'chargeSpeedMax', ctx),
     explodeFunction: strOrNull(a['explodeFunction']), multistage: stages(a, 'multistage', ctx),
     randomSummon: a['randomSummon'] === true, targetTileWhenNotBlank: a['targetTileWhenNotBlank'] === true,
+    targetAllegiance: a['targetAllegiance'] === 'friendly' ? 'friendly' : 'enemy',
+    targetCriteria: a['targetCriteria'] === 'lowestHealth' ? 'lowestHealth' : 'closestDistance',
+    payloadFunction: symbolList(a, 'payloadFunction', ctx),
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
   }

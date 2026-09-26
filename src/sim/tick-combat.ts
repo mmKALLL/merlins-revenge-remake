@@ -219,7 +219,7 @@ function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: Act
 function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
   playSound(t, def.exploderSound, def.exploderVolume)
   const atk = def.attack
-  const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, a.team, atk.hits))
+  const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits))
   for (const { id, push } of ex.pushes) {
     const victim = actorIn(t, id)
     if (victim) applyHit(t, victim, push, atk.damageMultiplier)
@@ -232,13 +232,12 @@ function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
 }
 
 /**
- * Living units of a team `team` hates whose role the attack `hits` (teamMembers, teamBuildings),
- * with their sprite radius (objGameObject.getRadius): the candidates of teamMaster.impactAttack.
+ * Living units of `teams` whose role the attack `hits` (teamMembers, teamBuildings), with their
+ * sprite radius (objGameObject.getRadius): the candidates of teamMaster.impactAttack.
  */
-export function splashVictims(t: Tick, team: string, hits: string[]): SplashVictim[] {
-  const hated = hatedTeams(team, t.s.teams)
+export function splashVictims(t: Tick, teams: string[], hits: string[]): SplashVictim[] {
   return t.actors
-    .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && hated.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
+    .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && teams.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
     .map((v) => {
       const r = spriteRectFor(t.s, v)
       return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }

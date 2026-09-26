@@ -15,7 +15,7 @@ import { tileCentre, type Vec } from '../mr-open/mr-geometry'
 import { chargeLimits, chargeStep, payloadFor, randomSummonMax } from '../mr-open/mr-spell'
 import { randomInt } from './rng'
 import { optimumMoveGoal, UNLIMITED_REACH, type Nearby } from '../mr-open/mr-spell-caster'
-import { hatedTeams } from '../mr-open/mr-targeting'
+import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, faceAlong, isAlive, isBullet, isCharacter, isSpell } from './actors'
 import type { ActorState } from './state'
 import { actorIn, type Tick } from './tick-context'
@@ -44,7 +44,7 @@ function stepCasting(t: Tick, a: ActorState, def: ActorDef): void {
   const current = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
   if (a.ai.mode === 'findTarget' || !current || !isAlive(current) || a.ai.retargetCounter >= RETARGET_TICKS) {
     a.ai.retargetCounter = 0
-    a.ai.targetId = nearestHostileId(t, a)
+    a.ai.targetId = def.attack.targetAllegiance === 'friendly' ? mostHurtFriendId(t, a, def) : nearestHostileId(t, a)
     if (a.ai.targetId === null) {
       cancelAttack(t, a)
       return
@@ -98,6 +98,31 @@ function holdSummonSlot(t: Tick, spell: ActorState, def: ActorDef): boolean {
 function spellTargetLoc(t: Tick, spell: ActorState, def: ActorDef, target: ActorState): Vec {
   if (!def.attack.targetTileWhenNotBlank || payloadFor(spell.charge, def.attack) === null) return { ...target.pos }
   return tileCentre(tileOfPx(target.pos.x), tileOfPx(target.pos.y))
+}
+
+/** Full health for teamMaster's #lowestHealth (getHealth is a percentage). */
+const FULL_HEALTH_PERCENT = 100
+
+/**
+ * teamMaster.findTarget with targetAllegiance #friendly and targetCriteria #lowestHealth: the living
+ * member of a friendly team (the caster itself included) with the lowest energy percentage; none when
+ * that is full (objAiCPU.refreshTarget's healBlast rule).
+ */
+function mostHurtFriendId(t: Tick, a: ActorState, def: ActorDef): number | null {
+  const teams = friendlyTeams(a.team, t.s.teams)
+  let best: ActorState | null = null
+  let bestHealth = Infinity
+  for (const o of t.actors) {
+    if (t.removed.has(o.id) || !teams.includes(o.team) || !isCharacter(t.s, o) || !isAlive(o)) continue
+    const od = defOf(t.s, o)
+    if (!def.attack.hits.includes(od.teamRole)) continue
+    const health = (o.energy / od.maxEnergy) * FULL_HEALTH_PERCENT
+    if (health < bestHealth) {
+      bestHealth = health
+      best = o
+    }
+  }
+  return best && bestHealth < FULL_HEALTH_PERCENT ? best.id : null
 }
 
 /** #noTargetFound -> objAiAttack.cancelAttack: the charging spell is finished and the caster walks. */

@@ -1,0 +1,108 @@
+[#name: "act_healBlast", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(255,255,255),
+#chargeSpeed: 1,
+#chargeStart: 0,
+#chargeMax: 100,
+#gmgChargeMax:15,
+#gmgChargeSpeed: 5,
+#gmgChargeStart: 5,
+#gmgAutoFire: true,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 50,
+#explodeSound: "heal_spell_explode",
+#hits: [#teamMembers],
+#limitMagic: false,
+#randomSummon: false,
+#name: #healBlast,
+#payloadFunction: #takeHeal,
+#power: 1,
+#reach: 9999,
+#releaseSound: "heal_spell_release",
+#spellSpeed: 30,
+#targetAllegiance: #friendly,
+#targetCriteria: #lowestHealth,
+#targetRoles: [[#teamMembers]]
+],
+#character: #healBlast,
+#collectSound: "collect_powerup_01",
+#member: member("healBlast_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
