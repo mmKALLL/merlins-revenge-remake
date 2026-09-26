@@ -1,0 +1,11 @@
+{
+  "why": "mriv_small's first rooms only hold enemies that are not ported yet; these goblins make it playable for testing. Remove entries as the original enemies get ported.",
+  "objects": [
+    { "room": 1, "col": 11, "row": 4, "symbol": "goblinWarrior" },
+    { "room": 1, "col": 13, "row": 6, "symbol": "goblinWarrior" },
+    { "room": 1, "col": 12, "row": 3, "symbol": "goblinArcher" },
+    { "room": 2, "col": 4, "row": 4, "symbol": "goblinWarrior" },
+    { "room": 2, "col": 14, "row": 6, "symbol": "goblinWarrior" },
+    { "room": 2, "col": 15, "row": 3, "symbol": "goblinArcher" }
+  ]
+}

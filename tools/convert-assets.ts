@@ -8,6 +8,7 @@ import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName } from './atlas'
+import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
 import { tileCapacity, tilesPerRow, usesWhiteTransparency, whiteToAlpha } from './tileset-sheet'
@@ -38,9 +39,19 @@ function convertMaps(): MapDefinition[] {
       console.log(`map ${name}: SKIPPED, failed to parse: ${err instanceof Error ? err.message : String(err)}`)
       continue
     }
+    const patchFile = join(ASSETS, 'map-patches', `${name}.json`)
+    let patched = ''
+    if (existsSync(patchFile)) {
+      const patch = JSON.parse(readFileSync(patchFile, 'utf8')) as MapPatch
+      const objectsSet = def.layers.find((l) => l.name === 'objects')?.tileSet
+      if (!objectsSet) throw new Error(`map patch ${name}: map has no objects layer`)
+      const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', `${objectsSet}.txt`), 'utf8'))
+      def = applyMapPatch(def, patch, key.symbols, name)
+      patched = ` (+${patch.objects.length} patched objects)`
+    }
     maps.push(def)
     writeFileSync(join(OUT, 'maps', `${name}.json`), JSON.stringify(def))
-    console.log(`map ${name}: ${def.mapSize.x}x${def.mapSize.y} rooms`)
+    console.log(`map ${name}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
   }
   return maps
 }
