@@ -63,11 +63,18 @@ describe('pathStep', () => {
     expect(a.rng).toEqual(b.rng)
   })
 
-  it('returns to beeline on reaching the waypoint', () => {
-    const scenic: PathState = { pathMode: 'scenic', waypoint: { x: 103, y: 100 }, pathStall: 0 }
-    const s = pathStep(scenic, pos, goal, 4, true, rng)
+  it('stands on the reached waypoint until the stall count runs out, then beelines (updateScenic leaves only on a stall)', () => {
+    const wp = { x: 103, y: 100 }
+    let s = pathStep({ pathMode: 'scenic', waypoint: wp, pathStall: 0 }, pos, goal, 4, true, rng)
+    expect(s.vel).toEqual({ x: 3, y: 0 }) // PointFrameMove: the remaining delta
+    for (let i = 0; i < PATH_STALL_TICKS - 1; i++) {
+      s = pathStep(s.path, wp, goal, 4, false, rng)
+      expect(s.path.pathMode).toBe('scenic')
+      expect(s.vel).toEqual({ x: 0, y: 0 })
+    }
+    s = pathStep(s.path, wp, goal, 4, false, rng)
     expect(s.path).toEqual(BEELINE)
-    expect(s.vel).toEqual({ x: 4, y: 0 })
+    expect(s.vel).toEqual({ x: 0, y: 0 }) // still heading for the waypoint on the switching tick
   })
 
   it('returns to beeline when stalled again on the scenic leg', () => {

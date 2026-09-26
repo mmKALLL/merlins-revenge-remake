@@ -6,7 +6,7 @@
 import { rectAt } from '../mr-open/mr-collision'
 import { decide, type AiView, type TargetView } from '../mr-open/mr-ai-cpu'
 import { cooldownReady } from '../mr-open/mr-attack'
-import { BEELINE, pathStep } from '../mr-open/mr-pathfinding'
+import { pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { collisionRectFor, isAlive, isCharacter } from './actors'
 import type { ActorState } from './state'
@@ -68,15 +68,16 @@ export function stepCpuAi(t: Tick): void {
         break
       }
       case 'stop':
-        // #arrivedAtAttackLoc resets the path stall: waiting in reach never turns into wandering
+        // #arrivedAtAttackLoc resets only the path stall counter (modPathFinding.internalEvent): the
+        // path mode and a scenic waypoint survive, so a detour resumes once the target is out of reach
         a.vel = { x: 0, y: 0 }
-        a.ai = { ...a.ai, ...BEELINE, moveTarget: null }
+        a.ai = { ...a.ai, pathStall: 0, moveTarget: null }
         break
       case 'startAttack': {
         const anim = def.attack.animType
         a.facingLeft = decision.faceLeft
         a.mode = anim === 'weaponRanged' ? 'weaponRanged' : 'weaponMelee'
-        a.ai = { ...a.ai, ...BEELINE, mode: 'attack', moveTarget: null }
+        a.ai = { ...a.ai, pathStall: 0, mode: 'attack', moveTarget: null }
         a.vel = { x: 0, y: 0 }
         break
       }

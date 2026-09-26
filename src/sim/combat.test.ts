@@ -429,20 +429,27 @@ describe('archer (combat notes §3-4)', () => {
     expect(a.pos).toEqual({ x: 190, y: 144 })
   })
 
-  it('waiting in reach for the cooldown resets the path stall: stays in beeline and does not move', () => {
-    // #arrivedAtAttackLoc resets the stall counter, so a stalled or wandering archer that finds itself
-    // in reach with the bow still cooling down returns to beeline and never switches to wandering.
+  it('waiting in reach resets only the path stall; a scenic detour resumes toward its waypoint once out of reach', () => {
+    // #arrivedAtAttackLoc resets the stall counter and stops the walk but leaves the path mode and
+    // waypoint alone (modPathFinding.internalEvent), so a wandering archer keeps its detour.
     const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, moveTarget: null, chargeKind: null }
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 }, undefined, 1, { cooldown: 200, ai })
-    // 200 / dexterity 10 = 20 ticks of cooldown
-    for (let i = 0; i < 19; i++) {
+    for (let i = 0; i < 10; i++) {
       s = stepSim(s, NO_INPUT)
       const a = actor(s, enemyId)!
       expect(a.pos).toEqual({ x: 190, y: 144 })
-      expect(a.ai.pathMode).toBe('beeline')
+      expect(a.ai.pathMode).toBe('scenic')
+      expect(a.ai.waypoint).toEqual({ x: 250, y: 100 })
       expect(a.ai.pathStall).toBe(0)
       expect(a.mode).not.toBe('weaponRanged')
     }
+    // the player steps out of reach: the archer heads for the old waypoint, not for the player
+    s = { ...s, actors: s.actors.map((x) => (x.id === s.playerId ? { ...x, pos: { x: 20, y: 144 }, prevPos: { x: 20, y: 144 } } : x)) }
+    s = stepSim(s, NO_INPUT)
+    const a = actor(s, enemyId)!
+    expect(a.ai.pathMode).toBe('scenic')
+    expect(a.vel.x).toBeGreaterThan(0)
+    expect(a.vel.y).toBeLessThan(0)
   })
 
   it('a missed arrow stalls under 2 px/tick, lands, and disappears 30 ticks later', () => {

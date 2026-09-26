@@ -40,10 +40,11 @@ export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathSta
 /**
  * One tick of findPathToLoc + modMoveToLoc.update. Returns the velocity to set (it overwrites the
  * walker's velocity; friction does not apply to walking) and the new path state.
- * `movedLastTick` is whether the previous tick's actual displacement was non-zero: a move blocked by
- * tiles yields moveVect (0,0), which is what stalls the path and triggers scenic wandering.
- * Returning to beeline on arriving at the scenic waypoint is a simplification: the engine only leaves
- * #scenic on a stall (a walker standing on its waypoint stalls and switches back a few ticks later).
+ * `movedLastTick` is whether the previous tick's actual displacement was non-zero (pMoveXY
+ * getMoveVect): a move blocked by tiles, or standing on the goal or waypoint, yields (0,0), which is
+ * what stalls the path. As in updateBeeline / updateScenic, the walker heads for the current mode's
+ * goal this tick and a stall switches the mode for the next one. #scenic is only left on a stall, so
+ * a walker that reaches its waypoint stands there until the stall count runs out.
  */
 export function pathStep(
   p: PathState,
@@ -53,18 +54,17 @@ export function pathStep(
   movedLastTick: boolean,
   rng: Rng,
 ): { vel: Vec; path: PathState; rng: Rng } {
-  let path: PathState = { ...p, pathStall: movedLastTick ? 0 : p.pathStall + 1 }
-  if (path.pathMode === 'beeline' && path.pathStall >= PATH_STALL_TICKS) {
-    // PointRoughly(myLoc, pathFindingDistance)
-    const [rx, r1] = roughly(rng, PATH_WANDER_DISTANCE)
-    const [ry, r2] = roughly(r1, PATH_WANDER_DISTANCE)
-    path = { pathMode: 'scenic', waypoint: { x: pos.x + rx, y: pos.y + ry }, pathStall: 0 }
-    rng = r2
+  const pathStall = movedLastTick ? 0 : p.pathStall + 1
+  const stalled = pathStall >= PATH_STALL_TICKS
+  if (p.pathMode === 'scenic') {
+    const wp = p.waypoint ?? pos
+    const vel = frameMove(pos, wp, walkSpeed)
+    return { vel, path: stalled ? { ...BEELINE } : { ...p, pathStall }, rng }
   }
-  if (path.pathMode === 'scenic') {
-    const wp = path.waypoint ?? pos
-    if (arrived(pos, wp) || path.pathStall >= PATH_STALL_TICKS) path = { ...BEELINE }
-    else return { vel: frameMove(pos, wp, walkSpeed), path, rng }
-  }
-  return { vel: arrived(pos, goal) ? { x: 0, y: 0 } : frameMove(pos, goal, walkSpeed), path, rng }
+  const vel = arrived(pos, goal) ? { x: 0, y: 0 } : frameMove(pos, goal, walkSpeed)
+  if (!stalled) return { vel, path: { ...p, pathStall }, rng }
+  // goPathFindingMode(#scenic): PointRoughly(myLoc, pathFindingDistance)
+  const [rx, r1] = roughly(rng, PATH_WANDER_DISTANCE)
+  const [ry, r2] = roughly(r1, PATH_WANDER_DISTANCE)
+  return { vel, path: { pathMode: 'scenic', waypoint: { x: pos.x + rx, y: pos.y + ry }, pathStall: 0 }, rng: r2 }
 }
