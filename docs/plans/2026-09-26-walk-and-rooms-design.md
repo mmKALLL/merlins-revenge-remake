@@ -83,10 +83,12 @@ Exit gating is a hook that always returns open in this slice. The leash and "ene
 Per tick the input layer produces a snapshot: movement vector, mouse position in world coordinates, and action buttons. Bindings reserved now, acted on in later slices:
 
 - WASD and arrow keys: move.
-- Mouse: target position.
-- Space: charge a spell while held, release to shoot at the mouse position.
+- Mouse: target position. Left click keeps its original role: charge while held, release to shoot at the mouse position.
+- Space: same as left click.
 - E: shoot at the nearest enemy's current position.
 - F: shoot 16 px in front of the nearest enemy, to push them back.
+
+Bindings for later actions (spell change, summon, wizard selection) are decided when those features arrive.
 
 ## Rendering and camera
 
