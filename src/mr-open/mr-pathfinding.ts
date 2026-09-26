@@ -43,9 +43,10 @@ export interface PathState {
   pathMode: 'beeline' | 'scenic'
   waypoint: Vec | null
   pathStall: number
+  scenicTicks: number // remake cutoff: ticks walked on the current #scenic leg
 }
 
-export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathStall: 0 }
+export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathStall: 0, scenicTicks: 0 }
 
 /**
  * One tick of findPathToLoc + modMoveToLoc.update. Returns the velocity to set (it overwrites the
@@ -55,6 +56,9 @@ export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathSta
  * what stalls the path. As in updateBeeline / updateScenic, the walker heads for the current mode's
  * goal this tick and a stall switches the mode for the next one. #scenic is only left on a stall, so
  * a walker that reaches its waypoint stands there until the stall count runs out.
+ * Remake cutoff (not in the engine): a #scenic leg also ends after `scenicMaxTicks` ticks, the same
+ * way as on a stall, so a waypoint the walker can neither reach nor stall against (e.g. inside a
+ * wall it jitters against) does not keep it wandering.
  */
 export function pathStep(
   p: PathState,
@@ -64,18 +68,20 @@ export function pathStep(
   movedLastTick: boolean,
   rng: Rng,
   stallTicks: number = PATH_STALL_TICKS,
+  scenicMaxTicks: number = Infinity,
 ): { vel: Vec; path: PathState; rng: Rng } {
   const pathStall = movedLastTick ? 0 : p.pathStall + 1
   const stalled = pathStall >= stallTicks
   if (p.pathMode === 'scenic') {
     const wp = p.waypoint ?? pos
     const vel = frameMove(pos, wp, walkSpeed)
-    return { vel, path: stalled ? { ...BEELINE } : { ...p, pathStall }, rng }
+    const scenicTicks = p.scenicTicks + 1
+    return { vel, path: stalled || scenicTicks >= scenicMaxTicks ? { ...BEELINE } : { ...p, pathStall, scenicTicks }, rng }
   }
   const vel = arrived(pos, goal) ? { x: 0, y: 0 } : frameMove(pos, goal, walkSpeed)
   if (!stalled) return { vel, path: { ...p, pathStall }, rng }
   // goPathFindingMode(#scenic): PointRoughly(myLoc, pathFindingDistance)
   const [rx, r1] = roughly(rng, PATH_WANDER_DISTANCE)
   const [ry, r2] = roughly(r1, PATH_WANDER_DISTANCE)
-  return { vel, path: { pathMode: 'scenic', waypoint: { x: pos.x + rx, y: pos.y + ry }, pathStall: 0 }, rng: r2 }
+  return { vel, path: { pathMode: 'scenic', waypoint: { x: pos.x + rx, y: pos.y + ry }, pathStall: 0, scenicTicks: 0 }, rng: r2 }
 }

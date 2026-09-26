@@ -53,7 +53,8 @@ export function rollDetour(t: Tick, a: ActorState, def: ActorDef): boolean {
  * One tick of a detour; returns whether it took the tick. detourPause stands still; the tick its
  * count runs out picks a random direction and starts detourMove: walking at walkSpeed toward the
  * point `detourDistance` away (tile collisions apply in the move step) until within the
- * modMoveToLoc arrival distance or stalled for `pathFindingStallTime` ticks. It then ends in
+ * modMoveToLoc arrival distance, stalled for `pathFindingStallTime` ticks, or `detourMoveMaxTicks`
+ * ticks have been walked (cutoff, user request). It then ends in
  * findTarget, so the same tick retargets the closest enemy.
  */
 function stepDetour(t: Tick, a: ActorState, def: ActorDef): boolean {
@@ -75,7 +76,7 @@ function stepDetour(t: Tick, a: ActorState, def: ActorDef): boolean {
   const goal = a.ai.detourGoal ?? a.pos
   const moved = movedOnScreen(a.pos, a.prevPos)
   const pathStall = a.ai.detourTicks === 0 || moved ? 0 : a.ai.pathStall + 1
-  if (arrived(a.pos, goal) || pathStall >= def.pathFindingStallTime) {
+  if (arrived(a.pos, goal) || pathStall >= def.pathFindingStallTime || a.ai.detourTicks >= def.detourMoveMaxTicks) {
     a.vel = { x: 0, y: 0 }
     a.ai = { ...a.ai, mode: 'findTarget', detourTicks: 0, detourGoal: null, pathStall: 0, walkTicks: 0 }
     return false
@@ -115,8 +116,8 @@ export function stepCpuAi(t: Tick): void {
     switch (decision.kind) {
       case 'move': {
         const moved = movedOnScreen(a.pos, a.prevPos)
-        const path = { pathMode: a.ai.pathMode, waypoint: a.ai.waypoint, pathStall: a.ai.pathStall }
-        const r = pathStep(path, a.pos, decision.goal, def.walkSpeed, moved, t.rng, def.pathFindingStallTime)
+        const path = { pathMode: a.ai.pathMode, waypoint: a.ai.waypoint, pathStall: a.ai.pathStall, scenicTicks: a.ai.scenicTicks }
+        const r = pathStep(path, a.pos, decision.goal, def.walkSpeed, moved, t.rng, def.pathFindingStallTime, def.scenicMaxTicks)
         t.rng = r.rng
         a.ai = { ...a.ai, ...r.path, moveTarget: decision.goal }
         a.vel = r.vel

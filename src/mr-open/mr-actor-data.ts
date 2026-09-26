@@ -68,8 +68,10 @@ export interface ActorDef {
   weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
   experienceImWorth: number // experience awarded on death (never granted in this engine build)
   pathFindingStallTime: number // modPathFinding: stalled ticks before a #beeline walker takes a #scenic detour (and back)
+  scenicMaxTicks: number // remake: a #scenic detour also ends (back to #beeline) after this many ticks
   detourChance: number // remake: chance of a spreading detour after a melee attack and every detourMoveTicks of walking; 0 = off
   detourMoveTicks: number // remake: ticks of continuous walking between detour rolls
+  detourMoveMaxTicks: number // remake: a detourMove that has not arrived or stalled ends (and retargets) after this many ticks
   detourPauseTicks: number // remake: ticks a detour stands still before walking off
   detourDistance: number // remake: px a detour walks in a random direction before retargeting
   detourMinTargetDistance: number // remake: no walking detour roll while the target is closer than this (px)
@@ -126,8 +128,9 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     experienceImWorth: 0, // objGameObject
     collisionRectScale: 1, // remake addition: engine-sized rect
     pathFindingStallTime: 5, // modPathFinding.addModParams
+    scenicMaxTicks: 60, // remake cutoff on #scenic detours (none in the engine)
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // remake angular spread, off in the engine
-    detourChance: 0.15, detourMoveTicks: 90, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // remake spreading detour
+    detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // remake spreading detour
     weaponTechnique: 0, // modWeaponTechnique.addModParams
     takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
     dieSound: 'none', dieVolume: 100, // objCharacter.addModParams (the only dying objects ported)
@@ -144,8 +147,8 @@ for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit'
   'startOffset', 'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'walkSpeed',
   'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
   'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
-  'teamName', 'category', 'hates', 'friends', 'collisionRectScale', 'pathFindingStallTime',
-  'detourChance', 'detourMoveTicks', 'detourPauseTicks', 'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
+  'teamName', 'category', 'hates', 'friends', 'collisionRectScale', 'pathFindingStallTime', 'scenicMaxTicks',
+  'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks', 'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg',
   'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName']) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -344,7 +347,9 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       mana_capacity: num(r, 'mana_capacity', ctx), mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
       weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
       collisionRectScale: num(r, 'collisionRectScale', ctx), pathFindingStallTime: num(r, 'pathFindingStallTime', ctx),
+      scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
+      detourMoveMaxTicks: num(r, 'detourMoveMaxTicks', ctx),
       detourPauseTicks: num(r, 'detourPauseTicks', ctx), detourDistance: num(r, 'detourDistance', ctx),
       detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),

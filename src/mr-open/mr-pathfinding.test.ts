@@ -65,7 +65,7 @@ describe('pathStep', () => {
 
   it('stands on the reached waypoint until the stall count runs out, then beelines (updateScenic leaves only on a stall)', () => {
     const wp = { x: 103, y: 100 }
-    let s = pathStep({ pathMode: 'scenic', waypoint: wp, pathStall: 0 }, pos, goal, 4, true, rng)
+    let s = pathStep({ pathMode: 'scenic', waypoint: wp, pathStall: 0, scenicTicks: 0 }, pos, goal, 4, true, rng)
     expect(s.vel).toEqual({ x: 3, y: 0 }) // PointFrameMove: the remaining delta
     for (let i = 0; i < PATH_STALL_TICKS - 1; i++) {
       s = pathStep(s.path, wp, goal, 4, false, rng)
@@ -78,11 +78,21 @@ describe('pathStep', () => {
   })
 
   it('returns to beeline when stalled again on the scenic leg', () => {
-    let path: PathState = { pathMode: 'scenic', waypoint: { x: 200, y: 200 }, pathStall: 0 }
+    let path: PathState = { pathMode: 'scenic', waypoint: { x: 200, y: 200 }, pathStall: 0, scenicTicks: 0 }
     for (let i = 0; i < PATH_STALL_TICKS - 1; i++) {
       path = pathStep(path, pos, goal, 4, false, rng).path
       expect(path.pathMode).toBe('scenic')
     }
     expect(pathStep(path, pos, goal, 4, false, rng).path).toEqual(BEELINE)
+  })
+
+  it('ends a scenic walk that never stalls after scenicMaxTicks and beelines (remake cutoff)', () => {
+    const max = 7
+    let path: PathState = { pathMode: 'scenic', waypoint: { x: 1000, y: 1000 }, pathStall: 0, scenicTicks: 0 }
+    for (let i = 0; i < max - 1; i++) {
+      path = pathStep(path, pos, goal, 4, true, rng, PATH_STALL_TICKS, max).path
+      expect(path.pathMode).toBe('scenic')
+    }
+    expect(pathStep(path, pos, goal, 4, true, rng, PATH_STALL_TICKS, max).path).toEqual(BEELINE)
   })
 })

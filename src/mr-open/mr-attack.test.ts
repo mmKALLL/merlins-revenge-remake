@@ -12,7 +12,7 @@ const attack = (o: Partial<AttackDef>): AttackDef => ({
 const actor = (key: string, o: Partial<ActorDef>, a: Partial<AttackDef>): ActorDef => ({
   key, name: key, objType: 'objCPUCharacter', aiType: 'objAiCPU', team: 'goblins', layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 },
   energy: 100, energyRecoverDelay: 300, friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5,
-  walkSpeed: 4, walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, detourChance: 0, detourMoveTicks: 90, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
+  walkSpeed: 4, walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
   mana_regeneration: 1, weapon: null, experienceImWorth: 0,
   takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null, attack: attack(a), raw: {}, ...o,
 })

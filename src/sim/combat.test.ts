@@ -103,7 +103,7 @@ function runUntil(s: SimState, pred: (s: SimState) => boolean, max: number, inpu
   return [s, -1]
 }
 /** A stationary target: no AI, so it never chases (the reel still returns it to walk/findTarget). */
-const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null } }
+const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null } }
 
 describe('warrior melee (combat notes §3-4, §6)', () => {
   it('beelines at walkSpeed 4 less 50 % friction (2 px/tick) to the strike position, then its sword hit pushes and damages the player', () => {
@@ -420,6 +420,22 @@ describe('spreading detour (remake, user request)', () => {
   })
 })
 
+describe('detour cutoff (remake, user request)', () => {
+  it('a detourMove that has not arrived ends after detourMoveMaxTicks and retargets', () => {
+    const max = 5
+    const forced = { ...defs, goblinWarrior: { ...defs['goblinWarrior']!, detourChance: 1, detourDistance: 200, detourMoveMaxTicks: max } }
+    const s0 = createSim(grid(openMap([{ x: 10, y: 5, tile: WARRIOR }])), forced, teams, anims, 1, { x: 100, y: 144 })
+    const g0 = s0.actors.find((a) => a.id !== s0.playerId)!
+    let s: SimState = { ...s0, actors: s0.actors.map((a) => (a.id === g0.id ? { ...a, pos: { x: 120, y: 144 }, prevPos: { x: 120, y: 144 } } : a)) }
+    ;[s] = runUntil(s, (t) => actor(t, g0.id)!.ai.mode === 'detourMove', 80)
+    expect(actor(s, g0.id)!.ai.mode).toBe('detourMove')
+    let ticks: number
+    ;[s, ticks] = runUntil(s, (t) => actor(t, g0.id)!.ai.mode !== 'detourMove', 80)
+    expect(ticks).toBe(max)
+    expect(actor(s, g0.id)!.ai.targetId).toBe(s.playerId)
+  })
+})
+
 describe('detour interrupted by a hit (regression: goblins froze and became unhittable)', () => {
   it('a goblin blasted during its detour pause reels, recovers, moves again and can be hit again', () => {
     const forced = { ...defs, goblinWarrior: { ...defs['goblinWarrior']!, detourChance: 1 } }
@@ -508,7 +524,7 @@ describe('archer (combat notes §3-4)', () => {
   it('waiting in reach resets only the path stall; a scenic detour resumes toward its waypoint once out of reach', () => {
     // #arrivedAtAttackLoc resets the stall counter and stops the walk but leaves the path mode and
     // waypoint alone (modPathFinding.internalEvent), so a wandering archer keeps its detour.
-    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 }, undefined, 1, { cooldown: 200, ai })
     for (let i = 0; i < 10; i++) {
       s = stepSim(s, NO_INPUT)
@@ -756,7 +772,7 @@ describe('stall detection on a wall slide (regression: a goblin stayed in #sceni
     // Waypoint behind a full-height wall, 3 px off the walker's row: the push-out blocks x and the
     // walk vector's y component decays geometrically, so the float position keeps creeping. The
     // stall test is on the on-screen (whole-pixel) move (objMoveXY pMoveVect = pSpr.loc delta).
-    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 200, y: 83 }, pathStall: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 200, y: 83 }, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
     const map = openMap([{ x: 10, y: 5, tile: WARRIOR }], { solid: wallAt(9) })
     let { s, enemyId } = setup(WARRIOR, { x: 310, y: 80 }, { x: 40, y: 40 }, 1, { ai }, map)
     let [, ticks] = runUntil(s, (t) => actor(t, enemyId)!.ai.pathMode === 'beeline', 40)

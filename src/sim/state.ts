@@ -57,6 +57,7 @@ export interface AiState {
   pathMode: 'beeline' | 'scenic'
   waypoint: Vec | null
   pathStall: number // consecutive stalled ticks (switches path mode at ActorDef.pathFindingStallTime)
+  scenicTicks: number // remake cutoff: ticks walked on the current #scenic leg (ends at ActorDef.scenicMaxTicks)
   moveTarget: Vec | null // modMoveToLoc target; null = not moving
   walkTicks: number // remake detour: consecutive ticks spent walking toward the target
   detourTicks: number // remake detour: pause ticks left in detourPause
