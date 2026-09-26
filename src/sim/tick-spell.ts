@@ -7,7 +7,7 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { chargeVolume } from '../mr-open/mr-sound'
 import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity, type SplashVictim } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
-import { defOf, isAlive, isCharacter, isSpell, spriteRectFor } from './actors'
+import { defOf, isAlive, isSpell, isUnit, spriteRectFor } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
 import { actorIn, playerIn, playSound, spawn, type Tick } from './tick-context'
@@ -52,7 +52,7 @@ function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: Charg
 }
 
 /** objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there (grows upward). */
-function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
+export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
   const at = chargeLoc(caster.pos, def, caster.facingLeft)
   spell.prevPos = spell.pos
   spell.pos = { x: at.x, y: at.y - (spell.charge * (spell.attack ?? def.attack).chargeSize) / 2 }
@@ -71,7 +71,7 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   const def = defOf(t.s, p)
-  const spell = t.actors.find((a) => !t.removed.has(a.id) && isSpell(t.s, a) && a.ownerId === p.id && a.mode === 'charge')
+  const spell = chargingSpellOf(t, p)
   if (!spell) startCharge(t, p, def, input)
   else if (isHeld(input, p.ai.chargeKind)) continueCharge(p, def, spell)
   else releaseSpell(t, p, def, spell, input)
@@ -86,16 +86,46 @@ function continueCharge(p: ActorState, def: ActorDef, spell: ActorState): void {
 }
 
 function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot): void {
-  const target = releaseTarget(t, p, input, p.ai.chargeKind)
+  releaseMagic(t, p, def, spell, releaseTarget(t, p, input, p.ai.chargeKind))
+  p.ai.chargeKind = null
+}
+
+/**
+ * objAiAttack.releaseMagic: the spell flies at spellSpeed toward `target`, the caster plays its
+ * release strip and the cooldown restarts.
+ */
+export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: ActorState, target: Vec): void {
   const atk = spell.attack ?? def.attack
   spell.mode = 'fly'
   spell.targetPoint = target
   spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
   // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
   playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
-  p.mode = 'release'
-  p.ai.chargeKind = null
-  p.cooldown = resetCooldown(def.attack)
+  caster.mode = 'release'
+  caster.cooldown = resetCooldown(def.attack)
+}
+
+/** The caster's spell still charging (the AI's pCurrentSpell), if any. */
+export function chargingSpellOf(t: Tick, caster: ActorState): ActorState | undefined {
+  return t.actors.find((a) => !t.removed.has(a.id) && isSpell(t.s, a) && a.ownerId === caster.id && a.mode === 'charge')
+}
+
+/**
+ * objAiAttack.ensureSpell + setSpellProperties (the caster's attack and team): a new spell at the
+ * start charge, aligned over the caster, which goes into #charge.
+ */
+export function startSpell(t: Tick, caster: ActorState, def: ActorDef): ActorState {
+  if (!t.s.defs['spell']) throw new Error('actor definitions have no "spell" entry')
+  const created = spawn(t, 'spell', chargeLoc(caster.pos, def, caster.facingLeft), {
+    mode: 'charge',
+    ownerId: caster.id,
+    charge: chargeLimits(def).start,
+    team: caster.team,
+    attack: def.attack,
+  })
+  alignSpell(created, caster, def)
+  caster.mode = 'charge'
+  return created
 }
 
 function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): void {
@@ -106,17 +136,7 @@ function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot
   }
   const kind = chargeKindFor(input)
   if (kind === null || !cooldownReady(p.cooldown)) return
-  if (!t.s.defs['spell']) throw new Error('actor definitions have no "spell" entry')
-  // ensureSpell + setSpellProperties (the caster's attack and team), then chargeSpell at the start value
-  const created = spawn(t, 'spell', chargeLoc(p.pos, def, p.facingLeft), {
-    mode: 'charge',
-    ownerId: p.id,
-    charge: chargeLimits(def).start,
-    team: p.team,
-    attack: def.attack,
-  })
-  alignSpell(created, p, def)
-  p.mode = 'charge'
+  startSpell(t, p, def)
   p.ai.chargeKind = kind
 }
 
@@ -137,11 +157,14 @@ export function stepSpells(t: Tick): void {
   }
 }
 
-/** Living characters in a team the spell's team hates, with their sprite radius (objGameObject.getRadius). */
-function splashVictims(t: Tick, spell: ActorState): SplashVictim[] {
+/**
+ * Living units of a team the spell's team hates whose role the attack `hits` (teamMembers,
+ * teamBuildings), with their sprite radius (objGameObject.getRadius).
+ */
+function splashVictims(t: Tick, spell: ActorState, hits: string[]): SplashVictim[] {
   const hated = hatedTeams(spell.team, t.s.teams)
   return t.actors
-    .filter((v) => !t.removed.has(v.id) && isCharacter(t.s, v) && isAlive(v) && hated.includes(v.team))
+    .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && hated.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
     .map((v) => {
       const r = spriteRectFor(t.s, v)
       return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
@@ -159,7 +182,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
   if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
-  const victims = splashVictims(t, spell)
+  const victims = splashVictims(t, spell, atk.hits)
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
   const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)

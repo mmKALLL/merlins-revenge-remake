@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_crossBolt_fly_01_01	gfx	2134	21	16	32	10	8	alpha=0..255
+anm_crossBolt_land_01_01	gfx	2135	16	16	32	8	8	alpha=255..255
+anm_crossBolt_land_30_01	gfx	2136	16	16	32	8	8	alpha=255..255

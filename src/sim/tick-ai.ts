@@ -12,19 +12,22 @@ import { cooldownReady } from '../mr-open/mr-attack'
 import { distance, type Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
-import { collisionRectFor, defOf, faceAlong, isAlive, isCharacter } from './actors'
+import { collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
 import type { ActorState } from './state'
 import { actorIn, type Tick } from './tick-context'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
 
-/** Living characters as targeting candidates (dead and dying ones are skipped by findTargetInTeam). */
+/**
+ * Living team units as targeting candidates: targetRoles [[#teamMembers, #teamBuildings]] covers
+ * characters and dwellings (dead and dying ones are skipped by findTargetInTeam).
+ */
 export function targetables(t: Tick): Targetable[] {
-  return t.actors.filter((a) => !t.removed.has(a.id) && isCharacter(t.s, a) && isAlive(a)).map(asTargetable)
+  return t.actors.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
 }
 
-/** teamMaster.findTarget: the id of the closest living character in a team `a` hates, or null. */
+/** teamMaster.findTarget: the id of the closest living unit in a team `a` hates, or null. */
 export function nearestHostileId(t: Tick, a: ActorState): number | null {
   return findTarget(asTargetable(a), targetables(t), hatedTeams(a.team, t.s.teams))
 }

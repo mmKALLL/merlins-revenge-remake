@@ -5,7 +5,7 @@
 import type { ActorMode, ActorState, AnimationSet, AnimationStrip } from './state'
 
 /**
- * Strip name for a mode. `moving` picks the walking variants (walk, chargewalk, releasewalk);
+ * Strip name for a mode. `moving` picks the walking variants (walk, chargeWalk, releaseWalk);
  * swapping between a still and a walking variant restarts at frame 0 here. The engine does not
  * carry the frame index across either: objAnimSet keeps one objAnimStrip per name, each with its own
  * frame and delay counters, and advances only the strip currently shown (modAnimSet.updateAnim ->
@@ -23,10 +23,10 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
       name = moving ? 'walk' : 'stand'
       break
     case 'charge':
-      name = moving ? 'chargewalk' : 'charge'
+      name = moving ? 'chargeWalk' : 'charge'
       break
     case 'release':
-      name = moving ? 'releasewalk' : 'release'
+      name = moving ? 'releaseWalk' : 'release'
       break
     case 'die':
     case 'dead':
@@ -40,7 +40,17 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
     default:
       name = mode
   }
-  return set?.[name] ? name : 'stand'
+  return (set && stripKey(set, name)) ?? 'stand'
+}
+
+/**
+ * The atlas key for a strip name, compared case-insensitively (Lingo symbols are: Merlin's frames
+ * say `chargewalk`, the goblin mage's `chargeWalk`); undefined when the set has no such strip.
+ */
+export function stripKey(set: AnimationSet, name: string): string | undefined {
+  if (set[name]) return name
+  const lower = name.toLowerCase()
+  return Object.keys(set).find((k) => k.toLowerCase() === lower)
 }
 
 export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' | 'animExtend' | 'animExtendCount' | 'animLooped'>

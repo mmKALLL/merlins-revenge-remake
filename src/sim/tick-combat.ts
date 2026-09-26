@@ -11,7 +11,7 @@ import { rectAt } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
-import { collisionRectFor, defOf, isAlive, isBullet, isCharacter, spriteRectFor } from './actors'
+import { collisionRectFor, defOf, isAlive, isBullet, isCharacter, isUnit, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
 import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
@@ -29,15 +29,23 @@ function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
   const def = defOf(t.s, victim)
   victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })
-  if (isDead(victim.energy)) {
-    victim.mode = 'die'
-    victim.age = 0
-    t.events.push({ kind: 'died', id: victim.id })
-    playSound(t, def.dieSound, def.dieVolume) // objCharacter.goMode(#die) (objCharacter.txt:201-202)
-  }
+  if (isDead(victim.energy)) startDeath(t, victim)
   // modEnergy.loseEnergy (modEnergy.txt:206): every energy loss, the killing one included; for the
   // player that is wizard_hit (objPlayerMerlinCharacter -> objCharacter installs modEnergy)
   playSound(t, def.takeHitSound, def.takeHitVolume)
+}
+
+/**
+ * #die with the dieSound: objCharacter.goMode(#die) (objCharacter.txt:201-202), objDwelling
+ * startDeath -> goMode(#dead) (objDwelling.txt:77-80, the same dieSound fields).
+ */
+export function startDeath(t: Tick, a: ActorState): void {
+  const def = defOf(t.s, a)
+  a.energy = Math.min(a.energy, 0) // loseAllEnergy for a dwelling that ran out of residents
+  a.mode = 'die'
+  a.age = 0
+  t.events.push({ kind: 'died', id: a.id })
+  playSound(t, def.dieSound, def.dieVolume)
 }
 
 /**
@@ -46,7 +54,8 @@ function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
  */
 export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
   const excess = Math.abs(speed) - defOf(t.s, a).damageSpeed
-  if (a.mode === 'reel' && excess > 0) loseEnergy(t, a, excess)
+  // objDwelling keeps objGameObject's collision callbacks, which only stop the move
+  if (a.mode === 'reel' && excess > 0 && isCharacter(t.s, a)) loseEnergy(t, a, excess)
 }
 
 /**
@@ -73,9 +82,11 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
     victim.mode = 'reel'
     victim.frictionPercent = { ...def.frictionReel }
     victim.stall = 0
-    victim.ai.mode = 'dazed' // also ends a remake detour
-    victim.ai.moveTarget = null
-    victim.ai.walkTicks = 0
+    if (def.aiType !== null) {
+      victim.ai.mode = 'dazed' // also ends a remake detour
+      victim.ai.moveTarget = null
+      victim.ai.walkTicks = 0
+    }
   }
   loseEnergy(t, victim, hit.damage)
   return hit.push
@@ -206,10 +217,10 @@ export function stepReelAndDeath(t: Tick): void {
   }
 }
 
-/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every character. */
+/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every team unit (a dwelling: +1 per 1000 ticks). */
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id) || !isCharacter(t.s, a)) continue
+    if (t.removed.has(a.id) || !isUnit(t.s, a)) continue
     const def = defOf(t.s, a)
     a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(def))
     const [energy, counter] = regenStep(a.energy, def.energy, a.regenCounter, def.energyRecoverDelay)
@@ -219,11 +230,12 @@ export function stepCooldownsAndRegen(t: Tick): void {
 }
 
 /**
- * teamMaster.isPlayerEnemiesDead over the given actors: no member left in a team hostile to the
- * player. Dying and dead characters are still members; they leave the team only in #finish
- * (objGameObject.finish -> leaveTeam), i.e. once their grave has been recorded.
+ * teamMaster.isPlayerEnemiesDead over the given actors: no member or building left in a team
+ * hostile to the player (isTeamDead counts teamMembers + teamBuildings, teamMaster.txt:1170-1183).
+ * Dying and dead units still count; they leave the team only in #finish (objGameObject.finish ->
+ * leaveTeam), i.e. once their grave has been recorded.
  */
 export function exitsOpenFor(s: SimState, actors: ActorState[]): boolean {
   const hostile = hostileTeamsTo(s.defs['player']!.team, s.teams)
-  return !actors.some((a) => hostile.includes(a.team) && isCharacter(s, a) && a.mode !== 'finish')
+  return !actors.some((a) => hostile.includes(a.team) && isUnit(s, a) && a.mode !== 'finish')
 }

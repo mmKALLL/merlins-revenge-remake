@@ -24,8 +24,5 @@
   },
   "goblinArrow": {
     "collisionRectScale": 0.5
-  },
-  "crossBolt": {
-    "name": "gobarrow"
   }
 }

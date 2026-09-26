@@ -1,6 +1,7 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
+import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Rng } from './rng'
@@ -99,6 +100,7 @@ export interface ActorState {
   attack: AttackDef | null // spell: copy of the caster's attack (objSpell.setSpellProperties); null otherwise
   age: number // ticks in the current mode for timed modes (land, explode, player die)
   technique: TechniqueState // modWeaponTechnique counter and cache
+  dwelling: DwellingState | null // objDwelling production (modResidents); null for everything else
 }
 
 export interface RoomState {
