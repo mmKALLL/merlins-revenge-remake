@@ -20,14 +20,18 @@ export interface RenderConfig {
 /** CSS pixels per game pixel, or 'fit': the largest integer multiple that fits the window. */
 export type ZoomSetting = 1 | 2 | 3 | 4 | 'fit'
 export const ZOOM_SETTINGS: readonly ZoomSetting[] = [1, 2, 3, 4, 'fit']
+export const DEFAULT_ZOOM: ZoomSetting = 2
 
 const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActive']
 
 /** Engine draw layers (actor data `#layerZ`) -> z within the actor container; unknown layers draw with objects. */
 const LAYER_Z: Record<string, number> = { gGameObjectLayer: 0, gPlayerLayer: 1, gGameBulletLayer: 2 }
 
-
-const BAR = { x: 32, w: 200, h: 8 }
+/** The player's energy bar in the HUD strip below the play view: x, size and empty colour. */
+const BAR = { x: 32, w: 200, h: 8, background: 0x202020 }
+/** The debug readout sits right of the bar: gap to the bar, offset from the HUD strip's top. */
+const DEBUG_TEXT = { gap: 8, top: 4 }
+const NO_TINT = 0xffffff
 
 /**
  * The spell frame is a 1-bit black disc on a transparent background. Tint multiplies, so black stays
@@ -82,7 +86,7 @@ export class Scene {
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
-  private zoom: ZoomSetting = 2
+  private zoom: ZoomSetting = DEFAULT_ZOOM
   /** Window height (CSS px) kept free below the canvas in 'fit' mode, e.g. for the zoom buttons. */
   fitReserve = 0
 
@@ -124,10 +128,10 @@ export class Scene {
     this.world.addChild(this.scrolled)
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
-    const hudY = this.cfg.playOffset.y + this.cfg.view.h // 288: the bottom strip
+    const hudY = this.cfg.playOffset.y + this.cfg.view.h // top of the HUD strip below the play view
     this.bar.position.set(BAR.x, hudY + Math.floor((this.cfg.logical.h - hudY - BAR.h) / 2))
     this.app.stage.addChild(this.bar)
-    this.debugText.position.set(BAR.x + BAR.w + 8, hudY + 4)
+    this.debugText.position.set(BAR.x + BAR.w + DEBUG_TEXT.gap, hudY + DEBUG_TEXT.top)
     this.app.stage.addChild(this.debugText)
     this.applyZoom()
     window.addEventListener('resize', this.onResize)
@@ -192,13 +196,7 @@ export class Scene {
       const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, a.animFrame)
       if (!tex) continue
       seen.add(a.id)
-      let spr = this.actorSprites.get(a.id)
-      if (!spr) {
-        spr = new Sprite()
-        spr.anchor.set(0.5)
-        this.actorSprites.set(a.id, spr)
-        this.actorLayer.addChild(spr)
-      }
+      const spr = this.actorSprite(a.id)
       spr.texture = tex
       spr.zIndex = LAYER_Z[def.layerZ] ?? 0
       const pos = lerp(a)
@@ -207,31 +205,9 @@ export class Scene {
       const bullet = def.objType === 'objBullet'
       const shift = spell || bullet ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
-      if (spell) {
-        // the spell carries its caster's attack (objSpell.setSpellProperties); the sim already
-        // multiplied `charge` by chargeExplodeFactor when it switched to explode
-        const atk = a.attack ?? def.attack
-        const exploding = a.mode === 'explode'
-        const size = exploding ? a.charge : a.charge * atk.chargeSize
-        const k = size / tex.width
-        spr.scale.set(k, k)
-        const c = atk.chargeColour
-        spr.tint = (c.r << 16) | (c.g << 8) | c.b
-        spr.alpha = exploding ? Math.max(0, 1 - a.age / EXPLODE_TICKS) : 1
-        spr.rotation = 0
-      } else if (bullet) {
-        // modRotational #once: turned to the launch velocity, never mirrored; the art points along +x
-        if (a.vel.x !== 0 || a.vel.y !== 0) this.bulletAngles.set(a.id, Math.atan2(a.vel.y, a.vel.x))
-        spr.rotation = this.bulletAngles.get(a.id) ?? 0
-        spr.scale.set(this.cfg.spriteScale)
-        spr.tint = 0xffffff
-        spr.alpha = 1
-      } else {
-        spr.rotation = 0
-        spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
-        spr.tint = 0xffffff
-        spr.alpha = 1
-      }
+      if (spell) this.styleSpell(spr, a, def, tex)
+      else if (bullet) this.styleBullet(spr, a)
+      else this.styleCharacter(spr, a)
     }
     for (const [id, spr] of this.actorSprites) {
       if (seen.has(id)) continue
@@ -239,6 +215,52 @@ export class Scene {
       this.actorSprites.delete(id)
       this.bulletAngles.delete(id)
     }
+  }
+
+  /** The actor's sprite, created on its first draw. */
+  private actorSprite(id: number): Sprite {
+    let spr = this.actorSprites.get(id)
+    if (!spr) {
+      spr = new Sprite()
+      spr.anchor.set(0.5)
+      this.actorSprites.set(id, spr)
+      this.actorLayer.addChild(spr)
+    }
+    return spr
+  }
+
+  /**
+   * The white disc scaled to the charge and tinted with the attack's chargeColour, fading out while
+   * it explodes. The spell carries its caster's attack (objSpell.setSpellProperties); the sim already
+   * multiplied `charge` by chargeExplodeFactor when it switched to explode.
+   */
+  private styleSpell(spr: Sprite, a: ActorState, def: ActorDef, tex: Texture): void {
+    const atk = a.attack ?? def.attack
+    const exploding = a.mode === 'explode'
+    const size = exploding ? a.charge : a.charge * atk.chargeSize
+    const k = size / tex.width
+    spr.scale.set(k, k)
+    const c = atk.chargeColour
+    spr.tint = (c.r << 16) | (c.g << 8) | c.b
+    spr.alpha = exploding ? Math.max(0, 1 - a.age / EXPLODE_TICKS) : 1
+    spr.rotation = 0
+  }
+
+  /** modRotational #once: turned to the launch velocity, never mirrored; the art points along +x. */
+  private styleBullet(spr: Sprite, a: ActorState): void {
+    if (a.vel.x !== 0 || a.vel.y !== 0) this.bulletAngles.set(a.id, Math.atan2(a.vel.y, a.vel.x))
+    spr.rotation = this.bulletAngles.get(a.id) ?? 0
+    spr.scale.set(this.cfg.spriteScale)
+    spr.tint = NO_TINT
+    spr.alpha = 1
+  }
+
+  /** Characters mirror to face left. */
+  private styleCharacter(spr: Sprite, a: ActorState): void {
+    spr.rotation = 0
+    spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
+    spr.tint = NO_TINT
+    spr.alpha = 1
   }
 
   /** Width of the sprite's stand frame (or first walk frame); `fallback` if it has neither. */
@@ -280,7 +302,7 @@ export class Scene {
     if (fill === this.barFill) return
     this.barFill = fill
     this.bar.clear()
-    this.bar.rect(0, 0, BAR.w, BAR.h).fill(0x202020)
+    this.bar.rect(0, 0, BAR.w, BAR.h).fill(BAR.background)
     if (fill > 0) this.bar.rect(0, 0, fill, BAR.h).fill(barColour(f))
   }
 
