@@ -61,7 +61,14 @@ export interface Explosion {
  * (the speed still uses dist 0), so a direct hit pushes straight down (+y) with the full (radius + r) * power.
  */
 export function explode(center: Vec, chargeAtRelease: number, a: AttackDef, victims: SplashVictim[]): Explosion {
-  const charge = chargeAtRelease * a.chargeExplodeFactor
+  return explodeWithCharge(center, chargeAtRelease * a.chargeExplodeFactor, a, victims)
+}
+
+/**
+ * The explosion itself for a final `charge` (calcAttackHitMagic / calcCollisionVectSpell): a spell's
+ * charge after chargeExplodeFactor, or an #explode bullet's explodeCharge (modExploder.getCurrentCharge).
+ */
+export function explodeWithCharge(center: Vec, charge: number, a: AttackDef, victims: SplashVictim[]): Explosion {
   const radius = charge / 2
   const power = a.power
   if (typeof power !== 'number') throw new Error(`${a.name}: spell power must be a number`)

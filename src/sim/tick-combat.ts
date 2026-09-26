@@ -9,6 +9,8 @@ import {
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
 import { rectAt } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
+import { explodeWithCharge, type SplashVictim } from '../mr-open/mr-spell'
+import { hatedTeams } from '../mr-open/mr-targeting'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
 import { collisionRectFor, defOf, isAlive, isBullet, isCharacter, isUnit, spriteRectFor } from './actors'
@@ -155,7 +157,10 @@ function finishAttack(t: Tick, a: ActorState, def: ActorDef): void {
   if (def.attack.type === 'melee') rollDetour(t, a, def)
 }
 
-/** objBullet.updateFly (stall -> land, target collision -> hit) and the landed strip. */
+/** Ticks an exploding bullet without an explode strip stays before it is removed. */
+const BULLET_EXPLODE_TICKS = 8
+
+/** objBullet.updateFly (stall -> land, target collision -> hit), modExploder, and the landed strip. */
 export function stepBullets(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isBullet(t.s, a)) continue
@@ -163,13 +168,21 @@ export function stepBullets(t: Tick): void {
     else if (a.mode === 'land') {
       a.age++
       if (a.age >= LANDED_TICKS) t.removed.add(a.id)
+    } else if (a.mode === 'explode') {
+      // modExploder.updateExplode: until the explode strip has looped, then #explodeFin -> dead
+      a.age++
+      const hasStrip = t.s.anims[defOf(t.s, a).name]?.['explode'] !== undefined
+      if (hasStrip ? a.animLooped : a.age >= BULLET_EXPLODE_TICKS) t.removed.add(a.id)
     }
   }
 }
 
 function stepFlyingBullet(t: Tick, a: ActorState): void {
+  const def = defOf(t.s, a)
   if (bulletStalled(a.vel)) {
+    // #bulletLanded: modExploder explodes when it is one of the bullet's explodeEvents, else
     // objBullet.goMode(#land): setVect(point(0,0)) - the landed arrow does not drift
+    if (def.explodeEvents.includes('bulletLanded')) return explodeBullet(t, a, def)
     a.mode = 'land'
     a.age = 0
     a.vel = { x: 0, y: 0 }
@@ -180,11 +193,54 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   if (!bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), target.pos, collisionRectFor(t.s, target))) return
   // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
   // same collisionVect: two pushes and two damage applications, the second with the vector
-  // objGameObject.takeHit already scaled by the victim's inertia in place
-  const def = defOf(t.s, a)
-  const scaled = applyHit(t, target, bulletPush(a.vel, def), def.attack.damageMultiplier)
+  // objGameObject.takeHit already scaled by the victim's inertia in place. An #explode bullet's
+  // collisionVect is the explosion's (calcCollisionVectSpell with its explodeCharge).
+  const push = def.attack.type === 'explode' ? explosionPushOn(t, a, def, target) : bulletPush(a.vel, def)
+  const scaled = applyHit(t, target, push, def.attack.damageMultiplier)
   applyHit(t, target, scaled, def.attack.damageMultiplier)
-  t.removed.add(a.id)
+  // #bulletCollidedWithTarget: explode (modExploder) or die
+  if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
+  else t.removed.add(a.id)
+}
+
+/** calcCollisionVectSpell of an #explode bullet on one unit (no push when outside the blast). */
+function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: ActorState): Vec {
+  const r = spriteRectFor(t.s, victim)
+  const ex = explodeWithCharge(bullet.pos, def.attack.explodeCharge, def.attack, [{ id: victim.id, pos: victim.pos, radius: (r.right - r.left) / 2 }])
+  return ex.pushes[0]?.push ?? { x: 0, y: 0 }
+}
+
+/**
+ * modExploder.explode: the explode sound, teamMaster.impactAttack with the bullet's explodeCharge
+ * (radius explodeCharge / 2, push (radius + r - dist) * power, as a spell), then the explode strip.
+ */
+function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
+  playSound(t, def.exploderSound, def.exploderVolume)
+  const atk = def.attack
+  const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, a.team, atk.hits))
+  for (const { id, push } of ex.pushes) {
+    const victim = actorIn(t, id)
+    if (victim) applyHit(t, victim, push, atk.damageMultiplier)
+  }
+  t.events.push({ kind: 'explode', pos: a.pos, radius: ex.radius })
+  a.mode = 'explode'
+  a.vel = { x: 0, y: 0 }
+  a.prevPos = a.pos
+  a.age = 0
+}
+
+/**
+ * Living units of a team `team` hates whose role the attack `hits` (teamMembers, teamBuildings),
+ * with their sprite radius (objGameObject.getRadius): the candidates of teamMaster.impactAttack.
+ */
+export function splashVictims(t: Tick, team: string, hits: string[]): SplashVictim[] {
+  const hated = hatedTeams(team, t.s.teams)
+  return t.actors
+    .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && hated.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
+    .map((v) => {
+      const r = spriteRectFor(t.s, v)
+      return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
+    })
 }
 
 /** modReel.updateReel, objCharacter #die -> #dead, objCPUCharacter.updateDead -> #finish (grave), the player's release strip and death timer. */

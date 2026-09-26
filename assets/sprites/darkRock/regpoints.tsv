@@ -1,0 +1,10 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_darkRock_explode_01_01	gfx	1841	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_02	gfx	1842	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_03	gfx	1843	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_04	gfx	1844	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_05	gfx	1845	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_06	gfx	1846	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_07	gfx	1847	55	55	32	27	27	alpha=255..255
+anm_darkRock_explode_01_08	gfx	1848	55	55	32	27	27	alpha=255..255
+anm_darkRock_fly_03_01	gfx	1821	39	23	32	19	11	alpha=255..255

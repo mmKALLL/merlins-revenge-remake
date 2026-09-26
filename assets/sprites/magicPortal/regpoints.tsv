@@ -1,0 +1,13 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_magicPortal_grave_01_01	gfx	1511	27	27	32	13	13	alpha=255..255
+anm_magicPortal_grave_01_02	gfx	1512	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_01	gfx	1501	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_02	gfx	1502	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_03	gfx	1503	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_04	gfx	1504	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_05	gfx	1505	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_06	gfx	1506	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_07	gfx	1507	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_08	gfx	1508	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_09	gfx	1509	27	27	32	13	13	alpha=255..255
+anm_magicPortal_stand_01_10	gfx	1510	27	27	32	13	13	alpha=255..255

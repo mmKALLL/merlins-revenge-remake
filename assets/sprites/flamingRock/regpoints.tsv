@@ -1,0 +1,10 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_flamingRock_explode_01_01	gfx	1831	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_02	gfx	1832	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_03	gfx	1833	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_04	gfx	1834	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_05	gfx	1835	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_06	gfx	1836	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_07	gfx	1837	55	55	32	27	27	alpha=255..255
+anm_flamingRock_explode_01_08	gfx	1838	55	55	32	27	27	alpha=255..255
+anm_flamingRock_fly_03_01	gfx	1822	37	21	32	18	10	alpha=255..255

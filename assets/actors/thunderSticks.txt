@@ -1,0 +1,83 @@
+[#name: "act_thunderSticks", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 13,
+#animType: #weaponRanged,
+#bullet: #thunderBlast,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #thunderSticks,
+#reach: 300,
+#sound: #none
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

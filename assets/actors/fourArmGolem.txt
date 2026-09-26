@@ -1,0 +1,100 @@
+[#name: "act_fourArmGolem", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [7, 14, 20, 27],
+#animType: #naturalRanged,
+#bullet: #darkRock,
+#collisionLoc: point(0,-8),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwBoulder,
+#reach: 150,
+#sound: "darkGolem_fire"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: "boulder_die",
+#energy: 1200,
+#experienceImWorth: 65,
+#eyestrain: 25,
+#frictionReel: point(50,50),
+#inertia: 65,
+#reincarnateAs: [#darkGolem, #darkGolem],
+#reincarnateRadius: 30,
+#startingLevel: 5,
+#strength: 20,
+#team: #monsters,
+#name: "fourArmGolem",
+#walkSpeed: 1,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

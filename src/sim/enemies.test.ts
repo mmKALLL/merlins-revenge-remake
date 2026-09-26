@@ -37,7 +37,7 @@ const anims: Record<string, AnimationSet> = Object.fromEntries(
   }),
 )
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /** One open 18x9 room with the given objects (1-based tiles). */
@@ -235,6 +235,27 @@ describe('multistage and special units', () => {
     expect(hydra2!.energy).toBe(defs['hydra2']!.energy)
     expect(ofDef(s, 'hydra3')).toHaveLength(0)
     expect(s.exitsOpen).toBe(false)
+  })
+
+  it('a dark golem\'s rock explodes on the player (modExploder, explodeCharge 40)', () => {
+    let s = sim([{ x: 8, y: 5, symbol: 'darkGolem' }])
+    let exploded = false
+    let hurt = false
+    for (let i = 0; i < 400 && !(exploded && hurt); i++) {
+      s = stepSim(s, NO_INPUT)
+      exploded ||= s.events.some((e) => e.kind === 'explode' && e.radius === 20)
+      hurt ||= s.events.some((e) => e.kind === 'hit' && e.id === s.playerId)
+      s = pinPlayer(s)
+    }
+    expect(exploded).toBe(true)
+    expect(hurt).toBe(true)
+  })
+
+  it('a four-arm golem comes back as two dark golems', () => {
+    let s = sim([{ x: 7, y: 5, symbol: 'fourArmGolem' }])
+    s = patch(s, 'fourArmGolem', { energy: 1, ai: { ...ofDef(s, 'fourArmGolem')[0]!.ai, mode: 'none' } })
+    for (let i = 0; i < 120 && ofDef(s, 'darkGolem').length === 0; i++) s = stepSim(s, i < 13 ? holdE : NO_INPUT)
+    expect(ofDef(s, 'darkGolem')).toHaveLength(2)
   })
 
   it('a reelProof plant takes damage from the blast but never reels', () => {

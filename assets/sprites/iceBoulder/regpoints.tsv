@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_iceboulder_fly_03_01	gfx	3148	20	20	32	10	10	alpha=255..255
+anm_iceboulder_land_01_01	gfx	3149	30	26	32	15	13	alpha=0..255
+anm_iceboulder_land_60_02	gfx	3150	38	32	32	18	15	alpha=0..255

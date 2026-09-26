@@ -1,0 +1,85 @@
+[#name: "act_iceBoulder", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 1,
+#freezeMultiplier: 1,
+#power: 2,
+#glowTeal: true,
+#payloadFunction: [#takeFreeze, #takeHit],
+#freezeMultiplier: 3,
+#type: #bullet
+],
+#character: #bullet,
+#name: "iceBoulder",
+#friction: point(4.5,4.5),
+#recordInRoomState: false,
+#weight: 1.5
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

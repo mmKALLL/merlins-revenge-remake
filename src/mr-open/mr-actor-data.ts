@@ -5,7 +5,7 @@ import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist
 import type { Vec } from './mr-geometry'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
-export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'none'
+export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'explode' | 'none'
 
 export interface AttackDef {
   name: string // weapon or spell name, e.g. goblinSword, energyBlast
@@ -30,6 +30,7 @@ export interface AttackDef {
   chargeSpeed: number // charge gained per tick (times the caster's mana_flow)
   chargeSize: number // sprite pixels per unit of charge while charging
   chargeExplodeFactor: number // charge is multiplied by this on impact; explosion radius = charge / 2 afterwards
+  explodeCharge: number // an #explode bullet's charge when it goes off (radius explodeCharge / 2)
   chargeColour: { r: number; g: number; b: number } // tint of the charging/flying spell sprite
   spellSpeed: number // spell flight speed in px per tick
   limitMagic: boolean // whether the magic limiter percentage scales the charge max
@@ -97,6 +98,10 @@ export interface ActorDef {
   graveOn: boolean // modGrave: false = no grave strip and no grave stamp on death
   reincarnateAs: string[] // modReincarnate: actor keys created on the spot when killed
   runReload: boolean // objCPUCharacter: after an attack, move away from the target until the cooldown is done
+  // --- engine: exploding bullets (modExploder)
+  explodeEvents: string[] // bullet events that set it off: bulletCollidedWithTarget, bulletLanded
+  exploderSound: string | null // modExploder #explodeSound (the actor's own, not the attack's)
+  exploderVolume: number // modExploder #explodeVolume, default 50
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
   // --- engine: dwellings (modResidents)
@@ -140,7 +145,7 @@ const ATTACK_DEFAULTS = {
   collisionLoc: { x: 25, y: 0 }, idealAttackLoc: 'collisionLoc', reach: 25, cooldown: 0,
   power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1,
-  chargeExplodeFactor: 4, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
+  chargeExplodeFactor: 4, explodeCharge: 10, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
   sound: null, releaseSound: null, explodeSound: null, volume: DEFAULT_VOLUME, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP,
 } as const
 
@@ -164,6 +169,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     graveOn: true, // modGrave
     reincarnateAs: [], // modReincarnate ([#none, #none, #none])
     runReload: false, // objCPUCharacter
+    explodeEvents: [], exploderVolume: 50, // modExploder
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
     navModeAcceleration: 0, // only Merlin installs modNavMode
@@ -198,6 +204,7 @@ for (const k of [
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
+  'explodeEvents', 'exploderVolume', 'explodeVolume',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
@@ -265,7 +272,7 @@ function deepMerge(a: Plain, b: Plain): Plain {
   return out
 }
 
-const ATTACK_TYPES: ReadonlySet<string> = new Set<AttackType | 'auto'>(['melee', 'ranged', 'magic', 'bullet', 'none', 'auto'])
+const ATTACK_TYPES: ReadonlySet<string> = new Set<AttackType | 'auto'>(['melee', 'ranged', 'magic', 'bullet', 'explode', 'none', 'auto'])
 
 function attackTypeFromAnim(animType: string, explicit: unknown, ctx: string): AttackType {
   if (typeof explicit !== 'string' || !ATTACK_TYPES.has(explicit)) {
@@ -379,11 +386,16 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     hits: strList(a, 'hits', ctx),
     chargeStart: num(a, 'chargeStart', ctx), chargeMax: num(a, 'chargeMax', ctx), chargeMaxBasic: num(a, 'chargeMaxBasic', ctx),
     chargeMaxModifier: num(a, 'chargeMaxModifier', ctx), chargeSpeed: num(a, 'chargeSpeed', ctx), chargeSize: num(a, 'chargeSize', ctx),
-    chargeExplodeFactor: num(a, 'chargeExplodeFactor', ctx), chargeColour: rgb(a, 'chargeColour', ctx),
+    chargeExplodeFactor: num(a, 'chargeExplodeFactor', ctx), explodeCharge: num(a, 'explodeCharge', ctx), chargeColour: rgb(a, 'chargeColour', ctx),
     spellSpeed: num(a, 'spellSpeed', ctx), limitMagic: a['limitMagic'] === true,
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
   }
+}
+
+/** The attack with its bullet symbol resolved to an actor file key (act_iceBoulder for #iceboulder). */
+function withBulletKey(a: AttackDef, actorKey: (sym: string) => string): AttackDef {
+  return a.bullet === null ? a : { ...a, bullet: actorKey(a.bullet) }
 }
 
 /** Runs `fn`, rethrowing any error with `<ctx>: ` prefixed so data errors name the file they came from. */
@@ -436,12 +448,14 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
     r = { ...OBJECT_DEFAULTS['*'], ...(OBJECT_DEFAULTS[objType] ?? {}), ...r }
     const { attack: attackOverlay, ...overlay } = tuning[key] ?? {}
     r = deepMerge(r, overlay)
-    const weapon = typeof r['weapon'] === 'string' ? r['weapon'] : null
+    const weapon = typeof r['weapon'] === 'string' ? actorKey(r['weapon']) : null
     const rawAttack = installedRawAttack(r, weapon, parsed, attackOverlay, ctx)
     out[key] = {
       // engine: identity, allegiance and drawing
       key, name: String(r['name'] ?? key), objType, aiType: strOrNull(r['AiType']), team: str(r, 'team', ctx),
-      layerZ: str(r, 'layerZ', ctx), startOffset: vec(r, 'startOffset', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
+      // a few actors set a bare sprite channel as layerZ (act_cracks: 49)
+      layerZ: typeof r['layerZ'] === 'number' ? String(r['layerZ']) : str(r, 'layerZ', ctx),
+      startOffset: vec(r, 'startOffset', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx),
       // engine: energy and physics
       energy: num(r, 'energy', ctx), energyRecoverDelay: num(r, 'energyRecoverDelay', ctx),
       friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
@@ -462,6 +476,9 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
       dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
       graveOn: bool(r, 'graveOn', ctx), reincarnateAs: symbolList(r, 'reincarnateAs', ctx).map(actorKey), runReload: bool(r, 'runReload', ctx),
+      // engine: exploding bullets (the actor-level #explodeSound / #explodeVolume, not the attack's)
+      explodeEvents: symbolList(r, 'explodeEvents', ctx), exploderSound: strOrNull(r['explodeSound']),
+      exploderVolume: volumeOf(r, r['explodeVolume'] !== undefined ? 'explodeVolume' : 'exploderVolume', ctx),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
       // engine: dwellings
       residentGroups: residentGroups(r, 'residentGroups', ctx).map((g) => ({ ...g, typ: actorKey(g.typ) })),
@@ -473,7 +490,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
       productionTimeScale: num(r, 'productionTimeScale', ctx),
-      attack: buildAttack(rawAttack, ctx), raw: r,
+      attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey), raw: r,
     }
   }
   return out

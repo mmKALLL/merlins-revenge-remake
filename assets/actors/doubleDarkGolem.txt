@@ -1,0 +1,100 @@
+[#name: "act_doubleDarkGolem", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [5, 11, 18, 25],
+#animType: #naturalRanged,
+#bullet: #darkRock,
+#collisionLoc: point(0,-10),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwBoulder,
+#reach: 150,
+#sound: "darkGolem_fire"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: "boulder_die",
+#energy: 1000,
+#experienceImWorth: 40,
+#eyestrain: 25,
+#frictionReel: point(50,50),
+#inertia: 50,
+#startingLevel: 5,
+#reincarnateAs: [#darkGolem, #darkGolem],
+#reincarnateRadius: 30,
+#strength: 20,
+#team: #monsters,
+#name: "doubleDarkGolem",
+#walkSpeed: 1,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

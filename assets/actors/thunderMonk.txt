@@ -1,0 +1,86 @@
+[#name: "act_thunderMonk", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 150,
+#experienceImWorth: 15,
+#eyestrain: 50,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 10,
+#team: #magicalAlliance,
+#name: "thunderMonk",
+#walkSpeed: 4,
+#weapon: #thunderSticks,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

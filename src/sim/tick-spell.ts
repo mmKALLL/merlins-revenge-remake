@@ -5,13 +5,12 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { cooldownReady, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
 import { chargeVolume } from '../mr-open/mr-sound'
-import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity, type SplashVictim } from '../mr-open/mr-spell'
-import { hatedTeams } from '../mr-open/mr-targeting'
-import { defOf, isAlive, isSpell, isUnit, spriteRectFor } from './actors'
+import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity } from '../mr-open/mr-spell'
+import { defOf, isAlive, isSpell } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
 import { actorIn, playerIn, playSound, spawn, type Tick } from './tick-context'
-import { applyHit } from './tick-combat'
+import { applyHit, splashVictims } from './tick-combat'
 import { nearestHostileId } from './tick-ai'
 
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
@@ -158,20 +157,6 @@ export function stepSpells(t: Tick): void {
 }
 
 /**
- * Living units of a team the spell's team hates whose role the attack `hits` (teamMembers,
- * teamBuildings), with their sprite radius (objGameObject.getRadius).
- */
-function splashVictims(t: Tick, spell: ActorState, hits: string[]): SplashVictim[] {
-  const hated = hatedTeams(spell.team, t.s.teams)
-  return t.actors
-    .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && hated.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
-    .map((v) => {
-      const r = spriteRectFor(t.s, v)
-      return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
-    })
-}
-
-/**
  * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
  * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
  * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
@@ -182,7 +167,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
   if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
-  const victims = splashVictims(t, spell, atk.hits)
+  const victims = splashVictims(t, spell.team, atk.hits)
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
   const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)
