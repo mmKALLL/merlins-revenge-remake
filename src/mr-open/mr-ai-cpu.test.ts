@@ -26,6 +26,9 @@ describe('dirXToTarget / idealAttackLoc', () => {
   it('ranged ideal loc is the target itself', () => {
     expect(idealAttackLoc({ x: 0, y: 0 }, { x: 100, y: 50 }, bow)).toEqual({ x: 100, y: 50 })
   })
+  it('weaponless (#none) ideal loc is offset like melee', () => {
+    expect(idealAttackLoc({ x: 0, y: 0 }, { x: 100, y: 50 }, { ...sword, type: 'none' })).toEqual({ x: 85, y: 50 })
+  })
 })
 
 describe('targetInReach', () => {

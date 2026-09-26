@@ -57,11 +57,14 @@ export interface Explosion {
 /**
  * objSpell.goMode(#explode): charge *= chargeExplodeFactor; splash radius = charge / 2; each victim
  * with dist < radius + its radius gets a push of length (radius + r - dist) * power away from the centre.
+ * calcCollisionVectSpell nudges a victim exactly on the centre by point(0,1) before taking the direction
+ * (the speed still uses dist 0), so a direct hit pushes straight down (+y) with the full (radius + r) * power.
  */
 export function explode(center: Vec, chargeAtRelease: number, a: AttackDef, victims: SplashVictim[]): Explosion {
   const charge = chargeAtRelease * a.chargeExplodeFactor
   const radius = charge / 2
-  const power = typeof a.power === 'number' ? a.power : 1
+  const power = a.power
+  if (typeof power !== 'number') throw new Error(`${a.name}: spell power must be a number`)
   const pushes: { id: number; push: Vec }[] = []
   for (const v of victims) {
     const dx = v.pos.x - center.x
@@ -70,8 +73,9 @@ export function explode(center: Vec, chargeAtRelease: number, a: AttackDef, vict
     if (dist * dist >= (radius + v.radius) ** 2) continue
     const speed = (radius + v.radius - dist) * power
     if (speed <= 0) continue
-    const d = dist || 1
-    pushes.push({ id: v.id, push: { x: (dx / d) * speed, y: (dy / d) * speed } })
+    // avoid locs being on top of each other: targetLoc + point(0,1)
+    const dir = dist === 0 ? { x: 0, y: 1 } : { x: dx / dist, y: dy / dist }
+    pushes.push({ id: v.id, push: { x: dir.x * speed, y: dir.y * speed } })
   }
   return { radius, pushes }
 }

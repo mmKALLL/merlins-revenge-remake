@@ -7,7 +7,11 @@ import type { ActorDef } from './mr-actor-data'
 
 /** objMoveXY pStallSpeed for characters. */
 export const STALL_SPEED = 0.2
-/** objMoveXY pStallCount length: the reel ends after 10 stalled ticks. */
+/**
+ * objMoveXY pStallCount length: the reel ends after 10 stalled ticks. Lingo counters start at 1 and
+ * finish when the count reaches the length, so the engine ends the reel one tick earlier (9 stalled
+ * ticks); this port keeps the simpler N-tick model deliberately.
+ */
 export const REEL_STALL_TICKS = 10
 
 export interface HitResult {

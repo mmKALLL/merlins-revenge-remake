@@ -74,8 +74,11 @@ describe('explode', () => {
     const r = explode({ x: 0, y: 0 }, 12.5, energyBlast, [{ id: 1, pos: { x: 32, y: 0 }, radius: 8 }])
     expect(r.pushes[0]!.push).toEqual({ x: 0.75, y: 0 })
   })
-  it('a victim exactly on the centre has no direction and gets a zero push (GeomMoveVector of a zero delta)', () => {
+  it('a victim exactly on the centre is nudged by point(0,1) and pushed straight down with the full (radius + r) * power', () => {
     const r = explode({ x: 0, y: 0 }, 12.5, energyBlast, [{ id: 1, pos: { x: 0, y: 0 }, radius: 16 }])
-    expect(r.pushes[0]!.push).toEqual({ x: 0, y: 0 })
+    expect(r.pushes[0]!.push).toEqual({ x: 0, y: (25 + 16) * 0.75 })
+  })
+  it('throws on a non-scalar power', () => {
+    expect(() => explode({ x: 0, y: 0 }, 12.5, { ...energyBlast, power: { x: 1, y: 0 } }, [])).toThrow()
   })
 })

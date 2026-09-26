@@ -12,6 +12,9 @@ import { roughly, type Rng } from '../sim/rng'
  * when it reaches the end. This port stores the *remaining* units instead: reset to `cooldown`,
  * subtract the increment each tick, ready when <= 0. Ticks to ready = ceil(cooldown / increment),
  * e.g. bow 200 / dexterity 10 = 20 ticks; sword cooldown 0 is ready at once.
+ * Lingo counters start at 1 and finish when the count reaches the length, so the engine is ready one
+ * step earlier, after ceil((cooldown - 1) / inc) ticks (the bow: 20 as well; cooldown 30 / 30: 1 vs 1,
+ * but e.g. 30 / 1: 29 vs 30). This port keeps the simpler N-tick model deliberately.
  */
 export function cooldownIncrement(def: ActorDef): number {
   const t = def.attack.type
@@ -44,11 +47,14 @@ export function meleeHits(attackerPos: Vec, def: ActorDef, facingLeft: boolean, 
 /** Reach as a radius; a point reach (the player's punch) is not a radius, so fall back to the struct default 25. */
 const reachRadius = (a: AttackDef): number => (typeof a.reach === 'number' ? a.reach : 25)
 
-/** modifyLocWithEyestrain: integer error in [-e, e] per axis, e growing linearly from 0 at point blank to `eyestrain` at `reach`. */
+/**
+ * modifyLocWithEyestrain: integer error in [-e, e] per axis, e = integer(min(1, dist / reach) * eyestrain)
+ * growing linearly from 0 at point blank to `eyestrain` at `reach`. Lingo integer() rounds to nearest.
+ */
 export function aimWithEyestrain(from: Vec, target: Vec, def: ActorDef, rng: Rng): [Vec, Rng] {
   const dist = Math.hypot(target.x - from.x, target.y - from.y)
   const reach = reachRadius(def.attack)
-  const e = Math.floor(Math.min(1, reach > 0 ? dist / reach : 1) * def.eyestrain)
+  const e = Math.round(Math.min(1, reach > 0 ? dist / reach : 1) * def.eyestrain)
   const [ex, r1] = roughly(rng, e)
   const [ey, r2] = roughly(r1, e)
   return [{ x: target.x + ex, y: target.y + ey }, r2]

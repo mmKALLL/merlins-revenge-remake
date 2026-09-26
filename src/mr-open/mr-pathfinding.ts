@@ -3,7 +3,11 @@
 import type { Vec } from './mr-geometry'
 import { roughly, type Rng } from '../sim/rng'
 
-/** modPathFinding pathFindingStallTime: stalled ticks before switching path mode. */
+/**
+ * modPathFinding pathFindingStallTime: stalled ticks before switching path mode. Lingo counters start
+ * at 1 and finish when the count reaches the length, so the engine switches one tick earlier (4
+ * stalled ticks); this port keeps the simpler N-tick model deliberately.
+ */
 export const PATH_STALL_TICKS = 5
 /** modPathFinding pathFindingDistance: scenic waypoint slack per axis. */
 export const PATH_WANDER_DISTANCE = 100
@@ -38,6 +42,8 @@ export const BEELINE: PathState = { pathMode: 'beeline', waypoint: null, pathSta
  * walker's velocity; friction does not apply to walking) and the new path state.
  * `movedLastTick` is whether the previous tick's actual displacement was non-zero: a move blocked by
  * tiles yields moveVect (0,0), which is what stalls the path and triggers scenic wandering.
+ * Returning to beeline on arriving at the scenic waypoint is a simplification: the engine only leaves
+ * #scenic on a stall (a walker standing on its waypoint stalls and switches back a few ticks later).
  */
 export function pathStep(
   p: PathState,

@@ -309,9 +309,9 @@ describe('archer (combat notes §3-4)', () => {
     expect(arrow.pos).toEqual({ x: 190, y: 142 }) // collisionLoc (0,-2)
     expect(Math.hypot(arrow.vel.x, arrow.vel.y)).toBeCloseTo(8, 10) // fullstrength: strength 8
     expect(arrow.vel.x).toBeLessThan(0)
-    // eyestrain at 90 / 100 of reach: floor(0.9 * 5) = 4 px of error per axis at most
-    expect(Math.abs(arrow.targetPoint!.x - 100)).toBeLessThanOrEqual(4)
-    expect(Math.abs(arrow.targetPoint!.y - 144)).toBeLessThanOrEqual(4)
+    // eyestrain at 90 / 100 of reach: integer(0.9 * 5) = 5 px of error per axis at most
+    expect(Math.abs(arrow.targetPoint!.x - 100)).toBeLessThanOrEqual(5)
+    expect(Math.abs(arrow.targetPoint!.y - 144)).toBeLessThanOrEqual(5)
     // Flight: the arrow's friction (5,5) takes 5 % per tick from the very first move, so it never
     // travels at the full 8 px/tick: after n moves it has covered 152 * (1 - 0.95^n) px. It hits when
     // the player's reg point enters the arrow rect grown by the player's collision rect, i.e. within
@@ -341,6 +341,22 @@ describe('archer (combat notes §3-4)', () => {
     a = actor(s, enemyId)!
     expect(a.mode).toBe('walk')
     expect(a.pos).toEqual({ x: 190, y: 144 })
+  })
+
+  it('waiting in reach for the cooldown resets the path stall: stays in beeline and does not move', () => {
+    // #arrivedAtAttackLoc resets the stall counter, so a stalled or wandering archer that finds itself
+    // in reach with the bow still cooling down returns to beeline and never switches to wandering.
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, moveTarget: null, chargeKind: null }
+    let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 }, undefined, 1, { cooldown: 200, ai })
+    // 200 / dexterity 10 = 20 ticks of cooldown
+    for (let i = 0; i < 19; i++) {
+      s = stepSim(s, NO_INPUT)
+      const a = actor(s, enemyId)!
+      expect(a.pos).toEqual({ x: 190, y: 144 })
+      expect(a.ai.pathMode).toBe('beeline')
+      expect(a.ai.pathStall).toBe(0)
+      expect(a.mode).not.toBe('weaponRanged')
+    }
   })
 
   it('a missed arrow stalls under 2 px/tick, lands, and disappears 30 ticks later', () => {

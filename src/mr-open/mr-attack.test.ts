@@ -86,13 +86,15 @@ describe('ranged', () => {
       expect(Number.isInteger(aim.x)).toBe(true)
     }
   })
-  it('eyestrain scales linearly: at half reach the error is at most floor(2.5) = 2', () => {
+  it('eyestrain scales linearly: at half reach the error is integer(2.5) = 3 (Lingo integer() rounds)', () => {
     let rng = { seed: 3 }
-    for (let i = 0; i < 50; i++) {
+    let maxErr = 0
+    for (let i = 0; i < 200; i++) {
       const [aim, next] = aimWithEyestrain(from, { x: 50, y: 0 }, archer, rng)
       rng = next
-      expect(Math.abs(aim.x - 50)).toBeLessThanOrEqual(2)
+      maxErr = Math.max(maxErr, Math.abs(aim.x - 50))
     }
+    expect(maxErr).toBe(3)
   })
   it('fullstrength shot spawns at the mirrored collisionLoc with a velocity of length strength', () => {
     const s = rangedShot({ x: 10, y: 10 }, { x: 40, y: 48 }, archer, false)

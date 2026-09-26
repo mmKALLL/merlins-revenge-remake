@@ -7,7 +7,7 @@ import type { Rect, Vec } from './mr-geometry'
 
 /** objBullet stallSpeed: both axes under 2 px/tick -> #bulletLanded. */
 export const BULLET_STALL_SPEED = 2
-/** Ticks a landed arrow stays visible before removal (not in the export; the engine plays its `land` strip once). */
+/** Ticks a landed arrow stays visible before removal (remake choice; the engine removes the arrow once its land strip has played). */
 export const LANDED_TICKS = 30
 
 /**

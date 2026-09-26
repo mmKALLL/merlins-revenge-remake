@@ -4,8 +4,13 @@
 // animation and reel state, so this module only reports "idle" for them.
 import type { Rect, Vec } from './mr-geometry'
 import type { AttackDef } from './mr-actor-data'
+import type { AiMode } from '../sim/state'
 
-/** objAiCPU pRetargetCounter length: refresh the target every 30 ticks while chasing. */
+/**
+ * objAiCPU pRetargetCounter length: refresh the target every 30 ticks while chasing. Lingo counters
+ * start at 1 and finish when the count reaches the length, so the engine retargets one tick earlier
+ * (29 ticks); this port keeps the simpler N-tick model deliberately.
+ */
 export const RETARGET_TICKS = 30
 
 export interface AiView {
@@ -26,9 +31,9 @@ export function dirXToTarget(me: Vec, target: Vec): 1 | -1 {
   return target.x < me.x ? -1 : 1
 }
 
-/** calcIdealAttackLoc: ranged/magic stand on the target; melee stands idealAttackLoc away on the near side. */
+/** calcIdealAttackLoc: ranged/magic stand on the target; melee and #none stand idealAttackLoc away on the near side. */
 export function idealAttackLoc(me: Vec, target: Vec, a: AttackDef): Vec {
-  if (a.type !== 'melee') return target
+  if (a.type === 'ranged' || a.type === 'magic') return target
   const d = dirXToTarget(me, target)
   return { x: target.x + a.idealAttackLoc.x * -d, y: target.y + a.idealAttackLoc.y * -1 }
 }
@@ -45,7 +50,8 @@ export function targetInReach(me: AiView, t: TargetView): boolean {
   const a = me.attack
   if (a.type === 'melee') return insideRect(t.rect, strikePoint(me.pos, a, -1)) || insideRect(t.rect, strikePoint(me.pos, a, 1))
   if (typeof a.reach !== 'number') {
-    // point reach: me.getLoc().inside(target.getRect().inflate(reach.x, reach.y))
+    // point reach: me.getLoc().inside(target.getRect().inflate(reach.x, reach.y)); the target's
+    // collision rect stands in for getRect() (the sprite rect)
     const r = a.reach
     return insideRect({ left: t.rect.left - r.x, top: t.rect.top - r.y, right: t.rect.right + r.x, bottom: t.rect.bottom + r.y }, me.pos)
   }
@@ -65,7 +71,7 @@ export type AiDecision =
  * the last retarget; the caller resets it when it acts on 'retarget'. 'stop' = in reach but the
  * cooldown is not finished (#arrivedAtAttackLoc stops movement; attack() returns early).
  */
-export function decide(aiMode: string, me: AiView, target: TargetView | null, retargetCounter: number): AiDecision {
+export function decide(aiMode: AiMode, me: AiView, target: TargetView | null, retargetCounter: number): AiDecision {
   if (aiMode === 'dazed' || aiMode === 'attack' || aiMode === 'none') return { kind: 'idle' }
   if (aiMode === 'findTarget' || target === null || !target.alive || retargetCounter >= RETARGET_TICKS) return { kind: 'retarget' }
   if (targetInReach(me, target)) {
