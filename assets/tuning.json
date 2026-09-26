@@ -3,10 +3,12 @@
     "weapon": "energyBlast"
   },
   "goblinWarrior": {
-    "energy": 50
+    "energy": 50,
+    "pathFindingStallTime": 2
   },
   "goblinArcher": {
-    "energy": 25
+    "energy": 25,
+    "pathFindingStallTime": 2
   },
   "goblinArrow": {
     "collisionRectScale": 0.5

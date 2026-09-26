@@ -57,7 +57,7 @@ export function stepCpuAi(t: Tick): void {
       case 'move': {
         const moved = a.pos.x !== a.prevPos.x || a.pos.y !== a.prevPos.y
         const path = { pathMode: a.ai.pathMode, waypoint: a.ai.waypoint, pathStall: a.ai.pathStall }
-        const r = pathStep(path, a.pos, decision.goal, def.walkSpeed, moved, t.rng)
+        const r = pathStep(path, a.pos, decision.goal, def.walkSpeed, moved, t.rng, def.pathFindingStallTime)
         t.rng = r.rng
         a.ai = { ...a.ai, ...r.path, moveTarget: decision.goal }
         a.vel = r.vel

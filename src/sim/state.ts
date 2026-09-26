@@ -52,7 +52,7 @@ export interface AiState {
   retargetCounter: number // ticks since last retarget (retarget at 30)
   pathMode: 'beeline' | 'scenic'
   waypoint: Vec | null
-  pathStall: number // consecutive stalled ticks (pathFindingStallTime 5)
+  pathStall: number // consecutive stalled ticks (switches path mode at ActorDef.pathFindingStallTime)
   moveTarget: Vec | null // modMoveToLoc target; null = not moving
   chargeKind: ChargeKind | null // player only
 }

@@ -4,7 +4,7 @@ import type { Vec } from './mr-geometry'
 import { roughly, type Rng } from '../sim/rng'
 
 /**
- * modPathFinding pathFindingStallTime: stalled ticks before switching path mode. Lingo counters start
+ * modPathFinding pathFindingStallTime default (ActorDef.pathFindingStallTime): stalled ticks before switching path mode. Lingo counters start
  * at 1 and finish when the count reaches the length, so the engine switches one tick earlier (4
  * stalled ticks); this port keeps the simpler N-tick model deliberately.
  */
@@ -53,9 +53,10 @@ export function pathStep(
   walkSpeed: number,
   movedLastTick: boolean,
   rng: Rng,
+  stallTicks: number = PATH_STALL_TICKS,
 ): { vel: Vec; path: PathState; rng: Rng } {
   const pathStall = movedLastTick ? 0 : p.pathStall + 1
-  const stalled = pathStall >= PATH_STALL_TICKS
+  const stalled = pathStall >= stallTicks
   if (p.pathMode === 'scenic') {
     const wp = p.waypoint ?? pos
     const vel = frameMove(pos, wp, walkSpeed)
