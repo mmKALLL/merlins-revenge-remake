@@ -52,6 +52,7 @@ export interface ActorDef {
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
   walkSpeed: number // AI walking speed in px per tick (velocity is overwritten each tick)
   walkAcceleration: number // player acceleration per tick per axis while a key is held
+  navModeAcceleration: number // player walk acceleration in a cleared room (modNavMode); 0 = no nav mode
   strength: number // scales melee push and fullstrength bullet speed
   agility: number // cooldown progress per tick for melee attacks
   dexterity: number // cooldown progress per tick for ranged attacks
@@ -100,6 +101,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
+    navModeAcceleration: 0, // only Merlin installs modNavMode
     strength: 1, agility: 1, dexterity: 1, eyestrain: 0, // act_character fallbacks
     mana_burst: 1, mana_capacity: 10, mana_flow: 1, mana_regeneration: 1, // act_character fallbacks
     experienceImWorth: 0, // objGameObject
@@ -107,14 +109,14 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
-  objPlayerMerlinCharacter: { energyRecoverDelay: 30 },
+  objPlayerMerlinCharacter: { energyRecoverDelay: 30, navModeAcceleration: 6 }, // modNavMode.addModParams
 }
 
 /** Canonical camelCase spellings; Lingo symbols are case-insensitive. Keys not listed here are lowercased. */
 const CANONICAL = new Map<string, string>()
 for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ',
   'startOffset', 'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'walkSpeed',
-  'walkAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
+  'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
   'mana_regeneration', 'weapon', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
   'teamName', 'category', 'hates', 'friends']) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -294,7 +296,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       layerZ: str(r, 'layerZ', ctx), startOffset: vec(r, 'startOffset', ctx), energy: num(r, 'energy', ctx),
       energyRecoverDelay: num(r, 'energyRecoverDelay', ctx), friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
       inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx), walkSpeed: num(r, 'walkSpeed', ctx),
-      walkAcceleration: num(r, 'walkAcceleration', ctx), strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx),
+      walkAcceleration: num(r, 'walkAcceleration', ctx), navModeAcceleration: num(r, 'navModeAcceleration', ctx), strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx),
       dexterity: num(r, 'dexterity', ctx), eyestrain: num(r, 'eyestrain', ctx), mana_burst: num(r, 'mana_burst', ctx),
       mana_capacity: num(r, 'mana_capacity', ctx), mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
       weapon, experienceImWorth: num(r, 'experienceImWorth', ctx), attack: buildAttack(rawAttack, ctx), raw: r,

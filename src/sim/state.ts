@@ -106,6 +106,7 @@ export interface SimState {
   room: Vec
   rooms: Record<string, RoomState> // key `${x},${y}`
   exitsOpen: boolean
+  navMode: boolean // modNavMode: the player walks with navModeAcceleration while the room is clear (exits open)
   actors: ActorState[]
   nextId: number
   rng: Rng

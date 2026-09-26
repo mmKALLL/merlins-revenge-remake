@@ -47,6 +47,7 @@ export function createSim(
     room: grid.roomOfPoint(startPos.x, startPos.y),
     rooms: {},
     exitsOpen: true,
+    navMode: true,
     actors: [],
     nextId: 0,
     rng: { seed: seed >>> 0 },
@@ -76,11 +77,15 @@ export function findStartPos(grid: WorldGrid, playerTileIndex: number | null): V
   return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 }
 }
 
-/** objRoom.activate: exits start open iff no hostile is alive in the room (attemptOpenExits). */
+/**
+ * objRoom.activate: exits start open iff no hostile is alive in the room (attemptOpenExits), and a
+ * clear room puts the player in nav mode (gameMaster.goNavMode; gNavMode taken as on). Leaving a room
+ * drops nav mode before moveRoom, so the new room's state applies at once.
+ */
 function withExitsEvaluated(s: SimState): SimState {
   const exitsOpen = exitsOpenFor(s, s.actors)
   const key = roomKey(s.room)
-  return { ...s, exitsOpen, rooms: { ...s.rooms, [key]: { ...(s.rooms[key] ?? EMPTY_ROOM), clear: exitsOpen } } }
+  return { ...s, exitsOpen, navMode: exitsOpen, rooms: { ...s.rooms, [key]: { ...(s.rooms[key] ?? EMPTY_ROOM), clear: exitsOpen } } }
 }
 
 /** 1. The player's own movement (objMoveXY.update -> collisions -> exit test); returns the room after the move. */
@@ -89,7 +94,8 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const p = playerIn(t)
   const def = s.defs[p.def]!
   const dir = isAlive(p) ? input.move : { x: 0, y: 0 }
-  const vel = stepVelocity(p.vel, dir, def.walkAcceleration, p.frictionPercent)
+  const accel = s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration
+  const vel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
   let loc: Vec = { x: p.pos.x + vel.x, y: p.pos.y + vel.y }
   const before = loc
   loc = resolveTileCollision(s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cfg.collisionRect)
@@ -221,6 +227,7 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
     actors,
     rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState },
     exitsOpen,
+    navMode: exitsOpen, // attemptOpenExits -> goNavMode
     rng: t.rng,
     nextId: t.nextId,
     events: t.events,

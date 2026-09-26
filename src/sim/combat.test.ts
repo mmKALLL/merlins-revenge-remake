@@ -597,6 +597,33 @@ describe('release strip (objAnimStrip getLooped)', () => {
   })
 })
 
+describe('nav mode (modNavMode)', () => {
+  it('walks with navModeAcceleration while the room is clear and walkAcceleration while hostiles live', () => {
+    const right = { ...NO_INPUT, move: { x: 1, y: 0 } }
+    const speeds = (s: SimState, n: number): [SimState, number[]] => {
+      const v: number[] = []
+      for (let i = 0; i < n; i++) {
+        s = stepSim(s, right)
+        v.push(playerOf(s).vel.x)
+      }
+      return [s, v]
+    }
+    // a living goblin: exits shut, normal acceleration 2 -> steady speed 2 under 50 % friction
+    let { s } = setup(WARRIOR, { x: 500, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    expect(s.navMode).toBe(false)
+    let v: number[]
+    ;[s, v] = speeds(s, 10)
+    expect(v.every((x) => x <= 2)).toBe(true)
+    expect(v[9]).toBeGreaterThan(1.99)
+    // an empty room is clear on entry: navModeAcceleration 6 (engine default) -> steady speed 6
+    s = createSim(grid(openMap()), defs, teams, anims, 1, { x: 100, y: 144 })
+    expect(s.navMode).toBe(true)
+    ;[s, v] = speeds(s, 10)
+    expect(v.every((x) => x <= 6)).toBe(true)
+    expect(v[9]).toBeGreaterThan(5.9)
+  })
+})
+
 describe('determinism', () => {
   it('two sims with the same seed agree after 300 ticks; another seed differs', () => {
     const seed = 42

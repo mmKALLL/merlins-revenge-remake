@@ -57,7 +57,7 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
   return {
     aiType: null, layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 }, energy: 100, energyRecoverDelay: 300,
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, walkSpeed: 0,
-    walkAcceleration: 0.5, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
+    walkAcceleration: 0.5, navModeAcceleration: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
     mana_flow: 1, mana_regeneration: 1, weapon: null, experienceImWorth: 0,
     attack: {
       name: 'none', type: 'none', animType: 'none', animFrame: 2, collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },

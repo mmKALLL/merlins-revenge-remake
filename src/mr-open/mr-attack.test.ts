@@ -11,7 +11,7 @@ const attack = (o: Partial<AttackDef>): AttackDef => ({
 const actor = (key: string, o: Partial<ActorDef>, a: Partial<AttackDef>): ActorDef => ({
   key, name: key, objType: 'objCPUCharacter', aiType: 'objAiCPU', team: 'goblins', layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 },
   energy: 100, energyRecoverDelay: 300, friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5,
-  walkSpeed: 4, walkAcceleration: 0.5, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
+  walkSpeed: 4, walkAcceleration: 0.5, navModeAcceleration: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
   mana_regeneration: 1, weapon: null, experienceImWorth: 0, attack: attack(a), raw: {}, ...o,
 })
 
