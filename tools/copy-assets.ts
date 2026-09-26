@@ -20,14 +20,19 @@ const copies: Copy[] = [
   // walk-and-rooms slice: maps
   { from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, 'maps/tvsDemo.txt'), why: 'default map' },
   { from: join(ARCHIVE, 'maps', 'works', 'sam.txt'), to: join(ASSETS, 'maps/sam.txt'), why: '3x3 test map' },
-  // tile keys (collision symbols per tile index)
-  { from: join(CASTS, 'tlk_merlinOpenPassive_key.txt'), to: join(ASSETS, 'tile-keys/merlinOpenPassive.txt'), why: 'passive layer key' },
-  { from: join(CASTS, 'tlk_merlinOpenActive_key.txt'), to: join(ASSETS, 'tile-keys/merlinOpenActive.txt'), why: 'active layer key' },
-  { from: join(CASTS, 'tlk_merlinOpenObjects_key.txt'), to: join(ASSETS, 'tile-keys/merlinOpenObjects.txt'), why: 'objects layer key' },
+  { from: join(ARCHIVE, 'maps', 'not_fully_tested', 'mriv_small.txt'), to: join(ASSETS, 'maps/mriv_small.txt'), why: 'small 5-room MR4 map, main test map' },
   // key bindings
   { from: join(CASTS, 'bnd_wasd.txt'), to: join(ASSETS, 'keybindings/wasd.txt'), why: 'default bindings' },
   { from: join(CASTS, 'bnd_arrow.txt'), to: join(ASSETS, 'keybindings/arrow.txt'), why: 'arrow bindings' },
 ]
+
+// every tile key (collision symbols per tile index) except the menu's:
+// tlk_<name>_key.txt -> tile-keys/<name>.txt
+for (const file of readdirSync(CASTS).sort()) {
+  const m = /^tlk_(.+)_key\.txt$/.exec(file)
+  if (!m || m[1] === 'menu') continue
+  copies.push({ from: join(CASTS, file), to: join(ASSETS, `tile-keys/${m[1]}.txt`), why: `${m[1]} tile key` })
+}
 
 // every Merlin animation frame
 for (const name of readdirSync(join(ARCHIVE, 'gfx', 'merlin')).sort()) {

@@ -1,0 +1,241 @@
+[#name: "tlk_merlin4Active_key", #type: #field]
+tileSize | point(32,32)
+-- Merlin III
+-- 8 tiles per row
+-- >> row 1 golden palace
+#solid
+#solid
+#none
+#solid
+#solid
+#solid
+#solid
+#none
+-- >> row 2 golden palace
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 3 golden palace
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 4 orc, trees
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 5 orc, wall, eyes
+#solid
+#solid
+#solid
+#solid
+#none
+#solid
+#solid
+#solid
+-- >> row 6 orc, black trees, stumps
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 7 orc, black, flowers, skullplant
+#solid
+#solid
+#solid
+#solid
+#solid
+#none
+#solid
+#solid
+-- >> row 8 orc, big tree
+#solid
+#solid
+#none
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 9 skull, big tree
+#none
+#none
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 10 detery flowers, big tree
+#none
+#none
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 11 detery rocks
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 12 white pots
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 13 beige pot
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 14 column bases
+#none
+#none
+#none
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 15 signs coughing cave
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- >> row 16 signs magical forest
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- >> row 17 signs remorseless mountains
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+#none
+-- >> row 18 frigid caves
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+-- >> row 19 winterland
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+#solid
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
