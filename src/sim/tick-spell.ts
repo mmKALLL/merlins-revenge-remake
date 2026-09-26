@@ -1,17 +1,21 @@
 // The player's spell (combat notes §4, §6): charge / resume / release input (objAiPlayer with
 // objAiAttack.chargeMagic / releaseMagic), spell flight and explosion (objSpell). The victim side
 // of an explosion push is applyHit in tick-combat.ts.
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
+import { tileOfPx } from '../mr-open/mr-collision'
 import { cooldownReady, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
 import { chargeVolume } from '../mr-open/mr-sound'
-import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity } from '../mr-open/mr-spell'
+import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFor, releaseVelocity } from '../mr-open/mr-spell'
 import { defOf, isAlive, isSpell } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
 import { actorIn, playerIn, playSound, spawn, type Tick } from './tick-context'
 import { applyHit, splashVictims } from './tick-combat'
 import { nearestHostileId } from './tick-ai'
+
+/** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
+export const SUMMON_UNIT = 'summonUnit'
 
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
 export const EXPLODE_TICKS = 8
@@ -157,6 +161,18 @@ export function stepSpells(t: Tick): void {
 }
 
 /**
+ * modSpellMultistage.summonPayload -> armyMaster.createUnit: the stage's unit on the spell's
+ * position with its own data (a solid tile cancels it), and the reserved slot is given back.
+ */
+function summonPayload(t: Tick, spell: ActorState, atk: AttackDef): void {
+  const payload = payloadFor(spell.charge, atk)
+  spell.summonReserved = 0
+  if (payload === null || !t.s.defs[payload]) return
+  if (t.s.grid.solidAt(tileOfPx(spell.pos.x), tileOfPx(spell.pos.y))) return
+  spawn(t, payload, spell.pos, {})
+}
+
+/**
  * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
  * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
  * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
@@ -183,6 +199,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
   playSound(t, atk.explodeSound, explodeVolume)
+  if (atk.explodeFunction === SUMMON_UNIT) summonPayload(t, spell, atk)
   spell.charge *= atk.chargeExplodeFactor
   spell.mode = 'explode'
   spell.vel = { x: 0, y: 0 }

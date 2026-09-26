@@ -37,7 +37,7 @@ const anims: Record<string, AnimationSet> = Object.fromEntries(
   }),
 )
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /** One open 18x9 room with the given objects (1-based tiles). */
@@ -265,6 +265,18 @@ describe('multistage and special units', () => {
     let near = sim([{ x: 5, y: 5, symbol: 'ninja' }]) // 64 px away; Merlin's blast is not melee
     near = stepSim(near, NO_INPUT)
     expect(ofDef(near, 'ninja')[0]!.useNatural).toBe(false)
+  })
+
+  it('a necromancer summons undead where its spell lands (modSpellMultistage)', () => {
+    let s = sim([{ x: 12, y: 5, symbol: 'necromancer' }])
+    const summonable = new Set(defs['undeadSummon']!.attack.multistage.map((m) => m.payload))
+    let summoned: ActorState | undefined
+    for (let i = 0; i < 1500 && !summoned; i++) {
+      s = pinPlayer(stepSim(s, NO_INPUT))
+      summoned = s.actors.find((a) => summonable.has(a.def))
+    }
+    expect(summoned).toBeDefined()
+    expect(summoned!.team).toBe('undead')
   })
 
   it('a reelProof plant takes damage from the blast but never reels', () => {

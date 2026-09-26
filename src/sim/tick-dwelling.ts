@@ -28,7 +28,7 @@ function stepProduction(t: Tick, a: ActorState, def: ActorDef, d: DwellingState)
     case 'produceGroup':
       return d.counter > 1 ? { ...d, counter: d.counter - 1 } : { ...d, phase: 'awaitPermission' }
     case 'awaitPermission':
-      if (!permissionToRelease(teamMembers(t, a.team), reservedSlots(t, a.team), d.groupLeft, t.s.teams[a.team]?.maxMembers ?? null)) return d
+      if (!teamHasRoomFor(t, a.team, d.groupLeft)) return d
       return withRng(t, releaseCountdown(def, { ...d, reserved: d.groupLeft }, t.rng))
     case 'releaseCountdown':
       if (d.counter > 1) return { ...d, counter: d.counter - 1 }
@@ -44,6 +44,11 @@ const withRng = (t: Tick, [d, rng]: [DwellingState, Tick['rng']]): DwellingState
   return d
 }
 
+/** reservationsMaster.getPermissionToRelease for `n` more members of `team`. */
+export function teamHasRoomFor(t: Tick, team: string, n: number): boolean {
+  return permissionToRelease(teamMembers(t, team), reservedSlots(t, team), n, t.s.teams[team]?.maxMembers ?? null)
+}
+
 /**
  * reservationsMaster currentMembers: the team's #teamMembers in the room (towers and plants are
  * characters in the #teamBuildings role and do not count; a dying one leaves the team only on #finish).
@@ -52,11 +57,14 @@ function teamMembers(t: Tick, team: string): number {
   return t.actors.filter((o) => !t.removed.has(o.id) && o.team === team && isUnit(t.s, o) && defOf(t.s, o).teamRole === 'teamMembers' && o.mode !== 'finish').length
 }
 
-/** reservationsMaster reservedSlots: slots the team's living dwellings reserved and have not released yet. */
+/**
+ * reservationsMaster reservedSlots: slots the team's living dwellings reserved and have not released
+ * yet, plus those held by its summon spells still in play.
+ */
 function reservedSlots(t: Tick, team: string): number {
   return t.actors
-    .filter((o) => !t.removed.has(o.id) && o.team === team && isDwelling(t.s, o) && isAlive(o))
-    .reduce((n, o) => n + (o.dwelling?.reserved ?? 0), 0)
+    .filter((o) => !t.removed.has(o.id) && o.team === team && ((isDwelling(t.s, o) && isAlive(o)) || o.summonReserved > 0))
+    .reduce((n, o) => n + (o.dwelling?.reserved ?? 0) + o.summonReserved, 0)
 }
 
 /**

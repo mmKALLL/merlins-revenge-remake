@@ -1,0 +1,120 @@
+[#name: "act_undeadSummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(9,113,255),
+#chargeExplodeFactor: 1,
+#chargeSize: 2,
+#chargeSpeed: 0.6,
+#chargeStart: 0,
+#chargeMax: 36,
+#chargeSpeedMax: 0.8,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 25,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers],
+#limitMagic: false,
+#randomSummon: true,
+#multistage:
+[
+#skeletonWarrior: 15,
+#skeletonArcher: 17,
+#skeletonThrower: 20,
+#greyGhost: 25,
+#undeadDragon: 29,
+#necromancer: 33,
+#darkMage: 35,
+#skelitonLord: 38
+],
+#name: #undeadSummon,
+#payloadFunction: #takeHit,
+#payloadFunctionNonBlank: #takeHit,
+#power: 2,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #enemies,
+#spellSpeed: 25,
+#targetAllegiance: #enemy,
+#targetTileWhenNotBlank: true
+],
+#character: #undeadSummon,
+#collectSound: "collect_powerup_01",
+#member: member("undeadSummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

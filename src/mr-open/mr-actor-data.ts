@@ -28,11 +28,16 @@ export interface AttackDef {
   chargeMaxBasic: number // flat part of the effective charge max
   chargeMaxModifier: number // multiplier on mana_capacity for the effective charge max
   chargeSpeed: number // charge gained per tick (times the caster's mana_flow)
+  chargeSpeedMax: number | null // cap on that product; null = #unlimited
   chargeSize: number // sprite pixels per unit of charge while charging
   chargeExplodeFactor: number // charge is multiplied by this on impact; explosion radius = charge / 2 afterwards
   explodeCharge: number // an #explode bullet's charge when it goes off (radius explodeCharge / 2)
   chargeColour: { r: number; g: number; b: number } // tint of the charging/flying spell sprite
   spellSpeed: number // spell flight speed in px per tick
+  explodeFunction: string | null // what the spell does on exploding besides the blast: summonUnit (depositMines not ported)
+  multistage: { payload: string; chargeRequired: number }[] // summon stages in order: the unit a charge of at least chargeRequired summons
+  randomSummon: boolean // an AI caster's charge max is randomised per cast (calcAttackChargeMax), so it summons a random stage
+  targetTileWhenNotBlank: boolean // a spell carrying a payload is aimed at the centre of the target's tile
   limitMagic: boolean // whether the magic limiter percentage scales the charge max
   sound: string | null // sound played on attack
   releaseSound: string | null // sound on spell release
@@ -101,6 +106,7 @@ export interface ActorDef {
   graveOn: boolean // modGrave: false = no grave strip and no grave stamp on death
   reincarnateAs: string[] // modReincarnate: actor keys created on the spot when killed
   runReload: boolean // objCPUCharacter: after an attack, move away from the target until the cooldown is done
+  chargeLoc: Vec // objCharacter: where a charging spell sits, from the reg point (x mirrored by facing)
   // --- engine: exploding bullets (modExploder)
   explodeEvents: string[] // bullet events that set it off: bulletCollidedWithTarget, bulletLanded
   exploderSound: string | null // modExploder #explodeSound (the actor's own, not the attack's)
@@ -147,9 +153,10 @@ const ATTACK_DEFAULTS = {
   name: 'none', type: 'auto', animType: 'none', animFrame: 2,
   collisionLoc: { x: 25, y: 0 }, idealAttackLoc: 'collisionLoc', reach: 25, cooldown: 0,
   power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
-  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1,
+  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSpeedMax: 'unlimited', chargeSize: 1,
   chargeExplodeFactor: 4, explodeCharge: 10, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
   sound: null, releaseSound: null, explodeSound: null, volume: DEFAULT_VOLUME, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP,
+  explodeFunction: 'none', multistage: 'none', randomSummon: false, targetTileWhenNotBlank: false,
 } as const
 
 /** objCharacter #dieVolume default. */
@@ -172,6 +179,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     graveOn: true, // modGrave
     reincarnateAs: [], // modReincarnate ([#none, #none, #none])
     runReload: false, // objCPUCharacter
+    chargeLoc: { x: 0, y: -8 }, // objCharacter
     explodeEvents: [], exploderVolume: 50, // modExploder
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
@@ -208,7 +216,7 @@ for (const k of [
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
-  'explodeEvents', 'exploderVolume', 'explodeVolume',
+  'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
@@ -352,6 +360,13 @@ function symbolList(obj: Plain, field: string, ctx: string): string[] {
   if (!Array.isArray(list) || !list.every((s): s is string => typeof s === 'string')) return bad(ctx, field, 'a symbol or a list of symbols', v)
   return list.filter((s) => s !== 'none')
 }
+/** #multistage: [#unit: chargeRequired, ...] in order, or #none. */
+function stages(obj: Plain, field: string, ctx: string): { payload: string; chargeRequired: number }[] {
+  const v = obj[field]
+  if (v === 'none' || v === null) return []
+  if (!isPlain(v)) return bad(ctx, field, 'a [#unit: charge, ...] list or #none', v)
+  return Object.entries(v).map(([payload, c]) => (typeof c === 'number' ? { payload, chargeRequired: c } : bad(ctx, `${field}.${payload}`, 'a number', c)))
+}
 function range(obj: Plain, field: string, ctx: string): [number, number] {
   const v = obj[field]
   return pair(v) ? [v[0], v[1]] : bad(ctx, field, 'a [min, max] pair', v)
@@ -392,6 +407,9 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     chargeMaxModifier: num(a, 'chargeMaxModifier', ctx), chargeSpeed: num(a, 'chargeSpeed', ctx), chargeSize: num(a, 'chargeSize', ctx),
     chargeExplodeFactor: num(a, 'chargeExplodeFactor', ctx), explodeCharge: num(a, 'explodeCharge', ctx), chargeColour: rgb(a, 'chargeColour', ctx),
     spellSpeed: num(a, 'spellSpeed', ctx), limitMagic: a['limitMagic'] === true,
+    chargeSpeedMax: a['chargeSpeedMax'] === 'unlimited' ? null : num(a, 'chargeSpeedMax', ctx),
+    explodeFunction: strOrNull(a['explodeFunction']), multistage: stages(a, 'multistage', ctx),
+    randomSummon: a['randomSummon'] === true, targetTileWhenNotBlank: a['targetTileWhenNotBlank'] === true,
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
   }
@@ -399,7 +417,8 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
 
 /** The attack with its bullet symbol resolved to an actor file key (act_iceBoulder for #iceboulder). */
 function withBulletKey(a: AttackDef, actorKey: (sym: string) => string): AttackDef {
-  return a.bullet === null ? a : { ...a, bullet: actorKey(a.bullet) }
+  const multistage = a.multistage.map((m) => ({ ...m, payload: actorKey(m.payload) }))
+  return { ...a, bullet: a.bullet === null ? null : actorKey(a.bullet), multistage }
 }
 
 /** Runs `fn`, rethrowing any error with `<ctx>: ` prefixed so data errors name the file they came from. */
@@ -485,6 +504,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: sound
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
       dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
+      chargeLoc: vec(r, 'chargeLoc', ctx),
       graveOn: bool(r, 'graveOn', ctx), reincarnateAs: symbolList(r, 'reincarnateAs', ctx).map(actorKey), runReload: bool(r, 'runReload', ctx),
       // engine: exploding bullets (the actor-level #explodeSound / #explodeVolume, not the attack's)
       explodeEvents: symbolList(r, 'explodeEvents', ctx), exploderSound: strOrNull(r['explodeSound']),

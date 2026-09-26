@@ -1,0 +1,92 @@
+[#name: "act_necromancer", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #enemyCharacter,
+#chargeOffsetSide: #top,
+#chargeLoc: point(0,-8),
+#collisionDetection: true,
+#damageSpeed: 4,
+#dexterity: 1,
+#energy: 50,
+#experienceImWorth: 25,
+#inertia: 75,
+#mana_capacity: 26,
+#mana_flow: 4,
+#mana_capacityIncLevel: 1.75,
+#mana_regeneration:0.75,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #undead,
+#name: "necromancer",
+#walkSpeed: 4,
+#weapon: #undeadSummon
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

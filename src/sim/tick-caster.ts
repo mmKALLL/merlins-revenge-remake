@@ -10,14 +10,18 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { RETARGET_TICKS } from '../mr-open/mr-ai-cpu'
 import { cooldownReady } from '../mr-open/mr-attack'
 import { arrived, frameMove } from '../mr-open/mr-pathfinding'
-import { chargeLimits, chargeStep } from '../mr-open/mr-spell'
+import { tileOfPx } from '../mr-open/mr-collision'
+import { tileCentre, type Vec } from '../mr-open/mr-geometry'
+import { chargeLimits, chargeStep, payloadFor, randomSummonMax } from '../mr-open/mr-spell'
+import { randomInt } from './rng'
 import { optimumMoveGoal, UNLIMITED_REACH, type Nearby } from '../mr-open/mr-spell-caster'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, faceAlong, isAlive, isBullet, isCharacter, isSpell } from './actors'
 import type { ActorState } from './state'
 import { actorIn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
-import { alignSpell, chargingSpellOf, releaseMagic, startSpell } from './tick-spell'
+import { teamHasRoomFor } from './tick-dwelling'
+import { alignSpell, chargingSpellOf, releaseMagic, startSpell, SUMMON_UNIT } from './tick-spell'
 
 export const SPELL_CASTER_AI = 'objAiCPUSpellCaster'
 /** Character modes the caster AI acts in; #reel (dazed) and the death modes leave it idle. */
@@ -53,14 +57,47 @@ function stepCasting(t: Tick, a: ActorState, def: ActorDef): void {
   const target = actorIn(t, a.ai.targetId!)!
   const limits = chargeLimits(def)
   let spell = chargingSpellOf(t, a)
-  if (!spell) spell = startSpell(t, a, def)
-  else {
+  if (!spell) {
+    // ensureSpell: the charge counter runs to calcAttackChargeMax, drawn afresh for a random summoner
+    spell = startSpell(t, a, def)
+    spell.chargeMax = randomSummonMax(limits.max, def.attack, (n) => draw(t, n))
+  } else {
     a.mode = 'charge' // ensureMode(#charge), e.g. after a reel with the spell half charged
-    spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
+    spell.charge = chargeStep(spell.charge, limits.speed, spell.chargeMax)
   }
-  if (spell.charge < limits.max) return
-  releaseMagic(t, a, def, spell, { ...target.pos })
+  const reinedIn = !holdSummonSlot(t, spell, def)
+  if (!reinedIn && spell.charge < spell.chargeMax) return
+  releaseMagic(t, a, def, spell, spellTargetLoc(t, spell, def, target))
   a.ai.mode = 'attack'
+}
+
+/** Lingo random(n) on the tick's RNG. */
+function draw(t: Tick, n: number): number {
+  const [v, rng] = randomInt(t.rng, n)
+  t.rng = rng
+  return v
+}
+
+/**
+ * modSpellMultistage.obtainPermissionOrHalt, once the charge reaches a summon stage: reserve one team
+ * slot, or rein the charge in below the first stage (a plain blast) and report #chargeLimited, which
+ * releases the spell at once. Returns false when it reined in.
+ */
+function holdSummonSlot(t: Tick, spell: ActorState, def: ActorDef): boolean {
+  const atk = def.attack
+  if (atk.explodeFunction !== SUMMON_UNIT || spell.summonReserved > 0 || payloadFor(spell.charge, atk) === null) return true
+  if (teamHasRoomFor(t, spell.team, 1)) {
+    spell.summonReserved = 1
+    return true
+  }
+  spell.charge = atk.multistage[0]!.chargeRequired - 1
+  return false
+}
+
+/** objAiCPU.calcSpellTargetLoc: the target's position, or its tile's centre when the spell carries a payload and targetTileWhenNotBlank. */
+function spellTargetLoc(t: Tick, spell: ActorState, def: ActorDef, target: ActorState): Vec {
+  if (!def.attack.targetTileWhenNotBlank || payloadFor(spell.charge, def.attack) === null) return { ...target.pos }
+  return tileCentre(tileOfPx(target.pos.x), tileOfPx(target.pos.y))
 }
 
 /** #noTargetFound -> objAiAttack.cancelAttack: the charging spell is finished and the caster walks. */

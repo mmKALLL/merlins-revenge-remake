@@ -104,6 +104,8 @@ export interface ActorState {
   targetId: number | null
   targetPoint: Vec | null
   charge: number // spell charge (objSpell pCurrentCharge)
+  chargeMax: number // spell of a CPU caster: this cast's charge counter length (randomised for summoners)
+  summonReserved: number // summon spell: team slots reserved for its payload (reservationsMaster)
   attack: AttackDef | null // spell: copy of the caster's attack (objSpell.setSpellProperties); null otherwise
   age: number // ticks in the current mode for timed modes (land, explode, player die)
   technique: TechniqueState // modWeaponTechnique counter and cache
