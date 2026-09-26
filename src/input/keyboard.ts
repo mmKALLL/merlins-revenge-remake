@@ -45,28 +45,40 @@ export class InputTracker {
     }
   }
 
+  /** Forget every held key and the mouse button (focus loss, or macOS dropping keyups under Meta). */
+  releaseAll(): void {
+    this.held.clear()
+    this.mouseDown = false
+  }
+
   /** Attach to a window; returns a detach function. */
   attach(target: Window): () => void {
     const down = (e: KeyboardEvent) => {
+      // leave browser/OS shortcuts alone (e.g. Cmd+R is Cmd+KeyS on Colemak)
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       this.keyDown(e.code)
       if (MOVE_KEYS[e.code] || e.code === 'Space') e.preventDefault()
     }
-    const up = (e: KeyboardEvent) => this.keyUp(e.code)
-    const blur = () => {
-      this.held.clear()
-      this.mouseDown = false
+    const up = (e: KeyboardEvent) => {
+      // macOS does not deliver keyups for keys released while Meta is down
+      if (e.key === 'Meta' || e.code === 'MetaLeft' || e.code === 'MetaRight') this.releaseAll()
+      else this.keyUp(e.code)
     }
+    const blur = () => this.releaseAll()
+    const visibility = () => { if (target.document.hidden) this.releaseAll() }
     const mdown = (e: MouseEvent) => { if (e.button === 0) this.mouseDown = true }
     const mup = (e: MouseEvent) => { if (e.button === 0) this.mouseDown = false }
     target.addEventListener('keydown', down)
     target.addEventListener('keyup', up)
     target.addEventListener('blur', blur)
+    target.document.addEventListener('visibilitychange', visibility)
     target.addEventListener('mousedown', mdown)
     target.addEventListener('mouseup', mup)
     return () => {
       target.removeEventListener('keydown', down)
       target.removeEventListener('keyup', up)
       target.removeEventListener('blur', blur)
+      target.document.removeEventListener('visibilitychange', visibility)
       target.removeEventListener('mousedown', mdown)
       target.removeEventListener('mouseup', mup)
     }

@@ -28,6 +28,13 @@ describe('InputTracker', () => {
     expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: true })
   })
 
+  it('releaseAll drops held keys and the mouse button', () => {
+    const t = new InputTracker()
+    t.keyDown('KeyW'); t.keyDown('Space'); t.setMouseButton(true)
+    t.releaseAll()
+    expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, chargeHeld: false, shootNearest: false })
+  })
+
   it('carries the latest mouse world position', () => {
     const t = new InputTracker()
     expect(t.snapshot().mouseWorld).toBeNull()
