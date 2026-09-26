@@ -1,6 +1,6 @@
 // Port of the team definition fields (tem_<name>.txt) that teamMaster / objRoom read to decide
 // which teams are hostile to the player and whether the room's exits may open (§7).
-import { parseDataField } from './mr-actor-data'
+import { parseDataField, withContext } from './mr-actor-data'
 
 export interface TeamDef {
   key: string
@@ -17,7 +17,7 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is
 export function parseTeams(files: Record<string, string>): Record<string, TeamDef> {
   const out: Record<string, TeamDef> = {}
   for (const [key, text] of Object.entries(files)) {
-    const r = parseDataField(text)
+    const r = withContext(`team ${key}`, () => parseDataField(text))
     const hates = Array.isArray(r['hates']) ? r['hates'].map(strings) : []
     out[key] = { key, teamName: String(r['teamName'] ?? key), category: String(r['category'] ?? 'none'), hates, friends: strings(r['friends']) }
   }

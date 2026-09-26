@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { resolveActors } from './mr-actor-data'
+import { resolveActors, type Plain } from './mr-actor-data'
 
 function loadFiles(): Record<string, string> {
   const out: Record<string, string> = {}
@@ -8,8 +8,13 @@ function loadFiles(): Record<string, string> {
   return out
 }
 
+/** the shipped overlay, so the tests verify what the converter actually applies */
+function shippedTuning(): Record<string, Plain> {
+  return JSON.parse(readFileSync('assets/tuning.json', 'utf8')) as Record<string, Plain>
+}
+
 describe('resolveActors', () => {
-  const defs = resolveActors(loadFiles())
+  const defs = resolveActors(loadFiles(), shippedTuning())
 
   it('resolves the goblin warrior through CPUCharacter, character and actor', () => {
     const w = defs['goblinWarrior']!
@@ -48,8 +53,12 @@ describe('resolveActors', () => {
     expect(g.attack.firingType).toBe('fullstrength')
   })
 
-  it('resolves the player with the energy blast as its current attack', () => {
+  it('resolves the player with the energy blast as its current attack (tuning.json weapon)', () => {
     const p = defs['player']!
+    expect(p.weapon).toBe('energyBlast')
+    expect(p.attack.name).toBe('energyBlast')
+    expect(p.raw['weapon']).toBe('energyBlast')
+    expect((p.raw['attack'] as Plain)['name']).toBe('punch') // the natural attack stays in raw
     expect(p.energy).toBe(200)
     expect(p.energyRecoverDelay).toBe(30)
     expect(p.mana_capacity).toBe(10)
@@ -58,7 +67,7 @@ describe('resolveActors', () => {
     expect(p.attack.spellSpeed).toBe(20)
     expect(p.attack.power).toBe(0.75)
     expect(p.attack.limitMagic).toBe(true) // Lingo TRUE identifier
-    expect(p.raw['stretchDeath']).toBe(true)
+    expect(p.raw['stretchdeath']).toBe(true) // non-canonical keys are lowercased
   })
 
   it('resolves the arrow as a bullet with power 0.5 and friction 5%', () => {
@@ -74,6 +83,49 @@ describe('resolveActors', () => {
     const tuned = resolveActors(loadFiles(), { goblinArcher: { attack: { reach: 120 } } })
     expect(tuned['goblinArcher']!.attack.reach).toBe(120)
     expect(tuned['goblinArcher']!.attack.cooldown).toBe(200)
+  })
+
+  it('lets a tuning overlay swap the starting weapon before the attack is installed', () => {
+    const tuned = resolveActors(loadFiles(), { goblinWarrior: { weapon: 'goblinBow' } })
+    const w = tuned['goblinWarrior']!
+    expect(w.weapon).toBe('goblinBow')
+    expect(w.attack.type).toBe('ranged')
+    expect(w.raw['weapon']).toBe('goblinBow')
+  })
+
+  it('applies tuning[key].attack on top of the swapped weapon attack', () => {
+    const tuned = resolveActors(loadFiles(), { goblinWarrior: { weapon: 'goblinBow', attack: { reach: 42 } } })
+    expect(tuned['goblinWarrior']!.attack.reach).toBe(42)
+    expect(tuned['goblinWarrior']!.attack.bullet).toBe('goblinArrow')
+  })
+
+  it('fails loudly on an unknown starting weapon', () => {
+    expect(() => resolveActors(loadFiles(), { goblinWarrior: { weapon: 'laserGun' } }))
+      .toThrow('actor goblinWarrior: unknown weapon laserGun')
+  })
+
+  it('fails loudly on a mistyped field', () => {
+    expect(() => resolveActors(loadFiles(), { goblinWarrior: { energy: 'lots' } })).toThrow(/goblinWarrior.*energy/)
+    expect(() => resolveActors(loadFiles(), { goblinWarrior: { attack: { type: 'laser' } } })).toThrow(/goblinWarrior.*attack\.type/)
+    expect(() => resolveActors(loadFiles(), { goblinWarrior: { friction: 3 } })).toThrow(/goblinWarrior.*friction.*got 3/)
+  })
+
+  it('prefixes Lingo parse errors with the actor key', () => {
+    expect(() => resolveActors({ broken: '[#name: "act_broken", #type: #field]\n[#objType: #objBullet,' })).toThrow(/^actor broken: /)
+    expect(() => resolveActors({ flat: '[#name: "act_flat", #type: #field]\n[1, 2, 3]' })).toThrow(/^actor flat: .*property list/)
+  })
+
+  it('lowercases non-canonical raw keys and keeps canonical spellings', () => {
+    const r = defs['goblinArcher']!.raw
+    expect(r['weapontechnique']).toBe(-75)
+    expect(r['miniMapStatus']).toBe('inf')
+    expect(r['walkSpeed']).toBe(4)
+  })
+
+  it('keys energyRecoverDelay by objType with the modEnergy default as the fallback', () => {
+    expect(defs['goblinWarrior']!.energyRecoverDelay).toBe(300)
+    expect(defs['player']!.energyRecoverDelay).toBe(30)
+    expect(defs['goblinArrow']!.energyRecoverDelay).toBe(1000)
   })
 
   it('fails loudly on a missing parent', () => {

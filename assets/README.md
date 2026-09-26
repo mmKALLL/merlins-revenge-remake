@@ -10,3 +10,4 @@ Do not edit by hand. The archive they come from is not in this repository.
 - `teams/` team definitions (`tem_<name>.txt` in the original): hate groups and priorities
 - `sprites/mer/` (Merlin; folders are named after the actor `name`), `sprites/goblinWarrior/`, `sprites/gar/` (goblin archer), `sprites/gobarrow/` (goblin arrow), `sprites/spell/` 8-bit BMP frames, named `anm_<chr>_<anim>_<delayTicks>_<frame>.bmp`, white is transparent; the goblin grave (`goblin_grave.bmp`, one cast member) is copied as the grave frame of both goblinWarrior and gar
 - `keybindings/` original key code bindings (Mac virtual key codes)
+- `tuning.json` remake-side overlay applied by `tools/convert-assets.ts` on top of the resolved actor files (`{ actorKey: { field: value, attack: { field: value } } }`); not from the archive, edit by hand. It gives the player `weapon: energyBlast` because the original grants the blast through a scroll pickup and pickups are not ported yet

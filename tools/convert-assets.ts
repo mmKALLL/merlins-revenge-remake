@@ -94,12 +94,37 @@ function convertTileSets(maxIndexByTileSet: Map<string, number>): void {
   }
 }
 
-/** actor definitions resolved through their inheritance chain, with assets/tuning.json overlaid last */
+const isPlain = (v: unknown): v is Plain => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/** assets/tuning.json: { actorKey: { field: value, ... } }; anything else is a data error named by file */
+function readTuning(): Record<string, Plain> {
+  const path = join(ASSETS, 'tuning.json')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readFileSync(path, 'utf8'))
+  } catch (err) {
+    throw new Error(`${path}: invalid JSON: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  if (!isPlain(parsed)) throw new Error(`${path}: must be an object keyed by actor, got ${JSON.stringify(parsed)}`)
+  for (const [key, overlay] of Object.entries(parsed)) {
+    if (!isPlain(overlay)) throw new Error(`${path}: ${key} must be an object of fields, got ${JSON.stringify(overlay)}`)
+  }
+  return parsed as Record<string, Plain>
+}
+
+/** actor definitions resolved through their inheritance chain, with assets/tuning.json overlaid */
 function convertActors(): Record<string, ActorDef> {
-  const tuning = JSON.parse(readFileSync(join(ASSETS, 'tuning.json'), 'utf8')) as Record<string, Plain>
+  const tuning = readTuning()
   const actors = resolveActors(readTxtDir('actors'), tuning)
   writeFileSync(join(OUT, 'actors.json'), JSON.stringify(actors))
   console.log(`actors: ${Object.keys(actors).length} resolved (${Object.keys(tuning).length} tuned)`)
+  // a bullet without an actor file cannot be spawned yet; energyBlastBullet is not copied in this slice
+  const danglingBullets = Object.values(actors)
+    .filter((a) => a.attack.bullet !== null && !actors[a.attack.bullet])
+    .map((a) => `${a.key} -> ${a.attack.bullet}`)
+  if (danglingBullets.length > 0) {
+    console.warn(`WARNING: attack.bullet references without an actor file: ${danglingBullets.join(', ')}`)
+  }
   return actors
 }
 

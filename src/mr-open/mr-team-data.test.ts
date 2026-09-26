@@ -29,4 +29,8 @@ describe('parseTeams', () => {
     const t = parseTeams({ z: '[#name: "tem_z", #type: #field]\n[#teamName: #z, #category: #enemies, #hates: [[#all]]]' })
     expect(hostileTeamsTo('anyone', t)).toEqual(['z'])
   })
+
+  it('prefixes Lingo parse errors with the team key', () => {
+    expect(() => parseTeams({ bad: '[#name: "tem_bad", #type: #field]\n[#teamName: ' })).toThrow(/^team bad: /)
+  })
 })
