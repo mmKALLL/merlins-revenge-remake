@@ -8,13 +8,15 @@ function loadFiles(): Record<string, string> {
   return out
 }
 
-/** the shipped overlay, so the tests verify what the converter actually applies */
-function shippedTuning(): Record<string, Plain> {
-  return JSON.parse(readFileSync('assets/tuning.json', 'utf8')) as Record<string, Plain>
-}
+/**
+ * Engine data plus only the overlay the port itself needs (the blast is granted at start because
+ * pickups are not ported). Balance tweaks in assets/tuning.json are deliberately left out, so these
+ * tests check the original values rather than pinning tuning.
+ */
+export const ENGINE_OVERLAY: Record<string, Plain> = { player: { weapon: 'energyBlast' } }
 
 describe('resolveActors', () => {
-  const defs = resolveActors(loadFiles(), shippedTuning())
+  const defs = resolveActors(loadFiles(), ENGINE_OVERLAY)
 
   it('resolves the goblin warrior through CPUCharacter, character and actor', () => {
     const w = defs['goblinWarrior']!
@@ -53,7 +55,7 @@ describe('resolveActors', () => {
     expect(g.attack.firingType).toBe('fullstrength')
   })
 
-  it('resolves the player with the energy blast as its current attack (tuning.json weapon)', () => {
+  it('resolves the player with the energy blast as its current attack (granted weapon)', () => {
     const p = defs['player']!
     expect(p.weapon).toBe('energyBlast')
     expect(p.attack.name).toBe('energyBlast')

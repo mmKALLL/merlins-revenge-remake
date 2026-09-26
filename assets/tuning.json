@@ -1,3 +1,11 @@
 {
-  "player": { "weapon": "energyBlast" }
+  "player": {
+    "weapon": "energyBlast"
+  },
+  "goblinWarrior": {
+    "energy": 50
+  },
+  "goblinArcher": {
+    "energy": 25
+  }
 }
