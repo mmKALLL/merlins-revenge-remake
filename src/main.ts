@@ -1,9 +1,9 @@
 import { AudioEngine } from './audio/audio'
-import { needsSprite } from './mr-open/mr-actor-data'
+import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadMap, loadMapIndex, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import type { Vec } from './mr-open/mr-geometry'
-import { Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
+import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
@@ -22,6 +22,13 @@ const cfg: RenderConfig = {
 }
 
 const ZOOM_KEY = 'mr-remake.zoom'
+/** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
+const MAX_FRAME_MS = 250
+/** Weight of the latest frame in the smoothed fps readout. */
+const FPS_NEW_WEIGHT = 0.1
+
+/** A fresh seed for the restart after the player dies, derived from the last one (an integer hash). */
+const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
 
 function loadZoom(): ZoomSetting {
   try {
@@ -31,7 +38,7 @@ function loadZoom(): ZoomSetting {
   } catch {
     // storage blocked: use the default
   }
-  return 2
+  return DEFAULT_ZOOM
 }
 
 function saveZoom(z: ZoomSetting): void {
@@ -105,9 +112,10 @@ function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement)
     scene.setZoom(z)
   }
   const game = reserved.parentElement
-  const gap = game ? parseFloat(getComputedStyle(game).rowGap) || 0 : 0
-  const pad = game ? parseFloat(getComputedStyle(game).paddingTop) + parseFloat(getComputedStyle(game).paddingBottom) : 0
-  scene.fitReserve = reserved.offsetHeight + gap + (pad || 0)
+  const style = game ? getComputedStyle(game) : null
+  const gap = style ? parseFloat(style.rowGap) || 0 : 0
+  const pad = style ? parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) || 0 : 0
+  scene.fitReserve = reserved.offsetHeight + gap + pad
   select(loadZoom())
 }
 
@@ -140,6 +148,18 @@ async function setupMapList(list: HTMLElement): Promise<void> {
   if (current) list.scrollTop = current.offsetTop - (list.clientHeight - current.offsetHeight) / 2
 }
 
+/** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */
+async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
+  const spriteNames = [...new Set(Object.values(defs).filter(needsSprite).map((d) => d.name))]
+  const sprites: Record<string, LoadedSprite> = {}
+  const anims: Record<string, AnimationSet> = {}
+  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {
+    sprites[name] = sprite
+    anims[name] = sprite.anims
+  }
+  return { sprites, anims }
+}
+
 async function main(): Promise<void> {
   // effects decode in the background; the context resumes on the first key or click
   const audio = new AudioEngine()
@@ -158,14 +178,7 @@ async function main(): Promise<void> {
     loadActors(),
     loadTeams(),
   ])
-  // One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist).
-  const spriteNames = [...new Set(Object.values(defs).filter(needsSprite).map((d) => d.name))]
-  const sprites: Record<string, LoadedSprite> = {}
-  const anims: Record<string, AnimationSet> = {}
-  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {
-    sprites[name] = sprite
-    anims[name] = sprite.anims
-  }
+  const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'
@@ -222,9 +235,9 @@ async function main(): Promise<void> {
   let last = performance.now()
   let fps = 0
   const frame = (now: number) => {
-    const dt = Math.min(250, now - last)
+    const dt = Math.min(MAX_FRAME_MS, now - last)
     last = now
-    fps = fps * 0.9 + (1000 / Math.max(1, dt)) * 0.1
+    fps = fps * (1 - FPS_NEW_WEIGHT) + (1000 / Math.max(1, dt)) * FPS_NEW_WEIGHT
     acc += dt
     input.setMouseWorld(mouseWorld())
     while (acc >= TICK_MS) {
@@ -233,7 +246,7 @@ async function main(): Promise<void> {
       acc -= TICK_MS
       if (sim.restartRequested) {
         // the player died: start the map again with the loaded assets and a fresh seed
-        runSeed = (Math.imul(runSeed ^ (runSeed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
+        runSeed = nextRunSeed(runSeed)
         sim = createSim(grid, defs, teams, anims, runSeed, startPos)
         audio.handle(sim.events) // the start room's music again
       }
