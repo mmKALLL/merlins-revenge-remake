@@ -5,7 +5,7 @@
 //  3. CPU AI decisions (tick-ai.ts)
 //  4. movement of every other actor (walk velocity as set, friction for reel/die/land/bullets;
 //     characters collide with tiles and take wall damage while reeling; bullets and spells ignore tiles)
-//  5. animation advance for every actor, strip by mode (anim.ts)
+//  5. animation advance for every actor, strip by mode (anim.ts); weapon technique stretches attack frames
 //  6. attack frames: melee strike, bullet spawn; 7. bullets; 8. spells (tick-combat.ts)
 //  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
 // 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
@@ -17,8 +17,9 @@ import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
+import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { collisionRectFor, createActor, isAlive, isCharacter, isSpell, playerOf, spawnRoomActors, stripFor } from './actors'
-import { advanceAnim, stripNameFor } from './anim'
+import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
   DEFAULT_SIM_CONFIG, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState,
@@ -179,6 +180,20 @@ function stepAnimation(t: Tick, input: InputSnapshot): void {
   }
 }
 
+/**
+ * modWeaponTechnique.update: while the AI is in #attack the technique counter runs and a negative
+ * technique lengthens the attack strip's current frame (the goblin archer's -75 adds roughly one
+ * tick per three to its 21-tick bow strip).
+ */
+function stepWeaponTechnique(t: Tick): void {
+  for (const a of t.actors) {
+    if (t.removed.has(a.id) || a.ai.mode !== 'attack') continue
+    const r = stepTechnique(a.technique, t.s.defs[a.def]!.weaponTechnique)
+    a.technique = r.state
+    Object.assign(a, extendFrame(a, stripFor(t.s, a), r.extend))
+  }
+}
+
 /** 12. Store the old room's living characters, then restore the new room's or spawn it on a first visit. */
 function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   const fromKey = roomKey(from)
@@ -211,6 +226,7 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   stepCpuAi(t)
   stepMovement(t)
   stepAnimation(t, input)
+  stepWeaponTechnique(t)
   stepAttackFrames(t)
   stepBullets(t)
   stepSpells(t)

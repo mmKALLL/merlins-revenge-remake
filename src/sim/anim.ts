@@ -43,7 +43,7 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
   return set?.[name] ? name : 'stand'
 }
 
-export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' | 'animLooped'>
+export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' | 'animExtend' | 'animExtendCount' | 'animLooped'>
 
 /**
  * Advances one strip by a tick: frame 0 on a strip change. `animLooped` is set on the last tick of
@@ -54,17 +54,38 @@ export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' |
 export function advanceAnim(a: ActorState, animName: string, strip: AnimationStrip | undefined): AnimFields {
   let animFrame = 0
   let animCounter = 0
+  let animExtend = 0
+  let animExtendCount = 0
   if (animName === a.anim) {
-    if (!strip) return { anim: animName, animFrame: a.animFrame, animCounter: a.animCounter, animLooped: false }
+    if (!strip) return { anim: animName, animFrame: a.animFrame, animCounter: a.animCounter, animExtend: a.animExtend, animExtendCount: a.animExtendCount, animLooped: false }
     animFrame = a.animFrame
     animCounter = a.animCounter + 1
-    if (animCounter >= strip.delay) {
+    animExtend = a.animExtend
+    animExtendCount = a.animExtendCount
+    if (animCounter >= strip.delay + a.animExtend) {
       animCounter = 0
+      animExtend = 0
+      animExtendCount = 0
       animFrame = a.animFrame + 1 >= strip.frames ? 0 : a.animFrame + 1
     }
   }
-  const animLooped = !!strip && animFrame === strip.frames - 1 && animCounter === strip.delay - 1
-  return { anim: animName, animFrame, animCounter, animLooped }
+  return { anim: animName, animFrame, animCounter, animExtend, animExtendCount, animLooped: loopedOn(strip, animFrame, animCounter, animExtend) }
+}
+
+const loopedOn = (strip: AnimationStrip | undefined, frame: number, counter: number, extend: number): boolean =>
+  !!strip && frame === strip.frames - 1 && counter === strip.delay + extend - 1
+
+/**
+ * objAnimStrip.extendDelay(1), `times` times: the current frame's delay (tim[2]) grows by one and its
+ * delay counter restarts at 1, so a frame shown for c ticks so far (this tick included) with n
+ * extensions in total stays up for another delay + n - 1 ticks: length c + delay + n - 1.
+ * `animLooped` is re-evaluated against the longer frame.
+ */
+export function extendFrame(a: ActorState, strip: AnimationStrip | undefined, times: number): Pick<AnimFields, 'animExtend' | 'animExtendCount' | 'animLooped'> {
+  if (times <= 0) return { animExtend: a.animExtend, animExtendCount: a.animExtendCount, animLooped: a.animLooped }
+  const animExtendCount = a.animExtendCount + times
+  const animExtend = a.animCounter + animExtendCount
+  return { animExtend, animExtendCount, animLooped: loopedOn(strip, a.animFrame, a.animCounter, animExtend) }
 }
 
 /** isOnAttackFrame: the strip sits on the first tick of the 1-based frame `frame`. */

@@ -381,10 +381,10 @@ describe('archer (combat notes §3-4)', () => {
     expect(a.mode).toBe('weaponRanged')
     expect(a.facingLeft).toBe(true)
     expect(a.ai.mode).toBe('attack')
-    // frame 21 (index 20, delay 1) is fresh 20 ticks later
-    s = run(s, 19)
-    expect(s.actors.find((x) => x.def === 'goblinArrow')).toBeUndefined()
-    s = stepSim(s, NO_INPUT)
+    // frame 21 (index 20, delay 1) would be fresh 20 ticks later; weaponTechnique -75 stretches frames
+    let shotTicks: number
+    ;[s, shotTicks] = runUntil(s, (t) => t.actors.some((x) => x.def === 'goblinArrow'), 40)
+    expect(shotTicks).toBeGreaterThan(20)
     a = actor(s, enemyId)!
     expect(a.animFrame).toBe(20)
     expect(a.cooldown).toBe(200 - 10) // reset to 200 on the shot, then one dexterity 10 step this tick
@@ -448,7 +448,7 @@ describe('archer (combat notes §3-4)', () => {
   it('a missed arrow stalls under 2 px/tick, lands, and disappears 30 ticks later', () => {
     // the player walks away so the arrow overshoots and stalls out
     let { s } = setup(ARCHER, { x: 190, y: 144 })
-    ;[s] = runUntil(s, (t) => t.actors.some((x) => x.def === 'goblinArrow'), 30)
+    ;[s] = runUntil(s, (t) => t.actors.some((x) => x.def === 'goblinArrow'), 40)
     const arrowId = s.actors.find((x) => x.def === 'goblinArrow')!.id
     const down = { ...NO_INPUT, move: { x: 0, y: 1 } }
     let ticks: number

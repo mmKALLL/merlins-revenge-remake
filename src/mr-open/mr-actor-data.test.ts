@@ -119,7 +119,8 @@ describe('resolveActors', () => {
 
   it('lowercases non-canonical raw keys and keeps canonical spellings', () => {
     const r = defs['goblinArcher']!.raw
-    expect(r['weapontechnique']).toBe(-75)
+    expect(r['startinglevel']).toBe(0)
+    expect(r['weaponTechnique']).toBe(-75)
     expect(r['miniMapStatus']).toBe('inf')
     expect(r['walkSpeed']).toBe(4)
   })

@@ -61,6 +61,7 @@ export interface ActorDef {
   mana_capacity: number // scales the spell's maximum charge
   mana_flow: number // multiplies the spell's charge speed
   mana_regeneration: number // cooldown progress per tick for magic attacks
+  weaponTechnique: number // modWeaponTechnique rating; negative values lengthen attack strips
   weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
   experienceImWorth: number // experience awarded on death (never granted in this engine build)
   attack: AttackDef // the installed current attack (from weapon, or the natural attack)
@@ -105,6 +106,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     strength: 1, agility: 1, dexterity: 1, eyestrain: 0, // act_character fallbacks
     mana_burst: 1, mana_capacity: 10, mana_flow: 1, mana_regeneration: 1, // act_character fallbacks
     experienceImWorth: 0, // objGameObject
+    weaponTechnique: 0, // modWeaponTechnique.addModParams
     startOffset: { x: -16, y: -16 }, team: 'chatters', layerZ: 'gGameObjectLayer', // act_actor fallbacks
   },
   objCharacter: { energyRecoverDelay: 30 },
@@ -117,7 +119,7 @@ const CANONICAL = new Map<string, string>()
 for (const k of [...Object.keys(ATTACK_DEFAULTS), 'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ',
   'startOffset', 'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'walkSpeed',
   'walkAcceleration', 'navModeAcceleration', 'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow',
-  'mana_regeneration', 'weapon', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
+  'mana_regeneration', 'weapon', 'weaponTechnique', 'experienceImWorth', 'character', 'weight', 'miniMapStatus',
   'teamName', 'category', 'hates', 'friends']) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -299,7 +301,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       walkAcceleration: num(r, 'walkAcceleration', ctx), navModeAcceleration: num(r, 'navModeAcceleration', ctx), strength: num(r, 'strength', ctx), agility: num(r, 'agility', ctx),
       dexterity: num(r, 'dexterity', ctx), eyestrain: num(r, 'eyestrain', ctx), mana_burst: num(r, 'mana_burst', ctx),
       mana_capacity: num(r, 'mana_capacity', ctx), mana_flow: num(r, 'mana_flow', ctx), mana_regeneration: num(r, 'mana_regeneration', ctx),
-      weapon, experienceImWorth: num(r, 'experienceImWorth', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
+      weapon, weaponTechnique: num(r, 'weaponTechnique', ctx), experienceImWorth: num(r, 'experienceImWorth', ctx), attack: buildAttack(rawAttack, ctx), raw: r,
     }
   }
   return out

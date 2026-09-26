@@ -3,6 +3,7 @@
 // the per-actor collision rect (modCollisionRect.initRectFromCurrentImage).
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { TILE_PX, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
 import { stripNameFor } from './anim'
 import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type SimState } from './state'
 
@@ -44,6 +45,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     anim,
     animFrame: 0,
     animCounter: 0,
+    animExtend: 0,
+    animExtendCount: 0,
     animLooped: false,
     energy: def.energy,
     regenCounter: 0,
@@ -66,6 +69,7 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     charge: 0,
     attack: null,
     age: 0,
+    technique: TECHNIQUE_INIT,
   }
   return [actor, { ...s, nextId: s.nextId + 1 }]
 }

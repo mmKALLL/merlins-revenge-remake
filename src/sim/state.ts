@@ -2,6 +2,7 @@ import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { TeamDef } from '../mr-open/mr-team-data'
+import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Rng } from './rng'
 import type { WorldGrid } from './world-grid'
 
@@ -68,6 +69,8 @@ export interface ActorState {
   anim: string
   animFrame: number // 0-based
   animCounter: number // ticks shown on this frame
+  animExtend: number // extra ticks added to the current frame (objAnimStrip.extendDelay); 0 on a new frame
+  animExtendCount: number // extendDelay calls on the current frame
   animLooped: boolean // set on the tick the strip wrapped
   energy: number
   regenCounter: number
@@ -82,6 +85,7 @@ export interface ActorState {
   charge: number // spell charge (objSpell pCurrentCharge)
   attack: AttackDef | null // spell: copy of the caster's attack (objSpell.setSpellProperties); null otherwise
   age: number // ticks in the current mode for timed modes (land, explode, player die)
+  technique: TechniqueState // modWeaponTechnique counter and cache
 }
 
 export interface RoomState {
