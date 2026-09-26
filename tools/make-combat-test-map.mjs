@@ -14,14 +14,15 @@ const active = (room) =>
     return 0
   })
 const objects = (placed) => grid((c, r) => placed.find((p) => p.c === c && p.r === r)?.id ?? 0)
-const PLAYER = 1, ARCHER = 21, WARRIOR = 22
+const PLAYER = 1, ARCHER = 21, WARRIOR = 22, MUSIC_WOODS = 78, MUSIC_LAST_STAND = 77 // merlin4Objects key indices
 const rooms = [
-  { num: 1, objs: [{ c: 4, r: 5, id: PLAYER }, { c: 15, r: 5, id: WARRIOR }] },
+  { num: 1, objs: [{ c: 2, r: 2, id: MUSIC_WOODS }, { c: 4, r: 5, id: PLAYER }, { c: 15, r: 5, id: WARRIOR }] },
   { num: 2, objs: [
     // a cluster around the centre (room centre is between columns 9-10, rows 4-6)
     { c: 10, r: 4, id: ARCHER }, { c: 12, r: 3, id: ARCHER },
     { c: 8, r: 5, id: WARRIOR }, { c: 11, r: 5, id: WARRIOR }, { c: 9, r: 6, id: WARRIOR },
     { c: 14, r: 7, id: WARRIOR },
+    { c: 2, r: 2, id: MUSIC_LAST_STAND },
   ] },
 ]
 const roomText = ({ num, objs }) =>
