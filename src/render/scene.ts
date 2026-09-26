@@ -2,6 +2,7 @@ import { Application, Container, Graphics, Sprite, Text } from 'pixi.js'
 import type { LoadedSprite, LoadedTileset } from '../data/loaders'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
+import { playerOf } from '../sim/actors'
 import type { SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 
@@ -80,7 +81,7 @@ export class Scene {
   /** alpha in [0,1): how far between the previous and current tick the display is. */
   draw(s: SimState, alpha: number, fps: number): void {
     // TODO(Task 11): draw every actor; until then only the player (actor 0) is rendered
-    const p = s.actors[s.playerId]!
+    const p = playerOf(s)
     const ipos = { x: p.prevPos.x + (p.pos.x - p.prevPos.x) * alpha, y: p.prevPos.y + (p.pos.y - p.prevPos.y) * alpha }
     const worldSize = { w: s.grid.widthTiles * TILE_PX, h: s.grid.heightTiles * TILE_PX }
     const origin = cameraOrigin(this.cfg.cameraMode, s.grid.roomRectPx(s.room), ipos, this.cfg.view, worldSize)

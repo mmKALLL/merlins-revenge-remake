@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { TeamDef } from '../mr-open/mr-team-data'
-import { collisionRectFor, spawnRoomActors } from './actors'
+import { collisionRectFor, createActor, playerOf, spawnRoomActors } from './actors'
 import { createSim, findStartPos, stepSim } from './tick'
 import { DEFAULT_SIM_CONFIG, NO_INPUT, roomKey, type SimState } from './state'
 import { buildWorldGrid } from './world-grid'
@@ -12,12 +12,13 @@ const CFG30 = { ...DEFAULT_SIM_CONFIG, collisionRect: { left: -15, top: -15, rig
 
 const SOLID = 2
 // objects tileset: index i+1 -> OBJECT_SYMBOLS[i]
-const OBJECT_SYMBOLS = ['none', 'stones1', 'player', 'goblinWarrior', 'goblinArcher', 'magicPortal', 'goblinSword']
+const OBJECT_SYMBOLS = ['none', 'stones1', 'player', 'goblinWarrior', 'goblinArcher', 'magicPortal', 'goblinSword', 'villager']
 const PLAYER = 3
 const GOBLIN = 4
 const ARCHER = 5
 const UNKNOWN = 6 // no def
 const UNSUPPORTED = 7 // def exists but objType is not spawnable from the map
+const VILLAGER = 8 // spawnable character of a team that is not hostile to the player (exits stay open)
 
 /**
  * Two 18x9 rooms side by side. `solidCol` fills that 1-based column of room 1's active layer with SOLID;
@@ -74,6 +75,8 @@ const defs: Record<string, ActorDef> = {
   goblinWarrior: def({ key: 'goblinWarrior', name: 'goblinWarrior', objType: 'objCPUCharacter', aiType: 'objAiCPU', team: 'goblins', walkSpeed: 4, inertia: 30 }),
   goblinArcher: def({ key: 'goblinArcher', name: 'gar', objType: 'objCPUCharacter', aiType: 'objAiCPU', team: 'goblins', walkSpeed: 3 }),
   goblinSword: def({ key: 'goblinSword', name: 'goblinSword', objType: 'objPowerUp', team: 'chatters' }),
+  villager: def({ key: 'villager', name: 'gar', objType: 'objCPUCharacter', aiType: null, team: 'village' }),
+  goblinArrow: def({ key: 'goblinArrow', name: 'gobarrow', objType: 'objBullet', team: 'none', friction: { x: 5, y: 5 } }),
 }
 const teams: Record<string, TeamDef> = {
   aldevar: { key: 'aldevar', teamName: 'aldevar', category: 'friends', hates: [['goblins']], friends: [] },
@@ -83,10 +86,11 @@ const anims = {
   mer: { walk: { frames: 8, delay: 3, w: 16, h: 16 } },
   goblinWarrior: { stand: { frames: 1, delay: 2, w: 15, h: 16 }, walk: { frames: 6, delay: 3, w: 15, h: 20 } },
   gar: { stand: { frames: 1, delay: 3, w: 16, h: 16 }, walk: { frames: 6, delay: 3, w: 16, h: 16 } },
+  gobarrow: { fly: { frames: 1, delay: 3, w: 16, h: 16 }, land: { frames: 1, delay: 3, w: 16, h: 16 } },
 }
 const make = (map: MapDefinition = openMap(), start = { x: 100, y: 100 }) => createSim(grid(map), defs, teams, anims, 1, start)
 const input = (x: number, y: number) => ({ ...NO_INPUT, move: { x, y } })
-const player = (s: SimState) => s.actors[s.playerId]!
+const player = (s: SimState) => playerOf(s)
 const withPlayerAt = (s: SimState, pos: { x: number; y: number }): SimState => ({
   ...s,
   actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, pos, prevPos: pos } : a)),
@@ -199,9 +203,12 @@ describe('stepSim', () => {
     expect(player(t).pos.x).toBe(7)
   })
 
-  it('keeps the player inside the room at the right edge when exits are closed', () => {
-    let s = withPlayerAt({ ...make(), exitsOpen: false }, { x: 540, y: 100 })
+  it('keeps the player inside the room at the right edge while a hostile is alive (exits closed)', () => {
+    let s = withPlayerAt(make(openMap({ objects: [{ room: 1, x: 2, y: 2, tile: GOBLIN }] })), { x: 540, y: 100 })
+    expect(s.exitsOpen).toBe(false)
+    expect(s.rooms['1,1']!.clear).toBe(false)
     for (let i = 0; i < 30; i++) s = stepSim(s, input(1, 0), CFG30)
+    expect(s.exitsOpen).toBe(false)
     expect(s.room).toEqual({ x: 1, y: 1 })
     expect(player(s).pos.x).toBe(560)
     expect(player(s).vel.x).toBeGreaterThan(0)
@@ -265,23 +272,37 @@ describe('spawnRoomActors', () => {
   })
 
   it('spawns the next room on entry, stores survivors on exit and restores them by id on return', () => {
-    const map = openMap({ objects: [{ room: 1, x: 2, y: 2, tile: GOBLIN }, { room: 2, x: 10, y: 4, tile: ARCHER }] })
+    // villagers are not hostile, so both rooms' exits stay open
+    const map = openMap({ objects: [{ room: 1, x: 2, y: 2, tile: VILLAGER }, { room: 2, x: 10, y: 4, tile: VILLAGER }] })
     let s = withPlayerAt(make(map), { x: 574, y: 100 })
-    expect(s.actors.map((a) => a.def)).toEqual(['player', 'goblinWarrior'])
-    const goblinId = s.actors[1]!.id
+    expect(s.actors.map((a) => a.def)).toEqual(['player', 'villager'])
+    expect(s.exitsOpen).toBe(true)
+    const firstId = s.actors[1]!.id
     for (let i = 0; i < 5; i++) s = stepSim(s, input(1, 0), CFG30)
     expect(s.room).toEqual({ x: 2, y: 1 })
-    expect(s.actors.map((a) => a.def)).toEqual(['player', 'goblinArcher'])
-    expect(s.actors[1]!.id).not.toBe(goblinId)
-    expect(s.rooms['1,1']!.actors.map((a) => a.id)).toEqual([goblinId])
-    const archerId = s.actors[1]!.id
-    // back to room 1: the same goblin comes back, nothing is spawned again
+    expect(s.actors.map((a) => a.def)).toEqual(['player', 'villager'])
+    expect(s.actors[1]!.id).not.toBe(firstId)
+    expect(s.rooms['1,1']!.actors.map((a) => a.id)).toEqual([firstId])
+    const secondId = s.actors[1]!.id
+    // back to room 1: the same villager comes back, nothing is spawned again
     for (let i = 0; i < 20; i++) s = stepSim(s, input(-1, 0), CFG30)
     expect(s.room).toEqual({ x: 1, y: 1 })
-    expect(s.actors.map((a) => a.id)).toEqual([s.playerId, goblinId])
+    expect(s.actors.map((a) => a.id)).toEqual([s.playerId, firstId])
     expect(s.rooms['1,1']!.actors).toEqual([])
-    expect(s.rooms['2,1']!.actors.map((a) => a.id)).toEqual([archerId])
+    expect(s.rooms['2,1']!.actors.map((a) => a.id)).toEqual([secondId])
     expect(s.nextId).toBe(3)
+  })
+
+  it('stores only living characters on exit: projectiles and dying actors are dropped', () => {
+    let s = withPlayerAt(make(openMap({ objects: [{ room: 1, x: 2, y: 2, tile: VILLAGER }] })), { x: 574, y: 100 })
+    const villagerId = s.actors[1]!.id
+    const [arrow, s1] = createActor(s, 'goblinArrow', { x: 200, y: 100 })
+    const [dying, s2] = createActor(s1, 'goblinWarrior', { x: 300, y: 100 })
+    s = { ...s2, actors: [...s2.actors, { ...arrow, mode: 'land' }, { ...dying, mode: 'dead', energy: -100 }] }
+    // the dead goblin does not count as a living hostile
+    for (let i = 0; i < 5; i++) s = stepSim(s, input(1, 0), CFG30)
+    expect(s.room).toEqual({ x: 2, y: 1 })
+    expect(s.rooms['1,1']!.actors.map((a) => a.id)).toEqual([villagerId])
   })
 })
 
@@ -297,7 +318,7 @@ describe('collisionRectFor', () => {
 
   it('falls back to stand for a strip the atlas lacks', () => {
     const s = make(openMap({ objects: [{ room: 1, x: 10, y: 4, tile: GOBLIN }] }))
-    expect(collisionRectFor(s, { ...s.actors[1]!, anim: 'reel' })).toEqual(collisionRectFor(s, s.actors[1]!))
+    expect(collisionRectFor(s, { ...s.actors[1]!, anim: 'look' })).toEqual(collisionRectFor(s, s.actors[1]!))
   })
 })
 

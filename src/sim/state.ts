@@ -11,9 +11,9 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND
 export interface InputSnapshot {
   move: Vec // components -1, 0, 1 (opposite keys cancel)
   mouseWorld: Vec | null
-  chargeHeld: boolean // Space or left mouse button (reserved)
-  shootNearest: boolean // E (reserved)
-  shootShort: boolean // F (reserved)
+  chargeHeld: boolean // Space or left mouse button: charge, release at the mouse
+  shootNearest: boolean // E: charge, release at the nearest hostile
+  shootShort: boolean // F: charge, release 16 px short of the nearest hostile
 }
 
 export const NO_INPUT: InputSnapshot = {
@@ -42,6 +42,9 @@ export type ActorMode =
 
 export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none'
 
+/** Which input started the player's current charge; decides the release target (null when not charging). */
+export type ChargeKind = 'mouse' | 'nearest' | 'short'
+
 export interface AiState {
   mode: AiMode
   targetId: number | null
@@ -50,6 +53,7 @@ export interface AiState {
   waypoint: Vec | null
   pathStall: number // consecutive stalled ticks (pathFindingStallTime 5)
   moveTarget: Vec | null // modMoveToLoc target; null = not moving
+  chargeKind: ChargeKind | null // player only
 }
 
 export interface ActorState {
@@ -75,13 +79,13 @@ export interface ActorState {
   ownerId: number | null
   targetId: number | null
   targetPoint: Vec | null
-  charge: number
-  age: number
+  charge: number // spell charge (objSpell pCurrentCharge)
+  age: number // ticks in the current mode for timed modes (land, explode, player die)
 }
 
 export interface RoomState {
   spawned: boolean
-  actors: ActorState[] // survivors stored when the player leaves; empty while the room is current
+  actors: ActorState[] // living characters stored when the player leaves; empty while the room is current
   graves: { def: string; pos: Vec }[]
   clear: boolean
 }
