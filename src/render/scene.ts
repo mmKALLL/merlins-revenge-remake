@@ -4,7 +4,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { isSpell, playerOf } from '../sim/actors'
-import { EXPLODE_TICKS } from '../sim/tick-combat'
+import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { roomKey, type ActorState, type RoomState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 

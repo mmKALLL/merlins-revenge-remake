@@ -27,10 +27,9 @@ import {
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState,
 } from './state'
 import { stepCpuAi } from './tick-ai'
-import {
-  exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepPlayerAttack, stepReelAndDeath, stepSpells, takeWallDamage,
-} from './tick-combat'
+import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
 import { beginTick, playerIn, type Tick } from './tick-context'
+import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
 
 const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }

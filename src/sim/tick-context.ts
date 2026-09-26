@@ -3,6 +3,7 @@
 // orchestrator assembles the next immutable SimState from the result. Nothing here touches the
 // input state's objects, so `stepSim` stays pure.
 import type { Vec } from '../mr-open/mr-geometry'
+import { createActor } from './actors'
 import type { Rng } from './rng'
 import type { ActorState, SimEvent, SimState } from './state'
 
@@ -38,6 +39,15 @@ export function beginTick(s: SimState): Tick {
 export function actorIn(t: Tick, id: number): ActorState | undefined {
   if (t.removed.has(id)) return undefined
   return t.actors.find((a) => a.id === id)
+}
+
+/** Spawns an actor into the tick from `defs[key]`, with `over` applied, and returns the working copy. */
+export function spawn(t: Tick, key: string, pos: Vec, over: Partial<ActorState>): ActorState {
+  const [actor, after] = createActor({ ...t.s, nextId: t.nextId }, key, pos)
+  t.nextId = after.nextId
+  const a: ActorState = { ...actor, ...over }
+  t.actors.push(a)
+  return a
 }
 
 /** modSoundFX.playSound: #none (null) plays nothing. */

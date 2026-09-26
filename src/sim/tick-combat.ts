@@ -1,132 +1,32 @@
-// Combat tick steps (combat notes §4-7): the player's charge/release input, attack frames
-// (melee strike, bullet spawn), bullet flight and impact, spell flight and explosion, the victim
-// side of a hit (objGameObject.takeHit -> modReel / modEnergy), reel and death progression,
-// cooldown/regeneration counters and the exits-open rule.
-import { rectAt } from '../mr-open/mr-collision'
+// Combat tick steps (combat notes §4-7): attack frames (melee strike, bullet spawn), bullet flight
+// and impact, the victim side of a hit (objGameObject.takeHit -> modReel / modEnergy), reel and
+// death progression, cooldown/regeneration counters and the exits-open rule. The player's spell
+// (charge, release, explosion) is in tick-spell.ts.
+import type { ActorDef } from '../mr-open/mr-actor-data'
 import {
-  aimWithEyestrain, bulletPush, cooldownReady, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown, cooldownIncrement,
+  aimWithEyestrain, bulletPush, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown,
 } from '../mr-open/mr-attack'
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import { rectAt } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
-import { chargeVolume } from '../mr-open/mr-sound'
-import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity, type SplashVictim } from '../mr-open/mr-spell'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
-import { findTarget, hatedTeams } from '../mr-open/mr-targeting'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
-import { collisionRectFor, createActor, isAlive, isBullet, isCharacter, isSpell, spriteRectFor } from './actors'
+import { collisionRectFor, defOf, isAlive, isBullet, isCharacter, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
-import type { ActorState, ChargeKind, InputSnapshot, SimState } from './state'
 import { spreadVec } from './rng'
-import { actorIn, playerIn, playSound, type Tick } from './tick-context'
-import { rollDetour, targetables } from './tick-ai'
+import type { ActorState, SimState } from './state'
+import { actorIn, playSound, spawn, type Tick } from './tick-context'
+import { rollDetour } from './tick-ai'
 
-/** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
-export const EXPLODE_TICKS = 8
 /** Ticks the player's die mode lasts before the map restart is requested. */
 export const PLAYER_DEATH_TICKS = 30
-/** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
-const AHEAD_PX = 100
-/** The push-back shot (Space with the F toggle on) lands this many px short of the nearest hostile, toward the player. */
-const SHORT_PX = 20
-
-const isHeld = (input: InputSnapshot, kind: ChargeKind | null): boolean =>
-  kind === 'mouse' ? input.chargeHeld : kind === 'nearest' ? input.shootNearest : kind === 'short' ? input.shootShort : false
-
-/** Spawns an actor into the tick from `defs[key]` and returns the working copy. */
-function spawn(t: Tick, key: string, pos: Vec, over: Partial<ActorState>): ActorState {
-  const [actor, after] = createActor({ ...t.s, nextId: t.nextId }, key, pos)
-  t.nextId = after.nextId
-  const a: ActorState = { ...actor, ...over }
-  t.actors.push(a)
-  return a
-}
-
-function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null): Vec {
-  const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
-  const mouse = input.mouseWorld ?? ahead
-  if (kind !== 'nearest' && kind !== 'short') return mouse
-  const me = { id: p.id, team: p.team, pos: p.pos, alive: true }
-  const nearestId = findTarget(me, targetables(t), hatedTeams(p.team, t.s.teams))
-  const nearest = nearestId === null ? undefined : actorIn(t, nearestId)
-  if (!nearest) return mouse
-  if (kind === 'nearest') return { ...nearest.pos }
-  const dx = nearest.pos.x - p.pos.x
-  const dy = nearest.pos.y - p.pos.y
-  const d = Math.hypot(dx, dy)
-  if (d <= SHORT_PX) return { ...p.pos }
-  return { x: nearest.pos.x - (dx / d) * SHORT_PX, y: nearest.pos.y - (dy / d) * SHORT_PX }
-}
-
-const moveTo = (a: ActorState, pos: Vec): void => {
-  a.prevPos = a.pos
-  a.pos = pos
-}
-
-/** objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there (grows upward). */
-function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
-  const at = chargeLoc(caster.pos, def, caster.facingLeft)
-  moveTo(spell, { x: at.x, y: at.y - (spell.charge * (spell.attack ?? def.attack).chargeSize) / 2 })
-}
-
-/**
- * objAiPlayer.playerAttackCharge / playerAttackRelease with objAiAttack.chargeMagic / releaseMagic.
- * The AI's current spell (pCurrentSpell) is the player's spell still in `charge` mode; it belongs to
- * the AI, not to the character mode, so a hit forcing #walk (objPlayerMerlinCharacter.takeHit) keeps
- * it: while its key stays held, attack() -> chargeMagic re-enters #charge and keeps counting, and
- * letting go releases it from any mode. Without a current spell, a held Space/click, E or F starts
- * a charge whenever the cooldown is ready, even during the release strip (releaseSpell has already
- * cleared pCurrentSpell).
- */
-export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
-  const p = playerIn(t)
-  if (!isAlive(p)) return
-  const def = t.s.defs[p.def]!
-  const spell = t.actors.find((a) => !t.removed.has(a.id) && isSpell(t.s, a) && a.ownerId === p.id && a.mode === 'charge')
-  const limits = chargeLimits(def) // magic limit fixed at 100 %
-  if (spell) {
-    if (isHeld(input, p.ai.chargeKind)) {
-      if (!cooldownReady(p.cooldown)) return // objAiAttack.attack
-      p.mode = 'charge' // ensureMode(#charge)
-      spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
-      alignSpell(spell, p, def)
-      return
-    }
-    const target = releaseTarget(t, p, input, p.ai.chargeKind)
-    const atk = spell.attack ?? def.attack
-    spell.mode = 'fly'
-    spell.targetPoint = target
-    spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
-    // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
-    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
-    p.mode = 'release'
-    p.ai.chargeKind = null
-    p.cooldown = resetCooldown(def.attack)
-    return
-  }
-  if (p.mode === 'charge') {
-    // the spell went away under the charge
-    p.mode = 'walk'
-    p.ai.chargeKind = null
-  }
-  const kind: ChargeKind | null = input.chargeHeld ? 'mouse' : input.shootNearest ? 'nearest' : input.shootShort ? 'short' : null
-  if (kind === null || !cooldownReady(p.cooldown)) return
-  if (!t.s.defs['spell']) throw new Error('actor definitions have no "spell" entry')
-  // ensureSpell + setSpellProperties (the caster's attack and team), then chargeSpell at the start value
-  const created = spawn(t, 'spell', chargeLoc(p.pos, def, p.facingLeft), {
-    mode: 'charge', ownerId: p.id, charge: limits.start, team: p.team, attack: def.attack,
-  })
-  alignSpell(created, p, def)
-  p.mode = 'charge'
-  p.ai.chargeKind = kind
-}
 
 /**
  * modEnergy.loseEnergy: energy falls; at <= 0 the character dies (outOfEnergy -> #die). A CPU
  * character's energy becomes -100 in the engine; only the sign matters here.
  */
 function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
-  const def = t.s.defs[victim.def]!
+  const def = defOf(t.s, victim)
   victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })
   if (isDead(victim.energy)) {
@@ -145,7 +45,7 @@ function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
  * wall while reeling takes the impact speed on that axis minus its damageSpeed, when above it.
  */
 export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
-  const excess = Math.abs(speed) - t.s.defs[a.def]!.damageSpeed
+  const excess = Math.abs(speed) - defOf(t.s, a).damageSpeed
   if (a.mode === 'reel' && excess > 0) loseEnergy(t, a, excess)
 }
 
@@ -161,8 +61,8 @@ export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
  * which objGameObject writes back into the caller's point (Lingo points are passed by reference).
  */
 export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): Vec {
-  if (victim.mode === 'die' || victim.mode === 'dead' || victim.mode === 'finish' || isDead(victim.energy)) return push
-  const def = t.s.defs[victim.def]!
+  if (!isAlive(victim)) return push
+  const def = defOf(t.s, victim)
   const hit = resolveHit(def, push, attackerMultiplier)
   t.hit.add(victim.id)
   if (victim.id === t.s.playerId) {
@@ -185,132 +85,90 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
 export function stepAttackFrames(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || a.ai.mode !== 'attack') continue
-    const def = t.s.defs[a.def]!
-    const atk = def.attack
-    if (onFreshFrame(a, atk.animFrame)) {
+    const def = defOf(t.s, a)
+    if (onFreshFrame(a, def.attack.animFrame)) {
       const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
-      if (target && isAlive(target)) {
-        if (atk.type === 'melee') {
-          if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyHit(t, target, meleePush(def, a.facingLeft), atk.damageMultiplier)
-          // objAiAttack.performAttack (objAiAttack.txt:303-306): the swing sounds whether or not it hits
-          playSound(t, atk.sound, atk.volume)
-          a.cooldown = resetCooldown(atk)
-        } else if (atk.type === 'ranged' && atk.bullet) {
-          const [aim, rng] = aimWithEyestrain(a.pos, target.pos, def, t.rng)
-          t.rng = rng
-          const shot = rangedShot(a.pos, aim, def, a.facingLeft)
-          // remake: projectileSpreadDeg turns the shot by a small random angle
-          const [vel, rng2] = spreadVec(t.rng, shot.vel, def.projectileSpreadDeg)
-          t.rng = rng2
-          spawn(t, atk.bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
-          playSound(t, atk.sound, atk.volume) // objAiAttack.performAttack (objAiAttack.txt:308-314)
-          a.cooldown = resetCooldown(atk)
-        }
-      }
+      if (target && isAlive(target)) performAttack(t, a, def, target)
     }
-    if (a.animLooped) {
-      a.mode = 'walk'
-      a.ai.mode = 'findTarget'
-      a.ai.targetId = null
-      a.vel = { x: 0, y: 0 }
-      // remake: a finished melee attack may start a spreading detour
-      if (atk.type === 'melee') rollDetour(t, a, def)
-    }
+    if (a.animLooped) finishAttack(t, a, def)
   }
+}
+
+/**
+ * objAiAttack.performAttack (objAiAttack.txt:303-314): a melee strike or a fired bullet, then the
+ * attack sound (a swing sounds whether or not it hits) and a fresh cooldown.
+ */
+function performAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState): void {
+  const atk = def.attack
+  if (atk.type === 'melee') {
+    if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyHit(t, target, meleePush(def, a.facingLeft), atk.damageMultiplier)
+  } else if (atk.type === 'ranged' && atk.bullet) {
+    fireBullet(t, a, def, atk.bullet, target)
+  } else {
+    return
+  }
+  playSound(t, atk.sound, atk.volume)
+  a.cooldown = resetCooldown(atk)
+}
+
+/** A ranged attack's bullet, aimed with eyestrain at `target`. */
+function fireBullet(t: Tick, a: ActorState, def: ActorDef, bullet: string, target: ActorState): void {
+  const [aim, rng] = aimWithEyestrain(a.pos, target.pos, def, t.rng)
+  t.rng = rng
+  const shot = rangedShot(a.pos, aim, def, a.facingLeft)
+  // remake: projectileSpreadDeg turns the shot by a small random angle
+  const [vel, rng2] = spreadVec(t.rng, shot.vel, def.projectileSpreadDeg)
+  t.rng = rng2
+  spawn(t, bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
+}
+
+/** The attack strip has looped: back to walking and looking for a target. */
+function finishAttack(t: Tick, a: ActorState, def: ActorDef): void {
+  a.mode = 'walk'
+  a.ai.mode = 'findTarget'
+  a.ai.targetId = null
+  a.vel = { x: 0, y: 0 }
+  // remake: a finished melee attack may start a spreading detour
+  if (def.attack.type === 'melee') rollDetour(t, a, def)
 }
 
 /** objBullet.updateFly (stall -> land, target collision -> hit) and the landed strip. */
 export function stepBullets(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isBullet(t.s, a)) continue
-    if (a.mode === 'fly') {
-      if (bulletStalled(a.vel)) {
-        // objBullet.goMode(#land): setVect(point(0,0)) - the landed arrow does not drift
-        a.mode = 'land'
-        a.age = 0
-        a.vel = { x: 0, y: 0 }
-        continue
-      }
-      const target = a.targetId === null ? undefined : actorIn(t, a.targetId)
-      if (!target || !isAlive(target)) continue
-      if (bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), target.pos, collisionRectFor(t.s, target))) {
-        // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
-        // same collisionVect: two pushes and two damage applications, the second with the vector
-        // objGameObject.takeHit already scaled by the victim's inertia in place
-        const def = t.s.defs[a.def]!
-        const scaled = applyHit(t, target, bulletPush(a.vel, def), def.attack.damageMultiplier)
-        applyHit(t, target, scaled, def.attack.damageMultiplier)
-        t.removed.add(a.id)
-      }
-    } else if (a.mode === 'land') {
+    if (a.mode === 'fly') stepFlyingBullet(t, a)
+    else if (a.mode === 'land') {
       a.age++
       if (a.age >= LANDED_TICKS) t.removed.add(a.id)
     }
   }
 }
 
-/** objSpell: flight until PointArrivedAtTarget, then goMode(#explode) -> teamMaster.impactAttack, then the fade. */
-export function stepSpells(t: Tick): void {
-  for (const a of t.actors) {
-    if (t.removed.has(a.id) || !isSpell(t.s, a)) continue
-    if (a.mode === 'charge') {
-      // objAiAttack.cancelAttack on the caster's #dead finishes the charging spell
-      const owner = a.ownerId === null ? undefined : actorIn(t, a.ownerId)
-      if (!owner || !isAlive(owner)) t.removed.add(a.id)
-    } else if (a.mode === 'fly') {
-      if (a.targetPoint && arrivedAtTarget(a.pos, a.targetPoint, a.vel)) explodeSpell(t, a)
-    } else if (a.mode === 'explode') {
-      a.age++
-      if (a.age >= EXPLODE_TICKS) t.removed.add(a.id)
-    }
+function stepFlyingBullet(t: Tick, a: ActorState): void {
+  if (bulletStalled(a.vel)) {
+    // objBullet.goMode(#land): setVect(point(0,0)) - the landed arrow does not drift
+    a.mode = 'land'
+    a.age = 0
+    a.vel = { x: 0, y: 0 }
+    return
   }
-}
-
-/**
- * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
- * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
- * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
- * original explodes centred on the cursor. prevPos is pinned so the renderer does not slide the
- * explosion.
- */
-function explodeSpell(t: Tick, spell: ActorState): void {
-  const atk = spell.attack
-  if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
-  if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
-  const hated = hatedTeams(spell.team, t.s.teams)
-  const victims: SplashVictim[] = t.actors
-    .filter((v) => !t.removed.has(v.id) && isCharacter(t.s, v) && isAlive(v) && hated.includes(v.team))
-    .map((v) => {
-      const r = spriteRectFor(t.s, v)
-      return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
-    })
-  // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
-  const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
-  const ex = explode(spell.pos, spell.charge, atk, victims)
-  // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
-  const caster = t.actors.find((c) => c.id === spell.ownerId)
-  const spread = caster ? t.s.defs[caster.def]!.knockbackSpreadDeg : 0
-  for (const { id, push } of ex.pushes) {
-    const victim = actorIn(t, id)
-    if (!victim) continue
-    const [turned, rng] = spreadVec(t.rng, push, spread)
-    t.rng = rng
-    applyHit(t, victim, turned, atk.damageMultiplier)
-  }
-  t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
-  playSound(t, atk.explodeSound, explodeVolume)
-  spell.charge *= atk.chargeExplodeFactor
-  spell.mode = 'explode'
-  spell.vel = { x: 0, y: 0 }
-  spell.prevPos = spell.pos
-  spell.age = 0
+  const target = a.targetId === null ? undefined : actorIn(t, a.targetId)
+  if (!target || !isAlive(target)) return
+  if (!bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), target.pos, collisionRectFor(t.s, target))) return
+  // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
+  // same collisionVect: two pushes and two damage applications, the second with the vector
+  // objGameObject.takeHit already scaled by the victim's inertia in place
+  const def = defOf(t.s, a)
+  const scaled = applyHit(t, target, bulletPush(a.vel, def), def.attack.damageMultiplier)
+  applyHit(t, target, scaled, def.attack.damageMultiplier)
+  t.removed.add(a.id)
 }
 
 /** modReel.updateReel, objCharacter #die -> #dead, objCPUCharacter.updateDead -> #finish (grave), the player's release strip and death timer. */
 export function stepReelAndDeath(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id)) continue
-    const def = t.s.defs[a.def]!
+    const def = defOf(t.s, a)
     const wasMode = t.prev.get(a.id)?.mode
     switch (a.mode) {
       case 'reel':
@@ -352,7 +210,7 @@ export function stepReelAndDeath(t: Tick): void {
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isCharacter(t.s, a)) continue
-    const def = t.s.defs[a.def]!
+    const def = defOf(t.s, a)
     a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(def))
     const [energy, counter] = regenStep(a.energy, def.energy, a.regenCounter, def.energyRecoverDelay)
     a.energy = energy

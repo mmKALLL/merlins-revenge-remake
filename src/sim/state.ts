@@ -12,9 +12,9 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND
 export interface InputSnapshot {
   move: Vec // components -1, 0, 1 (opposite keys cancel)
   mouseWorld: Vec | null
-  chargeHeld: boolean // Space or left mouse button: charge, release at the mouse
-  shootNearest: boolean // E: charge, release at the nearest hostile
-  shootShort: boolean // F: charge, release 16 px short of the nearest hostile
+  chargeHeld: boolean // E or left mouse button: charge, release at the mouse
+  shootNearest: boolean // Space (F toggle off): charge, release at the nearest hostile
+  shootShort: boolean // Space (F toggle on): charge, release a little short of the nearest hostile (push-back shot)
 }
 
 export const NO_INPUT: InputSnapshot = {
