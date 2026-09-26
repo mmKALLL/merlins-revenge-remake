@@ -20,7 +20,9 @@ through data. Long-term goals: recreate the original faithfully, then build a ro
   Read the relevant one before porting behaviour. `docs/plans/`: designs, plans, progress.
 
 The original archive `assets-mr-original/` is git-ignored and only exists on the owner's machine.
-Everything the build needs is copied into `assets/`.
+Everything the build needs is copied into `assets/`. Cloud sessions can ask the owner for the
+reference bundle (`mr-open-reference.zip`: the Lingo under `casts/`, all data files, every `anm_*`
+cast member as PNG with `regpoints.tsv`); do not commit it wholesale.
 
 ## Rules
 

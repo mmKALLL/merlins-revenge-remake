@@ -17,8 +17,8 @@ const defs: Record<string, ActorDef> = resolveActors(actorFiles, {
   player: { weapon: 'energyBlast' },
   goblinWarrior: { detourChance: 0 }, goblinArcher: { detourChance: 0 }, bowOrc: { detourChance: 0 }, swordOrc: { detourChance: 0 },
 })
-// orcHouse's mageOrc group is not ported (convert-assets drops it the same way)
-defs['orcHouse']!.residentGroups = defs['orcHouse']!.residentGroups.filter((g) => defs[g.typ])
+// resident groups of unported actors are dropped, as convert-assets does (goblinHouse's goblinBuilder)
+for (const d of Object.values(defs)) d.residentGroups = d.residentGroups.filter((g) => defs[g.typ])
 const teams = JSON.parse(readFileSync('public/generated/teams.json', 'utf8')) as Record<string, TeamDef>
 
 type AtlasJson = { animations: Record<string, { delay: number; frames: { w: number; h: number; delay: number; reg?: { x: number; y: number } }[] }> }
