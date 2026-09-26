@@ -12,7 +12,7 @@ import { cooldownReady } from '../mr-open/mr-attack'
 import { distance, type Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
-import { collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
+import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, type Tick } from './tick-context'
@@ -40,7 +40,7 @@ function targetView(t: Tick, id: number | null): TargetView | null {
 }
 
 function decideFor(t: Tick, a: ActorState): AiDecision {
-  const me: AiView = { pos: a.pos, attack: defOf(t.s, a).attack, cooldownReady: cooldownReady(a.cooldown) }
+  const me: AiView = { pos: a.pos, attack: armedDefOf(t.s, a).attack, cooldownReady: cooldownReady(a.cooldown) }
   return decide(a.ai.mode, me, targetView(t, a.ai.targetId), a.ai.retargetCounter)
 }
 
@@ -129,8 +129,31 @@ function retarget(t: Tick, a: ActorState): AiDecision | null {
   }
   a.ai.targetId = targetId
   a.ai.mode = 'moveToAttack'
+  const def = defOf(t.s, a)
+  if (def.multiAttack) selectAttack(t, a, def, actorIn(t, targetId)!)
   return decideFor(t, a)
 }
+
+/**
+ * modWeaponManager.setMultiAttack on a new target: the natural attack (weapon 1) while the target is
+ * beyond bufferDist (the weapon's reach when that is ranged too), else the weapon (2) - unless the
+ * target fights in melee, then weapon 1 again once the squared distance exceeds 20 (the engine
+ * compares GeomDistSqr with 20, so in practice always). Each weapon keeps its own cooldown.
+ */
+function selectAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState): void {
+  const weapon2 = def.attack
+  const buffer = weapon2.type === 'ranged' && typeof weapon2.reach === 'number' ? weapon2.reach : def.bufferDist
+  const dist2 = (target.pos.x - a.pos.x) ** 2 + (target.pos.y - a.pos.y) ** 2
+  let natural = dist2 - buffer * buffer > 0
+  if (!natural) natural = defOf(t.s, target).attack.type === 'melee' && dist2 > MULTI_ATTACK_MELEE_DIST_SQR && weapon2.type === 'melee'
+  if (natural === a.useNatural) return
+  a.useNatural = natural
+  const cooldown = a.cooldown
+  a.cooldown = a.otherCooldown
+  a.otherCooldown = cooldown
+}
+/** setMultiAttack's melee check compares a squared distance with this. */
+const MULTI_ATTACK_MELEE_DIST_SQR = 20
 
 /** modPathFinding + modMoveToLoc toward the decision's goal, then the remake's walking detour roll. */
 function walkToward(t: Tick, a: ActorState, def: ActorDef, goal: Vec): void {
@@ -161,7 +184,7 @@ function stopInReach(a: ActorState): void {
   a.ai = { ...a.ai, pathStall: 0, moveTarget: null, walkTicks: 0 }
 }
 
-/** Starts the attack strip; stepAttackFrames performs and finishes it. */
+/** Starts the attack strip; stepAttackFrames performs and finishes it. `def` carries the current attack (armedDefOf). */
 function startAttack(a: ActorState, def: ActorDef, faceLeft: boolean): void {
   a.facingLeft = faceLeft
   // objAiAttack.attack -> goMode(attack.animType): the strip named after the attack's animType
@@ -214,7 +237,7 @@ export function stepCpuAi(t: Tick): void {
         stopInReach(a)
         break
       case 'startAttack':
-        startAttack(a, def, decision.faceLeft)
+        startAttack(a, armedDefOf(t.s, a), decision.faceLeft)
         break
       default: // idle, a repeated retarget, or no target found
         break

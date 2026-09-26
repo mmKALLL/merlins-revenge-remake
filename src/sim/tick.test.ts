@@ -56,7 +56,7 @@ const grid = (map: MapDefinition = openMap()) => buildWorldGrid(map, isSolid, OB
 
 // Minimal resolved actor definitions: only the fields this slice reads, plus a raw bag.
 function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType' | 'team'>): ActorDef {
-  return {
+  const d: Omit<ActorDef, 'naturalAttack'> = {
     aiType: null, layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 }, energy: 100, energyRecoverDelay: 300,
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', walkSpeed: 0,
     residentGroups: [], totalResidents: 10, productionTimeScale: 1, reelProof: false, collisionDetection: true, minEnergy: 0, maxEnergy: over.energy ?? 100, graveOn: true, reincarnateAs: [], runReload: false, explodeEvents: [], exploderSound: null, exploderVolume: 50,
@@ -71,8 +71,10 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
     },
     takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null,
     raw: {},
+    multiAttack: false, bufferDist: 100,
     ...over,
   }
+  return { ...d, naturalAttack: over.naturalAttack ?? d.attack }
 }
 const defs: Record<string, ActorDef> = {
   player: def({ key: 'player', name: 'mer', objType: 'objPlayerMerlinCharacter', aiType: 'objAiPlayer', team: 'aldevar', energy: 200, walkAcceleration: 2, energyRecoverDelay: 30 }),

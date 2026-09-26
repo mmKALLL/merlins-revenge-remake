@@ -116,14 +116,15 @@ const moreActors = [
   'friendlyGoblinMageHut', 'friendlyGoblinWarrior', 'frostyMonk', 'garTower', 'goblinHero', 'hydra1',
   'hydra2', 'hydra3', 'iceBoulder', 'iceRock', 'karateGuy', 'kingInGame', 'kingSword', 'kongFuChicken',
   'laser', 'lavaDarkGolem', 'lavaGolem', 'lightning', 'lizard', 'lizardEgg', 'lizardSoldier', 'magicPortal',
-  'needle', 'ostrichEgg', 'pitchFork', 'plant', 'powerOstrich', 'quadranid', 'scArcher', 'scArcherArrow',
-  'scArcherBow', 'scWarrior', 'scWarriorSword', 'shuriken', 'shurikenNinja', 'skeletonArcher', 'skeletonBow',
-  'skeletonComando', 'skeletonComandoSword', 'skeletonDwelling', 'skeletonGiant', 'skeletonGiantSword',
-  'skeletonHead', 'skeletonSword', 'skeletonThrower', 'skeletonWarrior', 'skelitonArm',
-  'skelitonFootSoldier', 'skelitonHead', 'skelitonLord', 'skelitonLordSword', 'skelitonLowerLeg',
-  'skelitonMissile', 'skelitonSword', 'skelitonTorsoTank', 'spark', 'speedyGuy', 'thunderBlast',
-  'thunderMonk', 'thunderSticks', 'towerAxe', 'townMace', 'townWatch', 'tvBox', 'undeadDragon',
-  'vultureGuard', 'warrior', 'warriorSword',
+  'mysteriousCloud', 'needle', 'ninja', 'ninjaSword', 'ostrichEgg', 'pinShooter', 'pitchFork', 'plant',
+  'powerOstrich', 'quadranid', 'scArcher', 'scArcherArrow', 'scArcherBow', 'scWarrior', 'scWarriorSword',
+  'shrouder', 'shuriken', 'shurikenNinja', 'skeletonArcher', 'skeletonBow', 'skeletonComando',
+  'skeletonComandoSword', 'skeletonDwelling', 'skeletonGiant', 'skeletonGiantSword', 'skeletonHead',
+  'skeletonSword', 'skeletonThrower', 'skeletonWarrior', 'skelitonArm', 'skelitonFootSoldier',
+  'skelitonHead', 'skelitonLord', 'skelitonLordSword', 'skelitonLowerLeg', 'skelitonMissile',
+  'skelitonSword', 'skelitonTorsoTank', 'smoke', 'smokePin', 'spark', 'speedyGuy', 'swordNinja',
+  'thunderBlast', 'thunderMonk', 'thunderSticks', 'towerAxe', 'townMace', 'townWatch', 'tvBox',
+  'undeadDragon', 'vultureGuard', 'warrior', 'warriorSword',
 ]
 for (const name of moreActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: more enemies' })
@@ -146,12 +147,13 @@ const castSprites = [
   'flamingRock', 'fourArmGolem', 'freezeBlast', 'frostyMonk', 'garTower', 'goblinHut', 'goblinMage',
   'goblinMageHut', 'hydra1', 'hydra2', 'hydra3', 'iceBoulder', 'iceRock', 'karateGuy', 'kingInGame',
   'kongFuChicken', 'laser', 'lavaDarkGolem', 'lightning', 'lizard', 'lizardEgg', 'lizardSoldier',
-  'magicPortal', 'needle', 'orcHouse', 'ostrichEgg', 'plant', 'powerOstrich', 'quadranid', 'scArcher',
-  'scArcherArrow', 'scWarrior', 'shuriken', 'shurikenNinja', 'skeletonArcher', 'skeletonComando',
-  'skeletonDwelling', 'skeletonGiant', 'skeletonHead', 'skeletonThrower', 'skelitonArm',
-  'skelitonFootSoldier', 'skelitonHead', 'skelitonLord', 'skelitonLowerLeg', 'skelitonMissile',
-  'skelitonSword', 'skelitonTorsoTank', 'skw', 'spark', 'speedyGuy', 'swordOrc', 'thunderBlast',
-  'thunderMonk', 'towerAxe', 'townWatch', 'tvBox', 'undeadDragon', 'vultureGuard', 'warrior',
+  'magicPortal', 'mysteriousCloud', 'needle', 'ninja', 'orcHouse', 'ostrichEgg', 'plant', 'powerOstrich',
+  'quadranid', 'scArcher', 'scArcherArrow', 'scWarrior', 'shrouder', 'shuriken', 'shurikenNinja',
+  'skeletonArcher', 'skeletonComando', 'skeletonDwelling', 'skeletonGiant', 'skeletonHead',
+  'skeletonThrower', 'skelitonArm', 'skelitonFootSoldier', 'skelitonHead', 'skelitonLord',
+  'skelitonLowerLeg', 'skelitonMissile', 'skelitonSword', 'skelitonTorsoTank', 'skw', 'smoke', 'smokePin',
+  'spark', 'speedyGuy', 'swordOrc', 'thunderBlast', 'thunderMonk', 'towerAxe', 'townWatch', 'tvBox',
+  'undeadDragon', 'vultureGuard', 'warrior',
 ]
 if (existsSync(CAST_BITMAPS)) {
   const [header, ...rows] = readFileSync(join(CAST_BITMAPS, 'regpoints.tsv'), 'utf8').split('\n')

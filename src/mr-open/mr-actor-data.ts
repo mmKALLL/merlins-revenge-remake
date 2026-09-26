@@ -90,6 +90,9 @@ export interface ActorDef {
   weapon: string | null // starting weapon actor key whose attack is installed (goblinSword, goblinBow)
   weaponTechnique: number // modWeaponTechnique rating; negative values lengthen attack strips
   attack: AttackDef // the installed current attack (from weapon, or the natural attack)
+  naturalAttack: AttackDef // the actor's own #attack (modWeaponManager.initNaturalAttack, weapon 1)
+  multiAttack: boolean // objAiCPU: on each retarget pick the natural attack or the weapon by distance
+  bufferDist: number // modWeaponManager: beyond this the multiAttack picks the natural (ranged) attack
   // --- engine: sound (modEnergy, objCharacter, objMusic)
   takeHitSound: string | null // modEnergy.loseEnergy plays it on every energy loss (the player's wizard_hit)
   takeHitVolume: number // 0-255; modEnergy #takeHitVolume, #none -> 150 (the player's #takeHitSoundVolume is never read)
@@ -179,6 +182,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     mana_burst: 1, mana_capacity: 10, mana_flow: 1, mana_regeneration: 1, // act_character fallbacks
     // engine: weapon
     weaponTechnique: 0, // modWeaponTechnique.addModParams
+    multiAttack: false, bufferDist: 100, // modWeaponManager.addModParams
     // engine: sound
     takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
     dieSound: 'none', dieVolume: DEFAULT_DIE_VOLUME, // objCharacter.addModParams (objDwelling reads the same fields)
@@ -207,7 +211,7 @@ for (const k of [
   'explodeEvents', 'exploderVolume', 'explodeVolume',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
-  'weapon', 'weaponTechnique', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
+  'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
   'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
   // engine properties kept in raw only
   'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
@@ -426,6 +430,12 @@ function installedRawAttack(r: Plain, weapon: string | null, parsed: Record<stri
   return rawAttack
 }
 
+/** The actor's own #attack, with the tuning overlay's `attack` merged on when no weapon took it. */
+function naturalRawAttack(r: Plain, overlay: unknown, weapon: string | null): Plain | undefined {
+  const own = isPlain(r['attack']) ? r['attack'] : undefined
+  return weapon === null && isPlain(overlay) ? deepMerge(own ?? {}, overlay) : own
+}
+
 /**
  * files: actor key (e.g. "goblinWarrior") -> raw text of act_<key>.txt.
  * tuning: optional deep overlay per actor key. Everything but `attack` is merged into the resolved
@@ -490,7 +500,10 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
       productionTimeScale: num(r, 'productionTimeScale', ctx),
-      attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey), raw: r,
+      attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
+      naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
+      multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
+      raw: r,
     }
   }
   return out

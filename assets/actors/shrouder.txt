@@ -1,0 +1,100 @@
+[#name: "act_shrouder", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [2,3,4,5,6,7],
+#animType: #naturalRanged,
+#bullet: #smoke,
+#collisionLoc: point(0,0),
+#cooldown: 400,
+#firingType: #fullstrength,
+#name: #throwSmoke,
+#reach: 300,
+#sound: #none
+],
+#damageSpeed: 2,
+#dexterity: 10,
+#dieSound: #none,
+#multiAttack: true,
+#energy: 150,
+#experienceImWorth: 15,
+#eyestrain: 50,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 7,
+#miniMapStatus: #inf,
+#team: #magicalAlliance,
+#name: "shrouder",
+#walkSpeed: 3,
+#weapon: #pinShooter,
+#weaponTechnique: 20
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

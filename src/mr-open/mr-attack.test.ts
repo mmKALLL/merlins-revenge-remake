@@ -14,7 +14,7 @@ const actor = (key: string, o: Partial<ActorDef>, a: Partial<AttackDef>): ActorD
   energy: 100, energyRecoverDelay: 300, friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', residentGroups: [], totalResidents: 10, productionTimeScale: 1, reelProof: false, collisionDetection: true, minEnergy: 0, maxEnergy: o.energy ?? 100, graveOn: true, reincarnateAs: [], runReload: false, explodeEvents: [], exploderSound: null, exploderVolume: 50,
   walkSpeed: 4, walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
   mana_regeneration: 1, weapon: null, experienceImWorth: 0,
-  takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null, attack: attack(a), raw: {}, ...o,
+  takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null, attack: attack(a), naturalAttack: attack(a), multiAttack: false, bufferDist: 100, raw: {}, ...o,
 })
 
 const warrior = actor('goblinWarrior', { strength: 4, agility: 1, inertia: 30 }, { type: 'melee', collisionLoc: { x: 15, y: 0 }, idealAttackLoc: { x: 15, y: 0 }, power: { x: 0.7, y: 0 }, damageMultiplier: 2, cooldown: 0 })

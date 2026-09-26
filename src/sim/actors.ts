@@ -38,6 +38,12 @@ export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !=
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
 
+/** The definition with the actor's current attack installed (a multiAttack unit may be using its natural one). */
+export function armedDefOf(s: SimState, a: ActorState): ActorDef {
+  const def = defOf(s, a)
+  return a.useNatural ? { ...def, attack: def.naturalAttack } : def
+}
+
 /** moveHorizReaction: facing follows horizontal movement; no horizontal movement keeps it. */
 export function faceAlong(a: ActorState, dx: number): void {
   if (dx < 0) a.facingLeft = true
@@ -80,6 +86,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     energy: def.energy,
     regenCounter: 0,
     cooldown: 0,
+    useNatural: false,
+    otherCooldown: 0,
     stall: 0,
     frictionPercent: { ...def.friction },
     knockback: { x: 0, y: 0 },

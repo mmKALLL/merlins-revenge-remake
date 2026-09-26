@@ -37,7 +37,7 @@ const anims: Record<string, AnimationSet> = Object.fromEntries(
   }),
 )
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /** One open 18x9 room with the given objects (1-based tiles). */
@@ -256,6 +256,15 @@ describe('multistage and special units', () => {
     s = patch(s, 'fourArmGolem', { energy: 1, ai: { ...ofDef(s, 'fourArmGolem')[0]!.ai, mode: 'none' } })
     for (let i = 0; i < 120 && ofDef(s, 'darkGolem').length === 0; i++) s = stepSim(s, i < 13 ? holdE : NO_INPUT)
     expect(ofDef(s, 'darkGolem')).toHaveLength(2)
+  })
+
+  it('a multiAttack ninja throws shuriken from afar and draws its sword within bufferDist', () => {
+    let far = sim([{ x: 12, y: 5, symbol: 'ninja' }]) // 288 px away
+    far = stepSim(far, NO_INPUT)
+    expect(ofDef(far, 'ninja')[0]!.useNatural).toBe(true)
+    let near = sim([{ x: 5, y: 5, symbol: 'ninja' }]) // 64 px away; Merlin's blast is not melee
+    near = stepSim(near, NO_INPUT)
+    expect(ofDef(near, 'ninja')[0]!.useNatural).toBe(false)
   })
 
   it('a reelProof plant takes damage from the blast but never reels', () => {

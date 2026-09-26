@@ -91,7 +91,10 @@ export interface ActorState {
   animLooped: boolean // set on the tick the strip wrapped
   energy: number
   regenCounter: number
-  cooldown: number // remaining counter units; ready when <= 0
+  cooldown: number // remaining counter units of the current attack; ready when <= 0
+  /** multiAttack: the natural attack is the current one (else the weapon); the other's cooldown runs on in otherCooldown */
+  useNatural: boolean
+  otherCooldown: number
   stall: number // objMoveXY stall counter (reel end at 10)
   frictionPercent: Vec
   knockback: Vec // player only: push from hits, decaying by frictionReel separately from walking (see applyHit)

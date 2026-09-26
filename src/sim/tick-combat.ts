@@ -13,7 +13,7 @@ import { explodeWithCharge, type SplashVictim } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
-import { collisionRectFor, defOf, isAlive, isBullet, isCharacter, isUnit, spriteRectFor } from './actors'
+import { armedDefOf, collisionRectFor, defOf, isAlive, isBullet, isCharacter, isUnit, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
 import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
@@ -101,7 +101,7 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
 export function stepAttackFrames(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || a.ai.mode !== 'attack') continue
-    const def = defOf(t.s, a)
+    const def = armedDefOf(t.s, a)
     if (onFreshFrame(a, def.attack.animFrame)) {
       const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
       if (target && isAlive(target)) performAttack(t, a, def, target)
@@ -167,7 +167,9 @@ export function stepBullets(t: Tick): void {
     if (a.mode === 'fly') stepFlyingBullet(t, a)
     else if (a.mode === 'land') {
       a.age++
-      if (a.age >= LANDED_TICKS) t.removed.add(a.id)
+      if (a.age < LANDED_TICKS) continue
+      t.removed.add(a.id)
+      reincarnate(t, a, defOf(t.s, a)) // objBullet #land fin (flamingRock leaves a fire)
     } else if (a.mode === 'explode') {
       // modExploder.updateExplode: until the explode strip has looped, then #explodeFin -> dead
       a.age++
@@ -304,7 +306,10 @@ export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isUnit(t.s, a)) continue
     const def = defOf(t.s, a)
-    a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(def))
+    // updateCooldowns runs every weapon's counter, each advanced by its attack type's stat
+    const armed = armedDefOf(t.s, a)
+    a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armed))
+    if (def.multiAttack) a.otherCooldown = tickCooldown(a.otherCooldown, cooldownIncrement({ ...def, attack: a.useNatural ? def.attack : def.naturalAttack }))
     const [energy, counter] = regenStep(a.energy, def.maxEnergy, a.regenCounter, def.energyRecoverDelay)
     a.energy = energy
     a.regenCounter = counter
