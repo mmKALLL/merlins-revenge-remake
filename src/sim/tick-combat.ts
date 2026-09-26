@@ -143,21 +143,23 @@ export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
  * Victim side of a hit: objGameObject.takeHit (inertia scaling, velocity add), modReel.takeHit
  * (goMode(#reel): frictionReel, stall reset, dazed AI), modEnergy.takeHit / loseEnergy. Ignored for
  * victims already dying or dead (objCPUCharacter.takeHit: #dead or checkDead; the player: #die).
- * objPlayerMerlinCharacter.takeHit forces the player back to #walk afterwards, but only
- * objCPUCharacter.goMode(#walk) calls frictionNormal: the player keeps frictionReel from its first
- * hit on (nothing in the engine restores it). Returns the inertia-scaled push, which objGameObject
- * writes back into the caller's point (Lingo points are passed by reference).
+ * objPlayerMerlinCharacter.takeHit forces the player back to #walk afterwards. In the export only
+ * objCPUCharacter.goMode(#walk) calls frictionNormal, so ported literally the player would keep
+ * frictionReel forever and walk at ~18 px/tick after the first hit, which the shipped game did not
+ * do. Remake decision: the player's push goes into a separate `knockback` vector that decays by
+ * frictionReel (a long slide) while walking keeps normal friction. Returns the inertia-scaled push,
+ * which objGameObject writes back into the caller's point (Lingo points are passed by reference).
  */
 export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): Vec {
   if (victim.mode === 'die' || victim.mode === 'dead' || victim.mode === 'finish' || isDead(victim.energy)) return push
   const def = t.s.defs[victim.def]!
   const hit = resolveHit(def, push, attackerMultiplier)
-  victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
   t.hit.add(victim.id)
   if (victim.id === t.s.playerId) {
+    victim.knockback = { x: victim.knockback.x + hit.push.x, y: victim.knockback.y + hit.push.y }
     victim.mode = 'walk'
-    victim.frictionPercent = { ...def.frictionReel }
   } else {
+    victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
     victim.mode = 'reel'
     victim.frictionPercent = { ...def.frictionReel }
     victim.stall = 0

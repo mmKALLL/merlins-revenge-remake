@@ -53,6 +53,7 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     cooldown: 0,
     stall: 0,
     frictionPercent: { ...def.friction },
+    knockback: { x: 0, y: 0 },
     ai: {
       mode: def.aiType === 'objAiCPU' ? 'findTarget' : 'none',
       targetId: null,

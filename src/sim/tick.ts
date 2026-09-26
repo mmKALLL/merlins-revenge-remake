@@ -99,7 +99,10 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const def = s.defs[p.def]!
   const dir = isAlive(p) ? input.move : { x: 0, y: 0 }
   const accel = s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration
-  const vel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
+  const walkVel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
+  // hit knockback slides on top of walking and decays by frictionReel (see applyHit)
+  const knock = p.knockback
+  const vel = { x: walkVel.x + knock.x, y: walkVel.y + knock.y }
   let loc: Vec = { x: p.pos.x + vel.x, y: p.pos.y + vel.y }
   // objGameObject.collisionWallLeft/Right: setVectX(0); collisionCeiling/collisionPlatform: setVectY(0)
   const pushed = resolveTileCollisionHits(s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cfg.collisionRect)
@@ -114,7 +117,9 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   }
   p.prevPos = p.pos
   p.pos = loc
-  p.vel = { x: pushed.wallX ? 0 : vel.x, y: pushed.wallY ? 0 : vel.y }
+  p.vel = { x: pushed.wallX ? 0 : walkVel.x, y: pushed.wallY ? 0 : walkVel.y }
+  const decayed = stepVelocity(knock, { x: 0, y: 0 }, 0, def.frictionReel)
+  p.knockback = { x: pushed.wallX ? 0 : decayed.x, y: pushed.wallY ? 0 : decayed.y }
   if (dir.x < 0) p.facingLeft = true
   else if (dir.x > 0) p.facingLeft = false
   return room

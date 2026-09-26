@@ -77,6 +77,7 @@ export interface ActorState {
   cooldown: number // remaining counter units; ready when <= 0
   stall: number // objMoveXY stall counter (reel end at 10)
   frictionPercent: Vec
+  knockback: Vec // player only: push from hits, decaying by frictionReel separately from walking (see applyHit)
   ai: AiState
   // projectiles and spells
   ownerId: number | null

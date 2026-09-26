@@ -136,7 +136,7 @@ describe('warrior melee (combat notes §3-4, §6)', () => {
     ;[s, ticks] = runUntil(s, (t) => playerOf(t).energy < before, 22)
     expect(ticks).toBe(12)
     expect(playerOf(s).energy).toBeCloseTo(before - 5.6, 10)
-    expect(playerOf(s).vel).toEqual({ x: -2.8, y: 0 })
+    expect(playerOf(s).knockback).toEqual({ x: -2.8, y: 0 })
     expect(playerOf(s).mode).toBe('walk')
     expect(s.events).toContainEqual({ kind: 'hit', id: s.playerId })
     // The attack strip (11 frames x 2) loops on its 22nd tick, i.e. 21 ticks after the start tick:
@@ -146,9 +146,9 @@ describe('warrior melee (combat notes §3-4, §6)', () => {
     expect(g.mode).toBe('walk')
     expect(g.ai.mode).toBe('findTarget')
     expect(g.ai.targetId).toBeNull()
-    // modReel.goMode(#reel) left the player on frictionReel (10 %/tick; #walk does not restore it for
-    // the player), so the push slides it much farther than walking friction would (2.8 px in total).
-    expect(playerOf(s).frictionPercent).toEqual({ x: 10, y: 10 })
+    // The push decays by frictionReel (10 %/tick) in the player's knockback, so it slides much
+    // farther than walking friction would (2.8 px in total), while walking friction stays 50 %.
+    expect(playerOf(s).frictionPercent).toEqual({ x: 50, y: 50 })
     expect(playerOf(s).pos.x).toBeLessThan(100 - 10)
   })
 
@@ -416,9 +416,9 @@ describe('archer (combat notes §3-4)', () => {
     }, 20)
     expect(ticks).toBe(14)
     const damage = before - playerOf(s).energy
-    // the player stood still, so its velocity is exactly the two pushes: arrow velocity (one more 5 %
+    // the player stood still, so its knockback is exactly the two pushes: arrow velocity (one more 5 %
     // step after the last one observed) times power 0.5, twice; damage = Manhattan length * damageMultiplier 3
-    const push = playerOf(s).vel
+    const push = playerOf(s).knockback
     expect(push.x).toBeCloseTo(2 * lastVel.x * 0.95 * 0.5, 10)
     expect(push.y).toBeCloseTo(2 * lastVel.y * 0.95 * 0.5, 10)
     expect(damage).toBeCloseTo(3 * (Math.abs(push.x) + Math.abs(push.y)), 10)
@@ -673,5 +673,17 @@ describe('determinism', () => {
     const before = strip(s)
     run(s, 40, holdE)
     expect(strip(s)).toEqual(before)
+  })
+})
+
+describe('player knockback (remake decision, see applyHit)', () => {
+  it('slides the player with the decaying push while walking speed stays normal', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, knockback: { x: 10, y: 0 } } : a)) }
+    const walkRight = { ...NO_INPUT, move: { x: 1, y: 0 } }
+    s = run(s, 80, walkRight)
+    // the knockback has died out and walking is back at its steady 2 px/tick, not 18
+    expect(Math.abs(playerOf(s).knockback.x)).toBeLessThan(0.01)
+    expect(playerOf(s).vel.x).toBeCloseTo(2, 3)
   })
 })
