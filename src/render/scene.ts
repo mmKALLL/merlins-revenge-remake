@@ -79,7 +79,8 @@ export class Scene {
 
   /** alpha in [0,1): how far between the previous and current tick the display is. */
   draw(s: SimState, alpha: number, fps: number): void {
-    const p = s.player
+    // TODO(Task 11): draw every actor; until then only the player (actor 0) is rendered
+    const p = s.actors[s.playerId]!
     const ipos = { x: p.prevPos.x + (p.pos.x - p.prevPos.x) * alpha, y: p.prevPos.y + (p.pos.y - p.prevPos.y) * alpha }
     const worldSize = { w: s.grid.widthTiles * TILE_PX, h: s.grid.heightTiles * TILE_PX }
     const origin = cameraOrigin(this.cfg.cameraMode, s.grid.roomRectPx(s.room), ipos, this.cfg.view, worldSize)
@@ -95,7 +96,8 @@ export class Scene {
     if (this.cfg.debug) {
       this.debugText.text =
         `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} ` +
-        `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} cam ${this.cfg.cameraMode}`
+        `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} ` +
+        `actors ${s.actors.length} cam ${this.cfg.cameraMode}`
     }
   }
 

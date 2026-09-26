@@ -13,9 +13,12 @@ export interface WorldGrid {
   roomOfPoint(px: number, py: number): Vec
   roomRectPx(room: Vec): Rect
   roomExists(room: Vec): boolean
+  /** objects-layer key symbol at a world tile (e.g. 'goblinWarrior'); null for empty, 'none' or unknown indices */
+  objectSymbolAt(tx: number, ty: number): string | null
 }
 
-export function buildWorldGrid(map: MapDefinition, isSolid: (tileIndex: number) => boolean): WorldGrid {
+/** objectSymbols: the objects tileset's key symbols, index i -> tile index i+1 (as in the converted tileset JSON). */
+export function buildWorldGrid(map: MapDefinition, isSolid: (tileIndex: number) => boolean, objectSymbols: readonly string[] = []): WorldGrid {
   const widthTiles = map.mapSize.x * map.roomSize.x
   const heightTiles = map.mapSize.y * map.roomSize.y
   const layerNames = map.layers.map((l) => l.name)
@@ -59,5 +62,10 @@ export function buildWorldGrid(map: MapDefinition, isSolid: (tileIndex: number) 
       return { left: (room.x - 1) * w, top: (room.y - 1) * h, right: room.x * w, bottom: room.y * h }
     },
     roomExists: (room) => room.x >= 1 && room.y >= 1 && room.x <= map.mapSize.x && room.y <= map.mapSize.y,
+    objectSymbolAt: (tx, ty) => {
+      const idx = tileAt('objects', tx, ty)
+      const sym = idx >= 1 ? objectSymbols[idx - 1] : undefined
+      return sym === undefined || sym === 'none' ? null : sym
+    },
   }
 }

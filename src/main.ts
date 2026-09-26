@@ -1,13 +1,14 @@
-import { loadMap, loadSprite, loadTileset } from './data/loaders'
+import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import type { Vec } from './mr-open/mr-geometry'
 import { Scene, type RenderConfig } from './render/scene'
-import { TICK_MS } from './sim/state'
+import { TICK_MS, type AnimationSet } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
 
 const params = new URLSearchParams(location.search)
 const mapName = params.get('map') ?? 'mriv_small'
+const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
   logical: { w: 640, h: 320 },
@@ -18,6 +19,8 @@ const cfg: RenderConfig = {
   debug: params.get('debug') !== '0',
 }
 
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell'])
+
 async function main(): Promise<void> {
   const map = await loadMap(mapName)
   const tilesetFor = (layer: string) => {
@@ -25,17 +28,28 @@ async function main(): Promise<void> {
     if (!name) throw new Error(`map ${mapName} has no ${layer} layer`)
     return name
   }
-  const [passive, active, objects, merlin] = await Promise.all([
+  const [passive, active, objects, defs, teams] = await Promise.all([
     loadTileset(tilesetFor('backgroundPassive')),
     loadTileset(tilesetFor('backgroundActive')),
     loadTileset(tilesetFor('objects')),
-    loadSprite('mer'),
+    loadActors(),
+    loadTeams(),
   ])
+  // One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist).
+  const spriteNames = [...new Set(Object.values(defs).filter((d) => SPRITE_OBJ_TYPES.has(d.objType)).map((d) => d.name))]
+  const sprites: Record<string, LoadedSprite> = {}
+  const anims: Record<string, AnimationSet> = {}
+  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {
+    sprites[name] = sprite
+    anims[name] = sprite.anims
+  }
+  const merlin = sprites[defs['player']!.name]
+  if (!merlin) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'
-  const grid = buildWorldGrid(map, isSolid)
+  const grid = buildWorldGrid(map, isSolid, objects.data.symbols)
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
-  let sim = createSim(grid, merlin.anims, findStartPos(grid, playerTile))
+  let sim = createSim(grid, defs, teams, anims, seed, findStartPos(grid, playerTile))
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, merlin)
   await scene.init(document.body)

@@ -1,8 +1,10 @@
 // Loads public/generated JSON and PNG (produced by tools/convert-assets.ts) into typed structures
 // and PixiJS textures. Tile and frame textures are sub-rectangles of one shared sheet texture.
 import { Assets, Rectangle, Texture } from 'pixi.js'
+import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
 
 export interface TilesetData {
@@ -45,7 +47,20 @@ const isTileset = (v: unknown): v is TilesetData =>
   isObj(v) && isObj(v['tileSize']) && isNum(v['tileSize']['x']) && isNum(v['tileSize']['y']) &&
   isNum(v['tilesPerRow']) && Array.isArray(v['symbols'])
 
-const isSpriteAtlas = (v: unknown): v is SpriteAtlas => isObj(v) && isObj(v['animations'])
+const isSpriteAtlas = (v: unknown): v is SpriteAtlas =>
+  isObj(v) && isObj(v['animations']) &&
+  Object.values(v['animations']).every((a) => isObj(a) && isNum(a['delay']) && Array.isArray(a['frames']) && a['frames'].length > 0)
+
+const isActorDef = (v: unknown): v is ActorDef =>
+  isObj(v) && typeof v['key'] === 'string' && typeof v['name'] === 'string' && typeof v['objType'] === 'string' &&
+  typeof v['team'] === 'string' && isNum(v['energy']) && isObj(v['friction']) && isObj(v['attack']) && isObj(v['raw'])
+
+const isActors = (v: unknown): v is Record<string, ActorDef> => isObj(v) && Object.values(v).every(isActorDef)
+
+const isTeamDef = (v: unknown): v is TeamDef =>
+  isObj(v) && typeof v['key'] === 'string' && typeof v['teamName'] === 'string' && Array.isArray(v['hates']) && Array.isArray(v['friends'])
+
+const isTeams = (v: unknown): v is Record<string, TeamDef> => isObj(v) && Object.values(v).every(isTeamDef)
 
 function nearest(t: Texture): Texture {
   t.source.scaleMode = 'nearest'
@@ -58,6 +73,17 @@ function subTexture(sheet: Texture, x: number, y: number, w: number, h: number):
 
 export async function loadMap(name: string): Promise<MapDefinition> {
   return json(`/generated/maps/${name}.json`, isMap)
+}
+
+/** Resolved actor definitions keyed by act_<key> name (tools/convert-assets.ts). */
+export async function loadActors(): Promise<Record<string, ActorDef>> {
+  const actors = await json('/generated/actors.json', isActors)
+  if (!actors['player']) throw new Error('/generated/actors.json has no "player" definition')
+  return actors
+}
+
+export async function loadTeams(): Promise<Record<string, TeamDef>> {
+  return json('/generated/teams.json', isTeams)
 }
 
 export async function loadTileset(name: string): Promise<LoadedTileset> {
@@ -78,20 +104,19 @@ export async function loadTileset(name: string): Promise<LoadedTileset> {
 
 export async function loadSprite(name: string): Promise<LoadedSprite> {
   const atlas = await json(`/generated/sprites/${name}.json`, isSpriteAtlas)
-  if (!atlas.animations['walk'] && !atlas.animations['stand']) {
-    throw new Error(`sprite ${name} has no walk or stand animation`)
-  }
   const sheet = nearest(await Assets.load<Texture>(`/generated/sprites/${name}.png`))
   const anims: AnimationSet = {}
   const frames: Record<string, Texture[]> = {}
   for (const [anim, def] of Object.entries(atlas.animations)) {
-    anims[anim] = { frames: def.frames.length, delay: def.delay }
+    const first = def.frames[0]!
+    anims[anim] = { frames: def.frames.length, delay: def.delay, w: first.w, h: first.h }
     frames[anim] = def.frames.map((f) => subTexture(sheet, f.x, f.y, f.w, f.h))
   }
-  // objAnimSet.symExistsOrDefault falls back to #stand; the export has no stand strip, so alias walk frame 1
-  if (!frames['stand'] && frames['walk']) {
+  // objAnimSet.symExistsOrDefault falls back to #stand; Merlin's export has no stand strip, so alias walk frame 1
+  const walk = anims['walk']
+  if (!frames['stand'] && frames['walk'] && walk) {
     frames['stand'] = [frames['walk'][0]!]
-    anims['stand'] = { frames: 1, delay: 1 }
+    anims['stand'] = { frames: 1, delay: 1, w: walk.w, h: walk.h }
   }
   return { anims, frames }
 }
