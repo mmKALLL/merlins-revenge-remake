@@ -128,7 +128,10 @@ export function stepCpuAi(t: Tick): void {
         a.ai.walkTicks++
         if (a.ai.walkTicks >= def.detourMoveTicks) {
           a.ai.walkTicks = 0
-          rollDetour(t, a, def)
+          // no walking detour while already close to the target (user feedback)
+          const target = a.ai.targetId === null ? undefined : t.actors.find((x) => x.id === a.ai.targetId)
+          const near = target !== undefined && Math.hypot(target.pos.x - a.pos.x, target.pos.y - a.pos.y) < def.detourMinTargetDistance
+          if (!near) rollDetour(t, a, def)
         }
         break
       }
