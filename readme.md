@@ -5,7 +5,7 @@ TypeScript port of the open-sourced Merlin Open engine.
 ## Run
 
     pnpm install
-    pnpm assets:copy      # needs the original archive in assets-mr-original/ (not in git)
+    pnpm assets:copy      # needs the original archive's extracted top level directory in assets-mr-original/merlin_open_30_speedy_and_tvs (not included in the git repo)
     pnpm assets:convert
     pnpm dev              # serves on http://localhost:3371/
 
@@ -21,7 +21,7 @@ Controls:
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
 - Hold Space to charge and fire at the nearest enemy. Press F to toggle Space to a push-back shot that lands 20 px short of the nearest enemy; the current mode shows below the game.
-- The bar at the bottom left is Merlin's energy; the map restarts when he dies.
+- The bar at the bottom left is Merlin's health; the map restarts when he runs out.
 - The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom) or "fit", the largest whole multiple that fits the window. The choice is remembered.
 - Next to them, **Music** and **Effects** turn music and sound effects on or off (Effects off also cuts the sounds already playing; Music back on restarts the current room's track), and **Vol** sets the master volume (default 70). All three are remembered. Browsers keep audio silent until the first key press or click on the page.
 - Music follows the original's room music tiles (`musicLastStand`, `musicOff`, ...): entering a room with one starts or stops that track, other rooms keep the current one. The track loops (the original played it once). None of the converted maps places a music tile yet.
