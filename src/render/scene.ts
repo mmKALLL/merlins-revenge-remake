@@ -1,9 +1,11 @@
-import { Application, Container, Graphics, Sprite, Text } from 'pixi.js'
+import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
 import type { LoadedSprite, LoadedTileset } from '../data/loaders'
+import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
-import { playerOf } from '../sim/actors'
-import type { SimState } from '../sim/state'
+import { isSpell, playerOf } from '../sim/actors'
+import { EXPLODE_TICKS } from '../sim/tick-combat'
+import { roomKey, type ActorState, type RoomState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 
 export interface RenderConfig {
@@ -17,20 +19,69 @@ export interface RenderConfig {
 
 const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActive']
 
+/** Engine draw layers (actor data `#layerZ`) -> z within the actor container; unknown layers draw with objects. */
+const LAYER_Z: Record<string, number> = { gGameObjectLayer: 0, gPlayerLayer: 1, gGameBulletLayer: 2 }
+
+
+const BAR = { x: 32, w: 200, h: 8 }
+
+/**
+ * The spell frame is a 1-bit black disc on a transparent background. Tint multiplies, so black stays
+ * black; Director's 1-bit members take the foreground colour instead. Build a white copy of the disc
+ * (any near-white or transparent pixel becomes transparent, everything else opaque white) so the tint
+ * gives the charge colour.
+ */
+function whiteDisc(tex: Texture): Texture {
+  const { x, y, width, height } = tex.frame
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return tex
+  ctx.drawImage(tex.source.resource as CanvasImageSource, x, y, width, height, 0, 0, width, height)
+  const img = ctx.getImageData(0, 0, width, height)
+  const d = img.data
+  for (let i = 0; i < d.length; i += 4) {
+    const blank = d[i + 3]! < 128 || (d[i]! > 200 && d[i + 1]! > 200 && d[i + 2]! > 200)
+    d[i] = d[i + 1] = d[i + 2] = 255
+    d[i + 3] = blank ? 0 : 255
+  }
+  ctx.putImageData(img, 0, 0)
+  const out = Texture.from(canvas)
+  out.source.scaleMode = 'nearest'
+  return out
+}
+
+/** Energy fraction 1 -> green, 0 -> red. */
+function barColour(f: number): number {
+  const r = Math.round(255 * Math.min(1, 2 * (1 - f)))
+  const g = Math.round(255 * Math.min(1, 2 * f))
+  return (r << 16) | (g << 8)
+}
+
 export class Scene {
   readonly app = new Application()
   private world = new Container()
   private layers: Partial<Record<LayerName, Container>> = {}
   private tilePool: Sprite[] = []
-  private player = new Sprite()
-  private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace' } })
+  /** Graves and actors in world pixels; shifted by -origin each draw. */
+  private scrolled = new Container()
+  private graveLayer = new Container()
+  private actorLayer = new Container()
+  private actorSprites = new Map<number, Sprite>()
+  private graveKey: { room: string; graves: RoomState['graves'] | null } = { room: '', graves: null }
+  private spellTexture: Texture | null = null
+  private bar = new Graphics()
+  private barFill = -1
+  private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
 
   constructor(
     private cfg: RenderConfig,
     private tilesets: Partial<Record<LayerName, LoadedTileset>>,
-    private merlin: LoadedSprite,
+    private sprites: Record<string, LoadedSprite>, // by sprite name (ActorDef.name)
+    private defs: Record<string, ActorDef>,
   ) {}
 
   /** World pixel shown at the top-left of the play view in the last draw (NaN before the first draw). */
@@ -49,7 +100,7 @@ export class Scene {
     parent.appendChild(this.app.canvas)
     this.world.position.set(this.cfg.playOffset.x, this.cfg.playOffset.y)
     this.app.stage.addChild(this.world)
-    // Clip tiles and the player to the play view so nothing spills into the HUD margins.
+    // Clip tiles and actors to the play view so nothing spills into the HUD margins.
     const mask = new Graphics().rect(0, 0, this.cfg.view.w, this.cfg.view.h).fill(0xffffff)
     this.world.addChild(mask)
     this.world.mask = mask
@@ -58,10 +109,16 @@ export class Scene {
       this.layers[name] = c
       this.world.addChild(c)
     }
-    this.player.anchor.set(0.5)
-    this.player.scale.set(this.cfg.spriteScale)
-    this.world.addChild(this.player)
-    this.debugText.position.set(2, this.cfg.logical.h - 12)
+    // graves above tiles, below every actor
+    this.actorLayer.sortableChildren = true
+    this.scrolled.addChild(this.graveLayer, this.actorLayer)
+    this.world.addChild(this.scrolled)
+    const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
+    if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
+    const hudY = this.cfg.playOffset.y + this.cfg.view.h // 288: the bottom strip
+    this.bar.position.set(BAR.x, hudY + Math.floor((this.cfg.logical.h - hudY - BAR.h) / 2))
+    this.app.stage.addChild(this.bar)
+    this.debugText.position.set(BAR.x + BAR.w + 8, hudY + 4)
     this.app.stage.addChild(this.debugText)
     this.applyZoom()
     window.addEventListener('resize', this.onResize)
@@ -80,26 +137,112 @@ export class Scene {
 
   /** alpha in [0,1): how far between the previous and current tick the display is. */
   draw(s: SimState, alpha: number, fps: number): void {
-    // TODO(Task 11): draw every actor; until then only the player (actor 0) is rendered
     const p = playerOf(s)
-    const ipos = { x: p.prevPos.x + (p.pos.x - p.prevPos.x) * alpha, y: p.prevPos.y + (p.pos.y - p.prevPos.y) * alpha }
+    const lerp = (a: ActorState): Vec => ({
+      x: a.prevPos.x + (a.pos.x - a.prevPos.x) * alpha,
+      y: a.prevPos.y + (a.pos.y - a.prevPos.y) * alpha,
+    })
+    const ipos = lerp(p)
     const worldSize = { w: s.grid.widthTiles * TILE_PX, h: s.grid.heightTiles * TILE_PX }
     const origin = cameraOrigin(this.cfg.cameraMode, s.grid.roomRectPx(s.room), ipos, this.cfg.view, worldSize)
     if (origin.x !== this.lastOrigin.x || origin.y !== this.lastOrigin.y) {
       this.rebuildTiles(s, origin)
       this.lastOrigin = origin
     }
-    const frames = this.merlin.frames[p.anim] ?? this.merlin.frames['stand']!
-    this.player.texture = frames[p.animFrame % frames.length]!
-    this.player.scale.x = (p.facingLeft ? -1 : 1) * this.cfg.spriteScale
-    this.player.position.set(Math.round(ipos.x - origin.x), Math.round(ipos.y - origin.y))
+    this.scrolled.position.set(-origin.x, -origin.y)
+    this.syncGraves(s)
+    this.syncActors(s, lerp)
+    this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
       this.debugText.text =
-        `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} ` +
+        `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} actors ${s.actors.length} ` +
+        `exits ${s.exitsOpen ? 'open' : 'shut'} cam ${this.cfg.cameraMode}\n` +
         `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} ` +
-        `actors ${s.actors.length} cam ${this.cfg.cameraMode}`
+        `energy ${p.energy.toFixed(0)} ${p.mode}`
     }
+  }
+
+  private syncActors(s: SimState, lerp: (a: ActorState) => Vec): void {
+    const seen = new Set<number>()
+    for (const a of s.actors) {
+      const def = this.defs[a.def]
+      if (!def) continue
+      const spell = isSpell(s, a)
+      const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, a.animFrame)
+      if (!tex) continue
+      seen.add(a.id)
+      let spr = this.actorSprites.get(a.id)
+      if (!spr) {
+        spr = new Sprite()
+        spr.anchor.set(0.5)
+        this.actorSprites.set(a.id, spr)
+        this.actorLayer.addChild(spr)
+      }
+      spr.texture = tex
+      spr.zIndex = LAYER_Z[def.layerZ] ?? 0
+      const pos = lerp(a)
+      spr.position.set(Math.round(pos.x), Math.round(pos.y))
+      if (spell) {
+        // the spell carries its caster's attack (objSpell.setSpellProperties); the sim already
+        // multiplied `charge` by chargeExplodeFactor when it switched to explode
+        const owner = a.ownerId === null ? undefined : s.actors.find((o) => o.id === a.ownerId)
+        const atk = (this.defs[owner?.def ?? ''] ?? def).attack
+        const exploding = a.mode === 'explode'
+        const size = exploding ? a.charge : a.charge * atk.chargeSize
+        const k = size / tex.width
+        spr.scale.set(k, k)
+        const c = atk.chargeColour
+        spr.tint = (c.r << 16) | (c.g << 8) | c.b
+        spr.alpha = exploding ? Math.max(0, 1 - a.age / EXPLODE_TICKS) : 1
+      } else {
+        spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
+        spr.tint = 0xffffff
+        spr.alpha = 1
+      }
+    }
+    for (const [id, spr] of this.actorSprites) {
+      if (seen.has(id)) continue
+      spr.destroy()
+      this.actorSprites.delete(id)
+    }
+  }
+
+  /** Atlas frame for (sprite, anim, frame), falling back to stand, then the first walk frame. */
+  private frameFor(spriteName: string, anim: string, frame: number): Texture | undefined {
+    const sprite = this.sprites[spriteName]
+    if (!sprite) return undefined
+    const strip = sprite.frames[anim]
+    if (strip && strip.length) return strip[frame % strip.length]
+    return sprite.frames['stand']?.[0] ?? sprite.frames['walk']?.[0]
+  }
+
+  private syncGraves(s: SimState): void {
+    const room = roomKey(s.room)
+    const graves = s.rooms[room]?.graves ?? []
+    if (this.graveKey.room === room && this.graveKey.graves === graves) return
+    this.graveKey = { room, graves }
+    for (const c of this.graveLayer.removeChildren()) c.destroy()
+    for (const g of graves) {
+      const name = this.defs[g.def]?.name
+      const tex = name ? this.sprites[name]?.frames['grave']?.[0] : undefined
+      if (!tex) continue
+      const spr = new Sprite(tex)
+      spr.anchor.set(0.5)
+      spr.scale.set(this.cfg.spriteScale)
+      spr.position.set(Math.round(g.pos.x), Math.round(g.pos.y))
+      this.graveLayer.addChild(spr)
+    }
+  }
+
+  private drawBar(fraction: number): void {
+    const f = Math.max(0, Math.min(1, fraction))
+    const fill = Math.round(f * BAR.w)
+    if (fill === this.barFill) return
+    this.barFill = fill
+    this.bar.clear()
+    this.bar.rect(0, 0, BAR.w, BAR.h).fill(0x202020)
+    if (fill > 0) this.bar.rect(0, 0, fill, BAR.h).fill(barColour(f))
   }
 
   private rebuildTiles(s: SimState, origin: Vec): void {

@@ -9,7 +9,9 @@ TypeScript port of the open-sourced Merlin Open engine.
     pnpm assets:convert
     pnpm dev              # serves on http://localhost:3371/
 
-Query parameters: `?map=mriv_small|sam|tvsDemo` (default `mriv_small`, 5x1 rooms, MR4 tilesets), `?camera=room|follow`, `?debug=0`.
+Query parameters: `?map=mriv_small|sam|tvsDemo|combat_test` (default `mriv_small`, 5x1 rooms, MR4 tilesets), `?camera=room|follow`, `?debug=0`, `?seed=<n>` (the sim's random seed; a restart after death picks a new one).
+
+Controls: arrow keys/WASD move; hold Space or the left mouse button to charge the energy blast and release it at the mouse; E fires at the nearest enemy, F 16 px short of it. The bar at the bottom left is Merlin's energy; the map restarts when he dies.
 
 ## Check
 

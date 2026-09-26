@@ -43,15 +43,16 @@ async function main(): Promise<void> {
     sprites[name] = sprite
     anims[name] = sprite.anims
   }
-  const merlin = sprites[defs['player']!.name]
-  if (!merlin) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
+  if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'
   const grid = buildWorldGrid(map, isSolid, objects.data.symbols)
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
-  let sim = createSim(grid, defs, teams, anims, seed, findStartPos(grid, playerTile))
+  const startPos = findStartPos(grid, playerTile)
+  let sim = createSim(grid, defs, teams, anims, seed, startPos)
+  let runSeed = seed
 
-  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, merlin)
+  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs)
   await scene.init(document.body)
 
   const input = new InputTracker()
@@ -85,6 +86,11 @@ async function main(): Promise<void> {
     while (acc >= TICK_MS) {
       sim = stepSim(sim, input.snapshot())
       acc -= TICK_MS
+      if (sim.restartRequested) {
+        // the player died: start the map again with the loaded assets and a fresh seed
+        runSeed = (Math.imul(runSeed ^ (runSeed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
+        sim = createSim(grid, defs, teams, anims, runSeed, startPos)
+      }
     }
     scene.draw(sim, acc / TICK_MS, fps)
     requestAnimationFrame(frame)
