@@ -64,6 +64,7 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     targetId: null,
     targetPoint: null,
     charge: 0,
+    attack: null,
     age: 0,
   }
   return [actor, { ...s, nextId: s.nextId + 1 }]

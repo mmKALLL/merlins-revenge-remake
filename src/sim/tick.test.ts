@@ -146,15 +146,16 @@ describe('stepSim', () => {
     expect(player(s).anim).toBe('stand')
   })
 
-  it('sets animLooped on the tick the walk strip wraps', () => {
+  it('sets animLooped on the last tick of the last walk frame, before the wrap', () => {
     let s = make()
-    // frame advances every 3 ticks after the switch tick; 8 frames wrap on tick 1 + 3*8
-    for (let i = 0; i < 24; i++) s = stepSim(s, input(0, 1), CFG30)
+    // frame advances every 3 ticks after the switch tick; the 8th frame's third tick is tick 3*8
+    for (let i = 0; i < 23; i++) s = stepSim(s, input(0, 1), CFG30)
     expect(player(s).animLooped).toBe(false)
     s = stepSim(s, input(0, 1), CFG30)
-    expect(player(s).animFrame).toBe(0)
+    expect(player(s).animFrame).toBe(7)
     expect(player(s).animLooped).toBe(true)
     s = stepSim(s, input(0, 1), CFG30)
+    expect(player(s).animFrame).toBe(0)
     expect(player(s).animLooped).toBe(false)
   })
 

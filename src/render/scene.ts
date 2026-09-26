@@ -186,8 +186,7 @@ export class Scene {
       if (spell) {
         // the spell carries its caster's attack (objSpell.setSpellProperties); the sim already
         // multiplied `charge` by chargeExplodeFactor when it switched to explode
-        const owner = a.ownerId === null ? undefined : s.actors.find((o) => o.id === a.ownerId)
-        const atk = (this.defs[owner?.def ?? ''] ?? def).attack
+        const atk = a.attack ?? def.attack
         const exploding = a.mode === 'explode'
         const size = exploding ? a.charge : a.charge * atk.chargeSize
         const k = size / tex.width

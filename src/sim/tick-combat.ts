@@ -7,6 +7,7 @@ import {
   aimWithEyestrain, bulletPush, cooldownReady, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown, cooldownIncrement,
 } from '../mr-open/mr-attack'
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
+import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
 import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity, type SplashVictim } from '../mr-open/mr-spell'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
@@ -60,68 +61,106 @@ const moveTo = (a: ActorState, pos: Vec): void => {
   a.pos = pos
 }
 
+/** objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there (grows upward). */
+function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
+  const at = chargeLoc(caster.pos, def, caster.facingLeft)
+  moveTo(spell, { x: at.x, y: at.y - (spell.charge * (spell.attack ?? def.attack).chargeSize) / 2 })
+}
+
 /**
- * objAiPlayer.playerAttackCharge / playerAttackRelease with objAiAttack.chargeMagic / releaseMagic:
- * a held Space/click, E or F starts a charge (cooldown ready, no spell owned) and keeps stepping
- * it; letting go of the key that started it releases the spell toward that key's target.
+ * objAiPlayer.playerAttackCharge / playerAttackRelease with objAiAttack.chargeMagic / releaseMagic.
+ * The AI's current spell (pCurrentSpell) is the player's spell still in `charge` mode; it belongs to
+ * the AI, not to the character mode, so a hit forcing #walk (objPlayerMerlinCharacter.takeHit) keeps
+ * it: while its key stays held, attack() -> chargeMagic re-enters #charge and keeps counting, and
+ * letting go releases it from any mode. Without a current spell, a held Space/click, E or F starts
+ * a charge whenever the cooldown is ready, even during the release strip (releaseSpell has already
+ * cleared pCurrentSpell).
  */
 export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   const def = t.s.defs[p.def]!
-  const spell = t.actors.find((a) => !t.removed.has(a.id) && isSpell(t.s, a) && a.ownerId === p.id)
+  const spell = t.actors.find((a) => !t.removed.has(a.id) && isSpell(t.s, a) && a.ownerId === p.id && a.mode === 'charge')
   const limits = chargeLimits(def) // magic limit fixed at 100 %
-  if (p.mode === 'charge') {
-    if (!spell) {
-      p.mode = 'walk'
-      p.ai.chargeKind = null
-      return
-    }
-    moveTo(spell, chargeLoc(p.pos, def, p.facingLeft))
+  if (spell) {
     if (isHeld(input, p.ai.chargeKind)) {
+      if (!cooldownReady(p.cooldown)) return // objAiAttack.attack
+      p.mode = 'charge' // ensureMode(#charge)
       spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
+      alignSpell(spell, p, def)
       return
     }
     const target = releaseTarget(t, p, input, p.ai.chargeKind)
     spell.mode = 'fly'
     spell.targetPoint = target
-    spell.vel = releaseVelocity(spell.pos, target, def.attack.spellSpeed)
+    spell.vel = releaseVelocity(spell.pos, target, (spell.attack ?? def.attack).spellSpeed)
     p.mode = 'release'
     p.ai.chargeKind = null
     p.cooldown = resetCooldown(def.attack)
     return
   }
-  if (p.mode !== 'walk' && p.mode !== 'stand') return
+  if (p.mode === 'charge') {
+    // the spell went away under the charge (e.g. dropped with the room)
+    p.mode = 'walk'
+    p.ai.chargeKind = null
+  }
   const kind: ChargeKind | null = input.chargeHeld ? 'mouse' : input.shootNearest ? 'nearest' : input.shootShort ? 'short' : null
-  if (kind === null || !cooldownReady(p.cooldown) || spell) return
+  if (kind === null || !cooldownReady(p.cooldown)) return
   if (!t.s.defs['spell']) throw new Error('actor definitions have no "spell" entry')
-  spawn(t, 'spell', chargeLoc(p.pos, def, p.facingLeft), { mode: 'charge', ownerId: p.id, charge: limits.start })
+  // ensureSpell + setSpellProperties (the caster's attack and team), then chargeSpell at the start value
+  const created = spawn(t, 'spell', chargeLoc(p.pos, def, p.facingLeft), {
+    mode: 'charge', ownerId: p.id, charge: limits.start, team: p.team, attack: def.attack,
+  })
+  alignSpell(created, p, def)
   p.mode = 'charge'
   p.ai.chargeKind = kind
 }
 
 /**
- * Victim side of a hit: objGameObject.takeHit (inertia scaling, velocity add), modReel.takeHit
- * (reel, dazed AI; the player is forced back to walk instead), modEnergy.takeHit / loseEnergy.
+ * modEnergy.loseEnergy: energy falls; at <= 0 the character dies (outOfEnergy -> #die). A CPU
+ * character's energy becomes -100 in the engine; only the sign matters here.
  */
-export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): void {
-  const def = t.s.defs[victim.def]!
-  const hit = resolveHit(def, push, attackerMultiplier)
-  victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
-  if (victim.id !== t.s.playerId) {
-    victim.mode = 'reel'
-    victim.frictionPercent = { ...def.frictionReel }
-    victim.stall = 0
-    victim.ai.mode = 'dazed'
-    victim.ai.moveTarget = null
-  }
-  victim.energy -= hit.damage
+function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
+  victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })
   if (isDead(victim.energy)) {
     victim.mode = 'die'
     victim.age = 0
     t.events.push({ kind: 'died', id: victim.id })
   }
+}
+
+/**
+ * objCPUCharacter.collisionWall / collisionVertical -> modEnergy.takeDamage: a character hitting a
+ * wall while reeling takes the impact speed on that axis minus its damageSpeed, when above it.
+ */
+export function takeWallDamage(t: Tick, a: ActorState, speed: number): void {
+  const excess = Math.abs(speed) - t.s.defs[a.def]!.damageSpeed
+  if (a.mode === 'reel' && excess > 0) loseEnergy(t, a, excess)
+}
+
+/**
+ * Victim side of a hit: objGameObject.takeHit (inertia scaling, velocity add), modReel.takeHit
+ * (reel, dazed AI; objPlayerMerlinCharacter.takeHit forces the player back to #walk instead),
+ * modEnergy.takeHit / loseEnergy. Ignored for victims already dying or dead
+ * (objCPUCharacter.takeHit: #dead or checkDead; the player: #die).
+ */
+export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultiplier: number): void {
+  if (victim.mode === 'die' || victim.mode === 'dead' || victim.mode === 'finish' || isDead(victim.energy)) return
+  const def = t.s.defs[victim.def]!
+  const hit = resolveHit(def, push, attackerMultiplier)
+  victim.vel = { x: victim.vel.x + hit.push.x, y: victim.vel.y + hit.push.y }
+  t.hit.add(victim.id)
+  if (victim.id === t.s.playerId) {
+    victim.mode = 'walk'
+  } else {
+    victim.mode = 'reel'
+    victim.frictionPercent = { ...def.frictionReel }
+    victim.stall = 0
+    victim.ai.mode = 'dazed'
+    victim.ai.moveTarget = null
+  }
+  loseEnergy(t, victim, hit.damage)
 }
 
 /** objAiAttack.updateAttack: perform the attack on its strip frame, finish when the strip has looped. */
@@ -182,11 +221,12 @@ export function stepBullets(t: Tick): void {
 export function stepSpells(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isSpell(t.s, a)) continue
-    const owner = a.ownerId === null ? undefined : actorIn(t, a.ownerId)
     if (a.mode === 'charge') {
-      if (!owner || !isAlive(owner)) t.removed.add(a.id) // the caster died mid-charge
+      // objAiAttack.cancelAttack on the caster's #dead finishes the charging spell
+      const owner = a.ownerId === null ? undefined : actorIn(t, a.ownerId)
+      if (!owner || !isAlive(owner)) t.removed.add(a.id)
     } else if (a.mode === 'fly') {
-      if (a.targetPoint && arrivedAtTarget(a.pos, a.targetPoint, a.vel)) explodeSpell(t, a, owner)
+      if (a.targetPoint && arrivedAtTarget(a.pos, a.targetPoint, a.vel)) explodeSpell(t, a)
     } else if (a.mode === 'explode') {
       a.age++
       if (a.age >= EXPLODE_TICKS) t.removed.add(a.id)
@@ -194,10 +234,15 @@ export function stepSpells(t: Tick): void {
   }
 }
 
-function explodeSpell(t: Tick, spell: ActorState, owner: ActorState | undefined): void {
-  // the spell carries a copy of its caster's attack (objSpell.setSpellProperties)
-  const atk = t.s.defs[(owner ?? spell).def]!.attack
-  const hated = hatedTeams(owner?.team ?? spell.team, t.s.teams)
+/**
+ * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
+ * spell stops where it passed the target (finishConditionMet zeroes the vector without snapping the
+ * loc); prevPos is pinned so the renderer does not slide the explosion.
+ */
+function explodeSpell(t: Tick, spell: ActorState): void {
+  const atk = spell.attack
+  if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
+  const hated = hatedTeams(spell.team, t.s.teams)
   const victims: SplashVictim[] = t.actors
     .filter((v) => !t.removed.has(v.id) && isCharacter(t.s, v) && isAlive(v) && hated.includes(v.team))
     .map((v) => {
@@ -213,6 +258,7 @@ function explodeSpell(t: Tick, spell: ActorState, owner: ActorState | undefined)
   spell.charge *= atk.chargeExplodeFactor
   spell.mode = 'explode'
   spell.vel = { x: 0, y: 0 }
+  spell.prevPos = spell.pos
   spell.age = 0
 }
 
@@ -224,6 +270,7 @@ export function stepReelAndDeath(t: Tick): void {
     const wasMode = t.prev.get(a.id)?.mode
     switch (a.mode) {
       case 'reel':
+        if (t.hit.has(a.id)) break // modReel.updateReel first runs on the update after the hit
         a.stall = stallStep(a.stall, { x: a.pos.x - a.prevPos.x, y: a.pos.y - a.prevPos.y })
         if (reelFinished(a.stall)) {
           a.mode = 'walk'
@@ -269,8 +316,12 @@ export function stepCooldownsAndRegen(t: Tick): void {
   }
 }
 
-/** teamMaster.isPlayerEnemiesDead over the given actors: no living member of a team hostile to the player. */
+/**
+ * teamMaster.isPlayerEnemiesDead over the given actors: no member left in a team hostile to the
+ * player. Dying and dead characters are still members; they leave the team only in #finish
+ * (objGameObject.finish -> leaveTeam), i.e. once their grave has been recorded.
+ */
 export function exitsOpenFor(s: SimState, actors: ActorState[]): boolean {
   const hostile = hostileTeamsTo(s.defs['player']!.team, s.teams)
-  return !actors.some((a) => hostile.includes(a.team) && isCharacter(s, a) && isAlive(a))
+  return !actors.some((a) => hostile.includes(a.team) && isCharacter(s, a) && a.mode !== 'finish')
 }

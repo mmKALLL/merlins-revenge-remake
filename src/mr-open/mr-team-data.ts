@@ -1,10 +1,14 @@
 // Port of the team definition fields (tem_<name>.txt) that teamMaster / objRoom read to decide
 // which teams are hostile to the player and whether the room's exits may open (§7).
+//
+// Team identity: a team is identified everywhere by its file key (tem_<key>.txt -> "goblins"),
+// which is also what actor data (`#team`) and hate/friend lists name. `teamName` is kept as read
+// but never used for lookups; in the shipped data it always equals the key.
 import { parseDataField, withContext } from './mr-actor-data'
 
 export interface TeamDef {
-  key: string
-  teamName: string
+  key: string // identity: the tem_<key>.txt file key
+  teamName: string // as written in the file; informational only
   category: string
   /** hate groups in priority order; hates[0] is the first-priority group */
   hates: string[][]
@@ -24,9 +28,9 @@ export function parseTeams(files: Record<string, string>): Record<string, TeamDe
   return out
 }
 
-/** Teams whose first-priority hate group contains `playerTeam` (or 'all'), in key order. */
+/** Keys of the teams whose first-priority hate group contains `playerTeam` (or 'all'), in key order. */
 export function hostileTeamsTo(playerTeam: string, teams: Record<string, TeamDef>): string[] {
   return Object.values(teams)
     .filter((t) => (t.hates[0] ?? []).some((h) => h === playerTeam || h === 'all'))
-    .map((t) => t.teamName)
+    .map((t) => t.key)
 }

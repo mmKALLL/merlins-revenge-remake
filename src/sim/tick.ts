@@ -22,7 +22,7 @@ import {
 } from './state'
 import { stepCpuAi } from './tick-ai'
 import {
-  exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepPlayerAttack, stepReelAndDeath, stepSpells,
+  exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepPlayerAttack, stepReelAndDeath, stepSpells, takeWallDamage,
 } from './tick-combat'
 import { beginTick, playerIn, type Tick } from './tick-context'
 import type { WorldGrid } from './world-grid'
@@ -97,7 +97,8 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const roomRect = s.grid.roomRectPx(s.room)
   if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   let room = s.room
-  if (s.exitsOpen) {
+  // a dying player (stretch death) never leaves the room
+  if (s.exitsOpen && isAlive(p)) {
     const next = roomAfterMove(roomRect, loc, s.room)
     if (s.grid.roomExists(next)) room = next
   }
@@ -112,8 +113,11 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
 /**
  * 4. Movement of every non-player actor. Walking characters keep the AI-set velocity (no friction,
  * modMoveToLoc overwrites it each tick); reeling, dying and landing ones and bullets decay by their
- * friction; spells fly free. Tile collision applies to everything but spells; a pushed bullet
- * stops; characters stay inside the room.
+ * friction. Spells fly free and bullets ignore tiles too (gBulletsCollideWithBackground off, as the
+ * original plays). Characters collide with tiles: the axis pushed out loses its speed
+ * (objGameObject.collisionWall*: setVectX(0), collisionCeiling/Platform: setVectY(0)), a reeling
+ * one taking wall damage first (objCPUCharacter.collisionWall/collisionVertical), and they stay
+ * inside the room.
  */
 function stepMovement(t: Tick): void {
   const s = t.s
@@ -130,13 +134,21 @@ function stepMovement(t: Tick): void {
     const walking = character && (a.mode === 'walk' || a.mode === 'stand' || a.mode === 'weaponMelee' || a.mode === 'weaponRanged')
     let vel = walking ? a.vel : stepVelocity(a.vel, { x: 0, y: 0 }, 0, a.frictionPercent)
     const before: Vec = { x: a.pos.x + vel.x, y: a.pos.y + vel.y }
-    const cr = collisionRectFor(s, a)
-    let loc = resolveTileCollision(s.grid.solidAt, before, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
+    let loc = before
     if (character) {
-      loc = clampToRoom(roomRect, loc, cr)
-      if (loc.x !== before.x) vel = { x: 0, y: vel.y }
-    } else if (loc.x !== before.x || loc.y !== before.y) {
-      vel = { x: 0, y: 0 }
+      const cr = collisionRectFor(s, a)
+      loc = resolveTileCollision(s.grid.solidAt, before, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
+      if (loc.x !== before.x) {
+        takeWallDamage(t, a, vel.x)
+        vel = { x: 0, y: vel.y }
+      }
+      if (loc.y !== before.y) {
+        takeWallDamage(t, a, vel.y)
+        vel = { x: vel.x, y: 0 }
+      }
+      const clamped = clampToRoom(roomRect, loc, cr)
+      if (clamped.x !== loc.x) vel = { x: 0, y: vel.y }
+      loc = clamped
     }
     a.prevPos = a.pos
     a.pos = loc
@@ -162,7 +174,8 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   const toKey = roomKey(to)
   let player = playerOf(s)
   // a charging or releasing player leaves its spell behind (dropped with the room)
-  if (player.mode === 'charge' || player.mode === 'release') player = { ...player, mode: 'walk', ai: { ...player.ai, chargeKind: null } }
+  if (player.mode === 'charge' || player.mode === 'release') player = { ...player, mode: 'walk' }
+  player = { ...player, ai: { ...player.ai, chargeKind: null } }
   const survivors = s.actors.filter((a) => a.id !== s.playerId && isCharacter(s, a) && isAlive(a))
   const stored = s.rooms[fromKey] ?? EMPTY_ROOM
   const next: SimState = {
@@ -194,8 +207,10 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   const key = roomKey(s.room)
   const current = s.rooms[key] ?? EMPTY_ROOM
   let roomState = t.graves.length ? { ...current, graves: [...current.graves, ...t.graves] } : current
+  // teamMaster.leaveTeam schedules tellTeamDied for the next update: the exits open on the tick
+  // after the last hostile finished (its grave is already recorded), so test the incoming actors
   let exitsOpen = s.exitsOpen
-  if (!exitsOpen && exitsOpenFor(s, actors)) {
+  if (!exitsOpen && exitsOpenFor(s, s.actors)) {
     exitsOpen = true
     roomState = { ...roomState, clear: true }
     t.events.push({ kind: 'exitsOpened' })

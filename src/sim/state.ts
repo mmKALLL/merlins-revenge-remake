@@ -1,4 +1,4 @@
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { TeamDef } from '../mr-open/mr-team-data'
@@ -80,6 +80,7 @@ export interface ActorState {
   targetId: number | null
   targetPoint: Vec | null
   charge: number // spell charge (objSpell pCurrentCharge)
+  attack: AttackDef | null // spell: copy of the caster's attack (objSpell.setSpellProperties); null otherwise
   age: number // ticks in the current mode for timed modes (land, explode, player die)
 }
 

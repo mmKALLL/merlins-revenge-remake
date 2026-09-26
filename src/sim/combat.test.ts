@@ -5,10 +5,11 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import { stepVelocity } from '../mr-open/mr-movement'
 import { explode } from '../mr-open/mr-spell'
 import { resolveHit } from '../mr-open/mr-take-hit'
 import type { TeamDef } from '../mr-open/mr-team-data'
-import { playerOf } from './actors'
+import { createActor, playerOf } from './actors'
 import { NO_INPUT, type ActorState, type AnimationSet, type InputSnapshot, type SimState } from './state'
 import { createSim, stepSim } from './tick'
 import { PLAYER_DEATH_TICKS } from './tick-combat'
@@ -43,18 +44,31 @@ const OBJECT_SYMBOLS = ['none', 'player', 'goblinWarrior', 'goblinArcher']
 const WARRIOR = 3
 const ARCHER = 4
 
-/** One open 18x9 room; `objects` places object tiles by 1-based tile coordinates. */
-function openMap(objects: { x: number; y: number; tile: number }[] = []): MapDefinition {
+const SOLID = 2
+
+/**
+ * Open 18x9 rooms side by side (`rooms` of them, default 1); `objects` places object tiles in room 1
+ * and `solid` fills room-1 tiles of the active layer with SOLID, both by 1-based tile coordinates.
+ */
+function openMap(objects: { x: number; y: number; tile: number }[] = [], opts: { rooms?: number; solid?: { x: number; y: number }[] } = {}): MapDefinition {
+  const n = opts.rooms ?? 1
   const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
   const obj = fill(0)
   for (const o of objects) obj[o.y - 1]![o.x - 1] = o.tile
+  const active = fill(1)
+  for (const t of opts.solid ?? []) active[t.y - 1]![t.x - 1] = SOLID
   return {
-    mapSize: { x: 1, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+    mapSize: { x: n, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
     layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
-    rooms: [{ num: 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: obj } }],
+    rooms: Array.from({ length: n }, (_, i) => ({
+      num: i + 1,
+      layers: { backgroundActive: i === 0 ? active : fill(1), backgroundPassive: fill(1), objects: i === 0 ? obj : fill(0) },
+    })),
   }
 }
-const grid = (map: MapDefinition) => buildWorldGrid(map, () => false, OBJECT_SYMBOLS)
+const grid = (map: MapDefinition) => buildWorldGrid(map, (i) => i === SOLID, OBJECT_SYMBOLS)
+/** A full-height solid column of room 1 (1-based tile x). */
+const wallAt = (tx: number) => Array.from({ length: 9 }, (_, i) => ({ x: tx, y: i + 1 }))
 
 interface Setup {
   s: SimState
@@ -62,8 +76,8 @@ interface Setup {
 }
 
 /** Player at `playerPos`, one enemy of `tile` spawned at the centre of tile (tx, ty) then moved to `enemyPos`. */
-function setup(tile: number, enemyPos: { x: number; y: number }, playerPos = { x: 100, y: 144 }, seed = 1, patch: Partial<ActorState> = {}): Setup {
-  const s0 = createSim(grid(openMap([{ x: 10, y: 5, tile }])), defs, teams, anims, seed, playerPos)
+function setup(tile: number, enemyPos: { x: number; y: number }, playerPos = { x: 100, y: 144 }, seed = 1, patch: Partial<ActorState> = {}, map?: MapDefinition): Setup {
+  const s0 = createSim(grid(map ?? openMap([{ x: 10, y: 5, tile }])), defs, teams, anims, seed, playerPos)
   const enemy = s0.actors.find((a) => a.id !== s0.playerId)!
   const s = { ...s0, actors: s0.actors.map((a) => (a.id === enemy.id ? { ...a, pos: enemyPos, prevPos: enemyPos, ...patch } : a)) }
   return { s, enemyId: enemy.id }
@@ -123,8 +137,9 @@ describe('warrior melee (combat notes §3-4, §6)', () => {
     expect(playerOf(s).vel).toEqual({ x: -2.8, y: 0 })
     expect(playerOf(s).mode).toBe('walk')
     expect(s.events).toContainEqual({ kind: 'hit', id: s.playerId })
-    // The attack strip (11 frames x 2) loops 22 ticks after it started: back to walk / findTarget.
-    s = run(s, 10)
+    // The attack strip (11 frames x 2) loops on its 22nd tick, i.e. 21 ticks after the start tick:
+    // back to walk / findTarget.
+    s = run(s, 9)
     g = actor(s, enemyId)!
     expect(g.mode).toBe('walk')
     expect(g.ai.mode).toBe('findTarget')
@@ -152,7 +167,7 @@ describe('energy blast (combat notes §5)', () => {
     expect(spell.mode).toBe('charge')
     expect(spell.charge).toBe(1)
     expect(spell.ownerId).toBe(s.playerId)
-    expect(spell.pos).toEqual({ x: 100, y: 136 }) // chargeLoc: collisionLoc (0,-8)
+    expect(spell.pos).toEqual({ x: 100, y: 135.5 }) // chargeLoc: collisionLoc (0,-8), then up by size 1 / 2
     expect(playerOf(s).mode).toBe('charge')
     expect(playerOf(s).anim).toBe('charge')
     expect(playerOf(s).ai.chargeKind).toBe('nearest')
@@ -161,8 +176,10 @@ describe('energy blast (combat notes §5)', () => {
     expect(s.actors.find((a) => a.def === 'spell')!.charge).toBe(12)
     s = stepSim(s, holdE)
     expect(s.actors.find((a) => a.def === 'spell')!.charge).toBe(12.5)
-    // Release toward the nearest hostile (300,144): |(200, 8)| = 200.16 -> ceil(200.16 / 20) = 11 moves of
-    // 20 px, the first of them on the release tick itself, so the explosion comes 10 ticks after it.
+    // Release from (100, 136 - 12.5 / 2) toward the nearest hostile (300,144): |(200, 14.25)| = 200.5 ->
+    // ceil(200.5 / 20) = 11 moves of 20 px, the first of them on the release tick itself, so the
+    // explosion comes 10 ticks after it.
+    const dy = 144 - (136 - 12.5 / 2)
     s = stepSim(s, NO_INPUT)
     spell = s.actors.find((a) => a.def === 'spell')!
     expect(spell.mode).toBe('fly')
@@ -170,7 +187,7 @@ describe('energy blast (combat notes §5)', () => {
     expect(Math.hypot(spell.vel.x, spell.vel.y)).toBeCloseTo(20, 10)
     expect(playerOf(s).mode).toBe('release')
     expect(playerOf(s).anim).toBe('release')
-    expect(spell.pos.x).toBeCloseTo(100 + (20 * 200) / Math.hypot(200, 8), 10)
+    expect(spell.pos.x).toBeCloseTo(100 + (20 * 200) / Math.hypot(200, dy), 10)
     const [after, flight] = runUntil(s, (t) => t.events.some((e) => e.kind === 'explode'), 20)
     expect(flight).toBe(10)
     s = after
@@ -178,12 +195,12 @@ describe('energy blast (combat notes §5)', () => {
     // Explosion where the spell passed the target on both axes: radius = 12.5 * 4 / 2 = 25.
     expect(ev.kind === 'explode' && ev.radius).toBe(25)
     const centre = ev.kind === 'explode' ? ev.pos : { x: 0, y: 0 }
-    expect(centre.x).toBeCloseTo(100 + (11 * 20 * 200) / Math.hypot(200, 8), 10)
-    // Victim radius = sprite width / 2 = 7.5 (stand 15x16). dist ~ 19.8 -> speed (25 + 7.5 - 19.8) * 0.75 ~ 9.5,
-    // scaled by (100 - inertia 30) / 100 -> damage ~ 6.9 (Manhattan length, multiplier 1).
+    expect(centre.x).toBeCloseTo(100 + (11 * 20 * 200) / Math.hypot(200, dy), 10)
+    // Victim radius = sprite width / 2 = 7.5 (stand 15x16). dist ~ 19.5 -> speed (25 + 7.5 - 19.5) * 0.75 ~ 9.8,
+    // scaled by (100 - inertia 30) / 100 -> push ~ 6.8, damage ~ 7.3 (Manhattan length, multiplier 1).
     const g = actor(s, enemyId)!
     const expected = resolveHit(defs['goblinWarrior']!, explode(centre, 12.5, defs['player']!.attack, [{ id: g.id, pos: { x: 300, y: 144 }, radius: 7.5 }]).pushes[0]!.push, 1)
-    expect(expected.damage).toBeCloseTo(6.9, 1)
+    expect(expected.damage).toBeCloseTo(7.3, 1)
     expect(g.energy).toBeCloseTo(100 - expected.damage, 10)
     expect(g.mode).toBe('reel')
     expect(g.ai.mode).toBe('dazed')
@@ -197,7 +214,7 @@ describe('energy blast (combat notes §5)', () => {
     expect(s.actors.find((a) => a.def === 'spell')!.mode).toBe('explode')
     s = run(s, 8)
     expect(s.actors.find((a) => a.def === 'spell')).toBeUndefined()
-    // Reel: the push (~6.9 px/tick) decays 10 %/tick to under 0.2 in ~34 ticks, then 10 stalled ticks end it.
+    // Reel: the push (~6.8 px/tick) decays 10 %/tick to under 0.2 in ~34 ticks, then 10 stalled ticks end it.
     let g2 = actor(s, enemyId)!
     expect(g2.mode).toBe('reel')
     let ticks: number
@@ -229,40 +246,106 @@ describe('energy blast (combat notes §5)', () => {
     expect(s.actors.find((a) => a.def === 'spell')!.targetPoint).toEqual({ x: 284, y: 144 })
   })
 
-  it('does not start a second charge while a spell is owned', () => {
+  it('starts a new charge while the released spell still flies (releaseSpell clears pCurrentSpell)', () => {
     let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
     s = run(s, 3, holdE)
     s = stepSim(s, NO_INPUT)
     s = run(s, 2, holdE)
+    const spells = s.actors.filter((a) => a.def === 'spell')
+    expect(spells.map((a) => a.mode)).toEqual(['fly', 'charge'])
+    expect(spells[1]!.charge).toBe(2)
+    expect(playerOf(s).mode).toBe('charge')
+  })
+})
+
+describe('player hit while charging (objPlayerMerlinCharacter.takeHit, objAiAttack)', () => {
+  const holdSpace: InputSnapshot = { ...NO_INPUT, chargeHeld: true, mouseWorld: { x: 100, y: 250 } }
+  /** Charges from tick 50 until the warrior's sword lands (tick 58); returns the hit state. */
+  function hitWhileCharging(): { s: SimState; spellId: number; charge: number } {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 })
+    s = run(s, 50)
+    const before = playerOf(s).energy
+    let ticks: number
+    ;[s, ticks] = runUntil(s, (t) => playerOf(t).energy < before, 20, holdSpace)
+    expect(ticks).toBe(8)
+    const spell = s.actors.find((a) => a.def === 'spell')!
+    return { s, spellId: spell.id, charge: spell.charge }
+  }
+
+  it('forces walk; the AI keeps the charging spell and holding resumes the same charge', () => {
+    let { s, spellId, charge } = hitWhileCharging()
+    expect(playerOf(s).mode).toBe('walk')
+    expect(charge).toBe(8)
+    const spell = actor(s, spellId)!
+    expect(spell.mode).toBe('charge')
+    // still held: attack() -> chargeMagic re-enters #charge and keeps counting on the same spell
+    s = stepSim(s, holdSpace)
+    expect(playerOf(s).mode).toBe('charge')
     expect(s.actors.filter((a) => a.def === 'spell')).toHaveLength(1)
+    expect(actor(s, spellId)!.charge).toBe(9)
+    // letting go releases it (releaseMagic), then a fresh charge starts once the cooldown allows
+    s = stepSim(s, { ...holdSpace, chargeHeld: false })
+    expect(actor(s, spellId)!.mode).toBe('fly')
+    expect(playerOf(s).mode).toBe('release')
+    s = stepSim(s, holdSpace)
+    const fresh = s.actors.find((a) => a.def === 'spell' && a.id !== spellId)!
+    expect(fresh.mode).toBe('charge')
+    expect(fresh.charge).toBe(1)
+    expect(playerOf(s).mode).toBe('charge')
+  })
+
+  it('letting go during the forced walk releases the held spell', () => {
+    let { s, spellId } = hitWhileCharging()
+    s = stepSim(s, { ...holdSpace, chargeHeld: false })
+    const spell = actor(s, spellId)!
+    expect(spell.mode).toBe('fly')
+    expect(spell.targetPoint).toEqual({ x: 100, y: 250 })
     expect(playerOf(s).mode).toBe('release')
   })
 })
 
 describe('death and exits (combat notes §7)', () => {
-  it('a blasted warrior dies into a grave and the exits open', () => {
+  /** Position after `n` friction-only moves (open room, no collisions) from `pos` with `vel`. */
+  function slide(pos: { x: number; y: number }, vel: { x: number; y: number }, friction: { x: number; y: number }, n: number) {
+    let p = pos
+    let v = vel
+    for (let i = 0; i < n; i++) {
+      v = stepVelocity(v, { x: 0, y: 0 }, 0, friction)
+      p = { x: p.x + v.x, y: p.y + v.y }
+    }
+    return p
+  }
+
+  it('a blasted warrior dies into a grave; the exits open on the tick after the grave is recorded', () => {
     let { s, enemyId } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, energy: 1 })
     expect(s.exitsOpen).toBe(false)
     s = run(s, 13, holdE)
     s = stepSim(s, NO_INPUT)
     ;[s] = runUntil(s, (t) => t.events.some((e) => e.kind === 'died'), 20)
     expect(s.events).toContainEqual({ kind: 'died', id: enemyId })
-    expect(actor(s, enemyId)!.mode).toBe('die')
-    expect(actor(s, enemyId)!.energy).toBeLessThanOrEqual(0)
-    // exits open as soon as no hostile is alive; die -> dead next tick -> finish when the grave strip loops
-    expect(s.exitsOpen).toBe(true)
-    expect(s.events).toContainEqual({ kind: 'exitsOpened' })
-    expect(s.rooms['1,1']!.clear).toBe(true)
+    const dying = actor(s, enemyId)!
+    expect(dying.mode).toBe('die')
+    expect(dying.energy).toBeLessThanOrEqual(0)
+    // the dying goblin is still a team member (it leaves the team only in finish): exits stay shut
+    expect(s.exitsOpen).toBe(false)
     s = stepSim(s, NO_INPUT)
     expect(actor(s, enemyId)!.mode).toBe('dead')
     expect(actor(s, enemyId)!.anim).toBe('grave')
-    const deadPos = actor(s, enemyId)!.pos
+    expect(s.exitsOpen).toBe(false)
+    // the one-frame grave strip (delay 3) loops on its third tick: #finish records the grave where
+    // the reel slide (friction 10 %) has carried the body, one move per tick since the hit
     let ticks: number
     ;[s, ticks] = runUntil(s, (t) => actor(t, enemyId) === undefined, 10)
-    expect(ticks).toBe(3)
-    expect(s.rooms['1,1']!.graves).toEqual([{ def: 'goblinWarrior', pos: expect.objectContaining({ x: expect.any(Number) }) }])
-    expect(s.rooms['1,1']!.graves[0]!.pos.x).toBeCloseTo(deadPos.x + actor(s, enemyId)?.vel.x! || s.rooms['1,1']!.graves[0]!.pos.x, 0)
-    expect(s.events.filter((e) => e.kind === 'exitsOpened')).toHaveLength(0)
+    expect(ticks).toBe(2)
+    expect(s.rooms['1,1']!.graves).toEqual([{ def: 'goblinWarrior', pos: slide(dying.pos, dying.vel, dying.frictionPercent, 1 + ticks) }])
+    expect(s.exitsOpen).toBe(false)
+    expect(s.rooms['1,1']!.clear).toBe(false)
+    // teamMaster.tellTeamDied runs on the next update -> attemptOpenExits
+    s = stepSim(s, NO_INPUT)
+    expect(s.exitsOpen).toBe(true)
+    expect(s.events).toContainEqual({ kind: 'exitsOpened' })
+    expect(s.rooms['1,1']!.clear).toBe(true)
+    expect(s.rooms['1,1']!.graves).toHaveLength(1)
   })
 
   it('the player dies from a strike at 1 energy and the restart is requested 30 ticks later', () => {
@@ -375,6 +458,142 @@ describe('archer (combat notes §3-4)', () => {
     s = stepSim(s, down)
     expect(actor(s, arrowId)).toBeUndefined()
     expect(playerOf(s).energy).toBe(200)
+  })
+})
+
+describe('spell details (objSpell)', () => {
+  const player = defs['player']!
+  const size = (charge: number) => charge * player.attack.chargeSize
+
+  it('sits on top of Merlin while charging: centre = chargeLoc - (0, size / 2), so it grows upward', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = stepSim(s, holdE)
+    let spell = s.actors.find((a) => a.def === 'spell')!
+    expect(spell.charge).toBe(1)
+    expect(spell.pos).toEqual({ x: 100, y: 144 - 8 - size(1) / 2 })
+    s = run(s, 5, holdE)
+    spell = s.actors.find((a) => a.def === 'spell')!
+    expect(spell.charge).toBe(6)
+    expect(spell.pos).toEqual({ x: 100, y: 144 - 8 - size(6) / 2 })
+  })
+
+  it('carries its caster\'s team and attack from the charge start (setSpellProperties)', () => {
+    let { s, enemyId } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = run(s, 13, holdE)
+    const spell = s.actors.find((a) => a.def === 'spell')!
+    expect(spell.team).toBe('aldevar')
+    expect(spell.attack).toEqual(player.attack)
+    s = stepSim(s, NO_INPUT)
+    // the explosion no longer consults the owner: detach it and the warrior is still hit
+    s = { ...s, actors: s.actors.map((a) => (a.def === 'spell' ? { ...a, ownerId: 999 } : a)) }
+    ;[s] = runUntil(s, (t) => t.events.some((e) => e.kind === 'explode'), 20)
+    expect(s.events).toContainEqual({ kind: 'hit', id: enemyId })
+    expect(actor(s, enemyId)!.mode).toBe('reel')
+  })
+
+  it('explodes in place: position and previous position stay put for the whole fade', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = run(s, 13, holdE)
+    s = stepSim(s, NO_INPUT)
+    ;[s] = runUntil(s, (t) => t.events.some((e) => e.kind === 'explode'), 20)
+    const at = s.actors.find((a) => a.def === 'spell')!
+    expect(at.mode).toBe('explode')
+    expect(at.vel).toEqual({ x: 0, y: 0 })
+    expect(at.prevPos).toEqual(at.pos) // no interpolated slide on the first explosion frame
+    for (let i = 0; i < 7; i++) {
+      s = stepSim(s, NO_INPUT)
+      const e = s.actors.find((a) => a.def === 'spell')!
+      expect(e.pos).toEqual(at.pos)
+      expect(e.prevPos).toEqual(at.pos)
+    }
+  })
+
+})
+
+describe('reel timing and wall impacts (modReel, objCPUCharacter.collisionWall)', () => {
+  it('does not count the hit tick as a stalled tick: a barely-moved victim reels 10 ticks after the hit', () => {
+    // Find where a charge-1 blast aimed straight right explodes, then put the warrior just inside the
+    // splash edge below it so the push is too small to move it more than the 0.2 stall speed.
+    const aim = { x: 300, y: 144 - 8 - defs['player']!.attack.chargeSize / 2 }
+    const fire = (s: SimState): SimState => stepSim(stepSim(s, { ...NO_INPUT, chargeHeld: true, mouseWorld: aim }), { ...NO_INPUT, mouseWorld: aim })
+    let { s } = setup(WARRIOR, { x: 500, y: 250 }, { x: 100, y: 144 }, 1, dummy)
+    ;[s] = runUntil(fire(s), (t) => t.events.some((e) => e.kind === 'explode'), 20)
+    const ev = s.events.find((e) => e.kind === 'explode')!
+    const centre = ev.kind === 'explode' ? ev.pos : { x: 0, y: 0 }
+    // splash radius 2 + victim radius 7.5 = 9.5; at 9.3 px the push is 0.2 * 0.75 * 0.7 = 0.105 px/tick
+    let { s: s2, enemyId } = setup(WARRIOR, { x: centre.x, y: centre.y + 9.3 }, { x: 100, y: 144 }, 1, dummy)
+    let ticks: number
+    ;[s2] = runUntil(fire(s2), (t) => actor(t, enemyId)!.mode === 'reel', 20)
+    expect(Math.abs(actor(s2, enemyId)!.vel.y)).toBeLessThan(0.2)
+    expect(actor(s2, enemyId)!.stall).toBe(0)
+    ;[s2, ticks] = runUntil(s2, (t) => actor(t, enemyId)!.mode === 'walk', 30)
+    expect(ticks).toBe(10)
+  })
+
+  const wallMap = openMap([{ x: 3, y: 3, tile: WARRIOR }], { solid: [...wallAt(12), ...Array.from({ length: 18 }, (_, i) => ({ x: i + 1, y: 2 }))] })
+  const reeling = (vel: { x: number; y: number }, pos: { x: number; y: number }): Partial<ActorState> => ({
+    ...dummy, mode: 'reel', anim: 'reel', vel, frictionPercent: { x: 10, y: 10 },
+    ai: { ...dummy.ai!, mode: 'dazed' },
+  })
+
+  it('a reeling warrior hitting a wall loses |axis speed| - damageSpeed (3) energy', () => {
+    // wall column 12 starts at x = 352 (edge location 351); rect half-width 6.5
+    let { s, enemyId } = setup(WARRIOR, { x: 340, y: 144 }, { x: 100, y: 144 }, 1, reeling({ x: 10, y: 0 }, { x: 340, y: 144 }), wallMap)
+    s = stepSim(s, NO_INPUT)
+    let g = actor(s, enemyId)!
+    expect(g.pos.x).toBeLessThan(340 + 9) // pushed out of the wall
+    expect(g.vel.x).toBe(0)
+    expect(g.energy).toBeCloseTo(100 - (9 - 3), 10) // speed after this tick's friction: 10 * 0.9
+    // vertical: the solid row 2 (y 32..63) above a warrior moving up
+    ;({ s, enemyId } = setup(WARRIOR, { x: 200, y: 80 }, { x: 100, y: 144 }, 1, reeling({ x: 0, y: -10 }, { x: 200, y: 80 }), wallMap))
+    s = stepSim(s, NO_INPUT)
+    g = actor(s, enemyId)!
+    expect(g.vel.y).toBe(0) // objGameObject.collisionCeiling: setVectY(0)
+    expect(g.energy).toBeCloseTo(100 - (9 - 3), 10)
+    // no damage at or under damageSpeed, nor outside #reel
+    ;({ s, enemyId } = setup(WARRIOR, { x: 340, y: 144 }, { x: 100, y: 144 }, 1, reeling({ x: 3.3, y: 0 }, { x: 340, y: 144 }), wallMap))
+    s = run(s, 4)
+    expect(actor(s, enemyId)!.energy).toBe(100)
+    ;({ s, enemyId } = setup(WARRIOR, { x: 340, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, vel: { x: 10, y: 0 } }, wallMap))
+    s = stepSim(s, NO_INPUT)
+    expect(actor(s, enemyId)!.energy).toBe(100)
+  })
+
+  it('an arrow flies through a solid tile, slowing only by friction', () => {
+    let s = createSim(grid(openMap([], { solid: wallAt(12) })), defs, teams, anims, 1, { x: 100, y: 200 })
+    const [arrow, s1] = createActor(s, 'goblinArrow', { x: 330, y: 144 })
+    s = { ...s1, actors: [...s1.actors, { ...arrow, vel: { x: 8, y: 0 } }] }
+    let x = 330
+    let v = 8
+    for (let i = 0; i < 12; i++) {
+      s = stepSim(s, NO_INPUT)
+      v *= 0.95
+      x += v
+      const a = actor(s, arrow.id)!
+      expect(a.mode).toBe('fly')
+      expect(a.pos.x).toBeCloseTo(x, 10)
+    }
+    expect(x).toBeGreaterThan(384) // passed the whole wall column
+  })
+})
+
+describe('release strip (objAnimStrip getLooped)', () => {
+  it('shows the last release frame for its full delay, then the stand frame with no wrap to frame 1', () => {
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+    s = run(s, 3, holdE)
+    const seen: [string, string, number][] = []
+    s = stepSim(s, NO_INPUT)
+    for (let i = 0; i < 10; i++) {
+      const p = playerOf(s)
+      seen.push([p.mode, p.anim, p.animFrame])
+      s = stepSim(s, NO_INPUT)
+    }
+    // release: 4 frames x delay 2; the mode turns to walk on the last tick of frame 4
+    expect(seen).toEqual([
+      ['release', 'release', 0], ['release', 'release', 0], ['release', 'release', 1], ['release', 'release', 1],
+      ['release', 'release', 2], ['release', 'release', 2], ['release', 'release', 3], ['walk', 'release', 3],
+      ['walk', 'stand', 0], ['walk', 'stand', 0],
+    ])
   })
 })
 

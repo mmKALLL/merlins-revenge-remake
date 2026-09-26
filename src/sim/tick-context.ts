@@ -11,6 +11,7 @@ export interface Tick {
   actors: ActorState[] // working copies, plus actors created this tick
   prev: Map<number, ActorState> // the input state's actors by id (mode at the start of the tick)
   removed: Set<number> // ids removed this tick (finished, landed, hit)
+  hit: Set<number> // ids that took a hit this tick (their reel stall counting starts next tick)
   graves: { def: string; pos: Vec }[] // graves recorded this tick in the current room
   events: SimEvent[]
   rng: Rng
@@ -24,6 +25,7 @@ export function beginTick(s: SimState): Tick {
     actors: s.actors.map((a) => ({ ...a, ai: { ...a.ai } })),
     prev: new Map(s.actors.map((a) => [a.id, a])),
     removed: new Set(),
+    hit: new Set(),
     graves: [],
     events: [],
     rng: s.rng,
