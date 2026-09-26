@@ -14,10 +14,13 @@ export function decodeBmp(buf: Buffer, transparent: [number, number, number] = [
   const heightRaw = buf.readInt32LE(22)
   const bpp = buf.readUInt16LE(28)
   const compression = buf.readUInt32LE(30)
+  if (headerSize < 40) throw new Error(`unsupported BMP header size ${headerSize} (need BITMAPINFOHEADER or later)`)
   if (compression !== 0) throw new Error(`unsupported BMP compression ${compression}`)
   const height = Math.abs(heightRaw)
   const bottomUp = heightRaw > 0
   const rowBytes = Math.floor((width * bpp + 31) / 32) * 4
+  const needed = dataOffset + rowBytes * height
+  if (buf.length < needed) throw new Error(`truncated BMP: ${buf.length} bytes, need ${needed}`)
   const rgba = new Uint8Array(width * height * 4)
 
   const palette: [number, number, number][] = []

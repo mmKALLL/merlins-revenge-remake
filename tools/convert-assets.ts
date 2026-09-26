@@ -17,10 +17,11 @@ mkdirSync(join(OUT, 'tilesets'), { recursive: true })
 mkdirSync(join(OUT, 'sprites'), { recursive: true })
 
 const sortedDir = (dir: string): string[] => readdirSync(dir).sort()
+const sortedTxt = (dir: string): string[] => sortedDir(dir).filter((f) => f.endsWith('.txt'))
 
 // maps (first, so tilesets can be sized to the highest index any map uses)
 const maps: MapDefinition[] = []
-for (const file of sortedDir(join(ASSETS, 'maps'))) {
+for (const file of sortedTxt(join(ASSETS, 'maps'))) {
   const name = file.replace(/\.txt$/, '')
   let def: MapDefinition
   try {
@@ -47,9 +48,11 @@ for (const def of maps) {
 }
 
 // tile keys and placeholder sheets
-for (const file of sortedDir(join(ASSETS, 'tile-keys'))) {
+const convertedTileSets = new Set<string>()
+for (const file of sortedTxt(join(ASSETS, 'tile-keys'))) {
   const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', file), 'utf8'))
   const name = file.replace(/\.txt$/, '')
+  convertedTileSets.add(name)
   const symbols = [...key.symbols]
   const needed = maxIndexByTileSet.get(name) ?? 0
   const padded = Math.max(0, needed - symbols.length)
@@ -60,6 +63,10 @@ for (const file of sortedDir(join(ASSETS, 'tile-keys'))) {
   )
   writePng(join(OUT, 'tilesets', `${name}.png`), buildPlaceholderTileset(symbols, key.tileSize))
   console.log(`tileset ${name}: ${symbols.length} tiles (placeholder art${padded ? `, ${padded} padded from map usage` : ''})`)
+}
+const missingTileSets = [...maxIndexByTileSet.keys()].filter((n) => !convertedTileSets.has(n)).sort()
+if (missingTileSets.length > 0) {
+  console.warn(`WARNING: maps reference tilesets with no key file in assets/tile-keys: ${missingTileSets.join(', ')}`)
 }
 
 // merlin sprite atlas
