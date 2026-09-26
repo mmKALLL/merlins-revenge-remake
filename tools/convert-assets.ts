@@ -112,7 +112,7 @@ function convertTeams(): void {
 /**
  * One atlas per folder under assets/sprites; the folder name is the sprite name.
  * Returns the names an actor's `name` may refer to: the folder names plus the
- * `chr` part of the frame file names (the player is "mer" in folder "merlin").
+ * `chr` part of the frame file names (folders are named after the actor `name`, e.g. "mer").
  */
 function convertSprites(): Set<string> {
   const names = new Set<string>()

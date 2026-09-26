@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     loadTileset(tilesetFor('backgroundPassive')),
     loadTileset(tilesetFor('backgroundActive')),
     loadTileset(tilesetFor('objects')),
-    loadSprite('merlin'),
+    loadSprite('mer'),
   ])
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'

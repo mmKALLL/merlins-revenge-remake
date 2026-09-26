@@ -153,7 +153,7 @@ describe('decodeBmp', () => {
   })
 
   it('decodes an 8-bit Merlin frame to RGBA with white transparent', () => {
-    const img = decodeBmp(readFileSync('assets/sprites/merlin/anm_mer_walk_3_01.bmp'))
+    const img = decodeBmp(readFileSync('assets/sprites/mer/anm_mer_walk_3_01.bmp'))
     expect(img.width).toBe(16)
     expect(img.height).toBe(16)
     expect(img.rgba.length).toBe(16 * 16 * 4)
@@ -166,7 +166,7 @@ describe('decodeBmp', () => {
   })
 
   it('decodes a 20x16 24-bit melee frame', () => {
-    const img = decodeBmp(readFileSync('assets/sprites/merlin/anm_mer_naturalMelee_3_01.bmp'))
+    const img = decodeBmp(readFileSync('assets/sprites/mer/anm_mer_naturalMelee_3_01.bmp'))
     expect(img.width).toBe(20)
     expect(img.height).toBe(16)
     expect(img.rgba.length).toBe(20 * 16 * 4)

@@ -8,5 +8,5 @@ Do not edit by hand. The archive they come from is not in this repository.
 - `tilesets/` tile sheets extracted from the Director cast with `tools/director-extract/`, 32 px tiles, tiles per row = width/32 (10 for merlinOpen, 7/8 for merlin4); white is transparent on Active/Objects
 - `actors/` actor definitions (`act_<name>.txt` in the original), Lingo property lists resolved parent -> child
 - `teams/` team definitions (`tem_<name>.txt` in the original): hate groups and priorities
-- `sprites/merlin/`, `sprites/goblinWarrior/`, `sprites/gar/` (goblin archer), `sprites/gobarrow/` (goblin arrow), `sprites/spell/` 8-bit BMP frames, named `anm_<chr>_<anim>_<delayTicks>_<frame>.bmp`, white is transparent; the goblin grave (`goblin_grave.bmp`, one cast member) is copied as the grave frame of both goblinWarrior and gar
+- `sprites/mer/` (Merlin; folders are named after the actor `name`), `sprites/goblinWarrior/`, `sprites/gar/` (goblin archer), `sprites/gobarrow/` (goblin arrow), `sprites/spell/` 8-bit BMP frames, named `anm_<chr>_<anim>_<delayTicks>_<frame>.bmp`, white is transparent; the goblin grave (`goblin_grave.bmp`, one cast member) is copied as the grave frame of both goblinWarrior and gar
 - `keybindings/` original key code bindings (Mac virtual key codes)
