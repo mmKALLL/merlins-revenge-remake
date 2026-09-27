@@ -28,6 +28,7 @@ import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { activateAtStart, navModeClear, stepActivation } from './activation'
+import { checkMapCleared, completeMap, isEndRoom, isWholeMapClear } from './map-complete'
 import {
   collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isUnit, playerOf, roomMusicTrack, spawnAllRooms, spawnRoomActors, stripFor,
 } from './actors'
@@ -73,13 +74,14 @@ export function createSim(
     rng: { seed: seed >>> 0 },
     playerId: 0,
     restartRequested: false,
+    mapComplete: false,
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
   const withPlayer: SimState = { ...s, playerId: player.id, actors: [player] }
   if (worldMode === 'continuous') {
     const started = activateAtStart(spawnAllRooms(withPlayer))
-    return withRoomMusic({ ...started, navMode: navModeClear(started) })
+    return checkMapCleared(withRoomMusic({ ...started, navMode: navModeClear(started) }))
   }
   return withRoomMusic(withExitsEvaluated(spawnRoomActors(withPlayer, s.room)))
 }
@@ -118,12 +120,15 @@ export function findStartPos(grid: WorldGrid, playerTileIndex: number | null): V
 /**
  * objRoom.activate: exits start open iff no hostile is alive in the room (attemptOpenExits), and a
  * clear room puts the player in nav mode (gameMaster.goNavMode; gNavMode taken as on). Leaving a room
- * drops nav mode before moveRoom, so the new room's state applies at once.
+ * drops nav mode before moveRoom, so the new room's state applies at once. A room once cleared stays
+ * cleared (pRoomCleared), and opening the exits asks whether the whole map is clear (checkMapCleared).
  */
 export function withExitsEvaluated(s: SimState): SimState {
   const exitsOpen = exitsOpenFor(s, s.actors)
   const key = roomKey(s.room)
-  return { ...s, exitsOpen, navMode: exitsOpen, rooms: { ...s.rooms, [key]: { ...(s.rooms[key] ?? EMPTY_ROOM), clear: exitsOpen } } }
+  const room = s.rooms[key] ?? EMPTY_ROOM
+  const next: SimState = { ...s, exitsOpen, navMode: exitsOpen, rooms: { ...s.rooms, [key]: { ...room, clear: room.clear || exitsOpen } } }
+  return exitsOpen ? checkMapCleared(next) : next
 }
 
 /** 1. The player's own movement (objMoveXY.update -> collisions -> exit test); returns the room after the move. */
@@ -273,12 +278,12 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
 }
 
 /**
- * 11. The current room after the tick: this tick's graves stored, and the exits opened (with the
- * room-cleared sound) once no hostile team member is left. teamMaster.leaveTeam schedules
- * tellTeamDied for the next update, so the exits open on the tick after the last hostile finished
- * (its grave is already recorded): the test runs on the tick's incoming actors.
+ * 11. The current room after the tick: this tick's graves stored, and the exits opened once no
+ * hostile team member is left. teamMaster.leaveTeam schedules tellTeamDied for the next update, so
+ * the exits open on the tick after the last hostile finished (its grave is already recorded): the
+ * test runs on the tick's incoming actors. `opened`: the exits opened on this tick (see onExitsOpened).
  */
-function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean } {
+function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean; opened: boolean } {
   const s = t.s
   const key = roomKey(s.room)
   const current = s.rooms[key] ?? EMPTY_ROOM
@@ -288,12 +293,20 @@ function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean } {
     exitsOpen = true
     roomState = { ...roomState, clear: true }
     t.events.push({ kind: 'exitsOpened' })
-    // objRoom.openExits (objRoom.txt:200-206): the room-cleared sound, once per room (pRoomCleared).
-    // The engine skips it when pMap.isMapClear() so it does not clash with the game-complete sound;
-    // there is no game-complete screen yet, so the port always plays it.
-    t.events.push({ kind: 'sound', name: ROOM_CLEARED_SOUND, volume: DEFAULT_VOLUME })
   }
-  return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen }
+  return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen, opened: exitsOpen !== s.exitsOpen }
+}
+
+/**
+ * The rest of objRoom.attemptOpenExits and gameMaster.teamDied once the last hostile has gone: the
+ * room-cleared sound, once per room (pRoomCleared), unless the whole map is now clear
+ * (objRoom.txt:200-206: the game-complete sound plays instead); then checkMapCleared, and the end
+ * room completes the map on its own (teamDied -> isEndRoom -> gameEvent(#mapClear)).
+ */
+function onExitsOpened(s: SimState): SimState {
+  if (isWholeMapClear(s)) return completeMap(s)
+  const withSound: SimState = { ...s, events: [...s.events, { kind: 'sound', name: ROOM_CLEARED_SOUND, volume: DEFAULT_VOLUME }] }
+  return isEndRoom(s) ? completeMap(withSound) : withSound
 }
 
 /** The stepped state before steps 11-12: the tick's surviving actors (sleepers after them), RNG, ids and events. */
@@ -324,7 +337,7 @@ function settleContinuous(t: Tick, room: Vec): SimState {
     const stored = rooms[key] ?? EMPTY_ROOM
     rooms = { ...rooms, [key]: { ...stored, graves: [...stored.graves, g] } }
   }
-  const settled: SimState = { ...next, rooms, navMode: navModeClear(next) }
+  const settled = checkMapCleared({ ...next, rooms, navMode: navModeClear(next) })
   return room.x !== next.room.x || room.y !== next.room.y ? withRoomMusic({ ...settled, room }) : settled
 }
 
@@ -332,10 +345,13 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   const t = beginTick(s)
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input, cfg.view)
-  stepCpuAi(t)
-  if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
-  stepSpellCasters(t)
-  stepDwellings(t)
+  // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them
+  if (!s.mapComplete) {
+    stepCpuAi(t)
+    if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
+    stepSpellCasters(t)
+    stepDwellings(t)
+  }
   stepMovement(t)
   stepAnimation(t, input)
   stepWeaponTechnique(t)
@@ -345,12 +361,13 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   stepReelAndDeath(t)
   stepCooldownsAndRegen(t)
   if (s.worldMode === 'continuous') return settleContinuous(t, room)
-  const { rooms, exitsOpen } = settleRoom(t)
-  const next: SimState = {
+  const { rooms, exitsOpen, opened } = settleRoom(t)
+  const settled: SimState = {
     ...afterTick(t),
     rooms,
     exitsOpen,
     navMode: exitsOpen, // attemptOpenExits -> goNavMode
   }
+  const next = opened ? onExitsOpened(settled) : settled
   return room.x !== s.room.x || room.y !== s.room.y ? changeRoom(next, s.room, room) : next
 }

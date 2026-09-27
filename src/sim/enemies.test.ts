@@ -12,15 +12,24 @@ import { buildWorldGrid } from './world-grid'
 const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
-/** One open 18x9 room with the given objects (1-based tiles). */
+/**
+ * One open 18x9 room with the given objects (1-based tiles), above a second room holding a goblin
+ * warrior: while that room is unvisited the map is not clear, so a room without hostiles does not
+ * complete the map and still its units (map-complete.ts).
+ */
 function openMap(objects: { x: number; y: number; symbol: string }[]): MapDefinition {
   const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
   const obj = fill(0)
   for (const o of objects) obj[o.y - 1]![o.x - 1] = tileOf(o.symbol)
+  const guarded = fill(0)
+  guarded[4]![8] = tileOf('goblinWarrior')
   return {
-    mapSize: { x: 1, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+    mapSize: { x: 1, y: 2 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
     layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
-    rooms: [{ num: 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: obj } }],
+    rooms: [
+      { num: 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: obj } },
+      { num: 2, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: guarded } },
+    ],
   }
 }
 
