@@ -233,8 +233,8 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   hittable: explosions catch them, a bullet whose target fell asleep can still hit it, and Merlin's
   nearest-hostile shot (Space) aims at them. For speed the tick does not copy sleepers at all
   (`Tick.sleepers`, brought into the tick when hit), and the renderer loops their stand strip from
-  the tick (`sleepingFrame`). very_big_map (15x15 rooms, 1875 actors) steps in about 0.4 ms per tick
-  on average this way (4.5 ms when every actor was copied and scanned each tick).
+  the tick (`sleepingFrame`). very_big_map (15x15 rooms, 1875 actors) steps in about 0.17 ms per tick
+  on average this way (about 1.9 ms when every actor was copied and scanned each tick).
 - **Team caps**: the team member and reservation counts that gate dwelling releases and summons
   (reservationsMaster, counted per room in the original) count awake units only, so the rest of the
   map does not fill a team's cap.
