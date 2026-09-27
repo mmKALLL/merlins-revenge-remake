@@ -17,14 +17,17 @@ import { insideRect, viewRect, type Size } from './view'
 
 /** Strips that give a unit its own idle animation; such a unit stands and plays it instead of wandering. */
 const IDLE_STRIPS = ['idle', 'look', 'altStand']
+/** AI kinds that wander while asleep; sleepers do not cast, so spell casters walk like any unit. */
+const WANDERING_AI = new Set(['objAiCPU', 'objAiCPUSpellCaster'])
+
 const hasIdleAnimation = (set: AnimationSet | undefined): boolean => IDLE_STRIPS.some((name) => set?.[name] !== undefined)
 
 /**
- * Whether a sleeper may start a wander: a living, calm CPU walker (objAiCPU with a walk speed, so
- * no dwelling or spell caster) whose chance is not 0 and whose sprite has no idle strip of its own.
+ * Whether a sleeper may start a wander: a living, calm CPU walker or spell caster with a walk speed
+ * (so no dwelling) whose chance is not 0 and whose sprite has no idle strip of its own.
  */
 function canWander(s: SimState, a: ActorState, def: ActorDef): boolean {
-  return def.aiType === 'objAiCPU' && def.walkSpeed > 0 && def.idleWanderChancePerSecond > 0 && a.ai.mode === 'findTarget' &&
+  return WANDERING_AI.has(def.aiType ?? '') && def.walkSpeed > 0 && def.idleWanderChancePerSecond > 0 && a.ai.mode === 'findTarget' &&
     (a.mode === 'stand' || a.mode === 'walk') && isUnit(s, a) && isAlive(a) && !hasIdleAnimation(s.anims[def.name])
 }
 

@@ -11,7 +11,7 @@ import { createSim, stepSim } from './tick'
 import { PLAY_VIEW } from './view'
 import { buildWorldGrid } from './world-grid'
 
-const SYMBOLS = ['none', 'goblinWarrior', 'goblinMageHut']
+const SYMBOLS = ['none', 'goblinWarrior', 'goblinMageHut', 'goblinMage']
 const TILE = 32
 const ROW = 5
 const PLAYER = { x: 100, y: (ROW - 1) * TILE + 16 }
@@ -71,6 +71,17 @@ describe('idle wander of sleeping units (continuous world)', () => {
     expect(distance(stopped!.pos, home)).toBeLessThanOrEqual(RADIUS + ARRIVAL_DISTANCE)
     expect(stopped!.vel).toEqual({ x: 0, y: 0 })
     expect(stopped!.anim).toBe('stand')
+  })
+
+  it('wanders a sleeping spell caster (goblin mage) too', () => {
+    let s = world('goblinMage', 250)
+    let wandered = false
+    for (let i = 0; i < 150 && !wandered; i++) {
+      s = stepSim(s, NO_INPUT)
+      wandered = unit(s, 'goblinMage').ai.mode === 'idleWander'
+    }
+    expect(wandered).toBe(true)
+    expect(unit(s, 'goblinMage').awake).toBe(false)
   })
 
   it('wanders a sleeper off screen but within idleWanderMarginTiles of the view', () => {
