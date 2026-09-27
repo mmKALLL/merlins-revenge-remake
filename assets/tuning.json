@@ -5,7 +5,8 @@
     "mana_capacity": 13,
     "mana_flow": 3,
     "attack": {
-      "damageMultiplier": 2
+      "damageMultiplier": 2,
+      "chargeMaxBasic": 6
     }
   },
   "goblinWarrior": {
