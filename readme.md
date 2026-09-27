@@ -24,6 +24,7 @@ Controls:
 - Press C to switch between the room camera and the follow camera (with it, between the room-by-room world and the continuous world) without restarting the map; enemies keep their energy and positions. The `camera` URL parameter follows, so a reload keeps the choice, and the current camera shows below the game.
 - The bar at the bottom left is Merlin's health; the map restarts when he runs out.
 - In the room camera, once a room is cleared its open exits are lined with arrows along the room edge, as in the original: green when the room beyond has no enemies left (or never had any), red when it still has some (a room not yet visited counts the enemies placed in it). Map edges and walls get none. The continuous world has no exits and no arrows.
+- The map is complete, as in the original, once every room is cleared: visited rooms by killing their enemies, unvisited ones count only if nothing hostile, friendly or special (scrolls) is placed in them (so a map with no enemies at all completes at once, e.g. `new_map`). Clearing a map's `#endRoom`, where one is set, also completes it. In the continuous world the map is complete when no enemy is left anywhere. The last room plays the `end_level` jingle instead of the room-cleared one, the game fades out and the original's end cut scene plays ("Map Cleared!", Merlin: "Woo hoo!"); then press Enter or click to play the map again, or pick another map in the browser. Engine details: `docs/notes/engine-mechanics-map-complete.md`.
 - The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom), "fit", the largest whole multiple that fits the window, or "scale", which fills the window at any multiple. The choice is remembered.
 - Next to them, **Music** and **Effects** turn music and sound effects on or off (Effects off also cuts the sounds already playing; Music back on restarts the current room's track), and **Vol** sets the master volume (default 70). All three are remembered. Browsers keep audio silent until the first key press or click on the page.
 - Music follows the original's room music tiles (`musicLastStand`, `musicOff`, ...): entering a room with one starts or stops that track, other rooms keep the current one. The track loops (the original played it once). The test maps `combat_test` and `not_fully_tested/mriv_small` have music tiles.
@@ -52,6 +53,7 @@ Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the en
 - `src/sim/` fixed 30 Hz simulation in world coordinates
 - `src/render/` PixiJS renderer, camera, zoom
 - `src/input/` keyboard and mouse
+- `src/cutscene/` cut scene scripts: parser, frame-by-frame player, the map-complete end sequence
 - `src/audio/` Web Audio playback of the sim's sound and music events
 - `src/data/` loaders for the converted assets
 - `tools/` asset copy and conversion
