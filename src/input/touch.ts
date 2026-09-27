@@ -1,7 +1,8 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
 // nub on the left that appears where a finger first presses, and a blast button on the right. They
-// feed the same InputTracker as the keyboard: the nub acts as WASD (8 directions), the button as
-// Space (charge while held, release at the nearest enemy, or the push-back shot with the F toggle).
+// feed the same InputTracker as the keyboard: the nub moves Merlin at any angle (a keyboard-speed
+// analog of WASD), the button acts as Space (charge while held, release at the nearest enemy, or the
+// push-back shot with the F toggle).
 // Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 
@@ -9,18 +10,16 @@ import type { Vec } from '../mr-open/mr-geometry'
 export const NUB_DEAD_ZONE = 12
 /** Radius (CSS px) of the nub's base; the knob stays inside it. */
 const NUB_RADIUS = 48
-/** Eight 45-degree sectors, like holding one or two of WASD. */
-const SECTOR = Math.PI / 4
-
 /**
- * The WASD direction for a finger `d` away from where it pressed: each axis -1, 0 or 1, from the
- * nearest of eight 45-degree sectors; none inside the dead zone.
+ * The move for a finger `d` away from where it pressed, at the finger's own angle (remake: Merlin
+ * only, touch only): the direction scaled so its larger axis is 1, which gives exactly WASD's moves
+ * straight and diagonally ((1, 0), (1, 1)) and walks the square between them at other angles. The
+ * speed does not depend on how far the finger is dragged; nothing inside the dead zone.
  */
 export function nubDirection(d: Vec, deadZone = NUB_DEAD_ZONE): Vec {
   if (Math.hypot(d.x, d.y) < deadZone) return { x: 0, y: 0 }
-  const sector = Math.round(Math.atan2(d.y, d.x) / SECTOR)
-  const angle = sector * SECTOR
-  return { x: Math.round(Math.cos(angle)) || 0, y: Math.round(Math.sin(angle)) || 0 } // || 0: no -0
+  const k = Math.max(Math.abs(d.x), Math.abs(d.y))
+  return { x: d.x / k, y: d.y / k }
 }
 
 /** Whether to show touch controls: ?touch=1/0 wins, else a coarse (finger) primary pointer. */

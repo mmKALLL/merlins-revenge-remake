@@ -5,8 +5,8 @@
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
 // snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
-// touch controls (touch.ts) report through setTouch: the nub adds to the direction keys, the blast
-// button counts as Space.
+// touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
+// key is held, the blast button counts as Space.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -49,7 +49,7 @@ export class InputTracker {
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
   setMouseButton(down: boolean): void { this.mouseDown = down }
-  /** The touch controls' state: the nub works like the direction keys, the blast button like Space. */
+  /** The touch controls' state: the nub's move (any angle, larger axis 1) and whether the blast button is held (Space). */
   setTouch(move: Vec, blast: boolean): void {
     this.touchMove = move
     this.touchBlast = blast
@@ -70,15 +70,16 @@ export class InputTracker {
       x += dx!
       y += dy!
     }
-    x += this.touchMove.x
-    y += this.touchMove.y
+    // the keys win; without them the touch nub's analog move passes through unrounded
+    const keyed = x !== 0 || y !== 0
+    const move = keyed ? { x: Math.sign(x), y: Math.sign(y) } : { ...this.touchMove }
     const blast = this.held.has('Space') || this.touchBlast
     const cheatKillAll = this.cheatKillAll
     const cheatHeal = this.cheatHeal
     this.cheatKillAll = false
     this.cheatHeal = false
     return {
-      move: { x: Math.sign(x), y: Math.sign(y) },
+      move,
       mouseWorld: this.mouseWorld,
       chargeHeld: this.held.has('KeyE') || this.mouseDown,
       shootNearest: blast && !this.spaceShort,

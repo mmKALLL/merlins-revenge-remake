@@ -60,15 +60,15 @@
         border-radius: 50%; background: rgba(255, 255, 255, 0.4);
       }
       #touch-blast {
-        position: absolute; right: calc(24px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom));
-        width: 88px; height: 88px; border-radius: 50%; pointer-events: auto; touch-action: none;
+        position: absolute; right: calc(24px + env(safe-area-inset-right)); bottom: calc(24px + 1em + env(safe-area-inset-bottom));
+        width: 176px; height: 176px; border-radius: 50%; pointer-events: auto; touch-action: none;
         background: rgba(255, 200, 0, 0.25); border: 2px solid rgba(255, 200, 0, 0.7);
       }
       #touch-blast.active { background: rgba(255, 200, 0, 0.6); }
       @media (orientation: portrait) {
         html.touch-controls body { padding-bottom: 40vh; }
         #touch { top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222; }
-        #touch-blast { right: calc(32px + env(safe-area-inset-right)); bottom: calc(50% - 44px); }
+        #touch-blast { right: calc(32px + env(safe-area-inset-right)); bottom: calc(50% - 88px + 1em); }
       }
     </style>
   </head>
