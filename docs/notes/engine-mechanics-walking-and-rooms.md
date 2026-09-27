@@ -259,7 +259,7 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   wander below adds about 0.01 ms (Merlin walking and shooting for 9000 ticks: 0.197 -> 0.21 ms).
 - **Idle wander of sleepers** (owner request; `src/sim/idle-wander.ts`): sleepers near the screen
   would otherwise stand frozen. Every `idleWanderScanTicks` (5) ticks, each sleeping CPU walker
-  (`objAiCPU` with a walk speed, so no dwelling or spell caster; alive, walking or standing, in
+  (`objAiCPU` or `objAiCPUSpellCaster` with a walk speed, so no dwelling; alive, walking or standing, in
   `#findTarget`, and without an `idle`/`look`/`altStand` strip of its own) positioned inside the
   follow camera's view (`viewRect`) grown by `idleWanderMarginTiles` (8) tiles on every side rolls
   `idleWanderChancePerSecond * idleWanderIntervalTicks / 30` (0.3/s at the defaults, where the scan
