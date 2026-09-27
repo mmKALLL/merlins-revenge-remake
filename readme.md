@@ -42,6 +42,20 @@ Controls:
 
 Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the energy blast.
 
+## Reporting bugs
+
+When something goes wrong in the game, open the browser console (F12) and run
+
+    mr.exportState()
+
+It returns a JSON snapshot of that moment and copies it to the clipboard (if the browser refuses because DevTools has the focus, run `copy(mr.exportState())` or copy the returned text). Paste it into the bug report. It holds the map id, the seed, the tick, the world mode, the current room, exits and nav mode, the random number state, every actor, the rooms (stored actors, graves, cleared flags) and the inputs of the last 300 ticks leading up to it. The map and the actor data are not included: they come from the map id and the converted assets, and a hash of the actor and team data (`dataHash`) shows whether the snapshot was taken with other tuning.
+
+    mr.loadState(json)
+
+rebuilds that moment in the running page (the JSON as a string or pasted as an object). A snapshot of another map reloads the page with its `?map=` (and the camera of its world mode) and loads it there. A warning in the console means the data hash differs, so the moment may play out differently.
+
+To turn a report into a regression test, save the paste under `src/debug/fixtures/` and build the sim from it with `simFromSnapshot` (`src/debug/snapshot-test-data.ts`), which uses the same converted data as the page; `src/debug/snapshot-fixture.test.ts` is an example. The inputs in the snapshot are context only (they are not replayed); the test steps the sim with its own inputs. Bump `SNAPSHOT_VERSION` in `src/debug/sim-snapshot.ts` when the state shape changes.
+
 ## Check
 
     pnpm test             # vitest
@@ -55,5 +69,6 @@ Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the en
 - `src/input/` keyboard and mouse
 - `src/audio/` Web Audio playback of the sim's sound and music events
 - `src/data/` loaders for the converted assets
+- `src/debug/` state snapshots for bug reports (`mr.exportState()`, `mr.loadState()`)
 - `tools/` asset copy and conversion
 - `docs/` design and engine notes

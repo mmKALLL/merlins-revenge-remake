@@ -1,4 +1,6 @@
 import { AudioEngine } from './audio/audio'
+import { InputLog } from './debug/sim-snapshot'
+import { installStateExport } from './debug/state-export'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
@@ -219,6 +221,17 @@ async function main(): Promise<void> {
     showCameraMode()
   }
 
+  const inputLog = new InputLog()
+  installStateExport({
+    mapId, grid, defs, teams, anims, inputs: inputLog, getSim: () => sim, getSeed: () => runSeed,
+    restore: (s, seed) => {
+      sim = s
+      runSeed = seed
+      // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
+      if ((scene.cameraMode === 'follow') !== (s.worldMode === 'continuous')) toggleCamera()
+    },
+  })
+
   // Pointer position on the canvas in CSS pixels; converted to world pixels each frame.
   let pointer: Vec | null = null
   const canvas = scene.app.canvas
@@ -246,7 +259,9 @@ async function main(): Promise<void> {
     input.setMouseWorld(mouseWorld())
     if (input.takeCameraToggle()) toggleCamera()
     while (acc >= TICK_MS) {
-      sim = stepSim(sim, input.snapshot())
+      const tickInput = input.snapshot()
+      inputLog.push(sim.tick, tickInput)
+      sim = stepSim(sim, tickInput)
       audio.handle(sim.events) // every tick stepped this frame, not just the last
       acc -= TICK_MS
       if (sim.restartRequested) {
