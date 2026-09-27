@@ -4,7 +4,9 @@
 // nearest enemy, or short of it (a push-back shot) while the F toggle is on. C switches between the
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
-// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M).
+// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
+// touch controls (touch.ts) report through setTouch: the nub adds to the direction keys, the blast
+// button counts as Space.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -23,15 +25,19 @@ export class InputTracker {
   private cameraToggle = false // a C press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
   private cheatHeal = false // an M press not yet in a snapshot
+  private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
+  private touchBlast = false // the touch blast button is held
 
   keyDown(code: string): void {
     const pressed = !this.held.has(code) // key repeat sends more keydowns while held
-    if (code === 'KeyF' && pressed) this.spaceShort = !this.spaceShort
+    if (code === 'KeyF' && pressed) this.toggleSpaceShort()
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
     if (code === 'KeyM' && pressed) this.cheatHeal = true
     this.held.add(code)
   }
+  /** F: switch Space (and the touch blast button) between the nearest enemy and the push-back shot. */
+  toggleSpaceShort(): void { this.spaceShort = !this.spaceShort }
   /** Whether Space currently fires the push-back shot (toggled with F). */
   get spaceAimsShort(): boolean { return this.spaceShort }
   /** Whether C was pressed since the last call: the camera (and world mode) should switch once. */
@@ -43,6 +49,11 @@ export class InputTracker {
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
   setMouseButton(down: boolean): void { this.mouseDown = down }
+  /** The touch controls' state: the nub works like the direction keys, the blast button like Space. */
+  setTouch(move: Vec, blast: boolean): void {
+    this.touchMove = move
+    this.touchBlast = blast
+  }
 
   /** The input for the next tick; takes the cheat presses, so each reaches exactly one tick. */
   snapshot(): InputSnapshot {
@@ -59,6 +70,9 @@ export class InputTracker {
       x += dx!
       y += dy!
     }
+    x += this.touchMove.x
+    y += this.touchMove.y
+    const blast = this.held.has('Space') || this.touchBlast
     const cheatKillAll = this.cheatKillAll
     const cheatHeal = this.cheatHeal
     this.cheatKillAll = false
@@ -67,8 +81,8 @@ export class InputTracker {
       move: { x: Math.sign(x), y: Math.sign(y) },
       mouseWorld: this.mouseWorld,
       chargeHeld: this.held.has('KeyE') || this.mouseDown,
-      shootNearest: this.held.has('Space') && !this.spaceShort,
-      shootShort: this.held.has('Space') && this.spaceShort,
+      shootNearest: blast && !this.spaceShort,
+      shootShort: blast && this.spaceShort,
       cheatKillAll,
       cheatHeal,
     }
@@ -78,6 +92,8 @@ export class InputTracker {
   releaseAll(): void {
     this.held.clear()
     this.mouseDown = false
+    this.touchMove = { x: 0, y: 0 }
+    this.touchBlast = false
   }
 
   /** Attach to a window; returns a detach function. */

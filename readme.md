@@ -15,12 +15,14 @@ Query parameters:
 - `?camera=room|follow`: hard cut per room (default, the original room-by-room play) or a camera that follows Merlin through a continuous world. In the continuous world (a remake feature) the whole map is one room: every room's enemies and dwellings appear at the start, there are no exits to clear and no room-cleared jingle, and Merlin walks freely up to the map edge. Enemies farther than 6 tiles from Merlin sleep (they stand still, do not attack, produce or heal, but can be hit); they wake within 6 tiles or when hit, and fall asleep again beyond 8 tiles. These ranges are a quarter shorter up and down than sideways (ellipses). One hit from beyond 8 tiles keeps them awake for at least 6 s. Sleeping enemies on screen or up to 8 tiles off it now and then take a short stroll near their spawn point (still asleep; walking into wake range wakes them). Nav mode (fast walking) is on while no awake enemy is within 8 tiles. Space's shots only aim at enemies on screen; with none on screen they fly straight ahead. Room music tiles still play when Merlin walks into their room. The distances and times are the player's `wakeDistance`, `sleepDistance`, `hitWakeTicks`, `navModeClearRadius` and `activationVerticalScale` in `assets/tuning.json`.
 - `?seed=<n>`: the sim's random seed (default: the current time); a restart after death picks a new one.
 - `?debug=0`: hides the debug text next to the energy bar.
+- `?touch=1|0`: forces the on-screen touch controls on or off (default: on for phones and tablets, i.e. a coarse pointer).
 
 Controls:
 
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
 - Hold Space to charge and fire at the nearest enemy. Press F to toggle Space to a push-back shot that lands 20 px short of the nearest enemy; the current mode shows below the game.
+- On phones and tablets: press anywhere on the left half and drag to move (a nub appears where the finger lands; 8 directions, like WASD), hold the yellow button on the right to charge and let go to fire, like Space. Tap the "Blast:" label below the game to toggle the push-back shot. The controls lie over the game in landscape and in a band below it in portrait; the view defaults to "scale".
 - Press C to switch between the room camera and the follow camera (with it, between the room-by-room world and the continuous world) without restarting the map; enemies keep their energy and positions. The `camera` URL parameter follows, so a reload keeps the choice, and the current camera shows below the game.
 - The bar at the bottom left is Merlin's health; the map restarts when he runs out.
 - Debug cheats, as in the original: K kills every enemy and dwelling on screen (the current room in the room camera; within 10 tiles of Merlin in the follow camera, the player's `killAllCheatRadius`); they die as usual, with graves, sounds and the exits opening. M heals Merlin to full energy.
@@ -47,6 +49,7 @@ Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the en
 
 - Plays in any modern browser; no Shockwave or Director needed.
 - Space charges and fires the energy blast at the nearest enemy on screen; F toggles a push-back shot; E or a click still aims at the mouse.
+- Touch controls on phones and tablets: a movement nub and a blast button.
 - Scalable view: crisp 1x-4x pixel sizes, "fit" or a fractional "scale", and it respects browser zoom.
 - The game keeps the original's 30 ticks per second but draws at the display's refresh rate with interpolated movement.
 - C switches live between the original room-by-room camera and a smooth follow camera across the whole map, where distant enemies sleep, wake as Merlin approaches, and wander idly meanwhile.

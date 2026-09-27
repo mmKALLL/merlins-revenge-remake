@@ -5,6 +5,7 @@ import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequenc
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
+import { attachTouchControls, wantsTouchControls } from './input/touch'
 import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
 import type { CameraMode } from './render/camera'
@@ -47,7 +48,10 @@ const FPS_NEW_WEIGHT = 0.1
 /** A fresh seed for the restart after the player dies, derived from the last one (an integer hash). */
 const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
 
-function loadZoom(): ZoomSetting {
+/** Default zoom with touch controls: fill the phone screen. */
+const TOUCH_ZOOM: ZoomSetting = 'scale'
+
+function loadZoom(fallback: ZoomSetting): ZoomSetting {
   try {
     const v = localStorage.getItem(ZOOM_KEY)
     const z = ZOOM_SETTINGS.find((s) => String(s) === v)
@@ -55,7 +59,7 @@ function loadZoom(): ZoomSetting {
   } catch {
     // storage blocked: use the default
   }
-  return DEFAULT_ZOOM
+  return fallback
 }
 
 function saveZoom(z: ZoomSetting): void {
@@ -112,8 +116,12 @@ function setupSoundControls(audio: AudioEngine, row: HTMLElement): void {
   row.appendChild(label)
 }
 
-/** The 1x..4x / fit / scale buttons below the canvas; `reserved` is the controls block kept visible in 'fit' and 'scale' modes. */
-function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement): void {
+/**
+ * The 1x..4x / fit / scale buttons below the canvas; `reserved` is the controls block kept visible
+ * in 'fit' and 'scale' modes. With touch controls the canvas fills the screen instead (the controls
+ * scroll below it) and 'scale' is the default.
+ */
+function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement, touch: boolean): void {
   const buttons = ZOOM_SETTINGS.map((z) => {
     const b = document.createElement('button')
     b.type = 'button'
@@ -134,8 +142,8 @@ function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement)
   const style = game ? getComputedStyle(game) : null
   const gap = style ? parseFloat(style.rowGap) || 0 : 0
   const pad = style ? parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) || 0 : 0
-  scene.fitReserve = reserved.offsetHeight + gap + pad
-  select(loadZoom())
+  scene.fitReserve = touch ? 0 : reserved.offsetHeight + gap + pad
+  select(loadZoom(touch ? TOUCH_ZOOM : DEFAULT_ZOOM))
 }
 
 /** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */
@@ -195,6 +203,9 @@ async function main(): Promise<void> {
   const restartAfterEnding = () => { if (ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
+  const touch = wantsTouchControls(params, window)
+  // before the canvas exists: its first (desktop-sized) draw must not widen a phone's layout viewport
+  if (touch) document.documentElement.classList.add('touch-controls')
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows)
   const game = document.getElementById('game') ?? document.body
   const controls = document.getElementById('controls')
@@ -207,19 +218,23 @@ async function main(): Promise<void> {
     isolateControls(controls)
     if (mapList) await setupMapBrowser(mapList, mapId)
     if (soundRow) setupSoundControls(audio, soundRow)
-    if (zoomRow) setupZoomButtons(scene, zoomRow, controls)
+    if (zoomRow) setupZoomButtons(scene, zoomRow, controls, touch)
   }
 
   const input = new InputTracker()
   input.attach(window)
+  if (touch) attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast))
   // shows what Space fires at; F toggles it
   const spaceMode = document.getElementById('space-mode')
   let shownShort: boolean | null = null
   const showSpaceMode = () => {
     if (!spaceMode || shownShort === input.spaceAimsShort) return
     shownShort = input.spaceAimsShort
-    spaceMode.textContent = `Space: ${shownShort ? 'push-back shot' : 'nearest enemy'} (F to toggle)`
+    const target = shownShort ? 'push-back shot' : 'nearest enemy'
+    spaceMode.textContent = touch ? `Blast: ${target} (tap to toggle)` : `Space: ${target} (F to toggle)`
   }
+  // there is no F key on a phone: tapping the label toggles instead
+  spaceMode?.addEventListener('click', () => input.toggleSpaceShort())
   // shows the camera; C switches it, and the world mode with it, between ticks
   const cameraMode = document.getElementById('camera-mode')
   const showCameraMode = () => {
