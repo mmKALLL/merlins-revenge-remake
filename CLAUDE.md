@@ -38,6 +38,7 @@ cast member as PNG with `regpoints.tsv`); do not commit it wholesale.
   pass, fast-forward merge into `main` unless the owner has uncommitted local changes.
 - Commit messages end with a `Co-Authored-By:` trailer naming the Claude model.
 - Replies to the owner: about two short paragraphs, outcome first; details go into docs.
+- Open work is listed in `docs/plans/open-items.md` (a mirror of the owner's board); keep it current.
 - Feedback cards on the KanbanFlow board (owner's machine only, token in `.env`): cyan, in the
   Player feedback column, named "Es - ..."; finished cards go to Review.
 
