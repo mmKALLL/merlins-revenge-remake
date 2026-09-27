@@ -3,10 +3,12 @@
     "weapon": "energyBlast",
     "knockbackSpreadDeg": 3,
     "mana_capacity": 13,
-    "mana_flow": 3
+    "mana_flow": 3,
+    "attack": {
+      "damageMultiplier": 2
+    }
   },
   "goblinWarrior": {
-    "energy": 50,
     "pathFindingStallTime": 2,
     "attack": {
       "collisionLoc": {
@@ -20,7 +22,6 @@
     }
   },
   "goblinArcher": {
-    "energy": 25,
     "pathFindingStallTime": 2,
     "projectileSpreadDeg": 5
   },
