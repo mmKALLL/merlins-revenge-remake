@@ -1,7 +1,9 @@
 {
   "player": {
     "weapon": "energyBlast",
-    "knockbackSpreadDeg": 3
+    "knockbackSpreadDeg": 3,
+    "mana_capacity": 13,
+    "mana_flow": 3
   },
   "goblinWarrior": {
     "energy": 50,
