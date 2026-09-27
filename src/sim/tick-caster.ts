@@ -29,7 +29,7 @@ const ACTIVE_MODES = new Set(['walk', 'stand', 'charge', 'release'])
 
 export function stepSpellCasters(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id)) continue
+    if (t.removed.has(a.id) || !a.awake) continue
     const def = defOf(t.s, a)
     if (def.aiType !== SPELL_CASTER_AI || !ACTIVE_MODES.has(a.mode)) continue
     if (a.ai.mode === 'dazed') a.ai.mode = 'findTarget'

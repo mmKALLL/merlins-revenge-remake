@@ -300,10 +300,10 @@ function reincarnate(t: Tick, a: ActorState, def: ActorDef): void {
   }
 }
 
-/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every team unit (a dwelling: +1 per 1000 ticks). */
+/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every awake team unit (a dwelling: +1 per 1000 ticks). */
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id) || !isUnit(t.s, a)) continue
+    if (t.removed.has(a.id) || !isUnit(t.s, a) || !a.awake) continue
     const def = defOf(t.s, a)
     // updateCooldowns runs every weapon's counter, each advanced by its attack type's stat
     const armed = armedDefOf(t.s, a)

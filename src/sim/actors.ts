@@ -115,6 +115,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     age: 0,
     technique: TECHNIQUE_INIT,
     dwelling: def.objType === DWELLING_OBJ_TYPE ? dwellingStart(def) : null,
+    awake: true,
+    wakeHold: 0,
   }
   return [actor, { ...s, nextId: s.nextId + 1 }]
 }
@@ -172,6 +174,16 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
     actors: [...next.actors, ...spawned],
     rooms: { ...next.rooms, [key]: { spawned: true, actors: [], graves: [], clear: false } },
   }
+}
+
+/** Continuous world: every room's objects layer spawned at once, row of rooms by row of rooms. */
+export function spawnAllRooms(s: SimState): SimState {
+  let next = s
+  const { mapSize } = s.grid.map
+  for (let y = 1; y <= mapSize.y; y++) {
+    for (let x = 1; x <= mapSize.x; x++) next = spawnRoomActors(next, { x, y })
+  }
+  return next
 }
 
 /** Calls `fn` with the objects-layer symbol of every tile of `room`, row-major. */

@@ -16,7 +16,7 @@ export const LEVEL_UP_SOUND = 'level_up'
 
 export function stepDwellings(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id) || !a.dwelling || !isAlive(a)) continue
+    if (t.removed.has(a.id) || !a.dwelling || !isAlive(a) || !a.awake) continue
     a.dwelling = stepProduction(t, a, defOf(t.s, a), a.dwelling)
   }
 }
@@ -52,18 +52,19 @@ export function teamHasRoomFor(t: Tick, team: string, n: number): boolean {
 /**
  * reservationsMaster currentMembers: the team's #teamMembers in the room (towers and plants are
  * characters in the #teamBuildings role and do not count; a dying one leaves the team only on #finish).
+ * In a continuous world the awake units stand in for the room's.
  */
 function teamMembers(t: Tick, team: string): number {
-  return t.actors.filter((o) => !t.removed.has(o.id) && o.team === team && isUnit(t.s, o) && defOf(t.s, o).teamRole === 'teamMembers' && o.mode !== 'finish').length
+  return t.actors.filter((o) => !t.removed.has(o.id) && o.awake && o.team === team && isUnit(t.s, o) && defOf(t.s, o).teamRole === 'teamMembers' && o.mode !== 'finish').length
 }
 
 /**
  * reservationsMaster reservedSlots: slots the team's living dwellings reserved and have not released
- * yet, plus those held by its summon spells still in play.
+ * yet, plus those held by its summon spells still in play (awake dwellings only, as for teamMembers).
  */
 function reservedSlots(t: Tick, team: string): number {
   return t.actors
-    .filter((o) => !t.removed.has(o.id) && o.team === team && ((isDwelling(t.s, o) && isAlive(o)) || o.summonReserved > 0))
+    .filter((o) => !t.removed.has(o.id) && o.awake && o.team === team && ((isDwelling(t.s, o) && isAlive(o)) || o.summonReserved > 0))
     .reduce((n, o) => n + (o.dwelling?.reserved ?? 0) + o.summonReserved, 0)
 }
 

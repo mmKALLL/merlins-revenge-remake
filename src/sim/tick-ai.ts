@@ -218,7 +218,7 @@ function stepRunReload(t: Tick, a: ActorState, def: ActorDef): void {
 
 export function stepCpuAi(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id)) continue
+    if (t.removed.has(a.id) || !a.awake) continue
     const def = defOf(t.s, a)
     if (def.aiType !== 'objAiCPU' || (a.mode !== 'walk' && a.mode !== 'stand')) continue
     if (a.ai.mode === 'runReload') {
