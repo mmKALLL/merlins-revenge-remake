@@ -8,9 +8,8 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { ActorState, SimState } from '../sim/state'
 
-/** How long a bar stays after the last energy loss, and the last part of it that fades out (ticks at 30 Hz). */
+/** How long a bar stays after the last energy loss (ticks at 30 Hz); it then hides at once. */
 const SHOW_TICKS = 90
-const FADE_TICKS = 15
 /** Bar height in game pixels (objMoveableEnergyBar pSurroundHeight: 1 px border around a 2 px bar). */
 const BAR_H = 4
 
@@ -57,7 +56,6 @@ export class HealthBars {
       const pos = posOf(a)
       const x = a.facingLeft ? pos.x - (box.w - box.reg.x) : pos.x - box.reg.x
       bar.position.set(Math.round(x), Math.round(pos.y - box.reg.y + box.h))
-      bar.alpha = Math.min(1, ticksLeft / FADE_TICKS)
       bar.visible = true
     }
     for (const id of [...this.lastEnergy.keys()]) {
