@@ -30,6 +30,9 @@ const copies: Copy[] = [
   { from: join(GFX, 'goblinArcher', 'goblin_grave.bmp'), to: join(ASSETS, 'sprites/goblinWarrior/anm_goblinWarrior_grave_3_01.bmp'), why: 'goblin grave (shared cast member) as goblinWarrior grave frame' },
   { from: join(GFX, 'goblinArcher', 'goblin_grave.bmp'), to: join(ASSETS, 'sprites/gar/anm_gar_grave_3_01.bmp'), why: 'goblin grave (shared cast member) as gar grave frame' },
   { from: join(GFX, 'spells', 'anm_spell_charge_03_01.bmp'), to: join(ASSETS, 'sprites/spell/anm_spell_charge_03_01.bmp'), why: 'energy blast charge frame' },
+  // the end cut scene (gGameCompleteScript = #cut_scene_to_play_at_end): the archive's
+  // cut_scene_to_play_at_end/ folder is empty, so the engine plays this built-in cast member
+  { from: join(CASTS, 'scr_cut_scene_to_play_at_end.txt'), to: join(ASSETS, 'cut-scenes/cut_scene_to_play_at_end.txt'), why: 'map complete cut scene' },
 ]
 
 // combat slice: actor data, act_<name>.txt -> actors/<name>.txt
