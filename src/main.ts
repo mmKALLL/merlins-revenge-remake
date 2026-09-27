@@ -48,9 +48,6 @@ const FPS_NEW_WEIGHT = 0.1
 /** A fresh seed for the restart after the player dies, derived from the last one (an integer hash). */
 const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
 
-/** Default zoom with touch controls: fill the phone screen. */
-const TOUCH_ZOOM: ZoomSetting = 'scale'
-
 function loadZoom(fallback: ZoomSetting): ZoomSetting {
   try {
     const v = localStorage.getItem(ZOOM_KEY)
@@ -119,7 +116,7 @@ function setupSoundControls(audio: AudioEngine, row: HTMLElement): void {
 /**
  * The 1x..4x / fit / scale buttons below the canvas; `reserved` is the controls block kept visible
  * in 'fit' and 'scale' modes. With touch controls the canvas fills the screen instead (the controls
- * scroll below it) and 'scale' is the default.
+ * scroll below it).
  */
 function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement, touch: boolean): void {
   const buttons = ZOOM_SETTINGS.map((z) => {
@@ -143,7 +140,7 @@ function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement,
   const gap = style ? parseFloat(style.rowGap) || 0 : 0
   const pad = style ? parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) || 0 : 0
   scene.fitReserve = touch ? 0 : reserved.offsetHeight + gap + pad
-  select(loadZoom(touch ? TOUCH_ZOOM : DEFAULT_ZOOM))
+  select(loadZoom(DEFAULT_ZOOM))
 }
 
 /** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */

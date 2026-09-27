@@ -28,7 +28,7 @@ export interface RenderConfig {
  */
 export type ZoomSetting = 1 | 2 | 3 | 4 | 'fit' | 'scale'
 export const ZOOM_SETTINGS: readonly ZoomSetting[] = [1, 2, 3, 4, 'fit', 'scale']
-export const DEFAULT_ZOOM: ZoomSetting = 2
+export const DEFAULT_ZOOM: ZoomSetting = 'scale'
 
 const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActive']
 
