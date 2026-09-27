@@ -1,0 +1,96 @@
+[#name: "act_lizardSoldier", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#attack:
+[
+#animframe: 6,
+#animType: #naturalRanged,
+#bullet: #lizardEgg,
+#collisionLoc: point(14,-7),
+#cooldown: 300,
+#firingType: #fullstrength,
+#name: #eggLaunch,
+#reach: 150,
+#sound: #none
+],
+#dexterity: 10,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 30,
+#eyestrain: 25,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 5,
+#team: #monsters,
+#name: "lizardSoldier",
+#walkSpeed: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,30 @@
+[#name: "act_skeletonGiant", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 2,
+#dexterity: 2,
+#energy: 200,
+#inertia: 65,
+#stallSpeed: 3,
+#experienceImWorth: 20,
+#eyestrain: 30,
+#strength: 6,
+#team: #undead,
+#name: "skeletonGiant",
+#walkSpeed: 7,
+#weapon: #skeletonGiantSword
+]
+
+
+
+
+
+
+
+
+
+
+
+

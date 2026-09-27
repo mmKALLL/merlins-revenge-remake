@@ -1,0 +1,86 @@
+[#name: "act_scWarrior", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 250,
+#inertia: 50,
+#stallSpeed: 1,
+#stallSpeedIncLevel: 1,
+#reincarnateAs: [#fire],
+#strength: 12,
+#strengthIncLevel: 0.5,
+#team: #scarlet,
+#name: "scWarrior",
+#walkSpeed: 7,
+#weapon: #scWarriorSword,
+#weaponTechniqueInc: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

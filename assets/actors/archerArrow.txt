@@ -1,0 +1,81 @@
+[#name: "act_archerArrow", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 4,
+#power: 0.6,
+#type: #bullet
+],
+#character: #bullet,
+#name: "archerArrow",
+#friction: point(5,5),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

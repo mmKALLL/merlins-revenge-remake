@@ -1,0 +1,75 @@
+[#name: "tem_monsterSummon", #type: #field]
+[
+#teamName: #monsterSummon,
+#category: #friends,
+#colour: rgb(100,100,255),
+#friends:[#aldevar, #village],
+#hates: [[#blackSorcerer, #scarlet, #cave, #goblins, #karate, #ice, #magicalAlliance,  #monsters, #ninja, #swamp, #undead, #orcs], [#pitMonsters, #invisible]],
+#maxMembers: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,83 @@
+[#name: "act_farmer", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 3,
+#experienceImWorth: 4,
+#eyestrain: 30,
+#inertia: 30,
+#miniMapStatus: #clr,
+#strength: 3,
+#team: #village,
+#name: "farmer",
+#walkSpeed: 4,
+#weapon: #pitchFork
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

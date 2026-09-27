@@ -1,0 +1,15 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_thunderBlast_explode_01_01	gfx	1431	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_explode_01_02	gfx	1432	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_explode_02_03	gfx	1433	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_explode_02_04	gfx	1434	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_explode_02_05	gfx	1435	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_explode_03_06	gfx	1436	105	105	32	52	52	alpha=255..255
+anm_thunderBlast_fly_01_01	gfx	1421	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_fly_01_02	gfx	1422	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_fly_01_03	gfx	1423	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_fly_01_04	gfx	1424	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_fly_01_05	gfx	1425	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_fly_01_06	gfx	1426	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_land_01_01	gfx	1427	20	18	32	10	9	alpha=255..255
+anm_thunderBlast_land_02_01	gfx	1428	20	18	32	10	9	alpha=255..255

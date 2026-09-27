@@ -1,0 +1,86 @@
+[#name: "act_cocoon", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#energy: 100,
+#experienceImWorth: 20,
+#frictionReel: point(20,20),
+#residentGroups: 
+[
+[
+#typ: #quadranid,
+#buildTime: [10,20],
+#groupSize: [1,6],
+#releaseInterval: [10,20]
+]
+],
+#team: #monsters,
+#totalResidents: 14,
+#name: "cocoon"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,113 @@
+[#name: "act_undeadInvasion", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: #none,
+#energy: 1000,
+#experienceImWorth: 0,
+#graveOn: false,
+#reelProof: true,
+#inertia: 150,
+#frictionReel: point(100,0),
+#residentGroups: 
+[
+[
+#typ: #skeletonArcher,
+#buildTime: [45,62],
+#groupSize: [3,6],
+#releaseInterval: [10,10]
+],
+[
+#typ: #skeletonThrower,
+#buildTime: [45,65],
+#groupSize: [2,4],
+#releaseInterval: [10,10]
+],
+[
+#typ: #skeletonWarrior,
+#buildTime: [45,60],
+#groupSize: [3,6],
+#releaseInterval: [10,10]
+],
+[
+#typ: #necromancer,
+#buildTime: [60,100],
+#groupSize: [4,4],
+#releaseInterval: [10,10]
+],
+[
+#typ: #darkMage,
+#buildTime: [60,100],
+#groupSize: [2,2],
+#releaseInterval: [10,10]
+]
+],
+#team: #invisible,
+#name: "undeadInvasion"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

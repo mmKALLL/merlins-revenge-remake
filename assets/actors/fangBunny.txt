@@ -1,0 +1,97 @@
+[#name: "act_fangBunny", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 4,
+#animType: #naturalMelee,
+#damageMultiplier: 0.5,
+#collisionLoc: point(30,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#power: point(0.5,1),
+#name: #fangStrike,
+#sound: "fangBunny_fire",
+#volume: 50
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 500,
+#experienceImWorth: 75,
+#eyestrain: 25,
+#inertia: 30,
+#startingLevel: 0,
+#strength: 10,
+#team: #cave,
+#name: "fangBunny",
+#walkSpeed: 6
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

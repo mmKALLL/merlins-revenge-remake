@@ -1,0 +1,88 @@
+[#name: "act_skelitonLord", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 5,
+#dexterity: 2,
+#energy: 750,
+#experienceImWorth: 75,
+#eyestrain: 30,
+#reincarnateAs:[#skelitonUpper, #skelitonLowerLeg, #skelitonSword],
+#reincarnateRadius: 40,
+#frictionReel: point(30,30),
+#graveOn: false,
+#inertia: 75,
+#strength: 14,
+#stallSpeed: 7,
+#team: #undead,
+#name: "skelitonLord",
+#walkSpeed: 5,
+#weapon: #skelitonLordSword
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

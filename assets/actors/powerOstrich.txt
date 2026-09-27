@@ -1,0 +1,99 @@
+[#name: "act_powerOstrich", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 14,
+#animType: #naturalRanged,
+#bullet: #ostrichEgg,
+#collisionLoc: point(46,35),
+#cooldown: 30,
+#firingType: #fullstrength,
+#name: #spitBullet,
+#reach: 230,
+#sound: "hydra1_fire",
+#volume: 40
+],
+#damageSpeed: 4,
+#dexterity: 1,
+#dieSound: #none,
+#energy: 500,
+#experienceImWorth: 60,
+#eyestrain: 50,
+#frictionReel: point (30,30),
+#inertia: 30,
+#startingLevel: 2,
+#strength: 7,
+#team: #monsters,
+#name: "powerOstrich",
+#walkSpeed: 15,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

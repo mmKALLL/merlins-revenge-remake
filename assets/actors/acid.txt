@@ -1,0 +1,81 @@
+[#name: "act_acid", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 4,
+#power: 0.6,
+#type: #bullet
+],
+#character: #bullet,
+#name: "acid",
+#friction: point(7,7),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

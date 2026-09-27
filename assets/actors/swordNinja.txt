@@ -1,0 +1,85 @@
+[#name: "act_swordNinja", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 120,
+#experienceImWorth: 10,
+#multiAttack: false,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 12,
+#team: #ninja,
+#name: "ninja",
+#walkSpeed: 5,
+#weapon: #ninjaSword,
+#weaponTechnique: 20
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

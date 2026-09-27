@@ -1,0 +1,83 @@
+[#name: "act_skelitonLordSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 5,
+#animType: #weaponMelee,
+#collisionLoc: point(80,-15),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #skelitonLordSword,
+#damageMultiplier: 12,
+#power: point(3, 0),
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

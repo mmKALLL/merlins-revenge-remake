@@ -1,0 +1,89 @@
+[#name: "act_darkRock", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#explodeCharge: 40,
+#power: 1,
+#type: #explode
+],
+#character: #bullet,
+#name: "darkRock",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletCollidedWithTarget,
+#bulletLanded
+],
+#explodeSound: "spell_explode",
+#friction: point(10,10),
+#recordInRoomState: false,
+#rotational: true,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

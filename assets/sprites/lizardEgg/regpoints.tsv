@@ -1,0 +1,12 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_lizardEgg_fly_02_01	gfx	4041	8	11	32	4	5	alpha=255..255
+anm_lizardEgg_fly_02_02	gfx	4042	8	11	32	5	5	alpha=255..255
+anm_lizardEgg_fly_02_03	gfx	4043	9	10	32	5	4	alpha=255..255
+anm_lizardEgg_fly_02_04	gfx	4044	11	8	32	6	3	alpha=255..255
+anm_lizardEgg_fly_02_05	gfx	4045	10	9	32	5	4	alpha=255..255
+anm_lizardEgg_fly_02_06	gfx	4046	8	11	32	4	6	alpha=255..255
+anm_lizardEgg_fly_02_07	gfx	4048	11	8	32	6	4	alpha=255..255
+anm_lizardEgg_fly_02_08	gfx	4049	10	9	32	6	5	alpha=255..255
+anm_lizardEgg_grave_01_01	gfx	4052	8	10	32	4	5	alpha=255..255
+anm_lizardEgg_land_01_01	gfx	4050	8	10	32	4	5	alpha=255..255
+anm_lizardEgg_land_01_02	gfx	4051	8	10	32	4	5	alpha=255..255

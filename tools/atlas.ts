@@ -13,10 +13,18 @@ export interface AtlasRect {
   y: number
   w: number
   h: number
+  delay: number // ticks this frame is shown (the frame name's own delay; strips can mix them)
+  /** registration point within the frame when known (Director member regPoint); absent = frame centre */
+  reg?: { x: number; y: number }
 }
 export interface AtlasAnimation {
-  delay: number
+  delay: number // the first frame's delay
   frames: AtlasRect[]
+}
+export interface AtlasFrame {
+  name: string
+  image: RgbaImage
+  reg?: { x: number; y: number }
 }
 export interface Atlas {
   sheet: RgbaImage
@@ -29,25 +37,30 @@ export function parseFrameName(name: string): FrameName | null {
   return { chr: m[1]!, anim: m[2]!, delay: Number(m[3]), frame: Number(m[4]) }
 }
 
-/** One row per animation, in order of first appearance; frames sorted by frame number within a row. */
-export function buildAtlas(frames: { name: string; image: RgbaImage }[]): Atlas {
-  const byAnim = new Map<string, { delay: number; frames: { frame: number; image: RgbaImage }[] }>()
+type RowFrame = { frame: number; delay: number; image: RgbaImage; reg?: { x: number; y: number } }
+
+/**
+ * One row per animation, in order of first appearance; frames sorted by frame number within a row.
+ * Each frame keeps its own delay (animStripMaster reads it per member, so a strip can mix them,
+ * e.g. anm_bowOrc_weaponRanged_02_01 .. _04_09).
+ */
+export function buildAtlas(frames: AtlasFrame[]): Atlas {
+  const byAnim = new Map<string, RowFrame[]>()
   for (const f of frames) {
     const p = parseFrameName(f.name)
     if (!p) continue
-    const entry = byAnim.get(p.anim) ?? { delay: p.delay, frames: [] }
-    entry.frames.push({ frame: p.frame, image: f.image })
-    byAnim.set(p.anim, entry)
+    const row = byAnim.get(p.anim) ?? []
+    row.push({ frame: p.frame, delay: p.delay, image: f.image, ...(f.reg ? { reg: f.reg } : {}) })
+    byAnim.set(p.anim, row)
   }
   let width = 0
   let height = 0
-  const rows: { name: string; delay: number; y: number; images: RgbaImage[] }[] = []
-  for (const [name, entry] of byAnim) {
-    entry.frames.sort((a, b) => a.frame - b.frame)
-    const images = entry.frames.map((f) => f.image)
-    const rowW = images.reduce((s, i) => s + i.width, 0)
-    const rowH = Math.max(...images.map((i) => i.height))
-    rows.push({ name, delay: entry.delay, y: height, images })
+  const rows: { name: string; y: number; frames: RowFrame[] }[] = []
+  for (const [name, row] of byAnim) {
+    row.sort((a, b) => a.frame - b.frame)
+    const rowW = row.reduce((s, f) => s + f.image.width, 0)
+    const rowH = Math.max(...row.map((f) => f.image.height))
+    rows.push({ name, y: height, frames: row })
     width = Math.max(width, rowW)
     height += rowH
   }
@@ -56,12 +69,12 @@ export function buildAtlas(frames: { name: string; image: RgbaImage }[]): Atlas 
   for (const row of rows) {
     let x = 0
     const rects: AtlasRect[] = []
-    for (const img of row.images) {
-      blit(sheet, img, x, row.y)
-      rects.push({ x, y: row.y, w: img.width, h: img.height })
-      x += img.width
+    for (const f of row.frames) {
+      blit(sheet, f.image, x, row.y)
+      rects.push({ x, y: row.y, w: f.image.width, h: f.image.height, delay: f.delay, ...(f.reg ? { reg: f.reg } : {}) })
+      x += f.image.width
     }
-    animations[row.name] = { delay: row.delay, frames: rects }
+    animations[row.name] = { delay: row.frames[0]!.delay, frames: rects }
   }
   return { sheet, animations }
 }

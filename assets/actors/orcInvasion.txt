@@ -1,0 +1,100 @@
+[#name: "act_orcInvasion", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: #none,
+#energy: 1000,
+#graveOn: false,
+#reelProof: true,
+#inertia: 150,
+#experienceImWorth: 0,
+#residentGroups: 
+[
+[
+#typ: #bowOrc,
+#buildTime: [52,62],
+#groupSize: [3,6],
+#releaseInterval: [10,10]
+],
+[
+#typ: #swordOrc,
+#buildTime: [55,65],
+#groupSize: [3,6],
+#releaseInterval: [10,10]
+],
+[
+#typ: #mageOrc,
+#buildTime: [60,70],
+#groupSize: [2,3],
+#releaseInterval: [10,10]
+]
+],
+#team: #invisible,
+#name: "orcInvasion"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

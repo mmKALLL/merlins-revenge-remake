@@ -154,3 +154,33 @@ New behaviour code, smallest first:
 - `produceGroup` / `beBuilt` strips are not exported; did huts animate while producing?
 - Missing art for bowOrc (9 of 10 weaponRanged frames, stand/walk/grave), swordOrc and orcHouse: re-export from the `.dir` cast, or build from `gfx/orc/` raw frames / blackOrc.
 - Residents spawn exactly on the hut's reg point with `useOffset false`; if that tile is solid the spawn silently fails (counters still advance? No: `releaseResident` counts the resident even when `newActor` returns `#none` -- `newUnit.setStartingLevel` would then error only if level > 0). Treat a failed spawn as consumed.
+
+## 8. Port status (2026-09-27)
+
+Ported in the enemy slice (progress and decisions: `docs/plans/2026-09-27-enemies-progress.md`). Checked
+against the Lingo in the owner's reference bundle (`mr-open-reference.zip`, same paths as above), which
+settled several guesses in the sections above:
+
+- **Spell caster movement** (`objAiCPUSpellCaster.txt:61-297`, `GeomTangentPoint()`, `GeomMirrorPoint()`,
+  `teamMaster.findNearest` `:374-470`): `GeomMirrorPoint(averageLoc, myLoc, safeDist)` returns a point
+  `20 * safeDist` from the average position, through and past the caster (a run *direction*, the goal
+  itself is never reached). `GeomTangentPoint(bulletLoc, myLoc, dir, safeDist)` is the bullet position
+  minus `(u.y * 2s * dir1 + u.x * s/5, u.x * 2s * dir2 + u.y * s/5)` with `u` the unit vector caster->bullet
+  and `(dir1, dir2) = (-1, 1)` for `dir > 0`, else `(1, -1)`. With one bullet `dir = 1`; with two, `dir`
+  comes from the second bullet's offset multiplied per axis by the caster->bullet vector, and the
+  destination is `PointValRange(25 + random(50), [tangent, mirror])` (that percentage toward the mirror
+  point). The `dif = -1` typo leaves `dir` void, which `GeomTangentPoint` treats as `dir <= 0`.
+  `findNearest` searches the unit/bullet map in tile shells (own tile, then rings 1..3) and stops at
+  the first shell that found anything, then keeps the 2 closest by Euclidean distance. Ported in
+  `src/mr-open/mr-spell-caster.ts`.
+- **Strip frame order** (`animStripMaster.txt`): frames are appended in cast member order; the frame
+  number in the name is never parsed. The converter sorts by frame number, which gives the same order
+  for every shipped sprite. Two members with the same frame number both play (crossBolt `land` is
+  `land_01_01` then `land_30_01`).
+- **Residents** (`modResidents.txt`, `reservationsMaster.txt`): as described in §2b. The production-time
+  expression is confirmed as `pCurrentGroupSize * timeToBuildSingle` with `pCurrentGroupSize` the counter
+  property list, so the open question stays open.
+- **Dwelling strips** (`objDwelling.getAnimSym`): `#produceGroup` while producing, else `#reel -> #stand`.
+  No dwelling has a `produceGroup` strip in the cast (only `fangBunnyPortal` does), so huts show `stand`.
+- **Art**: the cast has complete bowOrc, swordOrc, orcHouse, crossBolt and mageOrc strips (§4's missing
+  art was only missing from the loose `gfx/` folders).

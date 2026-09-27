@@ -3,14 +3,14 @@ import type { AttackDef } from './mr-actor-data'
 import { decide, dirXToTarget, idealAttackLoc, RETARGET_TICKS, strikePoint, targetInReach, type AiView, type TargetView } from './mr-ai-cpu'
 
 const base: AttackDef = {
-  name: 'none', type: 'melee', animType: 'weaponMelee', animFrame: 7, collisionLoc: { x: 15, y: 0 }, idealAttackLoc: { x: 15, y: 0 },
+  name: 'none', type: 'melee', animType: 'weaponMelee', animFrame: [7], collisionLoc: { x: 15, y: 0 }, idealAttackLoc: { x: 15, y: 0 },
   reach: 25, cooldown: 0, power: { x: 0.7, y: 0 }, damageMultiplier: 2, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
-  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4,
+  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
   volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] },
 }
 const sword: AttackDef = base
-const bow: AttackDef = { ...base, name: 'goblinBow', type: 'ranged', animType: 'weaponRanged', animFrame: 21, collisionLoc: { x: 0, y: -2 }, reach: 100, cooldown: 200, power: 0.5, firingType: 'fullstrength', bullet: 'goblinArrow' }
+const bow: AttackDef = { ...base, name: 'goblinBow', type: 'ranged', animType: 'weaponRanged', animFrame: [21], collisionLoc: { x: 0, y: -2 }, reach: 100, cooldown: 200, power: 0.5, firingType: 'fullstrength', bullet: 'goblinArrow' }
 
 const rectAround = (p: { x: number; y: number }, half = 16) => ({ left: p.x - half, top: p.y - half, right: p.x + half, bottom: p.y + half })
 const target = (x: number, y: number, alive = true): TargetView => ({ pos: { x, y }, rect: rectAround({ x, y }), alive })

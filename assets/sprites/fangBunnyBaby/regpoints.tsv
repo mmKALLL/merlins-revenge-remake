@@ -1,0 +1,16 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_fangBunnyBaby_grave_01_01	gfx	2214	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_grave_01_02	gfx	2215	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_01	gfx	2216	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_02	gfx	2217	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_03	gfx	2218	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_04	gfx	2219	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_05	gfx	2220	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_06	gfx	2221	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_07	gfx	2222	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_naturalRanged_01_08	gfx	2223	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_stand_01_03	gfx	2224	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_walk_03_03	gfx	2225	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_walk_03_04	gfx	2226	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_walk_03_05	gfx	2227	16	16	32	8	8	alpha=255..255
+anm_fangBunnyBaby_walk_03_06	gfx	2228	16	16	32	8	8	alpha=255..255

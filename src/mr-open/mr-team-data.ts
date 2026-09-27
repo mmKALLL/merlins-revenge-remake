@@ -13,6 +13,8 @@ export interface TeamDef {
   /** hate groups in priority order; hates[0] is the first-priority group */
   hates: string[][]
   friends: string[]
+  /** reservationsMaster cap on live team members in the room (dwellings wait for room under it); null = no cap */
+  maxMembers: number | null
 }
 
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : [])
@@ -23,7 +25,8 @@ export function parseTeams(files: Record<string, string>): Record<string, TeamDe
   for (const [key, text] of Object.entries(files)) {
     const r = withContext(`team ${key}`, () => parseDataField(text))
     const hates = Array.isArray(r['hates']) ? r['hates'].map(strings) : []
-    out[key] = { key, teamName: String(r['teamName'] ?? key), category: String(r['category'] ?? 'none'), hates, friends: strings(r['friends']) }
+    const maxMembers = typeof r['maxMembers'] === 'number' ? r['maxMembers'] : null
+    out[key] = { key, teamName: String(r['teamName'] ?? key), category: String(r['category'] ?? 'none'), hates, friends: strings(r['friends']), maxMembers }
   }
   return out
 }

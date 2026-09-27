@@ -1,0 +1,81 @@
+[#name: "act_batBullet", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 3,
+#power: 0.6,
+#type: #bullet
+],
+#character: #bullet,
+#name: "batBullet",
+#friction: point(4,4),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

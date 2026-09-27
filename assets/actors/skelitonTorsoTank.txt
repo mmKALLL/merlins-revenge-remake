@@ -1,0 +1,100 @@
+[#name: "act_skelitonTorsoTank", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 5,
+#animType: #naturalRanged,
+#bullet: #skelitonMissile,
+#collisionLoc: point(15,-3),
+#cooldown: 10,
+#firingType: #fullstrength,
+#name: #fireMissile,
+#reach: 200,
+#sound: "quadranid_fire",
+#volume: 50
+],
+#damageSpeed: 3,
+#dexterity: 1,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 15,
+#eyestrain: 40,
+#graveOn: true,
+#inertia: 80,
+#startingLevel: 0,
+#reincarnateAs: [#skelitonHead, #none],
+#strength: 10,
+#team: #undead,
+#name: "skelitonTorsoTank",
+#walkSpeed: 6,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

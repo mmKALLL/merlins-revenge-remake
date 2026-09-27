@@ -1,0 +1,82 @@
+[#name: "act_skeletonGiantSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 6,
+#animType: #weaponMelee,
+#collisionLoc: point(30,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #skeletonGiantSword,
+#power: point(1, 0),
+#dammageMultiplier: 8,
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

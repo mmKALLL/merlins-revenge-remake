@@ -1,0 +1,82 @@
+[#name: "act_skeletonSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 7,
+#animType: #weaponMelee,
+#collisionLoc: point(25,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #skeletonSword,
+#power: point(0.7, 0),
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

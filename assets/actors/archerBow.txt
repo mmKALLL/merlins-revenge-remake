@@ -1,0 +1,84 @@
+[#name: "act_archerBow", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: [9],
+#animType: #weaponRanged,
+#bullet: #archerArrow,
+#collisionLoc: point(0,-2),
+#cooldown: 10,
+#firingType: #fullstrength,
+#name: #archerBow,
+#reach: 100,
+#sound: "goblin_fire",
+#targetRoles: [[#teamMembers, #teamBuildings]]
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

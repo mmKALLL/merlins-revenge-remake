@@ -1,0 +1,97 @@
+[#name: "act_bombMage", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 16,
+#animType: #naturalRanged,
+#bullet: #bomb,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwBomb,
+#reach: 80,
+#sound: #none
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 20,
+#eyestrain: 25,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 10,
+#team: #magicalAlliance,
+#name: "bombMage",
+#walkSpeed: 4,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

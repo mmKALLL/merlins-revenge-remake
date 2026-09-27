@@ -1,0 +1,85 @@
+[#name: "act_ninjaSword", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 13,
+#animType: #weaponMelee,
+#collisionLoc: point(15,0),
+#cooldown: 0,
+#damageMultiplier:4,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(15,0),
+#name: #ninjaSword,
+#power: point(0.7, 0),
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

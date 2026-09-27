@@ -1,0 +1,81 @@
+[#name: "act_smokePin", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 4,
+#power: 1.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "smokePin",
+#friction: point(10,10),
+#recordInRoomState: false,
+#weight: 0.6
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

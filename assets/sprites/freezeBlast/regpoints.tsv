@@ -1,0 +1,15 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_freezeBlast_explode_01_01	gfx	4425	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_explode_01_02	gfx	4426	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_explode_02_03	gfx	4427	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_explode_02_04	gfx	4428	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_explode_02_05	gfx	4429	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_explode_03_06	gfx	4430	105	105	32	52	52	alpha=255..255
+anm_freezeBlast_fly_01_01	gfx	4417	15	15	32	8	7	alpha=255..255
+anm_freezeBlast_fly_01_02	gfx	4418	15	15	32	8	8	alpha=255..255
+anm_freezeBlast_fly_01_03	gfx	4419	15	15	32	8	7	alpha=255..255
+anm_freezeBlast_fly_01_04	gfx	4420	15	15	32	8	8	alpha=255..255
+anm_freezeBlast_fly_01_05	gfx	4421	15	15	32	8	7	alpha=255..255
+anm_freezeBlast_fly_01_06	gfx	4422	15	15	32	8	8	alpha=255..255
+anm_freezeBlast_fly_01_07	gfx	4423	15	15	32	8	8	alpha=255..255
+anm_freezeBlast_fly_01_08	gfx	4424	15	15	32	8	8	alpha=255..255

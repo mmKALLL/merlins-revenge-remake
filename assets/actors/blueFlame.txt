@@ -1,0 +1,81 @@
+[#name: "act_blueFlame", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 15,
+#power: 0.2,
+#type: #bullet
+],
+#character: #bullet,
+#name: "blueFlame",
+#friction: point(4,4),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

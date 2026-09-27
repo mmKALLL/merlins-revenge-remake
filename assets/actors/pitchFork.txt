@@ -1,0 +1,84 @@
+[#name: "act_pitchFork", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 3,
+#animType: #weaponMelee,
+#collisionLoc: point(12,2),
+#cooldown: 30,
+#damageMultiplier:5,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(12,2),
+#name: #pitchFork,
+#power: point(.3, .3),
+#sound: "skeleton_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

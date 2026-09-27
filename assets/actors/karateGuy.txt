@@ -1,0 +1,97 @@
+[#name: "act_karateGuy", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [5, 8, 12],
+#animType: #naturalMelee,
+#damageMultiplier: 100,
+#collisionLoc: point(4,0),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#name: #punchKick,
+#power: point(0.01,0),
+#sound: "wizard_punch"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 200,
+#experienceImWorth: 10,
+#eyestrain: 25,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 10,
+#team: #karate,
+#name: "karateGuy",
+#walkSpeed: 4,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

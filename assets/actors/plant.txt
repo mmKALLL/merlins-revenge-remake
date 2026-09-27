@@ -1,0 +1,95 @@
+[#name: "act_plant", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [15,17,19,21,23,25,27,29],
+#animType: #naturalRanged,
+#bullet: #needle,
+#collisionLoc: point(0,-2),
+#cooldown: 100,
+#dexterity: 1,
+#firingType: #fullstrength,
+#name: #needleShot,
+#reach: 180,
+#sound: #none
+],
+#damageSpeed: 3,
+#dexterity: 3,
+#experienceImWorth: 60,
+#dieSound: #none,
+#energy: 80,
+#eyestrain: 40,
+#inertia: 40,
+#reelProof: true,
+#teamRole: #teamBuildings,
+#frictionReel: point(0,10),
+#strength: 15,
+#team: #swamp,
+#name: "plant",
+#walkSpeedIncLevel: 0,
+#walkSpeed: 0
+
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

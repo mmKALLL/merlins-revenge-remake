@@ -1,0 +1,120 @@
+[#name: "act_skelitonSummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(172,13,40),
+#chargeExplodeFactor: 1,
+#chargeSize: 2,
+#chargeSpeed: 0.4,
+#chargeStart: 0,
+#chargeMax: 38,
+#chargeSpeedMax: 0.4,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 25,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers],
+#limitMagic: false,
+#randomSummon: true,
+#multistage:
+[
+#skelitonFootSoldier: 10,
+#skelitonHead: 15,
+#skelitonArm: 17,
+#skelitonTorsoTank: 22,
+#skelitonSword: 25,
+#skelitonLowerLeg:27,
+#skelitonUpper:30,
+#skelitonLord:35
+],
+#name: #skelitonSummon,
+#payloadFunction: #takeHit,
+#payloadFunctionNonBlank: #takeHit,
+#power: 1,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #enemies,
+#spellSpeed: 20,
+#targetAllegiance: #enemy,
+#targetTileWhenNotBlank: true
+],
+#character: #skelitonSummon,
+#collectSound: "collect_powerup_01",
+#member: member("skelitonSummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

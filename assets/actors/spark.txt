@@ -1,0 +1,81 @@
+[#name: "act_spark", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 8,
+#power: 0.4,
+#type: #bullet
+],
+#character: #bullet,
+#name: "spark",
+#friction: point(3,3),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

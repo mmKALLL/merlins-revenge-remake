@@ -1,0 +1,92 @@
+[#name: "act_fangBunnyPortal", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#energy: 750,
+#experienceImWorth: 20,
+#frictionReel: point(100,100),
+#residentGroups: 
+[
+[
+#typ: #fangBunny,
+#buildTime: [20,25],
+#groupSize: [1,2],
+#releaseInterval: [10,25]
+],
+[
+#typ: #fangBunnyBaby,
+#buildTime: [15,20],
+#groupSize: [1,3],
+#releaseInterval: [10,25]
+]
+],
+#team: #cave,
+#totalResidents: 12,
+#name: "fangBunnyPortal"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

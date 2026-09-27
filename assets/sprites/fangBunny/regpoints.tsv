@@ -1,0 +1,14 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_fangBunny_grave_01_01	gfx	2201	16	22	32	8	11	alpha=255..255
+anm_fangBunny_grave_01_02	gfx	2202	16	22	32	8	11	alpha=255..255
+anm_fangBunny_naturalMelee_01_04	gfx	2206	61	23	32	17	11	alpha=255..255
+anm_fangBunny_naturalMelee_01_05	gfx	2207	61	23	32	17	11	alpha=255..255
+anm_fangBunny_naturalMelee_01_06	gfx	2208	61	23	32	17	11	alpha=255..255
+anm_fangBunny_naturalMelee_02_02	gfx	2204	61	23	32	17	11	alpha=255..255
+anm_fangBunny_naturalMelee_03_01	gfx	2203	61	23	32	17	11	alpha=255..255
+anm_fangBunny_naturalMelee_03_03	gfx	2205	61	23	32	17	11	alpha=255..255
+anm_fangBunny_stand_03_01	gfx	2209	40	30	32	16	19	alpha=255..255
+anm_fangBunny_walk_03_01	gfx	2210	34	23	32	17	11	alpha=255..255
+anm_fangBunny_walk_03_02	gfx	2211	34	23	32	17	11	alpha=255..255
+anm_fangBunny_walk_03_03	gfx	2212	34	23	32	17	11	alpha=255..255
+anm_fangBunny_walk_03_04	gfx	2213	34	23	32	17	11	alpha=255..255

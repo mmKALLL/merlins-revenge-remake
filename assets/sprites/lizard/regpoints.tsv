@@ -1,0 +1,16 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_lizard_grave_03_01	gfx	3557	15	15	32	8	8	alpha=255..255
+anm_lizard_grave_03_02	gfx	3558	15	15	32	8	8	alpha=255..255
+anm_lizard_naturalMelee_02_01	gfx	3559	17	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_02	gfx	3560	20	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_03	gfx	3551	24	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_04	gfx	3561	29	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_05	gfx	3562	29	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_06	gfx	3563	26	14	32	7	6	alpha=255..255
+anm_lizard_naturalMelee_02_07	gfx	3564	26	14	32	7	6	alpha=255..255
+anm_lizard_reel_01_01	gfx	3556	14	17	32	7	9	alpha=255..255
+anm_lizard_stand_03_01	gfx	3565	17	14	32	7	6	alpha=255..255
+anm_lizard_walk_03_01	gfx	3552	14	14	32	7	6	alpha=255..255
+anm_lizard_walk_03_02	gfx	3553	15	14	32	7	6	alpha=255..255
+anm_lizard_walk_03_03	gfx	3554	14	14	32	7	6	alpha=255..255
+anm_lizard_walk_03_04	gfx	3555	14	14	32	7	6	alpha=255..255

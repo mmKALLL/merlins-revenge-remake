@@ -1,0 +1,83 @@
+[#name: "act_skeletonWarrior", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 3,
+#energy: 100,
+#experienceImWorth: 6,
+#eyestrain: 30,
+#inertia: 60,
+#strength: 12,
+#team: #undead,
+#name: "skw",
+#walkSpeed: 5,
+#weapon: #skeletonSword
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,83 @@
+[#name: "act_skeletonBow", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 7,
+#animType: #weaponRanged,
+#bullet: #goblinArrow,
+#collisionLoc: point(5,2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #fireArrow,
+#reach: 160,
+#sound: "goblin_fire"
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

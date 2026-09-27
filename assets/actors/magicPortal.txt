@@ -1,0 +1,93 @@
+[#name: "act_magicPortal", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: #none,
+#energy: 25,
+#experienceImWorth: 20,
+#frictionReel:point(100,100),
+#residentGroups: 
+[
+[
+#typ: #bombMage,
+#buildTime: [4,5],
+#groupSize: [1,2],
+#releaseInterval: [5,20]
+],
+[
+#typ: #thunderMonk,
+#buildTime: [5,7],
+#groupSize: [1,2],
+#releaseInterval: [5,20]
+]
+],
+#team: #magicalAlliance,
+#totalResidents: 6,
+#name: "magicPortal"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

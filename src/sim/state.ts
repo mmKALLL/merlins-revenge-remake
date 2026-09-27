@@ -1,6 +1,7 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
+import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Rng } from './rng'
@@ -27,9 +28,13 @@ export const NO_INPUT: InputSnapshot = {
 
 export interface AnimationStrip {
   frames: number
-  delay: number // ticks per frame
+  delay: number // ticks per frame (the first frame's when `delays` is given)
+  /** per-frame delays when the strip mixes them (anm_bowOrc_weaponRanged_02_01 .. _04_09); absent = `delay` for every frame */
+  delays?: number[]
   w: number // frame size in px (first frame of the strip)
   h: number
+  /** registration point in the first frame when known; absent = the frame centre */
+  reg?: Vec
 }
 
 export interface AnimationSet {
@@ -37,15 +42,19 @@ export interface AnimationSet {
   [name: string]: AnimationStrip
 }
 
+/** Character strips an AI attack plays (the attack's animType): weapon or natural, melee or ranged. */
+export type AttackStrip = 'weaponMelee' | 'weaponRanged' | 'naturalMelee' | 'naturalRanged' | 'magicMelee'
+export const ATTACK_STRIPS: ReadonlySet<string> = new Set<AttackStrip>(['weaponMelee', 'weaponRanged', 'naturalMelee', 'naturalRanged', 'magicMelee'])
+
 export type ActorMode =
-  | 'stand' | 'walk' | 'weaponMelee' | 'weaponRanged' | 'charge' | 'release' | 'reel'
+  | 'stand' | 'walk' | AttackStrip | 'charge' | 'release' | 'reel'
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
 
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
  * the original AI: stand still, then walk a short way in a random direction, then retarget.
  */
-export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove'
+export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload'
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
 export type ChargeKind = 'mouse' | 'nearest' | 'short'
@@ -82,7 +91,10 @@ export interface ActorState {
   animLooped: boolean // set on the tick the strip wrapped
   energy: number
   regenCounter: number
-  cooldown: number // remaining counter units; ready when <= 0
+  cooldown: number // remaining counter units of the current attack; ready when <= 0
+  /** multiAttack: the natural attack is the current one (else the weapon); the other's cooldown runs on in otherCooldown */
+  useNatural: boolean
+  otherCooldown: number
   stall: number // objMoveXY stall counter (reel end at 10)
   frictionPercent: Vec
   knockback: Vec // player only: push from hits, decaying by frictionReel separately from walking (see applyHit)
@@ -92,9 +104,12 @@ export interface ActorState {
   targetId: number | null
   targetPoint: Vec | null
   charge: number // spell charge (objSpell pCurrentCharge)
+  chargeMax: number // spell of a CPU caster: this cast's charge counter length (randomised for summoners)
+  summonReserved: number // summon spell: team slots reserved for its payload (reservationsMaster)
   attack: AttackDef | null // spell: copy of the caster's attack (objSpell.setSpellProperties); null otherwise
   age: number // ticks in the current mode for timed modes (land, explode, player die)
   technique: TechniqueState // modWeaponTechnique counter and cache
+  dwelling: DwellingState | null // objDwelling production (modResidents); null for everything else
 }
 
 export interface RoomState {

@@ -1,0 +1,60 @@
+[#name: "act_lavaGolem", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [7, 14],
+#animType: #naturalRanged,
+#bullet: #flamingRock,
+#collisionLoc: point(0,0),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwBoulder,
+#reach: 150,
+#sound: "darkGolem_fire"
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: "boulder_die",
+#energy: 750,
+#experienceImWorth: 50,
+#eyestrain: 25,
+#frictionReel: point(50,50),
+#inertia: 50,
+#startingLevel: 0,
+#strength: 20,
+#team: #scarlet,
+#name: "lavaDarkGolem",
+#walkSpeed: 1,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

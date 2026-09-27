@@ -1,0 +1,88 @@
+[#name: "act_warrior", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#character: #friendlyCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 300,
+#inertia: 60,
+#miniMapStatus: #fre,
+#stallSpeed: 1,
+#stallSpeedIncLevel: 1,
+#leaveWhenFinished: true,
+#strength: 12,
+#strengthIncLevel: 0.5,
+#team: #aldevar,
+#name: "warrior",
+#walkSpeed: 5,
+#weapon: #warriorSword,
+#weaponTechniqueInc: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

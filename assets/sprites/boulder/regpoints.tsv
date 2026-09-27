@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_boulder_fly_03_01	gfx	2029	20	20	32	10	10	alpha=255..255
+anm_boulder_land_01_01	gfx	2030	20	20	32	10	10	alpha=255..255
+anm_boulder_land_60_02	gfx	2031	20	20	32	10	10	alpha=255..255

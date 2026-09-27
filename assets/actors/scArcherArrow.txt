@@ -1,0 +1,81 @@
+[#name: "act_scArcherArrow", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 5,
+#power: 0.9,
+#type: #bullet
+],
+#character: #bullet,
+#name: "scArcherArrow",
+#friction: point(5,5),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

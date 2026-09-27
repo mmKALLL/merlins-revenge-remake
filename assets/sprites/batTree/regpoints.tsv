@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_batTree_grave_01_01	gfx	2080	31	31	32	15	15	alpha=255..255
+anm_batTree_grave_01_02	gfx	2081	31	31	32	15	15	alpha=255..255
+anm_batTree_stand_03_01	gfx	2082	31	31	32	15	15	alpha=255..255

@@ -1,0 +1,75 @@
+[#name: "tem_monsters", #type: #field]
+[
+#teamName: #monsters,
+#category: #enemies,
+#colour: rgb(196,153,102),
+#hates: [[#aldevar, #monsterSummon, #magicalAlliance, #ninja, #undead, #village,#scarlet]],
+#friends:[#goblins,#swamp],
+#maxMembers: 10
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

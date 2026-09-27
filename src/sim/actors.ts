@@ -5,13 +5,18 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { roomMusic } from '../mr-open/mr-sound'
+import { dwellingStart } from '../mr-open/mr-residents'
 import { isDead } from '../mr-open/mr-take-hit'
 import { TECHNIQUE_INIT } from '../mr-open/mr-weapon-technique'
 import { stripNameFor } from './anim'
 import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type SimState } from './state'
 
+/** objDwelling: a building that releases residents (modResidents); hittable, no AI. */
+const DWELLING_OBJ_TYPE = 'objDwelling'
 /** objTypes an objects-layer symbol may spawn in this slice; others are skipped with a warning. */
-const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter'])
+const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE])
+/** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts). */
+export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster'])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
 const CHARACTER_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter'])
 /** objMusic tiles create no actor here; their track is read by roomMusicTrack on room activation. */
@@ -21,11 +26,23 @@ const MUSIC_OBJ_TYPE = 'objMusic'
 export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
 export const isBullet = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objBullet'
 export const isSpell = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objSpell'
+export const isDwelling = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === DWELLING_OBJ_TYPE
+/**
+ * Team units: characters (#teamMembers) and dwellings (#teamBuildings). They have energy, can be
+ * targeted and hit, keep exits closed while alive and stay in their room when the player leaves.
+ */
+export const isUnit = (s: SimState, a: ActorState): boolean => isCharacter(s, a) || isDwelling(s, a)
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
 export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
 
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
+
+/** The definition with the actor's current attack installed (a multiAttack unit may be using its natural one). */
+export function armedDefOf(s: SimState, a: ActorState): ActorDef {
+  const def = defOf(s, a)
+  return a.useNatural ? { ...def, attack: def.naturalAttack } : def
+}
 
 /** moveHorizReaction: facing follows horizontal movement; no horizontal movement keeps it. */
 export function faceAlong(a: ActorState, dx: number): void {
@@ -69,11 +86,13 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     energy: def.energy,
     regenCounter: 0,
     cooldown: 0,
+    useNatural: false,
+    otherCooldown: 0,
     stall: 0,
     frictionPercent: { ...def.friction },
     knockback: { x: 0, y: 0 },
     ai: {
-      mode: def.aiType === 'objAiCPU' ? 'findTarget' : 'none',
+      mode: def.aiType !== null && CPU_AI_TYPES.has(def.aiType) ? 'findTarget' : 'none',
       targetId: null,
       retargetCounter: 0,
       pathMode: 'beeline',
@@ -90,9 +109,12 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     targetId: null,
     targetPoint: null,
     charge: 0,
+    chargeMax: 0,
+    summonReserved: 0,
     attack: null,
     age: 0,
     technique: TECHNIQUE_INIT,
+    dwelling: def.objType === DWELLING_OBJ_TYPE ? dwellingStart(def) : null,
   }
   return [actor, { ...s, nextId: s.nextId + 1 }]
 }
@@ -197,7 +219,7 @@ export function collisionRectFor(s: SimState, actor: ActorState): CollisionRect 
   const anim = def.objType === 'objBullet' ? actor.anim : initialAnim(s, def)
   const strip = stripFor(s, { ...actor, anim })
   if (!strip) throw new Error(`actor ${actor.id} (${actor.def}) has no animation strips for "${anim}"`)
-  const r = collisionRectForFrame(strip.w, strip.h)
+  const r = collisionRectForFrame(strip.w, strip.h, strip.reg?.x, strip.reg?.y)
   // remake: collisionRectScale shrinks or grows the rect about the reg point (goblinArrow 0.5)
   const k = def.collisionRectScale
   return k === 1 ? r : { left: r.left * k, top: r.top * k, right: r.right * k, bottom: r.bottom * k }
@@ -208,5 +230,8 @@ export function spriteRectFor(s: SimState, actor: ActorState): Rect {
   const strip = stripFor(s, actor)
   if (!strip) throw new Error(`actor ${actor.id} (${actor.def}) has no animation strips for "${actor.anim}"`)
   const { x, y } = actor.pos
-  return { left: x - strip.w / 2, top: y - strip.h / 2, right: x + strip.w / 2, bottom: y + strip.h / 2 }
+  const reg = strip.reg ?? { x: strip.w / 2, y: strip.h / 2 }
+  // a mirrored sprite flips about its reg point
+  const left = actor.facingLeft ? x - (strip.w - reg.x) : x - reg.x
+  return { left, top: y - reg.y, right: left + strip.w, bottom: y - reg.y + strip.h }
 }

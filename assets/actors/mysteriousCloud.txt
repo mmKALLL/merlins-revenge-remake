@@ -1,0 +1,99 @@
+[#name: "act_mysteriousCloud", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: #none,
+#energy: 25,
+#experienceImWorth: 20,
+#frictionReel: point(5,5),
+#residentGroups: 
+[
+[
+#typ: #ninja,
+#buildTime: [20,50],
+#groupSize: [1,3],
+#releaseInterval: [30,50]
+],
+[
+#typ: #shurikenNinja,
+#buildTime: [35,45],
+#groupSize: [1,3],
+#releaseInterval: [25,45]
+],
+[
+#typ: #swordNinja,
+#buildTime: [35,45],
+#groupSize: [1,3],
+#releaseInterval: [25,45]
+]
+],
+#team: #ninja,
+#totalResidents: 6,
+#name: "mysteriousCloud"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

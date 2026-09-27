@@ -1,0 +1,9 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_bomb_explode_01_01	gfx	1482	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_01_02	gfx	1483	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_01_03	gfx	1484	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_01_04	gfx	1485	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_02_05	gfx	1486	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_02_06	gfx	1487	53	53	32	26	26	alpha=255..255
+anm_bomb_explode_03_07	gfx	1488	53	53	32	26	26	alpha=255..255
+anm_bomb_fly_03_01	gfx	1481	9	9	32	4	4	alpha=255..255

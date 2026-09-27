@@ -1,0 +1,103 @@
+[#name: "act_darkBlast", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(0,0,0),
+#chargeSpeed: 1,
+#chargeStart: 5,
+#chargeMax: 999,
+#chargeMaxBasic: 10,
+#chargeMaxModifier: 0.5,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 15,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: false,
+#randomSummon: false,
+#name: #darkBlast,
+#power: 3,
+#reach: 9999,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]]
+],
+#character: #darkBlast,
+#collectSound: "collect_powerup_01",
+#member: member("energyBlast_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

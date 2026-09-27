@@ -1,0 +1,5 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_spark_fly_02_1	gfx	4277	10	5	32	4	2	alpha=255..255
+anm_spark_fly_02_2	gfx	4278	10	5	32	4	2	alpha=255..255
+anm_spark_land_02_1	gfx	4279	10	5	32	4	2	alpha=255..255
+anm_spark_land_02_2	gfx	4280	10	5	32	4	2	alpha=255..255

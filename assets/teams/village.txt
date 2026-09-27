@@ -1,0 +1,74 @@
+[#name: "tem_village", #type: #field]
+[
+#teamName: #village,
+#category: #ennemies,
+#colour: rgb(100,100,255),
+#friends:[#aldevar, #monsterSummon],
+#hates: [[#blackSorcerer, #goblins, #karate, #magicalAlliance,  #monsters, #swamp, #ninja, #pitMonsters, #undead, #ice, #scarlet, #orcs]]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

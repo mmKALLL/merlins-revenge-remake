@@ -1,0 +1,100 @@
+[#name: "act_skelitonHead", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 5,
+#animType: #naturalRanged,
+#bullet: #skelitonMissile,
+#collisionLoc: point(0,0),
+#cooldown: 30,
+#name: #fireMissle,
+#firingType: #fullStrength,
+#reach: 600,
+#sound: "quadranid_fire",
+#targetRoles: [[#teamMembers], [#teamBuildings]]
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 10,
+#experienceImWorth: 20,
+#eyestrain: 40,
+#graveOn: true,
+#inertia: 95,
+#miniMapStatus: #inf,
+#reelProof: true,
+#strength: 15,
+#team: #undead,
+#name: "skelitonHead",
+#walkSpeedInc: 0,
+#walkSpeed: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

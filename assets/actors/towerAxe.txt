@@ -1,0 +1,86 @@
+[#name: "act_towerAxe", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 10,
+#hits: [#teamMembers, #teamBuildings],
+#power: 50,
+#type: #bullet
+],
+#character: #bullet,
+#collideWithTarget: false,
+#name: "towerAxe",
+#friction: point(9,9),
+#recordInRoomState: false,
+#rotational: false,
+#splashDamageOn: true,
+#splashGraveOn:true,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
