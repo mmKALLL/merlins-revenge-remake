@@ -74,10 +74,39 @@ Chunk/member indices for reference (map editor): merlinOpenPassive CASt 5968 / B
 
 ## Open items
 
-- Old `tlk_merlin{Passive,Active,Objects}` colours are wrong (8-bit palette lookup / 16-bit RGB555 byte order in drxtract). Only relevant if those older sheets are ever needed.
+- Old `tlk_merlin{Passive,Active,Objects}` colours are wrong (8-bit palette lookup / 16-bit RGB555 byte order in drxtract). Resolved 2026-09-27: all of them are 32-bit members misread by drxtract (see the last update).
 - The PNGs live in the session scratchpad; decide where in the repo (or outside it, given licensing) they should be stored and wire `tools/convert-assets.ts` to use them instead of the placeholder sheet (white -> transparent for Objects).
 
 
 ## Update 2026-09-26: merlin4Objects
 
-The 16-bit decode of `tlk_merlin4Objects` was wrong (stretched 2-4x vertically, streaked, yellow tint). The archive's `mini_projects/correctMR4Objects/tlk_merlin4Objects.png` is a clean 256x448 RGBA export of the same sheet with a white background, so `tools/copy-assets.ts` now copies that file over `assets/tilesets/merlin4Objects.png`. The older `merlinActive/Passive/Objects` sheets remain placeholders (no map in the repo uses them).
+The 16-bit decode of `tlk_merlin4Objects` was wrong (stretched 2-4x vertically, streaked, yellow tint). The archive's `mini_projects/correctMR4Objects/tlk_merlin4Objects.png` is a clean 256x448 RGBA export of the same sheet with a white background, so `tools/copy-assets.ts` now copies that file over `assets/tilesets/merlin4Objects.png`. The older `merlinActive/Passive/Objects` sheets remained placeholders (fixed 2026-09-27, below).
+
+## Update 2026-09-27: MR3 sheets recovered, the "8/16-bit" members were 32-bit
+
+`tlk_merlinPassive`, `tlk_merlinActive`, `tlk_merlinObjects` (the MR3 sheets, used by 25 maps:
+most of `works/`, all of `wont_work/`, `not_fully_tested/merlindemoviii`, ...) are now in
+`assets/tilesets/merlin{Passive,Active,Objects}.png` with correct colours.
+
+What was wrong: not the 16-bit decoder or a palette. The D5+ bitmap CASt specific data is
+`pitch u16 (flag bits on top) | rect 4 x i16 | 8 bytes | regY | regX | flags2 u8 | bitsPerPixel u8 |
+clutCastLib i16 | clutId i16`. drxtract reads `flags2` + `bitsPerPixel` as one signed int16. For
+these members `flags2 = 0x80`, so the value (0x8020) is negative, the depth override is skipped
+and drxtract keeps its guess from the pitch's high byte (0x83 -> 8 bit, 0x84 -> 16 bit). The
+spike's `depth & 0xff` fix only caught the positive case (`flags2 = 0x20`). The real depth byte
+is 0x20 = 32 for every `tlk_*` member, and the pitch (`& 0x3fff`) is width x 4 (896 for the
+224-px sheets, 1024 for the 256-px ones). The "rainbow" palette was likewise a misread; the
+CLUT fields are -1 / -101 (system palette), irrelevant for 32-bit.
+
+How it was confirmed: decoding `tlk_merlin4Objects` (map editor CASt 5727 / BITD 6024) with the
+existing 32-bit decoder (PackBits, per-row planes A, R, G, B) gives an image pixel-identical to
+the archive's clean `correctMR4Objects/tlk_merlin4Objects.png` (0 differing pixels). The same
+decoder on the MR3 members (CASt 62 / BITD 5991, 60 / 5995, 4555 / 5999) gives clean sheets:
+224x416 Passive (7 per row, 91 tiles), 256x544 Active (8 per row, 136), 256x352 Objects (8 per
+row, 88). The highest tile index used by any of the 25 maps fits each sheet. The alpha plane is
+0xFF everywhere, so white-keying stays in `tools/convert-assets.ts`.
+
+`tools/director-extract/extract_tlk.py` now reads pitch and depth from the CASt bytes
+(`bitmap_header`) instead of drxtract's value, and re-running it reproduces every sheet in
+`assets/tilesets/` exactly (RGB compared). The engine movie's copies were not needed; its CASt
+headers for these members carry the same pitch/depth bytes (only the registration points differ).
