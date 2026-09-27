@@ -218,7 +218,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
     productionTimeScale: 1, // groupSize * buildTime, the evident intent of modResidents.startProduction
-    idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0.1, idleWanderRadius: 32, // idle wander (none in the engine)
+    idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0.3, idleWanderRadius: 32, // idle wander (none in the engine)
     wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
     activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period

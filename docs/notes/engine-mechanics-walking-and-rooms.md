@@ -262,7 +262,7 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   (`objAiCPU` with a walk speed, so no dwelling or spell caster; alive, walking or standing, in
   `#findTarget`, and without an `idle`/`look`/`altStand` strip of its own) positioned inside the
   follow camera's view (`viewRect`) grown by `idleWanderMarginTiles` (8) tiles on every side rolls
-  `idleWanderChancePerSecond * idleWanderIntervalTicks / 30` (0.1/s at the defaults, where the scan
+  `idleWanderChancePerSecond * idleWanderIntervalTicks / 30` (0.3/s at the defaults, where the scan
   period equals the interval; seeded RNG). On success it walks at its walk speed (friction, swept
   tile collision) to a uniformly random point within `idleWanderRadius` (32 px) of its home, the
   spawn position (`ActorState.home`, kept through room store/restore and world-mode switches), and
