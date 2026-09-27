@@ -7,6 +7,7 @@ import type { MapDefinition } from '../mr-open/mr-map-format'
 import { EDGES, type ArrowColour, type Edge } from '../mr-open/mr-screen-exits'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
+import type { CutSceneScript } from '../cutscene/script'
 import type { MapEntry } from './map-tree'
 
 /** Converter output under public/, resolved against Vite's `base` so the build works from any path. */
@@ -88,6 +89,15 @@ function nearest(t: Texture): Texture {
 
 function subTexture(sheet: Texture, x: number, y: number, w: number, h: number): Texture {
   return nearest(new Texture({ source: sheet.source, frame: new Rectangle(x, y, w, h) }))
+}
+
+const isCutScene = (v: unknown): v is CutSceneScript =>
+  isObj(v) && Array.isArray(v['players']) && Array.isArray(v['lines']) &&
+  v['lines'].every((l) => isObj(l) && typeof l['command'] === 'string' && isObj(l['args']))
+
+/** A parsed cut scene script by name (cut-scenes/<name>.json, from assets/cut-scenes/<name>.txt). */
+export async function loadCutScene(name: string): Promise<CutSceneScript> {
+  return json(`${GENERATED}cut-scenes/${encodeURIComponent(name)}.json`, isCutScene)
 }
 
 const isMapIndex = (v: unknown): v is MapEntry[] =>

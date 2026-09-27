@@ -8,6 +8,8 @@ import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { isStepped, roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
+import type { EndSequenceView } from '../cutscene/end-sequence'
+import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
 import { barColour, HealthBars, type StandBox } from './health-bars'
 
@@ -38,6 +40,8 @@ const BAR = { x: 32, w: 200, h: 8, background: 0x202020 }
 /** The debug readout sits right of the bar: gap to the bar, offset from the HUD strip's top. */
 const DEBUG_TEXT = { gap: 8, top: 4 }
 const NO_TINT = 0xffffff
+/** Cut scene characters drawn with an actor's sprite under another key (#merlin plays as the player). */
+const CUTSCENE_ACTOR: Record<string, string> = { merlin: 'player' }
 
 /**
  * The spell frame is a 1-bit black disc on a transparent background. Tint multiplies, so black stays
@@ -84,6 +88,7 @@ export class Scene {
   private spellTexture: Texture | null = null
   private bar = new Graphics()
   private barFill = -1
+  private cutScene: CutSceneOverlay | null = null
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
@@ -138,6 +143,8 @@ export class Scene {
     this.app.stage.addChild(this.bar)
     this.debugText.position.set(BAR.x + BAR.w + DEBUG_TEXT.gap, hudY + DEBUG_TEXT.top)
     this.app.stage.addChild(this.debugText)
+    this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
+    this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
     window.addEventListener('resize', this.onResize)
   }
@@ -201,6 +208,19 @@ export class Scene {
         `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} ` +
         `energy ${p.energy.toFixed(0)} ${p.mode}`
     }
+  }
+
+  /** The end sequence over the whole screen (the game fading out, the cut scene, the prompt); null hides it. */
+  drawEndSequence(view: EndSequenceView | null): void {
+    this.cutScene?.draw(view)
+  }
+
+  /** A cut scene character's stand frame: the sprite of the actor with its key (or its stand-in). */
+  private cutSceneFrame(character: string): CharacterFrame | undefined {
+    const name = this.defs[CUTSCENE_ACTOR[character] ?? character]?.name
+    const texture = name ? this.frameFor(name, 'stand', 0) : undefined
+    if (!name || !texture) return undefined
+    return { texture, reg: this.regFor(name, 'stand', 0) ?? { x: texture.width / 2, y: texture.height / 2 } }
   }
 
   private syncActors(s: SimState, lerp: (a: ActorState) => Vec): void {

@@ -1,10 +1,12 @@
 import { AudioEngine } from './audio/audio'
+import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
-import { loadActors, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
 import type { CameraMode } from './render/camera'
+import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
@@ -161,13 +163,14 @@ async function main(): Promise<void> {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, defs, teams, exitArrows] = await Promise.all([
+  const [passive, active, objects, defs, teams, exitArrows, endScript] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
     loadActors(),
     loadTeams(),
     loadExitArrows(),
+    loadCutScene(GAME_COMPLETE_SCRIPT),
   ])
   const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
@@ -179,6 +182,16 @@ async function main(): Promise<void> {
   let sim = createSim(grid, defs, teams, anims, seed, startPos, worldModeFor(cfg.cameraMode))
   audio.handle(sim.events) // the start room's music
   let runSeed = seed
+  // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
+  let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
+  const restart = () => {
+    runSeed = nextRunSeed(runSeed)
+    sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldModeFor(scene.cameraMode))
+    audio.handle(sim.events) // the start room's music again
+    ending = sim.mapComplete ? startEndSequence() : null
+  }
+  const restartAfterEnding = () => { if (ending?.phase === 'done') restart() }
+  window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows)
   const game = document.getElementById('game') ?? document.body
@@ -224,6 +237,7 @@ async function main(): Promise<void> {
   const canvas = scene.app.canvas
   canvas.addEventListener('pointermove', (e) => { pointer = { x: e.clientX, y: e.clientY } })
   canvas.addEventListener('pointerleave', () => { pointer = null })
+  canvas.addEventListener('pointerdown', restartAfterEnding)
   const mouseWorld = (): Vec | null => {
     const origin = scene.origin
     if (!pointer || Number.isNaN(origin.x)) return null
@@ -246,17 +260,21 @@ async function main(): Promise<void> {
     input.setMouseWorld(mouseWorld())
     if (input.takeCameraToggle()) toggleCamera()
     while (acc >= TICK_MS) {
+      acc -= TICK_MS
+      if (ending) {
+        const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
+        ending = r.seq
+        audio.handle(r.cues)
+        continue
+      }
       sim = stepSim(sim, input.snapshot())
       audio.handle(sim.events) // every tick stepped this frame, not just the last
-      acc -= TICK_MS
-      if (sim.restartRequested) {
-        // the player died: start the map again with the loaded assets and a fresh seed
-        runSeed = nextRunSeed(runSeed)
-        sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldModeFor(scene.cameraMode))
-        audio.handle(sim.events) // the start room's music again
-      }
+      if (sim.mapComplete) ending = startEndSequence()
+      // the player died: start the map again with the loaded assets and a fresh seed
+      if (sim.restartRequested) restart()
     }
     scene.draw(sim, acc / TICK_MS, fps)
+    scene.drawEndSequence(ending && endSequenceView(ending))
     showSpaceMode()
     requestAnimationFrame(frame)
   }
