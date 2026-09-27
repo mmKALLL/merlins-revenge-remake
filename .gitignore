@@ -14,3 +14,6 @@ dist/
 
 # Converted assets (pnpm assets:convert)
 public/generated/
+
+# Claude Code agent worktrees and local settings
+.claude/
