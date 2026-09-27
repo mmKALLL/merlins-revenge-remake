@@ -11,7 +11,7 @@ import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadF
 import { defOf, isAlive, isSpell } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
-import { actorIn, playerIn, playSound, spawn, type Tick } from './tick-context'
+import { actorIn, hitTargetIn, playerIn, playSound, sleeperIn, spawn, type Tick } from './tick-context'
 import { applyHit, splashVictims } from './tick-combat'
 import { nearestHostileId } from './tick-ai'
 
@@ -44,8 +44,8 @@ function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: Charg
   const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
   const mouse = input.mouseWorld ?? ahead
   if (kind !== 'nearest' && kind !== 'short') return mouse
-  const nearestId = nearestHostileId(t, p)
-  const nearest = nearestId === null ? undefined : actorIn(t, nearestId)
+  const nearestId = nearestHostileId(t, p, true)
+  const nearest = nearestId === null ? undefined : (actorIn(t, nearestId) ?? sleeperIn(t, nearestId))
   if (!nearest) return mouse
   if (kind === 'nearest') return { ...nearest.pos }
   const dx = nearest.pos.x - p.pos.x
@@ -205,7 +205,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const caster = t.actors.find((c) => c.id === spell.ownerId)
   const spread = caster ? defOf(t.s, caster).knockbackSpreadDeg : 0
   for (const { id, push } of ex.pushes) {
-    const victim = actorIn(t, id)
+    const victim = hitTargetIn(t, id)
     if (!victim) continue
     // CallPayloadFunction: takeHeal heals by the collision vector, takeHit pushes and damages
     if (atk.payloadFunction.includes(TAKE_HEAL)) takeHeal(t, victim, push)

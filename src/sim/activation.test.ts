@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { nextActivation } from './activation'
+import { sleepingFrame } from './anim'
 import { playerOf } from './actors'
 import { NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
 import { anims, defs, teams } from './test-data'
@@ -50,7 +51,18 @@ describe('nextActivation (wake and sleep rule)', () => {
   })
 })
 
-const SYMBOLS = ['none', 'goblinWarrior', 'goblinMageHut', 'music']
+describe('sleepingFrame (a sleeper\'s stand strip, animated from the tick)', () => {
+  it('loops the strip by its frame delays', () => {
+    const strip = { frames: 3, delay: 2, delays: [2, 1, 3], w: 10, h: 10 }
+    expect([0, 1, 2, 3, 4, 5, 6, 7].map((tick) => sleepingFrame(strip, tick))).toEqual([0, 0, 1, 2, 2, 2, 0, 0])
+  })
+
+  it('shows frame 0 without a strip', () => {
+    expect(sleepingFrame(undefined, 17)).toBe(0)
+  })
+})
+
+const SYMBOLS =['none', 'goblinWarrior', 'goblinMageHut', 'music']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 const ROOM_W = 18 * 32
 const tileX = (tx: number) => (tx - 1) * 32 + 16
@@ -95,6 +107,12 @@ describe('continuous world', () => {
     expect(g.awake).toBe(false)
     expect(g.pos).toEqual(start)
     expect(g.anim).toBe('stand')
+  })
+
+  it('leaves a sleeping unit\'s record untouched by the tick (big maps stay cheap)', () => {
+    const s = run(world([{ room: 2, x: 9, symbol: 'goblinWarrior' }]), 1)
+    const before = ofDef(s, 'goblinWarrior')[0]!
+    expect(ofDef(stepSim(s, NO_INPUT), 'goblinWarrior')[0]).toBe(before)
   })
 
   it('wakes a unit within wakeDistance, which then walks at Merlin', () => {

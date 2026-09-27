@@ -1,14 +1,16 @@
 // Continuous world activation (remake feature; engine notes walking-and-rooms, "Continuous world").
 // With the whole map as one room, units far from Merlin sleep: no AI, movement, attacks, dwelling
-// production, cooldowns or regeneration, but they can still be hit and play their stand strip. The
+// production, cooldowns or regeneration, and the AI does not see them; they can still be hit and
+// show their stand strip (animated by the renderer, as the tick leaves sleepers untouched). The
 // distances and the hold after a far hit come from the player's ActorDef (wakeDistance,
 // sleepDistance, hitWakeTicks, navModeClearRadius). Bullets and spells are never put to sleep.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { distance } from '../mr-open/mr-geometry'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
 import { defOf, isAlive, isUnit, playerOf } from './actors'
+import { stripNameFor } from './anim'
 import type { ActorState, SimState } from './state'
-import { playerIn, type Tick } from './tick-context'
+import { bringIn, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { chargingSpellOf } from './tick-spell'
 
 export type ActivationRules = Pick<ActorDef, 'wakeDistance' | 'sleepDistance' | 'hitWakeTicks'>
@@ -40,10 +42,16 @@ export function activateAtStart(s: SimState): SimState {
   return { ...s, actors }
 }
 
-/** Applies the wake/sleep rule to every unit at the end of the tick, with this tick's hits. */
+/**
+ * Applies the wake/sleep rule to every unit at the end of the tick, with this tick's hits (a sleeper
+ * that was hit has been brought into the tick). A waiting sleeper only needs the wake test.
+ */
 export function stepActivation(t: Tick): void {
   const p = playerIn(t)
   const rules = defOf(t.s, p)
+  for (const sleeper of waitingSleepers(t)) {
+    if (distance(sleeper.pos, p.pos) < rules.wakeDistance) bringIn(t, sleeper).awake = true
+  }
   for (const a of t.actors) {
     if (a === p || t.removed.has(a.id) || !isUnit(t.s, a)) continue
     const next = nextActivation(a, distance(a.pos, p.pos), t.hit.has(a.id), rules)
@@ -57,10 +65,16 @@ export function stepActivation(t: Tick): void {
 /** A unit only falls asleep when walking or standing: a reel, a death, an attack or a charge plays out first. */
 const isCalm = (a: ActorState): boolean => a.mode === 'walk' || a.mode === 'stand'
 
-/** Stops the unit and clears its AI back to finding a target; a spell it was still charging goes away. */
+/** Stops the unit on its stand strip and clears its AI back to finding a target; a spell it was still charging goes away. */
 function fallAsleep(t: Tick, a: ActorState): void {
   a.awake = false
   a.vel = { x: 0, y: 0 }
+  a.anim = stripNameFor(t.s.anims[defOf(t.s, a).name], 'stand', false)
+  a.animFrame = 0
+  a.animCounter = 0
+  a.animExtend = 0
+  a.animExtendCount = 0
+  a.animLooped = false
   const spell = chargingSpellOf(t, a)
   if (spell) t.removed.add(spell.id)
   if (a.ai.mode === 'none') return

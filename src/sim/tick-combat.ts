@@ -17,7 +17,7 @@ import { armedDefOf, collisionRectFor, defOf, isAlive, isBullet, isCharacter, is
 import { onFreshFrame } from './anim'
 import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
-import { actorIn, playSound, spawn, type Tick } from './tick-context'
+import { actorIn, hitTargetIn, playSound, sleeperIn, spawn, waitingSleepers, type Tick } from './tick-context'
 import { nearestHostileId, rollDetour } from './tick-ai'
 
 /** Ticks the player's die mode lasts before the map restart is requested. */
@@ -190,9 +190,11 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
     a.vel = { x: 0, y: 0 }
     return
   }
-  const target = a.targetId === null ? undefined : actorIn(t, a.targetId)
-  if (!target || !isAlive(target)) return
-  if (!bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), target.pos, collisionRectFor(t.s, target))) return
+  // a target that fell asleep while the bullet flew can still be hit
+  const seen = a.targetId === null ? undefined : (actorIn(t, a.targetId) ?? sleeperIn(t, a.targetId))
+  if (!seen || !isAlive(seen)) return
+  if (!bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), seen.pos, collisionRectFor(t.s, seen))) return
+  const target = hitTargetIn(t, seen.id)!
   // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
   // same collisionVect: two pushes and two damage applications, the second with the vector
   // objGameObject.takeHit already scaled by the victim's inertia in place. An #explode bullet's
@@ -221,7 +223,7 @@ function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
   const atk = def.attack
   const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits))
   for (const { id, push } of ex.pushes) {
-    const victim = actorIn(t, id)
+    const victim = hitTargetIn(t, id)
     if (victim) applyHit(t, victim, push, atk.damageMultiplier)
   }
   t.events.push({ kind: 'explode', pos: a.pos, radius: ex.radius })
@@ -233,10 +235,11 @@ function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
 
 /**
  * Living units of `teams` whose role the attack `hits` (teamMembers, teamBuildings), with their
- * sprite radius (objGameObject.getRadius): the candidates of teamMaster.impactAttack.
+ * sprite radius (objGameObject.getRadius): the candidates of teamMaster.impactAttack. Sleepers of a
+ * continuous world are caught too.
  */
 export function splashVictims(t: Tick, teams: string[], hits: string[]): SplashVictim[] {
-  return t.actors
+  return [...t.actors, ...waitingSleepers(t)]
     .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && teams.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
     .map((v) => {
       const r = spriteRectFor(t.s, v)

@@ -4,6 +4,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { isSpell, playerOf } from '../sim/actors'
+import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
@@ -193,7 +194,9 @@ export class Scene {
       const def = this.defs[a.def]
       if (!def) continue
       const spell = isSpell(s, a)
-      const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, a.animFrame)
+      // a sleeper of a continuous world is left untouched by the sim; its stand strip loops here
+      const frame = a.awake ? a.animFrame : sleepingFrame(s.anims[def.name]?.[a.anim], s.tick)
+      const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, frame)
       if (!tex) continue
       seen.add(a.id)
       const spr = this.actorSprite(a.id)
@@ -205,7 +208,7 @@ export class Scene {
       const bullet = def.objType === 'objBullet'
       // Frames with a known reg point (extracted with their Director member) hang from it, which also
       // keeps a wide attack frame's body in place; frames without one are centred.
-      const reg = spell ? undefined : this.regFor(def.name, a.anim, a.animFrame)
+      const reg = spell ? undefined : this.regFor(def.name, a.anim, frame)
       spr.anchor.set(reg ? reg.x / tex.width : 0.5, reg ? reg.y / tex.height : 0.5)
       const shift = spell || bullet || reg ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))

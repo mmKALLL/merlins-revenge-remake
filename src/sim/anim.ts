@@ -107,3 +107,19 @@ export function extendFrame(a: ActorState, strip: AnimationStrip | undefined, ti
  */
 export const onFreshFrame = (a: ActorState, frames: readonly number[] | null): boolean =>
   frames !== null && a.animCounter === 0 && frames.includes(a.animFrame + 1)
+
+/**
+ * The frame a sleeping unit of a continuous world shows at `tick` (activation.ts): its strip looped
+ * from tick 0 by the frame delays. The sim leaves sleepers untouched, so the renderer animates them.
+ */
+export function sleepingFrame(strip: AnimationStrip | undefined, tick: number): number {
+  if (!strip) return 0
+  let length = 0
+  for (let f = 0; f < strip.frames; f++) length += frameDelay(strip, f)
+  let at = tick % Math.max(1, length)
+  for (let f = 0; f < strip.frames; f++) {
+    at -= frameDelay(strip, f)
+    if (at < 0) return f
+  }
+  return 0
+}

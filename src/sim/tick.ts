@@ -38,7 +38,7 @@ import {
 import { stepCpuAi } from './tick-ai'
 import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
-import { beginTick, playerIn, type Tick } from './tick-context'
+import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { stepDwellings } from './tick-dwelling'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
@@ -295,12 +295,14 @@ function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean } {
   return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen }
 }
 
-/** The stepped state before steps 11-12: the tick's surviving actors, RNG, ids and events. */
+/** The stepped state before steps 11-12: the tick's surviving actors (sleepers after them), RNG, ids and events. */
 function afterTick(t: Tick): SimState {
+  const working = t.actors.filter((a) => !t.removed.has(a.id))
+  const sleepers = waitingSleepers(t)
   return {
     ...t.s,
     tick: t.s.tick + 1,
-    actors: t.actors.filter((a) => !t.removed.has(a.id)),
+    actors: sleepers.length ? [...working, ...sleepers] : working,
     rng: t.rng,
     nextId: t.nextId,
     events: t.events,
