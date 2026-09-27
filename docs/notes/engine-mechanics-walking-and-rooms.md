@@ -214,6 +214,18 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 `?camera=follow` creates the sim with `worldMode: 'continuous'` (`createSim`, `src/sim/tick.ts`);
 `?camera=room` (the default) keeps `'rooms'`, the original behaviour above, unchanged.
 
+- **Switching live** (the C key): `switchWorldMode` (`src/sim/world-mode.ts`) turns the current
+  state into the other mode between ticks, without RNG draws; `main.ts` switches the camera with it
+  and writes `camera` into the URL (`history.replaceState`). Rooms -> continuous: the current
+  room's actors stay as they are; visited rooms' stored units rejoin the live list and never-visited
+  rooms spawn (each room spawns once, whatever the toggles); those units are awake only within
+  `wakeDistance`, and the ones put to sleep stand on their stand strip as below. The exits stop
+  gating; graves stay in their rooms. Continuous -> rooms: the room Merlin stands in becomes the
+  current room and keeps its actors (all awake); living units elsewhere are stored in the room
+  their position is in (marked spawned); dying units, bullets and spells elsewhere are dropped (as
+  a room change drops them); the exits and nav mode are evaluated as on entering the room, so a
+  room with a hostile closes.
+
 - **Spawning**: every room's objects layer is spawned at map start (`spawnAllRooms`); there is no
   room store/restore and no room change for actors. `s.room` is the room Merlin stands in; it only
   picks the music (a music tile plays on entering its room, as on room activation) and where graves

@@ -21,6 +21,7 @@ Controls:
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
 - Hold Space to charge and fire at the nearest enemy. Press F to toggle Space to a push-back shot that lands 20 px short of the nearest enemy; the current mode shows below the game.
+- Press C to switch between the room camera and the follow camera (with it, between the room-by-room world and the continuous world) without restarting the map; enemies keep their energy and positions. The `camera` URL parameter follows, so a reload keeps the choice, and the current camera shows below the game.
 - The bar at the bottom left is Merlin's health; the map restarts when he runs out.
 - The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom) or "fit", the largest whole multiple that fits the window. The choice is remembered.
 - Next to them, **Music** and **Effects** turn music and sound effects on or off (Effects off also cuts the sounds already playing; Music back on restarts the current room's track), and **Vol** sets the master volume (default 70). All three are remembered. Browsers keep audio silent until the first key press or click on the page.
