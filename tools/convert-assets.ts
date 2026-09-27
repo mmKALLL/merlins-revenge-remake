@@ -305,6 +305,15 @@ function convertAudio(actors: Record<string, ActorDef>): void {
   if (missing.length > 0) console.warn(`WARNING: sounds referenced without a file in assets/sounds or assets/music: ${missing.join(', ')}`)
 }
 
+/** assets/exit-arrows/arrow_<colour>_<dir>.bmp -> exit-arrows/<same name>.png, white transparent (ink 36). */
+function convertExitArrows(): void {
+  const dir = join(ASSETS, 'exit-arrows')
+  mkdirSync(join(OUT, 'exit-arrows'), { recursive: true })
+  const files = sortedDir(dir).filter((f) => f.endsWith('.bmp'))
+  for (const f of files) writePng(join(OUT, 'exit-arrows', f.replace(/\.bmp$/, '.png')), decodeBmp(readFileSync(join(dir, f))))
+  console.log(`exit arrows: ${files.length}`)
+}
+
 function readPng(path: string): RgbaImage {
   const png = PNG.sync.read(readFileSync(path))
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
@@ -326,3 +335,4 @@ const actors = convertActors()
 convertTeams()
 checkActorAtlases(actors, convertSprites())
 convertAudio(actors)
+convertExitArrows()

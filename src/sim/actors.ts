@@ -22,6 +22,9 @@ const CHARACTER_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacte
 /** objMusic tiles create no actor here; their track is read by roomMusicTrack on room activation. */
 const MUSIC_OBJ_TYPE = 'objMusic'
 
+/** Whether an objects-layer symbol with this definition spawns an actor in this port (spawnRoomActors). */
+export const isSpawnableDef = (def: ActorDef): boolean => SPAWNABLE_OBJ_TYPES.has(def.objType)
+
 /** Characters (as opposed to bullets and spells): they have energy, cooldowns and can die. */
 export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
 export const isBullet = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objBullet'
@@ -162,7 +165,7 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
         continue
       }
       if (def.objType === MUSIC_OBJ_TYPE) continue
-      if (!SPAWNABLE_OBJ_TYPES.has(def.objType)) {
+      if (!isSpawnableDef(def)) {
         warnOnce(symbol, `objType ${def.objType} is not spawnable yet`)
         continue
       }

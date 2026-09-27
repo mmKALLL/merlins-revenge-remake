@@ -1,6 +1,6 @@
 import { AudioEngine } from './audio/audio'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
-import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadActors, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
 import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
@@ -159,12 +159,13 @@ async function main(): Promise<void> {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, defs, teams] = await Promise.all([
+  const [passive, active, objects, defs, teams, exitArrows] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
     loadActors(),
     loadTeams(),
+    loadExitArrows(),
   ])
   const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
@@ -177,7 +178,7 @@ async function main(): Promise<void> {
   audio.handle(sim.events) // the start room's music
   let runSeed = seed
 
-  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs)
+  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows)
   const game = document.getElementById('game') ?? document.body
   const controls = document.getElementById('controls')
   const zoomRow = document.getElementById('zoom')

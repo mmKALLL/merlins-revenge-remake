@@ -4,6 +4,7 @@ import { Assets, Rectangle, Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import { EDGES, type ArrowColour, type Edge } from '../mr-open/mr-screen-exits'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
 import type { MapEntry } from './map-tree'
@@ -183,4 +184,27 @@ export async function loadSprite(name: string): Promise<LoadedSprite> {
     regs['stand'] = [regs['walk']?.[0]]
   }
   return { anims, frames, regs }
+}
+
+/** Arrow textures by colour and edge (structMaster.structExitArrowMembers). */
+export type ExitArrowTextures = Record<ArrowColour, Record<Edge, Texture>>
+
+const ARROW_FILE_COLOUR: Record<ArrowColour, string> = { grn: 'green', rdd: 'red' }
+const ARROW_FILE_DIR: Record<Edge, string> = { left: 'left', top: 'up', right: 'right', bottom: 'down' }
+
+/** exit-arrows/arrow_<green|red>_<dir>.png (tools/convert-assets.ts); null, with a warning, when not converted. */
+export async function loadExitArrows(): Promise<ExitArrowTextures | null> {
+  const load = async (colour: ArrowColour): Promise<Record<Edge, Texture>> => {
+    const entries = await Promise.all(EDGES.map(async (edge) => {
+      const url = `${GENERATED}exit-arrows/arrow_${ARROW_FILE_COLOUR[colour]}_${ARROW_FILE_DIR[edge]}.png`
+      return [edge, nearest(await Assets.load<Texture>(url))] as const
+    }))
+    return Object.fromEntries(entries) as Record<Edge, Texture>
+  }
+  try {
+    return { grn: await load('grn'), rdd: await load('rdd') }
+  } catch (e) {
+    console.warn(`exit arrows not loaded (run pnpm assets:convert): ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
 }

@@ -1,5 +1,5 @@
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import type { LoadedSprite, LoadedTileset } from '../data/loaders'
+import type { ExitArrowTextures, LoadedSprite, LoadedTileset } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
@@ -8,6 +8,7 @@ import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { isStepped, roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
+import { ExitArrowLayer } from './exit-arrows'
 import { barColour, HealthBars, type StandBox } from './health-bars'
 
 export interface RenderConfig {
@@ -73,6 +74,7 @@ export class Scene {
   private actorLayer = new Container()
   private actorSprites = new Map<number, Sprite>()
   private healthBars: HealthBars
+  private exitArrows: ExitArrowLayer
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
@@ -91,8 +93,10 @@ export class Scene {
     private tilesets: Partial<Record<LayerName, LoadedTileset>>,
     private sprites: Record<string, LoadedSprite>, // by sprite name (ActorDef.name)
     private defs: Record<string, ActorDef>,
+    exitArrows: ExitArrowTextures | null = null,
   ) {
     this.healthBars = new HealthBars(defs)
+    this.exitArrows = new ExitArrowLayer(exitArrows)
   }
 
   /** World pixel shown at the top-left of the play view in the last draw (NaN before the first draw). */
@@ -120,9 +124,9 @@ export class Scene {
       this.layers[name] = c
       this.world.addChild(c)
     }
-    // graves above tiles, below every actor
+    // exit arrows (painted on the room image) and graves above tiles, below every actor
     this.actorLayer.sortableChildren = true
-    this.scrolled.addChild(this.graveLayer, this.actorLayer, this.healthBars.layer)
+    this.scrolled.addChild(this.exitArrows.layer, this.graveLayer, this.actorLayer, this.healthBars.layer)
     this.world.addChild(this.scrolled)
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
@@ -178,6 +182,7 @@ export class Scene {
       this.lastOrigin = origin
     }
     this.scrolled.position.set(-origin.x, -origin.y)
+    this.exitArrows.sync(s)
     this.syncGraves(s)
     this.syncActors(s, lerp)
     this.healthBars.update(s, lerp, (name) => this.standBox(name))

@@ -108,6 +108,8 @@ copyGlob(join(GFX, 'merlin'), /^anm_mer_.*\.bmp$/, join(ASSETS, 'sprites/mer'), 
 copyGlob(join(GFX, 'goblinWarrior'), /^anm_.*\.bmp$/, join(ASSETS, 'sprites/goblinWarrior'), 'goblin warrior frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gar_.*\.bmp$/, join(ASSETS, 'sprites/gar'), 'goblin archer frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gobarrow_.*\.bmp$/, join(ASSETS, 'sprites/gobarrow'), 'goblin arrow frames')
+// exit arrows drawn along a cleared room's open edges (structMaster.structExitArrowMembers)
+copyGlob(join(GFX, 'background'), /^arrow_(green|red)_(up|down|left|right)\.bmp$/, join(ASSETS, 'exit-arrows'), 'exit arrow (objRoom.drawExitArrows)')
 
 // More enemies (their weapons, bullets and dwellings): act_<name>.txt -> actors/<name>.txt. Chosen
 // because they only need mechanics the port has; see docs/plans/2026-09-27-enemies-progress.md.
