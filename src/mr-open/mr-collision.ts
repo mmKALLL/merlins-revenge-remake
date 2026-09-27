@@ -81,6 +81,49 @@ export function resolveTileCollisionHits(solidAt: SolidAt, newLoc: Vec, dir: Vec
   return hits
 }
 
+/**
+ * Remake addition: the longest sub-step (px per axis) of a swept move. checkCollisions only tests
+ * the tiles under the rect's corners at the destination, so a move longer than the rect plus a
+ * tile (a stacked knockback can exceed 46 px for Merlin's 14 px box) skips a 1-tile wall. Sub-steps
+ * of at most half the rect's smaller side keep every step's overlap shallow enough for the
+ * push-out to pick the right side; 8 px also caps it for large rects. Walking speeds fit in one step.
+ */
+export const MAX_COLLISION_SUBSTEP_PX = 8
+
+/**
+ * Remake addition (in the spirit of Super Mario 64's quarter steps): moves from `from` by `vel` in
+ * equal sub-steps, each resolved by resolveTileCollisionHits, so a fast mover stops at (and slides
+ * along) walls it would otherwise jump over. An axis stops moving once pushed out; the hit flags
+ * are those of any sub-step. With one sub-step this is exactly the destination-only test.
+ */
+export function sweepTileCollision(solidAt: SolidAt, from: Vec, vel: Vec, cr: CollisionRect): TileCollision {
+  const maxStep = Math.max(1, Math.min(MAX_COLLISION_SUBSTEP_PX, (cr.right - cr.left) / 2, (cr.bottom - cr.top) / 2))
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(vel.x), Math.abs(vel.y)) / maxStep))
+  const hits: TileCollision = { loc: { ...from }, wallX: false, wallY: false }
+  // each sub-step aims at base + vel * i/steps, so an unobstructed move ends exactly at from + vel
+  let base = { ...from }
+  let v = { ...vel }
+  for (let i = 1; i <= steps; i++) {
+    const f = i / steps
+    const target = { x: base.x + (i === steps ? v.x : v.x * f), y: base.y + (i === steps ? v.y : v.y * f) }
+    const hit = resolveTileCollisionHits(solidAt, target, { x: Math.sign(v.x), y: Math.sign(v.y) }, cr)
+    hits.loc = hit.loc
+    // a push-out moves the line the remaining sub-steps follow; a blocked axis stays put
+    base = { x: base.x + (hit.loc.x - target.x), y: base.y + (hit.loc.y - target.y) }
+    if (hit.wallX) {
+      hits.wallX = true
+      base = { ...base, x: hit.loc.x }
+      v = { ...v, x: 0 }
+    }
+    if (hit.wallY) {
+      hits.wallY = true
+      base = { ...base, y: hit.loc.y }
+      v = { ...v, y: 0 }
+    }
+  }
+  return hits
+}
+
 interface Overlap { x: number | null; y: number | null; corner: boolean }
 
 /** Edge pixel locations of tile (tx,ty): objCollisionTile.initCollisionEdges */

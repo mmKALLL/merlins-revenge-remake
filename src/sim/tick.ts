@@ -15,7 +15,7 @@
 // 12. room change: living characters stored, the new room restored or spawned (combat notes §2);
 //     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { resolveTileCollisionHits } from '../mr-open/mr-collision'
+import { sweepTileCollision } from '../mr-open/mr-collision'
 import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { stepVelocity } from '../mr-open/mr-movement'
@@ -117,10 +117,9 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   // hit knockback slides on top of walking and decays by frictionReel (see applyHit)
   const knock = p.knockback
   const vel = { x: walkVel.x + knock.x, y: walkVel.y + knock.y }
-  let loc: Vec = { x: p.pos.x + vel.x, y: p.pos.y + vel.y }
   // objGameObject.collisionWallLeft/Right: setVectX(0); collisionCeiling/collisionPlatform: setVectY(0)
-  const pushed = resolveTileCollisionHits(s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cfg.collisionRect)
-  loc = pushed.loc
+  const pushed = sweepTileCollision(s.grid.solidAt, p.pos, vel, cfg.collisionRect)
+  let loc = pushed.loc
   const roomRect = s.grid.roomRectPx(s.room)
   if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   let room = s.room
@@ -184,7 +183,7 @@ function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: 
   if (!defOf(t.s, a).collisionDetection) return { loc: clampToRoom(roomRect, loc, cr), vel }
   // A corner push moves both axes but the engine only calls the wall callbacks for it
   // (objCollisionMap.checkCollisions), so it zeroes x and takes wall damage once.
-  const hit = resolveTileCollisionHits(t.s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
+  const hit = sweepTileCollision(t.s.grid.solidAt, a.pos, vel, cr)
   let v = vel
   if (hit.wallX) {
     takeWallDamage(t, a, vel.x)

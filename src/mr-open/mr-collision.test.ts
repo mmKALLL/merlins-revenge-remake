@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { collisionRectForFrame, resolveTileCollision, type CollisionRect } from './mr-collision'
+import {
+  collisionRectForFrame, MAX_COLLISION_SUBSTEP_PX, PLAYER_COLLISION_RECT, resolveTileCollision, resolveTileCollisionHits,
+  sweepTileCollision, type CollisionRect,
+} from './mr-collision'
 
 // a 30x30 box (32 px frame, centred reg point); the numbers below were derived for it
 const RECT30: CollisionRect = { left: -15, top: -15, right: 15, bottom: 15 }
@@ -100,5 +103,62 @@ describe('collisionRectForFrame', () => {
   })
   it('honours a non-centred reg point', () => {
     expect(collisionRectForFrame(20, 16, 10, 8)).toEqual({ left: -9, top: -7, right: 9, bottom: 7 })
+  })
+})
+
+describe('sweepTileCollision (remake: sub-stepped moves so fast movers cannot tunnel)', () => {
+  // open 20x10 field with a 1-tile wall column at tile x 5 (x 128..159)
+  const WALL_TX = 5
+  const wallLeft = (WALL_TX - 1) * 32
+  const wallRight = WALL_TX * 32 - 1
+  const columnAt = (tx: number, ty: number) => tx < 1 || ty < 1 || tx > 20 || ty > 10 || tx === WALL_TX
+  const R = PLAYER_COLLISION_RECT // rect(-7,-7,7,7)
+
+  it('stops a 30 px/tick mover at a 1-tile wall from any offset and diagonal, from either side', () => {
+    for (let gap = 1; gap <= 50; gap += 3) {
+      for (const vy of [0, 7, -7, 15, -30, 30]) {
+        let right = { x: wallLeft - R.right - gap, y: 160 }
+        let left = { x: wallRight + 1 - R.left + gap, y: 160 }
+        for (let i = 0; i < 4; i++) {
+          right = sweepTileCollision(columnAt, right, { x: 30, y: vy }, R).loc
+          left = sweepTileCollision(columnAt, left, { x: -30, y: vy }, R).loc
+          expect(right.x + R.right).toBeLessThan(wallLeft)
+          expect(left.x + R.left).toBeGreaterThan(wallRight)
+        }
+      }
+    }
+  })
+
+  it('slides along the wall: the free axis keeps moving and only the blocked axis reports a hit', () => {
+    const hit = sweepTileCollision(columnAt, { x: wallLeft - 20, y: 160 }, { x: 30, y: 25 }, R)
+    expect(hit.loc).toEqual({ x: wallLeft - 1 - R.right, y: 185 })
+    expect(hit.wallX).toBe(true)
+    expect(hit.wallY).toBe(false)
+  })
+
+  it('is the plain destination test when one step already fits (normal walking speeds)', () => {
+    const cases = [
+      [{ x: 100, y: 100 }, { x: 4, y: -3 }],
+      [{ x: 118.5, y: 90.25 }, { x: 6.5, y: 2 }],
+      [{ x: 170, y: 40 }, { x: -7, y: -7 }],
+    ] as const
+    for (const [from, vel] of cases) {
+      const one = resolveTileCollisionHits(columnAt, { x: from.x + vel.x, y: from.y + vel.y }, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, R)
+      expect(sweepTileCollision(columnAt, from, vel, R)).toEqual(one)
+    }
+  })
+
+  it('ends exactly at from + vel when nothing is in the way', () => {
+    const from = { x: 300.1, y: 200.2 }
+    const vel = { x: 29.7, y: -13.3 }
+    expect(sweepTileCollision(() => false, from, vel, R).loc).toEqual({ x: from.x + vel.x, y: from.y + vel.y })
+  })
+
+  it('never takes a sub-step longer than MAX_COLLISION_SUBSTEP_PX or half the rect\'s smaller side', () => {
+    const tiny: CollisionRect = { left: -2, top: -2, right: 2, bottom: 2 }
+    // a 4 px rect against the wall with a 31 px move: 2 px steps still cannot skip the 32 px tile
+    const hit = sweepTileCollision(columnAt, { x: wallLeft - 10, y: 160 }, { x: 31, y: 31 }, tiny)
+    expect(hit.loc.x + tiny.right).toBeLessThan(wallLeft)
+    expect(MAX_COLLISION_SUBSTEP_PX).toBeLessThanOrEqual(8)
   })
 })
