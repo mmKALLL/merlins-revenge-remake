@@ -36,6 +36,12 @@ describe('parseMapFile', () => {
     expect(active[1]![2]).toBe(2)
   })
 
+  it('reads #endRoom: a point, or absent for #none and maps without one', () => {
+    expect(parseMapFile(readFileSync('assets/maps/not_fully_tested/mriiilongii.txt', 'utf8')).endRoom).toEqual({ x: 16, y: 1 })
+    expect(parseMapFile(tvsDemo).endRoom).toBeUndefined()
+    expect(parseMapFile(mapText({ rooms: `[${room(1)}]` })).endRoom).toBeUndefined()
+  })
+
   it('reads a 3x3 map', () => {
     const m = parseMapFile(sam)
     expect(m.mapSize).toEqual({ x: 3, y: 3 })
