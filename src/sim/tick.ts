@@ -14,26 +14,31 @@
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: living characters stored, the new room restored or spawned (combat notes §2);
 //     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
+// In a continuous world (remake feature, engine notes walking-and-rooms "Continuous world") every
+// room is spawned at the start and steps 11-12 give way to: units woken or put to sleep
+// (activation.ts), graves stored in their own room, nav mode by distance, and the music of the room
+// Merlin walks into; there are no exits and no room store/restore.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { sweepTileCollision } from '../mr-open/mr-collision'
-import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
+import { activateAtStart, navModeClear, stepActivation } from './activation'
 import {
-  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isUnit, playerOf, roomMusicTrack, spawnRoomActors, stripFor,
+  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isUnit, playerOf, roomMusicTrack, spawnAllRooms, spawnRoomActors, stripFor,
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
   DEFAULT_SIM_CONFIG, roomKey,
-  type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState,
+  type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
 import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
-import { beginTick, playerIn, type Tick } from './tick-context'
+import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { stepDwellings } from './tick-dwelling'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
@@ -47,10 +52,12 @@ export function createSim(
   anims: Record<string, AnimationSet>,
   seed: number,
   startPos: Vec,
+  worldMode: WorldMode = 'rooms',
 ): SimState {
   if (!defs['player']) throw new Error('actor definitions have no "player" entry')
   const empty: SimState = {
     tick: 0,
+    worldMode,
     grid,
     defs,
     teams,
@@ -67,7 +74,18 @@ export function createSim(
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
-  return withRoomMusic(withExitsEvaluated(spawnRoomActors({ ...s, playerId: player.id, actors: [player] }, s.room)))
+  const withPlayer: SimState = { ...s, playerId: player.id, actors: [player] }
+  if (worldMode === 'continuous') {
+    const started = activateAtStart(spawnAllRooms(withPlayer))
+    return withRoomMusic({ ...started, navMode: navModeClear(started) })
+  }
+  return withRoomMusic(withExitsEvaluated(spawnRoomActors(withPlayer, s.room)))
+}
+
+/** Where characters are kept: the current room, or the whole map in a continuous world. */
+function playAreaRect(s: SimState): Rect {
+  if (s.worldMode === 'rooms') return s.grid.roomRectPx(s.room)
+  return { left: 0, top: 0, right: s.grid.widthTiles * TILE_PX, bottom: s.grid.heightTiles * TILE_PX }
 }
 
 /**
@@ -123,8 +141,12 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const roomRect = s.grid.roomRectPx(s.room)
   if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   let room = s.room
-  // a dying player (stretch death) never leaves the room
-  if (s.exitsOpen && isAlive(p)) {
+  if (s.worldMode === 'continuous') {
+    // the map edge still blocks; the room only follows Merlin's position
+    loc = clampToRoom(playAreaRect(s), loc, cfg.collisionRect)
+    room = s.grid.roomOfPoint(loc.x, loc.y)
+  } else if (s.exitsOpen && isAlive(p)) {
+    // a dying player (stretch death) never leaves the room
     const next = roomAfterMove(roomRect, loc, s.room)
     if (s.grid.roomExists(next)) room = next
   }
@@ -149,9 +171,9 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
  */
 function stepMovement(t: Tick): void {
   const s = t.s
-  const roomRect = s.grid.roomRectPx(s.room)
+  const roomRect = playAreaRect(s)
   for (const a of t.actors) {
-    if (a.id === s.playerId || t.removed.has(a.id)) continue
+    if (a.id === s.playerId || t.removed.has(a.id) || !a.awake) continue
     if (isSpell(s, a)) {
       if (a.mode === 'charge') {
         // the player's is aligned in stepPlayerAttack; a CPU caster has just moved (earlier in the list)
@@ -175,7 +197,7 @@ function stepMovement(t: Tick): void {
  * A character's move against tiles and the room edge: the axis pushed out loses its speed
  * (objGameObject.collisionWall*: setVectX(0), collisionCeiling/Platform: setVectY(0)), a reeling
  * one taking wall damage first (objCPUCharacter.collisionWall/collisionVertical), and it stays
- * inside the room.
+ * inside the room (the map in a continuous world).
  */
 function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: Rect): { loc: Vec; vel: Vec } {
   const cr = collisionRectFor(t.s, a)
@@ -272,6 +294,38 @@ function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean } {
   return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen }
 }
 
+/** The stepped state before steps 11-12: the tick's surviving actors (sleepers after them), RNG, ids and events. */
+function afterTick(t: Tick): SimState {
+  const working = t.actors.filter((a) => !t.removed.has(a.id))
+  const sleepers = waitingSleepers(t)
+  return {
+    ...t.s,
+    tick: t.s.tick + 1,
+    actors: sleepers.length ? [...working, ...sleepers] : working,
+    rng: t.rng,
+    nextId: t.nextId,
+    events: t.events,
+    restartRequested: t.restartRequested,
+  }
+}
+
+/**
+ * 11-12 in a continuous world: units woken or put to sleep, graves stored in their own room, nav
+ * mode by distance, and the music of a room Merlin has walked into.
+ */
+function settleContinuous(t: Tick, room: Vec): SimState {
+  stepActivation(t)
+  const next = afterTick(t)
+  let rooms = next.rooms
+  for (const g of t.graves) {
+    const key = roomKey(next.grid.roomOfPoint(g.pos.x, g.pos.y))
+    const stored = rooms[key] ?? EMPTY_ROOM
+    rooms = { ...rooms, [key]: { ...stored, graves: [...stored.graves, g] } }
+  }
+  const settled: SimState = { ...next, rooms, navMode: navModeClear(next) }
+  return room.x !== next.room.x || room.y !== next.room.y ? withRoomMusic({ ...settled, room }) : settled
+}
+
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
   const t = beginTick(s)
   const room = stepPlayerMove(t, input, cfg)
@@ -287,18 +341,13 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   stepSpells(t)
   stepReelAndDeath(t)
   stepCooldownsAndRegen(t)
+  if (s.worldMode === 'continuous') return settleContinuous(t, room)
   const { rooms, exitsOpen } = settleRoom(t)
   const next: SimState = {
-    ...s,
-    tick: s.tick + 1,
-    actors: t.actors.filter((a) => !t.removed.has(a.id)),
+    ...afterTick(t),
     rooms,
     exitsOpen,
     navMode: exitsOpen, // attemptOpenExits -> goNavMode
-    rng: t.rng,
-    nextId: t.nextId,
-    events: t.events,
-    restartRequested: t.restartRequested,
   }
   return room.x !== s.room.x || room.y !== s.room.y ? changeRoom(next, s.room, room) : next
 }

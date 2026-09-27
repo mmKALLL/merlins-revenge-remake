@@ -15,21 +15,23 @@ import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting
 import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
-import { actorIn, type Tick } from './tick-context'
+import { actorIn, waitingSleepers, type Tick } from './tick-context'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
 
 /**
  * Living team units as targeting candidates: targetRoles [[#teamMembers, #teamBuildings]] covers
- * characters and dwellings (dead and dying ones are skipped by findTargetInTeam).
+ * characters and dwellings (dead and dying ones are skipped by findTargetInTeam). The AI does not
+ * see the sleepers of a continuous world; Merlin's aim does (`withSleepers`).
  */
-export function targetables(t: Tick): Targetable[] {
-  return t.actors.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
+export function targetables(t: Tick, withSleepers = false): Targetable[] {
+  const candidates = withSleepers ? [...t.actors, ...waitingSleepers(t)] : t.actors
+  return candidates.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
 }
 
 /** teamMaster.findTarget: the id of the closest living unit in a team `a` hates, or null. */
-export function nearestHostileId(t: Tick, a: ActorState): number | null {
-  return findTarget(asTargetable(a), targetables(t), hatedTeams(a.team, t.s.teams))
+export function nearestHostileId(t: Tick, a: ActorState, withSleepers = false): number | null {
+  return findTarget(asTargetable(a), targetables(t, withSleepers), hatedTeams(a.team, t.s.teams))
 }
 
 function targetView(t: Tick, id: number | null): TargetView | null {
@@ -218,7 +220,7 @@ function stepRunReload(t: Tick, a: ActorState, def: ActorDef): void {
 
 export function stepCpuAi(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id)) continue
+    if (t.removed.has(a.id) || !a.awake) continue
     const def = defOf(t.s, a)
     if (def.aiType !== 'objAiCPU' || (a.mode !== 'walk' && a.mode !== 'stand')) continue
     if (a.ai.mode === 'runReload') {

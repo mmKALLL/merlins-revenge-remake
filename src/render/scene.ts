@@ -4,8 +4,9 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { isSpell, playerOf } from '../sim/actors'
+import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
-import { roomKey, type ActorState, type RoomState, type SimState } from '../sim/state'
+import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import { barColour, HealthBars } from './health-bars'
 
@@ -74,7 +75,7 @@ export class Scene {
   private healthBars: HealthBars
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
-  private graveKey: { room: string; graves: RoomState['graves'] | null } = { room: '', graves: null }
+  private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
   private bar = new Graphics()
   private barFill = -1
@@ -191,7 +192,9 @@ export class Scene {
       const def = this.defs[a.def]
       if (!def) continue
       const spell = isSpell(s, a)
-      const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, a.animFrame)
+      // a sleeper of a continuous world is left untouched by the sim; its stand strip loops here
+      const frame = a.awake ? a.animFrame : sleepingFrame(s.anims[def.name]?.[a.anim], s.tick)
+      const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, frame)
       if (!tex) continue
       seen.add(a.id)
       const spr = this.actorSprite(a.id)
@@ -203,7 +206,7 @@ export class Scene {
       const bullet = def.objType === 'objBullet'
       // Frames with a known reg point (extracted with their Director member) hang from it, which also
       // keeps a wide attack frame's body in place; frames without one are centred.
-      const reg = spell ? undefined : this.regFor(def.name, a.anim, a.animFrame)
+      const reg = spell ? undefined : this.regFor(def.name, a.anim, frame)
       spr.anchor.set(reg ? reg.x / tex.width : 0.5, reg ? reg.y / tex.height : 0.5)
       const shift = spell || bullet || reg ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
@@ -289,11 +292,12 @@ export class Scene {
     return sprite.frames['stand'] ? sprite.regs['stand']?.[0] : sprite.regs['walk']?.[0]
   }
 
+  /** The current room's graves, or every room's in a continuous world. */
   private syncGraves(s: SimState): void {
     const room = roomKey(s.room)
-    const graves = s.rooms[room]?.graves ?? []
-    if (this.graveKey.room === room && this.graveKey.graves === graves) return
-    this.graveKey = { room, graves }
+    if (this.graveKey.room === room && this.graveKey.rooms === s.rooms) return
+    this.graveKey = { room, rooms: s.rooms }
+    const graves = s.worldMode === 'continuous' ? Object.values(s.rooms).flatMap((r) => r.graves) : (s.rooms[room]?.graves ?? [])
     for (const c of this.graveLayer.removeChildren()) c.destroy()
     for (const g of graves) {
       const name = this.defs[g.def]?.name

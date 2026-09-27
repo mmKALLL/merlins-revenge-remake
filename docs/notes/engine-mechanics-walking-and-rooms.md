@@ -208,3 +208,40 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - Exits always open (no enemies yet).
 - Both archive copies of mr4Demo.txt are corrupt and were dropped.
 - Tile key slot counts: merlinOpenActive 261, merlinOpenObjects 228, merlinOpenPassive 58; merlin4Passive has 66 slots but mriv_small references index 91, so the converter pads.
+
+## Continuous world (remake feature, not in the original)
+
+`?camera=follow` creates the sim with `worldMode: 'continuous'` (`createSim`, `src/sim/tick.ts`);
+`?camera=room` (the default) keeps `'rooms'`, the original behaviour above, unchanged.
+
+- **Spawning**: every room's objects layer is spawned at map start (`spawnAllRooms`); there is no
+  room store/restore and no room change for actors. `s.room` is the room Merlin stands in; it only
+  picks the music (a music tile plays on entering its room, as on room activation) and where graves
+  are stored (each grave in its own room; the renderer draws all of them).
+- **Movement**: no exits and no exit gating; Merlin and every character are kept inside the map
+  rect instead of the room rect (tiles outside the map are solid anyway). No `exitsOpened` event and
+  no room-cleared sound.
+- **Activation** (`src/sim/activation.ts`): each non-player unit (character or dwelling) is awake or
+  asleep, by the reg point to reg point distance to Merlin. Asleep: closer than `wakeDistance`
+  (192 px, 6 tiles) wakes it; awake: `sleepDistance` (256 px, 8 tiles) or farther puts it to sleep
+  (hysteresis). A hit wakes it; a hit taken at `sleepDistance` or farther also holds it awake for
+  `hitWakeTicks` (180, 6 s), then the distance rule applies again. A unit falls asleep only while
+  walking or standing (a reel, death, attack or charge plays out first); it then stops, returns to
+  its stand strip and its AI to `#findTarget`, and a spell it was still charging is removed. At map
+  start every unit beyond `wakeDistance` starts asleep. Bullets and spells always update.
+- **Asleep** means no AI, no movement, no attacks, no dwelling production, no cooldowns or
+  regeneration. The AI does not see sleepers (they are not targeting candidates), but they are
+  hittable: explosions catch them, a bullet whose target fell asleep can still hit it, and Merlin's
+  nearest-hostile shot (Space) aims at them. For speed the tick does not copy sleepers at all
+  (`Tick.sleepers`, brought into the tick when hit), and the renderer loops their stand strip from
+  the tick (`sleepingFrame`). very_big_map (15x15 rooms, 1875 actors) steps in about 0.17 ms per tick
+  on average this way (about 1.9 ms when every actor was copied and scanned each tick).
+- **Team caps**: the team member and reservation counts that gate dwelling releases and summons
+  (reservationsMaster, counted per room in the original) count awake units only, so the rest of the
+  map does not fill a team's cap.
+- **Nav mode** is on while no awake, living hostile unit is within `navModeClearRadius` (256 px) of
+  Merlin, re-evaluated every tick.
+- The four distances and times are remake fields of the player's ActorDef (`src/mr-open/mr-actor-data.ts`),
+  tunable in `assets/tuning.json` under `player`. They live on the ActorDef rather than a separate
+  sim config so they follow the project's one tuning path (defaults in actor data, overrides in
+  tuning.json).

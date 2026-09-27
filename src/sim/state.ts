@@ -110,6 +110,9 @@ export interface ActorState {
   age: number // ticks in the current mode for timed modes (land, explode, player die)
   technique: TechniqueState // modWeaponTechnique counter and cache
   dwelling: DwellingState | null // objDwelling production (modResidents); null for everything else
+  /** continuous world (activation.ts): a sleeping unit has no AI, movement, attacks, production or regeneration; always true in rooms mode */
+  awake: boolean
+  wakeHold: number // continuous world: ticks a unit hit from far away stays awake regardless of distance
 }
 
 export interface RoomState {
@@ -129,13 +132,21 @@ export type SimEvent =
   /** room activation with a music tile (soundMaster.playMusic); null = musicOff stops the music */
   | { kind: 'music'; track: string | null }
 
+/**
+ * rooms: the original room-by-room play (store/restore, exits, room-cleared jingle). continuous
+ * (remake feature, ?camera=follow): the whole map is one room with every unit spawned at the start
+ * and units far from Merlin asleep (activation.ts).
+ */
+export type WorldMode = 'rooms' | 'continuous'
+
 export interface SimState {
   tick: number
+  worldMode: WorldMode
   grid: WorldGrid
   defs: Record<string, ActorDef>
   teams: Record<string, TeamDef>
   anims: Record<string, AnimationSet> // sprite name (ActorDef.name) -> strips
-  room: Vec
+  room: Vec // continuous world: the room Merlin stands in (music, grave storage)
   rooms: Record<string, RoomState> // key `${x},${y}`
   exitsOpen: boolean
   navMode: boolean // modNavMode: the player walks with navModeAcceleration while the room is clear (exits open)

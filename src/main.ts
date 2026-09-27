@@ -5,7 +5,7 @@ import { InputTracker } from './input/keyboard'
 import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
 import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
-import { TICK_MS, type AnimationSet } from './sim/state'
+import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
 
@@ -22,6 +22,8 @@ const cfg: RenderConfig = {
   spriteScale: 1,
   debug: params.get('debug') !== '0',
 }
+/** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
+const worldMode: WorldMode = cfg.cameraMode === 'follow' ? 'continuous' : 'rooms'
 
 const ZOOM_KEY = 'mr-remake.zoom'
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
@@ -162,7 +164,7 @@ async function main(): Promise<void> {
   const grid = buildWorldGrid(map, isSolid, objects.data.symbols)
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
   const startPos = findStartPos(grid, playerTile)
-  let sim = createSim(grid, defs, teams, anims, seed, startPos)
+  let sim = createSim(grid, defs, teams, anims, seed, startPos, worldMode)
   audio.handle(sim.events) // the start room's music
   let runSeed = seed
 
@@ -224,7 +226,7 @@ async function main(): Promise<void> {
       if (sim.restartRequested) {
         // the player died: start the map again with the loaded assets and a fresh seed
         runSeed = nextRunSeed(runSeed)
-        sim = createSim(grid, defs, teams, anims, runSeed, startPos)
+        sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldMode)
         audio.handle(sim.events) // the start room's music again
       }
     }

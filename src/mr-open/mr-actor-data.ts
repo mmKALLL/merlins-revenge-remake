@@ -131,6 +131,11 @@ export interface ActorDef {
   projectileSpreadDeg: number // fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
   knockbackSpreadDeg: number // this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   productionTimeScale: number // dwelling group production time = groupSize * buildTime * this (see engine notes enemies-2 §7)
+  // continuous world (?camera=follow; read from the player's definition only; engine notes walking-and-rooms, "Continuous world")
+  wakeDistance: number // px, reg point to reg point: a sleeping unit closer than this to Merlin wakes
+  sleepDistance: number // px: an awake unit this far or farther from Merlin falls asleep (hysteresis above wakeDistance)
+  hitWakeTicks: number // a unit hit this far or farther stays awake for at least this many ticks
+  navModeClearRadius: number // px: nav mode is on while no awake living hostile unit is within this of Merlin
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -206,6 +211,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
     productionTimeScale: 1, // groupSize * buildTime, the evident intent of modResidents.startProduction
+    wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -230,6 +236,7 @@ for (const k of [
   // remake additions
   'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
+  'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -527,6 +534,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
       productionTimeScale: num(r, 'productionTimeScale', ctx),
+      wakeDistance: num(r, 'wakeDistance', ctx), sleepDistance: num(r, 'sleepDistance', ctx),
+      hitWakeTicks: num(r, 'hitWakeTicks', ctx), navModeClearRadius: num(r, 'navModeClearRadius', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
