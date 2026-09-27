@@ -108,13 +108,15 @@ function setupSoundControls(audio: AudioEngine, row: HTMLElement): void {
   row.appendChild(label)
 }
 
-/** The 1x..4x / fit buttons below the canvas; `reserved` is the controls block kept visible in 'fit' mode. */
+/** The 1x..4x / fit / scale buttons below the canvas; `reserved` is the controls block kept visible in 'fit' and 'scale' modes. */
 function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement): void {
   const buttons = ZOOM_SETTINGS.map((z) => {
     const b = document.createElement('button')
     b.type = 'button'
-    b.textContent = z === 'fit' ? 'fit' : `${z}x`
-    b.title = z === 'fit' ? 'Largest whole multiple that fits the window' : `${z} screen pixels per game pixel`
+    b.textContent = typeof z === 'number' ? `${z}x` : z
+    b.title = z === 'fit' ? 'Largest whole multiple that fits the window'
+      : z === 'scale' ? 'Fill the window at any multiple (pixels may be uneven)'
+        : `${z} screen pixels per game pixel`
     b.addEventListener('click', () => select(z))
     row.appendChild(b)
     return [z, b] as const

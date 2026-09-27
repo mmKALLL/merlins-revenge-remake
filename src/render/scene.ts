@@ -19,9 +19,12 @@ export interface RenderConfig {
   debug: boolean
 }
 
-/** CSS pixels per game pixel, or 'fit': the largest integer multiple that fits the window. */
-export type ZoomSetting = 1 | 2 | 3 | 4 | 'fit'
-export const ZOOM_SETTINGS: readonly ZoomSetting[] = [1, 2, 3, 4, 'fit']
+/**
+ * CSS pixels per game pixel; 'fit': the largest whole multiple that fits the window; 'scale': fills
+ * the window at any (non-integer) multiple, keeping the aspect ratio.
+ */
+export type ZoomSetting = 1 | 2 | 3 | 4 | 'fit' | 'scale'
+export const ZOOM_SETTINGS: readonly ZoomSetting[] = [1, 2, 3, 4, 'fit', 'scale']
 export const DEFAULT_ZOOM: ZoomSetting = 2
 
 const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActive']
@@ -83,7 +86,7 @@ export class Scene {
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
   private zoom: ZoomSetting = DEFAULT_ZOOM
-  /** Window height (CSS px) kept free below the canvas in 'fit' mode, e.g. for the zoom buttons. */
+  /** Window height (CSS px) kept free below the canvas in 'fit' and 'scale' modes, e.g. for the zoom buttons. */
   fitReserve = 0
 
   constructor(
@@ -153,12 +156,15 @@ export class Scene {
 
   /**
    * Fixed multipliers are CSS pixels, so browser zoom scales the canvas on top of them;
-   * 'fit' fills the window instead.
+   * 'fit' and 'scale' fill the window instead (whole and fractional multiples).
    */
   applyZoom(): void {
+    const room = { w: window.innerWidth, h: window.innerHeight - this.fitReserve }
     const z = this.zoom === 'fit'
-      ? chooseZoom(this.cfg.logical, { w: window.innerWidth, h: window.innerHeight - this.fitReserve })
-      : this.zoom
+      ? chooseZoom(this.cfg.logical, room)
+      : this.zoom === 'scale'
+        ? Math.max(0.25, Math.min(room.w / this.cfg.logical.w, room.h / this.cfg.logical.h))
+        : this.zoom
     this.app.canvas.style.width = `${this.cfg.logical.w * z}px`
     this.app.canvas.style.height = `${this.cfg.logical.h * z}px`
   }
