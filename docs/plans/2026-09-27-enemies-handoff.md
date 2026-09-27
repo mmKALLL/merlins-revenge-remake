@@ -19,6 +19,13 @@ those residents or substitute, and note it).
 - Sprites: `assets/extracted/bitmaps/*.png` (white = transparent) with `regpoints.tsv`. The
   converter currently decodes BMP frames only; add PNG frame support (pngjs is a dependency).
 
+## Reference bundle
+
+The owner may attach `mr-open-reference.zip`. Unzip it and treat its `mr-open-reference/` folder as the
+original archive root: `casts/` is the Lingo source and data the notes cite (`casts/script_objects/...`,
+`casts/data/act_*.txt`), and `cast_bitmaps/` holds every `anm_*` frame from the engine's Director movie
+as PNG with `regpoints.tsv`. Do not commit the bundle; copy only what the build needs into `assets/`.
+
 ## Known work (from the notes)
 
 1. Multi-frame attacks: `animFrame` can be a list (crossBow `[2,4,6]`, orcSword `[6,10,12]`);
