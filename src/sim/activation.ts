@@ -65,18 +65,30 @@ export function stepActivation(t: Tick): void {
 /** A unit only falls asleep when walking or standing: a reel, a death, an attack or a charge plays out first. */
 const isCalm = (a: ActorState): boolean => a.mode === 'walk' || a.mode === 'stand'
 
-/** Stops the unit on its stand strip and clears its AI back to finding a target; a spell it was still charging goes away. */
+/** Puts the unit to sleep; a spell it was still charging goes away. */
 function fallAsleep(t: Tick, a: ActorState): void {
+  restAsleep(t.s, a)
+  const spell = chargingSpellOf(t, a)
+  if (spell) t.removed.add(spell.id)
+}
+
+/** A sleeping copy of the unit (see restAsleep). */
+export function asleep(s: SimState, a: ActorState): ActorState {
+  const copy = { ...a }
+  restAsleep(s, copy)
+  return copy
+}
+
+/** Stops the unit on its stand strip and clears its AI back to finding a target. */
+function restAsleep(s: SimState, a: ActorState): void {
   a.awake = false
   a.vel = { x: 0, y: 0 }
-  a.anim = stripNameFor(t.s.anims[defOf(t.s, a).name], 'stand', false)
+  a.anim = stripNameFor(s.anims[defOf(s, a).name], 'stand', false)
   a.animFrame = 0
   a.animCounter = 0
   a.animExtend = 0
   a.animExtendCount = 0
   a.animLooped = false
-  const spell = chargingSpellOf(t, a)
-  if (spell) t.removed.add(spell.id)
   if (a.ai.mode === 'none') return
   a.ai = {
     ...a.ai, mode: 'findTarget', targetId: null, moveTarget: null, waypoint: null, pathMode: 'beeline',

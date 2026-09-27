@@ -17,7 +17,8 @@
 // In a continuous world (remake feature, engine notes walking-and-rooms "Continuous world") every
 // room is spawned at the start and steps 11-12 give way to: units woken or put to sleep
 // (activation.ts), graves stored in their own room, nav mode by distance, and the music of the room
-// Merlin walks into; there are no exits and no room store/restore.
+// Merlin walks into; there are no exits and no room store/restore. switchWorldMode (world-mode.ts)
+// changes between the two between ticks.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
@@ -43,7 +44,7 @@ import { stepDwellings } from './tick-dwelling'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
 
-const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }
+export const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }
 
 export function createSim(
   grid: WorldGrid,
@@ -118,7 +119,7 @@ export function findStartPos(grid: WorldGrid, playerTileIndex: number | null): V
  * clear room puts the player in nav mode (gameMaster.goNavMode; gNavMode taken as on). Leaving a room
  * drops nav mode before moveRoom, so the new room's state applies at once.
  */
-function withExitsEvaluated(s: SimState): SimState {
+export function withExitsEvaluated(s: SimState): SimState {
   const exitsOpen = exitsOpenFor(s, s.actors)
   const key = roomKey(s.room)
   return { ...s, exitsOpen, navMode: exitsOpen, rooms: { ...s.rooms, [key]: { ...(s.rooms[key] ?? EMPTY_ROOM), clear: exitsOpen } } }
