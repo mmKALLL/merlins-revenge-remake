@@ -43,6 +43,28 @@ Controls:
 
 Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the energy blast.
 
+## What's new compared with the original
+
+- Plays in any modern browser; no Shockwave or Director needed.
+- Space charges and fires the energy blast at the nearest enemy on screen; F toggles a push-back shot; E or a click still aims at the mouse.
+- Scalable view: crisp 1x-4x pixel sizes, "fit" or a fractional "scale", and it respects browser zoom.
+- The game keeps the original's 30 ticks per second but draws at the display's refresh rate with interpolated movement.
+- C switches live between the original room-by-room camera and a smooth follow camera across the whole map, where distant enemies sleep, wake as Merlin approaches, and wander idly meanwhile.
+- Health bars over recently damaged enemies.
+- Swept collision: strong knockback can no longer push anyone through a wall.
+- Livelier enemies: random detours spread out crowds of attackers, and arrows and blasts have a little spread.
+- A map browser with every original map in its folders, favourites, and a map-complete cut scene.
+- Looping music with faded transitions, separate music and effects toggles, and a volume slider.
+- Keys work by physical position, so WASD also works on other keyboard layouts.
+- Balance tweaks live in one tuning file (`assets/tuning.json`); the original data stays untouched.
+- `mr.exportState()` in the browser console captures the exact game state for bug reports.
+
+## Package for hosting
+
+    pnpm package          # converts assets, builds, and zips dist/ into release/merlins-revenge-remake-<date>.zip
+
+Unzip it anywhere on a static web host (sub-paths work) and open `index.html` over HTTP; opening the file directly from disk does not work because the page fetches its assets.
+
 ## Reporting bugs
 
 When something goes wrong in the game, open the browser console (F12) and run

@@ -17,3 +17,6 @@ public/generated/
 
 # Claude Code agent worktrees and local settings
 .claude/
+
+# packaged builds (pnpm package)
+release/
