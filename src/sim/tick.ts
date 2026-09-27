@@ -1,4 +1,5 @@
 // Fixed-step simulation orchestrator. Per tick, in order:
+//  0. debug cheats pressed this tick (tick-cheats.ts): K kills the hostiles on screen, M heals Merlin
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
 //  2. player attack input: charge / resume / release (tick-spell.ts)
@@ -37,6 +38,7 @@ import {
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
+import { stepCheats } from './tick-cheats'
 import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
 import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
@@ -330,6 +332,7 @@ function settleContinuous(t: Tick, room: Vec): SimState {
 
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
   const t = beginTick(s)
+  stepCheats(t, input)
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input, cfg.view)
   stepCpuAi(t)

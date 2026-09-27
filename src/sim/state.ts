@@ -17,6 +17,8 @@ export interface InputSnapshot {
   chargeHeld: boolean // E or left mouse button: charge, release at the mouse
   shootNearest: boolean // Space (F toggle off): charge, release at the nearest hostile
   shootShort: boolean // Space (F toggle on): charge, release a little short of the nearest hostile (push-back shot)
+  cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
+  cheatHeal: boolean // M pressed (once per press): Merlin back to full energy (tick-cheats.ts)
 }
 
 export const NO_INPUT: InputSnapshot = {
@@ -25,6 +27,8 @@ export const NO_INPUT: InputSnapshot = {
   chargeHeld: false,
   shootNearest: false,
   shootShort: false,
+  cheatKillAll: false,
+  cheatHeal: false,
 }
 
 export interface AnimationStrip {

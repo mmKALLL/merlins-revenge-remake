@@ -143,6 +143,7 @@ export interface ActorDef {
   activationVerticalScale: number // the four ranges above reach this fraction as far up and down as sideways (ellipses)
   idleWanderMarginTiles: number // sleepers within the follow camera's view grown by this many tiles on each side may idle wander
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
+  killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -222,6 +223,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
     activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
+    killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -248,7 +250,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -552,6 +554,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       hitWakeTicks: num(r, 'hitWakeTicks', ctx), navModeClearRadius: num(r, 'navModeClearRadius', ctx),
       activationVerticalScale: num(r, 'activationVerticalScale', ctx),
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
+      killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
