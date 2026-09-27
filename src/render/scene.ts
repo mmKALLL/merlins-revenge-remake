@@ -8,7 +8,7 @@ import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
-import { barColour, HealthBars } from './health-bars'
+import { barColour, HealthBars, type StandBox } from './health-bars'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -174,7 +174,7 @@ export class Scene {
     this.scrolled.position.set(-origin.x, -origin.y)
     this.syncGraves(s)
     this.syncActors(s, lerp)
-    this.healthBars.update(s, this.actorSprites)
+    this.healthBars.update(s, lerp, (name) => this.standBox(name))
     this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
@@ -272,6 +272,14 @@ export class Scene {
   private standWidth(spriteName: string, fallback: number): number {
     const frames = this.sprites[spriteName]?.frames
     return (frames?.['stand']?.[0] ?? frames?.['walk']?.[0])?.width ?? fallback
+  }
+
+  /** The stand frame's size and registration point (centre when the atlas records none). */
+  private standBox(spriteName: string): StandBox | undefined {
+    const tex = this.frameFor(spriteName, 'stand', 0)
+    if (!tex) return undefined
+    const reg = this.regFor(spriteName, 'stand', 0) ?? { x: tex.width / 2, y: tex.height / 2 }
+    return { w: tex.width, h: tex.height, reg }
   }
 
   /** Atlas frame for (sprite, anim, frame), falling back to stand, then the first walk frame. */

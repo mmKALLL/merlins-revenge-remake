@@ -1,19 +1,18 @@
-// Health bars over recently damaged enemies (remake addition, owner request). The original only showed
-// a unit's energy while the mouse rolled over it (characterEnergyRollOverMaster, a 4 px tall surround);
-// this keeps that small bar but shows it for a while after the unit loses energy. Render-only: damage
-// is noticed by comparing each actor's energy with the previous draw, so the simulation is untouched.
-import { Container, Graphics, type Sprite } from 'pixi.js'
+// Health bars under recently damaged enemies (remake addition, owner request). The original showed a
+// unit's energy only while the mouse rolled over it (characterEnergyRollOverMaster /
+// objMoveableEnergyBar): a 4 px tall bar just below the unit, as wide as its stand frame
+// (modEnergy.calcEnergyRectBottom). This keeps that bar but shows it for a while after the unit loses
+// energy. Render-only: damage is noticed by comparing each actor's energy with the previous draw.
+import { Container, Graphics } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { Vec } from '../mr-open/mr-geometry'
 import type { ActorState, SimState } from '../sim/state'
 
 /** How long a bar stays after the last energy loss, and the last part of it that fades out (ticks at 30 Hz). */
 const SHOW_TICKS = 90
 const FADE_TICKS = 15
-/** Bar size in game pixels (the original's rollover surround is 4 px tall: 1 px border around a 2 px bar). */
-const BAR_W = 16
+/** Bar height in game pixels (objMoveableEnergyBar pSurroundHeight: 1 px border around a 2 px bar). */
 const BAR_H = 4
-/** Gap between the bar and the top of the sprite. */
-const GAP = 2
 
 const NOT_DRAWN = new Set(['objBullet', 'objSpell'])
 const GONE_MODES = new Set<ActorState['mode']>(['die', 'dead', 'finish'])
@@ -25,6 +24,9 @@ export function barColour(f: number): number {
   return (r << 16) | (g << 8)
 }
 
+/** A sprite's stand frame: its size and registration point (the unit's position within it). */
+export interface StandBox { w: number; h: number; reg: Vec }
+
 export class HealthBars {
   readonly layer = new Container()
   private lastEnergy = new Map<number, number>()
@@ -33,8 +35,8 @@ export class HealthBars {
 
   constructor(private defs: Record<string, ActorDef>) {}
 
-  /** Call after the actor sprites are positioned for this frame. */
-  update(s: SimState, sprites: ReadonlyMap<number, Sprite>): void {
+  /** `posOf` gives the actor's drawn (interpolated) position, `standBox` its sprite's stand frame. */
+  update(s: SimState, posOf: (a: ActorState) => Vec, standBox: (spriteName: string) => StandBox | undefined): void {
     const seen = new Set<number>()
     for (const a of s.actors) {
       const def = this.defs[a.def]
@@ -43,17 +45,19 @@ export class HealthBars {
       const before = this.lastEnergy.get(a.id)
       if (before !== undefined && a.energy < before) this.shownUntil.set(a.id, s.tick + SHOW_TICKS)
       this.lastEnergy.set(a.id, a.energy)
-      const left = (this.shownUntil.get(a.id) ?? 0) - s.tick
-      const spr = sprites.get(a.id)
-      if (left <= 0 || !spr || GONE_MODES.has(a.mode)) {
+      const ticksLeft = (this.shownUntil.get(a.id) ?? 0) - s.tick
+      const box = standBox(def.name)
+      if (ticksLeft <= 0 || !box || GONE_MODES.has(a.mode)) {
         this.hide(a.id)
         continue
       }
       const bar = this.barFor(a.id)
-      this.paint(bar, a.energy / def.energy)
-      const top = spr.y - spr.texture.height * spr.anchor.y * Math.abs(spr.scale.y)
-      bar.position.set(Math.round(spr.x - BAR_W / 2), Math.round(top - GAP - BAR_H))
-      bar.alpha = Math.min(1, left / FADE_TICKS)
+      this.paint(bar, a.energy / def.energy, box.w)
+      // the stand frame placed at the unit (mirrored with it), bar starting at its bottom edge
+      const pos = posOf(a)
+      const x = a.facingLeft ? pos.x - (box.w - box.reg.x) : pos.x - box.reg.x
+      bar.position.set(Math.round(x), Math.round(pos.y - box.reg.y + box.h))
+      bar.alpha = Math.min(1, ticksLeft / FADE_TICKS)
       bar.visible = true
     }
     for (const id of [...this.lastEnergy.keys()]) {
@@ -80,12 +84,12 @@ export class HealthBars {
     if (bar) bar.visible = false
   }
 
-  private paint(bar: Graphics, fraction: number): void {
+  private paint(bar: Graphics, fraction: number, width: number): void {
     const f = Math.max(0, Math.min(1, fraction))
-    const inner = BAR_W - 2
+    const inner = width - 2
     const fill = Math.round(inner * f)
     bar.clear()
-    bar.rect(0, 0, BAR_W, BAR_H).fill(0x000000)
+    bar.rect(0, 0, width, BAR_H).fill(0x000000)
     bar.rect(1, 1, inner, BAR_H - 2).fill(0x333333)
     if (fill > 0) bar.rect(1, 1, fill, BAR_H - 2).fill(barColour(f))
   }
