@@ -21,11 +21,12 @@
       #sound label { color: #aaa; display: flex; gap: 4px; align-items: center; }
       #sound input[type='range'] { width: 72px; margin: 0; accent-color: #ccc; }
       #maps {
-        position: relative; margin: 0; padding: 0; list-style: none; max-height: 5.5em; overflow-y: auto;
+        position: relative; margin: 0; padding: 0; list-style: none; overflow-y: auto;
+        max-height: calc(8 * (1.25em + 2px)); /* 8 rows: button line-height + its 1px top and bottom padding */
         border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
       }
       #maps button {
-        display: block; width: 100%; padding: 1px 8px; font: inherit; text-align: left; color: #aaa;
+        display: block; width: 100%; padding: 1px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
         background: none; border: 0; white-space: nowrap; cursor: pointer;
       }
       #maps button:hover, #maps button:focus-visible { color: #fff; background: #222; }
