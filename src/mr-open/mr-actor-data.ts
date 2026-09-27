@@ -136,6 +136,7 @@ export interface ActorDef {
   sleepDistance: number // px: an awake unit this far or farther from Merlin falls asleep (hysteresis above wakeDistance)
   hitWakeTicks: number // a unit hit this far or farther stays awake for at least this many ticks
   navModeClearRadius: number // px: nav mode is on while no awake living hostile unit is within this of Merlin
+  activationVerticalScale: number // the four ranges above reach this fraction as far up and down as sideways (ellipses)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -212,6 +213,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
     productionTimeScale: 1, // groupSize * buildTime, the evident intent of modResidents.startProduction
     wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
+    activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -236,7 +238,7 @@ for (const k of [
   // remake additions
   'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
-  'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius',
+  'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -536,6 +538,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       productionTimeScale: num(r, 'productionTimeScale', ctx),
       wakeDistance: num(r, 'wakeDistance', ctx), sleepDistance: num(r, 'sleepDistance', ctx),
       hitWakeTicks: num(r, 'hitWakeTicks', ctx), navModeClearRadius: num(r, 'navModeClearRadius', ctx),
+      activationVerticalScale: num(r, 'activationVerticalScale', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

@@ -1,8 +1,8 @@
 // Switching the world mode during play (remake feature, the C key; engine notes walking-and-rooms,
 // "Continuous world"). Runs between ticks and draws no random numbers.
-import { distance, type Vec } from '../mr-open/mr-geometry'
-import { asleep, navModeClear } from './activation'
-import { defOf, isAlive, isUnit, playerOf, spawnAllRooms } from './actors'
+import type { Vec } from '../mr-open/mr-geometry'
+import { asleep, navModeClear, withinWakeDistance } from './activation'
+import { isAlive, isUnit, playerOf, spawnAllRooms } from './actors'
 import { roomKey, type ActorState, type SimState, type WorldMode } from './state'
 import { EMPTY_ROOM, withExitsEvaluated } from './tick'
 
@@ -30,10 +30,9 @@ function toContinuous(s: SimState): SimState {
   })
   const spawned = spawnAllRooms({ ...s, worldMode: 'continuous', rooms, actors: [...s.actors, ...restored] })
   const p = playerOf(spawned)
-  const { wakeDistance } = defOf(spawned, p)
   const actors = spawned.actors.map((a) => {
     if (current.has(a.id) || !isUnit(spawned, a)) return a
-    return distance(a.pos, p.pos) < wakeDistance ? { ...a, awake: true, wakeHold: 0 } : asleep(spawned, a)
+    return withinWakeDistance(spawned, p, a) ? { ...a, awake: true, wakeHold: 0 } : asleep(spawned, a)
   })
   const next: SimState = { ...spawned, actors, exitsOpen: true, events: [] }
   return { ...next, navMode: navModeClear(next) }

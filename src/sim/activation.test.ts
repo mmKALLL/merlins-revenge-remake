@@ -2,7 +2,7 @@
 // "Continuous world"): the pure wake/sleep rule, then the whole sim on a two-room map.
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { nextActivation } from './activation'
+import { activationDistance, nextActivation } from './activation'
 import { sleepingFrame } from './anim'
 import { playerOf } from './actors'
 import { NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
@@ -51,6 +51,19 @@ describe('nextActivation (wake and sleep rule)', () => {
   })
 })
 
+describe('activationDistance (elliptical ranges, shorter vertically)', () => {
+  const k = rules.activationVerticalScale
+  it('counts vertical offsets as 1 / activationVerticalScale times longer', () => {
+    expect(activationDistance({ x: 0, y: 0 }, { x: 150, y: 0 }, k)).toBe(150)
+    expect(activationDistance({ x: 0, y: 0 }, { x: 0, y: 150 }, k)).toBeCloseTo(150 / k)
+  })
+
+  it('puts 150 px sideways inside wakeDistance and 150 px up or down outside it (defaults)', () => {
+    expect(activationDistance({ x: 0, y: 0 }, { x: 150, y: 0 }, k)).toBeLessThan(WAKE)
+    expect(activationDistance({ x: 0, y: 0 }, { x: 0, y: -150 }, k)).toBeGreaterThanOrEqual(WAKE)
+  })
+})
+
 describe('sleepingFrame (a sleeper\'s stand strip, animated from the tick)', () => {
   it('loops the strip by its frame delays', () => {
     const strip = { frames: 3, delay: 2, delays: [2, 1, 3], w: 10, h: 10 }
@@ -70,10 +83,10 @@ const ROW_Y = 144 // tile row 5 centre
 const PLAYER = { x: 100, y: ROW_Y }
 
 /** Two open 18x9 rooms side by side with objects on row 5 (room 1 or 2, 1-based column). */
-function twoRooms(objects: { room: 1 | 2; x: number; symbol: string }[]): MapDefinition {
+function twoRooms(objects: { room: 1 | 2; x: number; symbol: string; row?: number }[]): MapDefinition {
   const fill = (v: number) => Array.from({ length: 9 }, () => Array(18).fill(v))
   const obj = [fill(0), fill(0)]
-  for (const o of objects) obj[o.room - 1]![4]![o.x - 1] = tileOf(o.symbol)
+  for (const o of objects) obj[o.room - 1]![(o.row ?? 5) - 1]![o.x - 1] = tileOf(o.symbol)
   return {
     mapSize: { x: 2, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
     layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
@@ -81,7 +94,7 @@ function twoRooms(objects: { room: 1 | 2; x: number; symbol: string }[]): MapDef
   }
 }
 
-function world(objects: { room: 1 | 2; x: number; symbol: string }[], playerPos = PLAYER): SimState {
+function world(objects: { room: 1 | 2; x: number; symbol: string; row?: number }[], playerPos = PLAYER): SimState {
   return createSim(buildWorldGrid(twoRooms(objects), () => false, SYMBOLS), defs, teams, anims, 1, playerPos, 'continuous')
 }
 const ofDef = (s: SimState, key: string): ActorState[] => s.actors.filter((a) => a.def === key)
@@ -97,6 +110,15 @@ describe('continuous world', () => {
     const s = world([{ room: 2, x: 9, symbol: 'goblinWarrior' }])
     expect(s.worldMode).toBe('continuous')
     expect(ofDef(s, 'goblinWarrior')).toHaveLength(1)
+  })
+
+  it('wakes a unit 5 tiles to the side but not one 5 tiles below (elliptical range)', () => {
+    const player = { x: tileX(3), y: 16 } // tile row 1
+    const side = world([{ room: 1, x: 8, row: 1, symbol: 'goblinWarrior' }], player)
+    expect(ofDef(side, 'goblinWarrior')[0]!.awake).toBe(true)
+    const below = world([{ room: 1, x: 3, row: 6, symbol: 'goblinWarrior' }], player)
+    expect(ofDef(below, 'goblinWarrior')[0]!.awake).toBe(false)
+    expect(ofDef(run(below, 5), 'goblinWarrior')[0]!.awake).toBe(false)
   })
 
   it('leaves a unit wakeDistance or farther asleep: it stands still on its stand strip', () => {
