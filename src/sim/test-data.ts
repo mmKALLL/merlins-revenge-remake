@@ -1,4 +1,4 @@
-// Engine data for integration tests: assets/actors (the remake's detour off), the converted teams
+// Engine data for integration tests: assets/actors (the remake's detour and idle wander off), the converted teams
 // and the converted atlases in public/generated/sprites (pnpm assets:convert). Node only.
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolveActors, type ActorDef } from '../mr-open/mr-actor-data'
@@ -6,11 +6,12 @@ import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from './state'
 
 const actorFiles = Object.fromEntries(readdirSync('assets/actors').map((f) => [f.replace(/\.txt$/, ''), readFileSync(`assets/actors/${f}`, 'utf8')]))
-// engine data; the remake's detour is off
+// engine data; the remake's detour and idle wander are off
 export const defs: Record<string, ActorDef> = resolveActors(actorFiles, {
   player: { weapon: 'energyBlast' },
   goblinWarrior: { detourChance: 0 }, goblinArcher: { detourChance: 0 }, bowOrc: { detourChance: 0 }, swordOrc: { detourChance: 0 },
 })
+for (const d of Object.values(defs)) d.idleWanderChancePerSecond = 0
 // resident groups of unported actors are dropped, as convert-assets does (goblinHouse's goblinBuilder)
 for (const d of Object.values(defs)) d.residentGroups = d.residentGroups.filter((g) => defs[g.typ])
 export const teams = JSON.parse(readFileSync('public/generated/teams.json', 'utf8')) as Record<string, TeamDef>

@@ -2,7 +2,7 @@
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
 //  2. player attack input: charge / resume / release (tick-spell.ts)
-//  3. CPU AI decisions (tick-ai.ts), AI spell casters (tick-caster.ts), dwelling production and
+//  3. CPU AI decisions (tick-ai.ts), sleepers' idle wander in a continuous world (idle-wander.ts), AI spell casters (tick-caster.ts), dwelling production and
 //     resident releases (tick-dwelling.ts)
 //  4. movement of every other actor (every velocity, walkers' included, decays by the actor's
 //     friction first; characters collide with tiles and take wall damage while reeling; bullets
@@ -33,7 +33,7 @@ import {
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
-  DEFAULT_SIM_CONFIG, roomKey,
+  DEFAULT_SIM_CONFIG, isStepped, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
@@ -41,6 +41,7 @@ import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
 import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { stepDwellings } from './tick-dwelling'
+import { stepSleeperWanders } from './idle-wander'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
 
@@ -174,7 +175,7 @@ function stepMovement(t: Tick): void {
   const s = t.s
   const roomRect = playAreaRect(s)
   for (const a of t.actors) {
-    if (a.id === s.playerId || t.removed.has(a.id) || !a.awake) continue
+    if (a.id === s.playerId || t.removed.has(a.id) || !isStepped(a)) continue
     if (isSpell(s, a)) {
       if (a.mode === 'charge') {
         // the player's is aligned in stepPlayerAttack; a CPU caster has just moved (earlier in the list)
@@ -332,6 +333,7 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input, cfg.view)
   stepCpuAi(t)
+  if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
   stepSpellCasters(t)
   stepDwellings(t)
   stepMovement(t)

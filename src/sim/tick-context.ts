@@ -4,18 +4,19 @@
 // input state's objects, so `stepSim` stays pure.
 //
 // Sleeping units of a continuous world (activation.ts) are not copied: they wait in `sleepers`,
-// untouched, so a big map costs little per tick. The steps only see them where a sleeper can still
+// untouched, so a big map costs little per tick; only the few walking an idle wander
+// (idle-wander.ts) are copied and stepped with the awake ones. The steps only see them where a sleeper can still
 // take part: hits (splash victims, a bullet's target) and Merlin's aim at the nearest hostile. A
 // sleeper about to be hit is brought into the tick first (hitTargetIn).
 import type { Vec } from '../mr-open/mr-geometry'
 import { createActor } from './actors'
 import type { Rng } from './rng'
-import type { ActorState, SimEvent, SimState } from './state'
+import { isStepped, type ActorState, type SimEvent, type SimState } from './state'
 
 export interface Tick {
   s: SimState // the state being stepped (read-only)
-  actors: ActorState[] // working copies, plus actors created this tick and sleepers brought in
-  sleepers: ActorState[] // continuous world: the input's sleeping units, not copied (read-only)
+  actors: ActorState[] // working copies (awake and idly wandering), plus actors created this tick and sleepers brought in
+  sleepers: ActorState[] // continuous world: the input's other sleeping units, not copied (read-only)
   broughtIn: Set<number> // sleeper ids copied into `actors` this tick
   prev: Map<number, ActorState> // the input state's working actors by id (mode at the start of the tick)
   removed: Set<number> // ids removed this tick (finished, landed, hit)
@@ -30,13 +31,13 @@ export interface Tick {
 const workingCopy = (a: ActorState): ActorState => ({ ...a, ai: { ...a.ai } })
 
 export function beginTick(s: SimState): Tick {
-  const awake = s.actors.filter((a) => a.awake)
+  const stepped = s.actors.filter(isStepped)
   return {
     s,
-    actors: awake.map(workingCopy),
-    sleepers: awake.length === s.actors.length ? [] : s.actors.filter((a) => !a.awake),
+    actors: stepped.map(workingCopy),
+    sleepers: stepped.length === s.actors.length ? [] : s.actors.filter((a) => !isStepped(a)),
     broughtIn: new Set(),
-    prev: new Map(awake.map((a) => [a.id, a])),
+    prev: new Map(stepped.map((a) => [a.id, a])),
     removed: new Set(),
     hit: new Set(),
     graves: [],

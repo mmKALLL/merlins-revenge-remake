@@ -131,8 +131,9 @@ export interface ActorDef {
   projectileSpreadDeg: number // fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
   knockbackSpreadDeg: number // this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   productionTimeScale: number // dwelling group production time = groupSize * buildTime * this (see engine notes enemies-2 §7)
-  idleWanderIntervalTicks: number // an idle CPU character rolls for a wander every this many ticks
-  idleWanderChancePerSecond: number // chance per second of starting a wander (each roll: this * interval / 30); 0 = off
+  // idle wander of sleeping CPU characters near the view in the continuous world (engine notes walking-and-rooms)
+  idleWanderIntervalTicks: number // roll interval the chance is scaled to: each roll succeeds with chancePerSecond * this / 30
+  idleWanderChancePerSecond: number // chance per second of starting a wander when rolled every idleWanderIntervalTicks; 0 = off
   idleWanderRadius: number // px: a wander walks to a random point within this of the unit's home (spawn position)
   // continuous world (?camera=follow; read from the player's definition only; engine notes walking-and-rooms, "Continuous world")
   wakeDistance: number // px, reg point to reg point: a sleeping unit closer than this to Merlin wakes
@@ -140,6 +141,8 @@ export interface ActorDef {
   hitWakeTicks: number // a unit hit this far or farther stays awake for at least this many ticks
   navModeClearRadius: number // px: nav mode is on while no awake living hostile unit is within this of Merlin
   activationVerticalScale: number // the four ranges above reach this fraction as far up and down as sideways (ellipses)
+  idleWanderMarginTiles: number // sleepers within the follow camera's view grown by this many tiles on each side may idle wander
+  idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -218,6 +221,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0.1, idleWanderRadius: 32, // idle wander (none in the engine)
     wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
     activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
+    idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -244,6 +248,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
+  'idleWanderMarginTiles', 'idleWanderScanTicks',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -546,6 +551,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       wakeDistance: num(r, 'wakeDistance', ctx), sleepDistance: num(r, 'sleepDistance', ctx),
       hitWakeTicks: num(r, 'hitWakeTicks', ctx), navModeClearRadius: num(r, 'navModeClearRadius', ctx),
       activationVerticalScale: num(r, 'activationVerticalScale', ctx),
+      idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

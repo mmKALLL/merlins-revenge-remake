@@ -54,8 +54,8 @@ export type ActorMode =
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
  * the original AI: stand still, then walk a short way in a random direction, then retarget.
- * idleWander: the remake's idle wander (tick-ai.ts stepIdleWander): with no target, walk to a random
- * point near home.
+ * idleWander: the remake's idle wander of a sleeping unit near the view in a continuous world
+ * (idle-wander.ts): walk to a random point near home, still asleep.
  */
 export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload' | 'idleWander'
 
@@ -74,7 +74,7 @@ export interface AiState {
   walkTicks: number // remake detour: consecutive ticks spent walking toward the target
   detourTicks: number // remake detour: pause ticks left in detourPause, then ticks walked in detourMove
   detourGoal: Vec | null // remake detour: where detourMove walks to
-  idleTicks: number // remake idle wander: ticks idle since the last roll, then ticks walked in idleWander
+  idleTicks: number // remake idle wander: ticks walked in idleWander
   wanderGoal: Vec | null // remake idle wander: where idleWander walks to
   chargeKind: ChargeKind | null // player only
 }
@@ -116,7 +116,7 @@ export interface ActorState {
   age: number // ticks in the current mode for timed modes (land, explode, player die)
   technique: TechniqueState // modWeaponTechnique counter and cache
   dwelling: DwellingState | null // objDwelling production (modResidents); null for everything else
-  /** continuous world (activation.ts): a sleeping unit has no AI, movement, attacks, production or regeneration; always true in rooms mode */
+  /** continuous world (activation.ts): a sleeping unit has no AI, movement, attacks, production or regeneration (bar an idle wander); always true in rooms mode */
   awake: boolean
   wakeHold: number // continuous world: ticks a unit hit from far away stays awake regardless of distance
 }
@@ -165,6 +165,12 @@ export interface SimState {
 }
 
 export const roomKey = (room: Vec): string => `${room.x},${room.y}`
+
+/** A sleeping unit walking an idle wander (idle-wander.ts): the tick steps and animates it like an awake one. */
+export const isSleepWandering = (a: ActorState): boolean => !a.awake && a.ai.mode === 'idleWander'
+
+/** Whether the tick steps the actor: every awake one and the sleepers walking an idle wander. */
+export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'idleWander'
 
 export interface SimConfig {
   // TODO(Task 8): derive from frame via collisionRectFor; the player uses this fixed rect until then

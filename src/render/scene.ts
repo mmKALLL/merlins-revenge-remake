@@ -6,7 +6,7 @@ import type { LayerName } from '../mr-open/mr-map-format'
 import { isSpell, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
-import { roomKey, type ActorState, type SimState } from '../sim/state'
+import { isStepped, roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import { barColour, HealthBars, type StandBox } from './health-bars'
 
@@ -198,8 +198,9 @@ export class Scene {
       const def = this.defs[a.def]
       if (!def) continue
       const spell = isSpell(s, a)
-      // a sleeper of a continuous world is left untouched by the sim; its stand strip loops here
-      const frame = a.awake ? a.animFrame : sleepingFrame(s.anims[def.name]?.[a.anim], s.tick)
+      // a sleeper of a continuous world is left untouched by the sim (unless it walks an idle
+      // wander, animated by the sim); its stand strip loops here
+      const frame = isStepped(a) ? a.animFrame : sleepingFrame(s.anims[def.name]?.[a.anim], s.tick)
       const tex = spell ? this.spellTexture : this.frameFor(def.name, a.anim, frame)
       if (!tex) continue
       seen.add(a.id)

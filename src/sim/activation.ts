@@ -1,7 +1,8 @@
 // Continuous world activation (remake feature; engine notes walking-and-rooms, "Continuous world").
 // With the whole map as one room, units far from Merlin sleep: no AI, movement, attacks, dwelling
 // production, cooldowns or regeneration, and the AI does not see them; they can still be hit and
-// show their stand strip (animated by the renderer, as the tick leaves sleepers untouched). The
+// show their stand strip (animated by the renderer, as the tick leaves sleepers untouched). Near
+// the view a sleeper may walk an idle wander (idle-wander.ts), still asleep; waking ends it. The
 // distances and the hold after a far hit come from the player's ActorDef (wakeDistance,
 // sleepDistance, hitWakeTicks, navModeClearRadius); every distance is elliptical, shorter up and down
 // by activationVerticalScale (activationDistance). Bullets and spells are never put to sleep.
@@ -73,9 +74,15 @@ export function stepActivation(t: Tick): void {
     const next = nextActivation(a, fromMerlin(t.s, p, a), t.hit.has(a.id), rules)
     a.wakeHold = next.wakeHold
     if (a.awake === next.awake) continue
-    if (next.awake) a.awake = true
+    if (next.awake) wake(a)
     else if (isCalm(a)) fallAsleep(t, a)
   }
+}
+
+/** Wakes the unit; the AI takes over from an idle wander (it retargets next tick). */
+function wake(a: ActorState): void {
+  a.awake = true
+  if (a.ai.mode === 'idleWander') a.ai = { ...a.ai, mode: 'findTarget', wanderGoal: null, idleTicks: 0, pathStall: 0 }
 }
 
 /** A unit only falls asleep when walking or standing: a reel, a death, an attack or a charge plays out first. */
@@ -100,7 +107,7 @@ export function asleep(s: SimState, a: ActorState): ActorState {
  * sleepers untouched, so it is also settled for drawing: prevPos = pos, else the renderer would keep
  * interpolating between two points that never converge (a jitter).
  */
-function restAsleep(s: SimState, a: ActorState): void {
+export function restAsleep(s: SimState, a: ActorState): void {
   a.awake = false
   a.vel = { x: 0, y: 0 }
   a.prevPos = a.pos

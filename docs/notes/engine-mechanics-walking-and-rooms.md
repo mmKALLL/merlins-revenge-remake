@@ -254,8 +254,26 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   hittable: explosions catch them, a bullet whose target fell asleep can still hit it, and Merlin's
   nearest-hostile shot (Space) aims at them. For speed the tick does not copy sleepers at all
   (`Tick.sleepers`, brought into the tick when hit), and the renderer loops their stand strip from
-  the tick (`sleepingFrame`). very_big_map (15x15 rooms, 1875 actors) steps in about 0.17 ms per tick
-  on average this way (about 1.9 ms when every actor was copied and scanned each tick).
+  the tick (`sleepingFrame`). very_big_map (15x15 rooms, 1875 actors) steps in about 0.2 ms per tick
+  on average this way (about 1.9 ms when every actor was copied and scanned each tick); the idle
+  wander below adds about 0.01 ms (Merlin walking and shooting for 9000 ticks: 0.197 -> 0.21 ms).
+- **Idle wander of sleepers** (owner request; `src/sim/idle-wander.ts`): sleepers near the screen
+  would otherwise stand frozen. Every `idleWanderScanTicks` (5) ticks, each sleeping CPU walker
+  (`objAiCPU` with a walk speed, so no dwelling or spell caster; alive, walking or standing, in
+  `#findTarget`, and without an `idle`/`look`/`altStand` strip of its own) positioned inside the
+  follow camera's view (`viewRect`) grown by `idleWanderMarginTiles` (8) tiles on every side rolls
+  `idleWanderChancePerSecond * idleWanderIntervalTicks / 30` (0.1/s at the defaults, where the scan
+  period equals the interval; seeded RNG). On success it walks at its walk speed (friction, swept
+  tile collision) to a uniformly random point within `idleWanderRadius` (32 px) of its home, the
+  spawn position (`ActorState.home`, kept through room store/restore and world-mode switches), and
+  stops within the modMoveToLoc arrival distance (5 px) or after `pathFindingStallTime` stalled
+  ticks, settled asleep on its stand strip again. It stays asleep throughout (AI mode
+  `idleWander`: no AI, not a targeting candidate, no cooldowns) but plays its walk strip, animated
+  by the sim; coming within `wakeDistance` wakes it by the normal rule, which ends the wander. Only
+  the sleepers walking a wander are copied into the tick (`isStepped`); the scan is a position test
+  over the waiting sleepers on scan ticks only, and sleepers outside the grown view are never
+  touched. The per-unit fields live on the unit's ActorDef, the margin and scan period on the
+  player's; a chance of 0 turns it off.
 - **Team caps**: the team member and reservation counts that gate dwelling releases and summons
   (reservationsMaster, counted per room in the original) count awake units only, so the rest of the
   map does not fill a team's cap.

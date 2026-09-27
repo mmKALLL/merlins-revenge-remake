@@ -14,7 +14,7 @@ import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathf
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
-import { ATTACK_STRIPS, TICKS_PER_SECOND, type ActorState, type AnimationSet, type AttackStrip } from './state'
+import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, waitingSleepers, type Tick } from './tick-context'
 import { insideRect } from './view'
 
@@ -23,10 +23,11 @@ const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, p
 /**
  * Living team units as targeting candidates: targetRoles [[#teamMembers, #teamBuildings]] covers
  * characters and dwellings (dead and dying ones are skipped by findTargetInTeam). The AI does not
- * see the sleepers of a continuous world; Merlin's aim does (`withSleepers`).
+ * see the sleepers of a continuous world (not even those in the tick: hit or idly wandering);
+ * Merlin's aim does (`withSleepers`).
  */
 export function targetables(t: Tick, withSleepers = false): Targetable[] {
-  const candidates = withSleepers ? [...t.actors, ...waitingSleepers(t)] : t.actors
+  const candidates = withSleepers ? [...t.actors, ...waitingSleepers(t)] : t.actors.filter((a) => a.awake)
   return candidates.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
 }
 
@@ -116,51 +117,6 @@ function stepDetourMove(a: ActorState, def: ActorDef): boolean {
   a.vel = frameMove(a.pos, goal, def.walkSpeed)
   a.mode = 'walk'
   a.ai = { ...a.ai, detourTicks: a.ai.detourTicks + 1, pathStall }
-  faceAlong(a, a.vel.x)
-  return true
-}
-
-/** Strips that give a unit its own idle animation; such a unit stands and plays it instead of wandering. */
-const IDLE_STRIPS = ['idle', 'look', 'altStand']
-const hasIdleAnimation = (set: AnimationSet | undefined): boolean => IDLE_STRIPS.some((name) => set?.[name] !== undefined)
-
-/**
- * Remake idle wander (not in the original), on a tick the character found no target: every
- * idleWanderIntervalTicks it rolls idleWanderChancePerSecond * interval / 30 on the seeded RNG to
- * walk to a random point within idleWanderRadius of its home. Only walkers without an idle strip
- * wander; a chance of 0 never rolls.
- */
-function stepIdle(t: Tick, a: ActorState, def: ActorDef): void {
-  if (def.idleWanderChancePerSecond <= 0 || def.walkSpeed <= 0 || hasIdleAnimation(t.s.anims[def.name])) return
-  a.ai.idleTicks++
-  if (a.ai.idleTicks < def.idleWanderIntervalTicks) return
-  a.ai.idleTicks = 0
-  if (random(t) >= (def.idleWanderChancePerSecond * def.idleWanderIntervalTicks) / TICKS_PER_SECOND) return
-  const angle = random(t) * 2 * Math.PI
-  const r = def.idleWanderRadius * Math.sqrt(random(t)) // uniform over the disc
-  const wanderGoal = { x: a.home.x + Math.cos(angle) * r, y: a.home.y + Math.sin(angle) * r }
-  a.ai = { ...a.ai, mode: 'idleWander', wanderGoal, idleTicks: 0, pathStall: 0 }
-}
-
-/**
- * One tick of an idle wander; returns whether it took the tick. A target found cancels it (the
- * caller then retargets on the same tick). Otherwise it walks at walkSpeed toward its goal (tile
- * collisions apply in the move step) until within the modMoveToLoc arrival distance or stalled for
- * pathFindingStallTime ticks, then stands idle again.
- */
-function stepIdleWander(t: Tick, a: ActorState, def: ActorDef): boolean {
-  const goal = a.ai.wanderGoal ?? a.pos
-  const moved = movedOnScreen(a.pos, a.prevPos)
-  const pathStall = a.ai.idleTicks === 0 || moved ? 0 : a.ai.pathStall + 1
-  const targetFound = nearestHostileId(t, a) !== null
-  if (targetFound || arrived(a.pos, goal) || pathStall >= def.pathFindingStallTime) {
-    a.vel = { x: 0, y: 0 }
-    a.ai = { ...a.ai, mode: 'findTarget', wanderGoal: null, idleTicks: 0, pathStall: 0 }
-    return !targetFound
-  }
-  a.vel = frameMove(a.pos, goal, def.walkSpeed)
-  a.mode = 'walk'
-  a.ai = { ...a.ai, idleTicks: a.ai.idleTicks + 1, pathStall }
   faceAlong(a, a.vel.x)
   return true
 }
@@ -279,7 +235,6 @@ export function stepCpuAi(t: Tick): void {
       if (a.ai.mode === 'runReload') continue
     }
     if (stepDetour(t, a, def)) continue
-    if (a.ai.mode === 'idleWander' && stepIdleWander(t, a, def)) continue
     let decision: AiDecision | null = decideFor(t, a)
     if (decision.kind === 'retarget') decision = retarget(t, a)
     else a.ai.retargetCounter++
@@ -294,7 +249,6 @@ export function stepCpuAi(t: Tick): void {
         startAttack(a, armedDefOf(t.s, a), decision.faceLeft)
         break
       default: // idle, a repeated retarget, or no target found
-        if (decision === null) stepIdle(t, a, def)
         break
     }
   }
