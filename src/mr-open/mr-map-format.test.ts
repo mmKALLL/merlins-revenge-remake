@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseMapFile, roomNumToXY, roomXYToNum } from './mr-map-format'
 
 const tvsDemo = readFileSync('assets/maps/tvsDemo.txt', 'utf8')
-const sam = readFileSync('assets/maps/sam.txt', 'utf8')
+const sam = readFileSync('assets/maps/works/sam.txt', 'utf8')
 
 describe('roomNumToXY', () => {
   it('maps 1-based room numbers row-major', () => {

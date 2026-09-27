@@ -1,7 +1,7 @@
 // Copies the original files this project uses from the (git-ignored) archive
 // into ./assets with a sensible structure. Run: pnpm assets:copy
 import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -18,10 +18,6 @@ if (!existsSync(ARCHIVE)) {
 type Copy = { from: string; to: string; why: string }
 
 const copies: Copy[] = [
-  // walk-and-rooms slice: maps
-  { from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, 'maps/tvsDemo.txt'), why: 'default map' },
-  { from: join(ARCHIVE, 'maps', 'works', 'sam.txt'), to: join(ASSETS, 'maps/sam.txt'), why: '3x3 test map' },
-  { from: join(ARCHIVE, 'maps', 'not_fully_tested', 'mriv_small.txt'), to: join(ASSETS, 'maps/mriv_small.txt'), why: 'small 5-room MR4 map, main test map' },
   // tileset: the archive ships a clean PNG of the MR4 objects sheet; the Director 16-bit cast member
   // decodes badly (see docs/notes/tileset-extraction.md), so this replaces the extracted copy
   { from: join(ARCHIVE, 'mini_projects', 'correctMR4Objects', 'tlk_merlin4Objects.png'), to: join(ASSETS, 'tilesets/merlin4Objects.png'), why: 'MR4 objects sheet (clean PNG from the archive)' },
@@ -76,6 +72,20 @@ for (const name of stagedActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for the enemy slice' })
 }
 copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'extracted/teams/orcs.txt'), why: 'staged for the enemy slice' })
+
+// maps: every map under the archive's maps/ keeps its subfolder (a map's id is its path there),
+// plus the archive's playable demo map at the top level
+function copyMapsRecursive(dir: string): void {
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const from = join(dir, entry.name)
+    if (entry.isDirectory()) copyMapsRecursive(from)
+    else if (entry.name.endsWith('.txt')) {
+      copies.push({ from, to: join(ASSETS, 'maps', relative(join(ARCHIVE, 'maps'), from)), why: 'map' })
+    }
+  }
+}
+copyMapsRecursive(join(ARCHIVE, 'maps'))
+copies.push({ from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, 'maps/tvsDemo.txt'), why: 'map (the archive\'s map_to_play)' })
 
 // every file in fromDir matching pattern -> toDir/<same name>
 function copyGlob(fromDir: string, pattern: RegExp, toDir: string, why: string): void {
