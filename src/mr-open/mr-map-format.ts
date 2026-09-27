@@ -23,6 +23,8 @@ export interface MapDefinition {
   mapSize: Vec
   roomSize: Vec
   startRoom: Vec
+  /** objMap.pEndRoom: clearing this room completes the map (gameMaster.teamDied); absent = #none */
+  endRoom?: Vec
   layers: LayerDefinition[]
   rooms: RoomDefinition[]
 }
@@ -43,6 +45,7 @@ export function parseMapFile(text: string): MapDefinition {
   const mapSize = asPoint(getProp(map, 'mapSize'))
   const roomSize = asPoint(getProp(map, 'roomSize'))
   const startRoom = asPoint(getProp(map, 'startRoom'))
+  const endRoom = optionalPoint(map, 'endRoom')
   const layers = asList(getProp(map, 'layerDefinitions')).map((l) => ({
     name: asLayerName(asSymbol(getProp(l, 'name'))),
     tileSet: asSymbol(getProp(l, 'tileSet')),
@@ -62,7 +65,7 @@ export function parseMapFile(text: string): MapDefinition {
     for (const l of layers) empty.layers[l.name] = emptyGrid(roomSize)
     rooms.push(empty)
   }
-  return { mapSize, roomSize, startRoom, layers, rooms }
+  return { mapSize, roomSize, startRoom, ...(endRoom ? { endRoom } : {}), layers, rooms }
 }
 
 function parseRoom(r: LingoValue, position: number, roomSize: Vec): RoomDefinition {
@@ -115,6 +118,12 @@ function asNumber(v: LingoValue): number {
 function asSymbol(v: LingoValue): string {
   if (!isSymbol(v)) throw new Error('expected symbol')
   return v.sym
+}
+/** A point property that may be missing or #none (objMap.init: `if pDefinition[#endRoom] <> void`). */
+function optionalPoint(v: LingoValue, key: string): Vec | undefined {
+  if (typeof v !== 'object' || v === null || Array.isArray(v) || !Object.hasOwn(v, key)) return undefined
+  const p = (v as { [k: string]: LingoValue })[key]!
+  return isSymbol(p) ? undefined : asPoint(p)
 }
 function asPoint(v: LingoValue): Vec {
   if (typeof v !== 'object' || v === null || !('x' in v)) throw new Error('expected point')

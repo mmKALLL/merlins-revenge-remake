@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { resolveActors, type ActorDef, type Plain, needsSprite } from '../src/mr-open/mr-actor-data'
 import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
+import { GAME_COMPLETE_SOUND } from '../src/mr-open/mr-map-clear'
 import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
+import { parseCutScene } from '../src/cutscene/script'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
@@ -294,6 +296,7 @@ function convertAudio(actors: Record<string, ActorDef>): void {
     if (name !== null && !set.has(name)) missing.push(`${where} -> ${name}`)
   }
   want(ROOM_CLEARED_SOUND, soundSet, 'objRoom.pRoomClearedSound')
+  want(GAME_COMPLETE_SOUND, soundSet, 'gGameCompleteSound')
   for (const a of Object.values(actors)) {
     want(a.attack.sound, soundSet, `${a.key}.attack.sound`)
     want(a.attack.releaseSound, soundSet, `${a.key}.attack.releaseSound`)
@@ -312,6 +315,18 @@ function convertExitArrows(): void {
   const files = sortedDir(dir).filter((f) => f.endsWith('.bmp'))
   for (const f of files) writePng(join(OUT, 'exit-arrows', f.replace(/\.bmp$/, '.png')), decodeBmp(readFileSync(join(dir, f))))
   console.log(`exit arrows: ${files.length}`)
+}
+
+/** assets/cut-scenes/<name>.txt -> cut-scenes/<name>.json, parsed (src/cutscene/script.ts). */
+function convertCutScenes(): void {
+  mkdirSync(join(OUT, 'cut-scenes'), { recursive: true })
+  const scenes = readTxtDir('cut-scenes')
+  for (const [name, text] of Object.entries(scenes)) {
+    const script = parseCutScene(text)
+    if (script.lines.length === 0) throw new Error(`cut scene ${name} has no lines`)
+    writeFileSync(join(OUT, 'cut-scenes', `${name}.json`), JSON.stringify(script))
+  }
+  console.log(`cut scenes: ${Object.keys(scenes).length}`)
 }
 
 function readPng(path: string): RgbaImage {
@@ -336,3 +351,4 @@ convertTeams()
 checkActorAtlases(actors, convertSprites())
 convertAudio(actors)
 convertExitArrows()
+convertCutScenes()

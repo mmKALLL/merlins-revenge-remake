@@ -141,6 +141,8 @@ export type SimEvent =
   | { kind: 'sound'; name: string; volume: number }
   /** room activation with a music tile (soundMaster.playMusic); null = musicOff stops the music */
   | { kind: 'music'; track: string | null }
+  /** the whole map cleared or the end room cleared (gameMaster.gameComplete); emitted once */
+  | { kind: 'mapComplete' }
 
 /**
  * rooms: the original room-by-room play (store/restore, exits, room-cleared jingle). continuous
@@ -165,6 +167,8 @@ export interface SimState {
   rng: Rng
   playerId: number
   restartRequested: boolean
+  /** gameMaster.gameComplete has run (map-complete.ts): units no longer act; the presentation takes over */
+  mapComplete: boolean
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)
 }
 

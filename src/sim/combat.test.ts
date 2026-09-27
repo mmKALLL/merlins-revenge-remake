@@ -841,7 +841,10 @@ describe('sound and music events (engine notes sound §3, §5)', () => {
   })
 
   it('end_screen plays once, on the tick the exits open', () => {
-    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, energy: 1 })
+    // a warrior waits in the unvisited room 2, so the map is not clear (end_level would play instead)
+    const guarded = openMap([{ x: 10, y: 5, tile: WARRIOR }], { rooms: 2 })
+    guarded.rooms[1]!.layers.objects![4]![9] = WARRIOR
+    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, { ...dummy, energy: 1 }, guarded)
     s = run(s, 13, holdE)
     const cleared: number[] = []
     for (let i = 0; i < 60; i++) {
