@@ -1,4 +1,4 @@
 name	cast	member	width	height	bpp	regX	regY	note
-anm_shuriken_fly_03_01	gfx	1371	7	7	32	3	3	alpha=0..255
+anm_shuriken_fly_03_01	gfx	1371	7	7	32	3	3	raw alpha=255..255
 anm_shuriken_land_03_02	gfx	1373	7	7	32	3	3	alpha=255..255
 anm_shuriken_land_30_01	gfx	1372	7	7	32	3	3	alpha=255..255
