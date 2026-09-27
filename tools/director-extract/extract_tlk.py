@@ -20,6 +20,20 @@ def unpack_rle(fdata, total):
             n = v + 1; out += fdata[i:i+n]; i += n
     return out, i
 
+def bitmap_header(cast_chunk):
+    """Row pitch and bits per pixel from a D5+ bitmap CASt's specific data (the
+    last `specificLen` bytes). Layout: pitch u16 (top bits are flags), rect
+    (4 x i16), 8 unknown bytes, regY, regX, then flags2 and bitsPerPixel bytes
+    when the pitch's 0x8000 flag is set. drxtract reads flags2+bpp as one signed
+    int16, so a member with flags2 = 0x80 (0x8020 < 0) silently falls back to
+    a guess from the pitch's high byte (0x83 -> 8, 0x84 -> 16): that is why the old tlk_merlin* sheets and
+    tlk_merlin4Objects looked 8/16-bit and decoded badly. They are 32-bit."""
+    spec_len = struct.unpack('>I', cast_chunk[8:12])[0]
+    spec = cast_chunk[-spec_len:]
+    raw_pitch = struct.unpack('>H', spec[0:2])[0]
+    bpp = spec[23] if raw_pitch & 0x8000 and len(spec) >= 24 else 1
+    return raw_pitch & 0x3fff, bpp
+
 def decode32(fdata, w, h, pitch):
     """32-bit Director bitmap: each row is `pitch` bytes holding four planes
     of `w` bytes: A, R, G, B (drxtract reads them as A,B,G,R in the BMP's
@@ -52,20 +66,15 @@ for f in sorted(os.listdir(bindir), key=lambda s: int(s.split('.')[0])):
     if not name.startswith('tlk_'): continue
     if only and name not in only: continue
     refs = {r['chunkID']: r['index'] for r in keys.get(idx, [])}
-    w, h, depth = cd['width'], cd['height'], cd['depth']
-    # drxtract reads flags2+bpp bytes as one int16; low byte is the real bpp
-    flags2 = 0
-    if depth > 32:
-        flags2, depth = depth >> 8, depth & 0xff
-    print('%5d %-24s %4dx%-4d bpp=%-2d flags2=0x%02x pal=%s BITD=%s' % (idx, name, w, h, depth, flags2, cd.get('palette_txt'), refs.get('BITD')))
+    w, h = cd['width'], cd['height']
+    pitch, depth = bitmap_header(data)
+    print('%5d %-24s %4dx%-4d bpp=%-2d pitch=%-4d BITD=%s' % (idx, name, w, h, depth, pitch, refs.get('BITD')))
     if 'BITD' not in refs: print('   !! no BITD'); continue
     bitd = open(os.path.join(bindir, '%d.BITD' % refs['BITD']), 'rb').read()
     out = os.path.join(outdir, name + '.png')
     try:
         if depth == 32:
-            # pitch: first int16 of the bitmap header (after the name/extra strings)
-            # = row bytes; equals w*4 for 32bpp. Recompute rather than re-parse.
-            im = decode32(bitd, w, h, w * 4)
+            im = decode32(bitd, w, h, pitch)
             a = im.getchannel('A'); lo, hi = a.getextrema()
             print('   alpha range %s' % ((lo, hi),))
             if lo == hi == 0:

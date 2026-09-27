@@ -18,8 +18,9 @@ if (!existsSync(ARCHIVE)) {
 type Copy = { from: string; to: string; why: string }
 
 const copies: Copy[] = [
-  // tileset: the archive ships a clean PNG of the MR4 objects sheet; the Director 16-bit cast member
-  // decodes badly (see docs/notes/tileset-extraction.md), so this replaces the extracted copy
+  // tileset: the archive ships a clean PNG of the MR4 objects sheet. It is pixel-identical to the
+  // cast member decoded as 32-bit by tools/director-extract/extract_tlk.py (the other sheets in
+  // assets/tilesets come from that script; see docs/notes/tileset-extraction.md)
   { from: join(ARCHIVE, 'mini_projects', 'correctMR4Objects', 'tlk_merlin4Objects.png'), to: join(ASSETS, 'tilesets/merlin4Objects.png'), why: 'MR4 objects sheet (clean PNG from the archive)' },
   // key bindings
   { from: join(CASTS, 'bnd_wasd.txt'), to: join(ASSETS, 'keybindings/wasd.txt'), why: 'default bindings' },

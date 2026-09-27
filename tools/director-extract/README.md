@@ -41,8 +41,12 @@ bitmaps.
   comes from the blit ink (pure white is transparent for the Active and Objects layers),
   which `tools/convert-assets.ts` applies.
 
-Only the 32-bit and 16-bit members decode with correct colours; the older 8-bit
-`tlk_merlin{Passive,Active,Objects}` come out with the wrong palette and are not used.
+- The script reads the pitch and bits per pixel from the CASt specific data itself
+  (`bitmap_header`). drxtract reads the `flags2` + `bitsPerPixel` bytes as one signed int16;
+  when `flags2 = 0x80` that value is negative and drxtract falls back to guessing the depth
+  from the pitch's high byte (8 or 16 bit). Every `tlk_*` member is in fact 32-bit; the
+  "8-bit rainbow" `tlk_merlinPassive` and the "16-bit" `tlk_merlinActive`/`Objects`/
+  `tlk_merlin4Objects` were 32-bit data run through the wrong decoder.
 
 ## Engine movie: sounds, music and enemy bitmaps (2026-09-27)
 
