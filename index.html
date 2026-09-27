@@ -31,7 +31,8 @@
         flex: 1; padding: 1px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
         background: none; border: 0; white-space: nowrap; cursor: pointer;
       }
-      #maps button.star { flex: none; padding: 1px 6px; }
+      /* star column on the left, larger glyph; line-height keeps rows the same height as the 12px text rows */
+      #maps .star { flex: none; width: 22px; padding: 1px 0; font-size: 16px; line-height: 15px; text-align: center; }
       #maps button.star[aria-pressed='true'] { color: #ec4; }
       #favourites li.empty { padding: 1px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
       #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: #222; }

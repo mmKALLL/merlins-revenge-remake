@@ -43,6 +43,14 @@ const row = (...children: HTMLElement[]): HTMLLIElement => {
   return li
 }
 
+/** Keeps folder names aligned with map names, which start after the star column. */
+const starSpacer = (): HTMLSpanElement => {
+  const s = document.createElement('span')
+  s.className = 'star'
+  s.setAttribute('aria-hidden', 'true')
+  return s
+}
+
 /** A button that loads a map, marked when it is the map being played. */
 const mapButton = (text: string, id: string, currentId: string): HTMLButtonElement => {
   const b = button(text)
@@ -127,12 +135,12 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
   /** Shows a folder; `focusFirst` keeps keyboard users inside the list after it is rebuilt. */
   const show = (folder: MapFolder, focusFirst: boolean): void => {
     const items = listFolder(folder).map((item) => {
-      if (item.kind === 'map') return row(mapButton(label(item), item.entry.id, currentId), starButton(item.entry.id))
+      if (item.kind === 'map') return row(starButton(item.entry.id), mapButton(label(item), item.entry.id, currentId))
       const b = button(label(item))
       const target = findFolder(root, item.path) ?? root
       // a click from the keyboard has detail 0
       b.addEventListener('click', (e) => show(target, e.detail === 0))
-      return row(b)
+      return row(starSpacer(), b)
     })
     list.replaceChildren(...items)
     list.setAttribute('aria-label', `Maps in ${folder.path === '' ? 'the top folder' : `${folder.path}/`}`)
