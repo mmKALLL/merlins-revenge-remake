@@ -239,7 +239,10 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   (hysteresis). A hit wakes it; a hit taken at `sleepDistance` or farther also holds it awake for
   `hitWakeTicks` (180, 6 s), then the distance rule applies again. A unit falls asleep only while
   walking or standing (a reel, death, attack or charge plays out first); it then stops, returns to
-  its stand strip and its AI to `#findTarget`, and a spell it was still charging is removed. At map
+  its stand strip and its AI to `#findTarget`, and a spell it was still charging is removed. It is
+  also settled for drawing (`prevPos = pos`, on this path and on a world-mode switch), since the
+  tick no longer moves it and the renderer would otherwise keep interpolating between two old
+  positions (sleepers jittered after the C key). At map
   start every unit beyond `wakeDistance` starts asleep. Bullets and spells always update.
 - **Elliptical ranges** (owner request): every activation distance is `activationDistance`,
   `hypot(dx, dy / activationVerticalScale)`, so each range reaches its full length sideways and

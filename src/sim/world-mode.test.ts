@@ -3,9 +3,9 @@
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { playerOf } from './actors'
-import type { ActorState, SimState } from './state'
+import { NO_INPUT, type ActorState, type SimState } from './state'
 import { anims, defs, teams } from './test-data'
-import { createSim } from './tick'
+import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
 import { switchWorldMode } from './world-mode'
 
@@ -110,5 +110,43 @@ describe('switchWorldMode', () => {
   it('returns the state unchanged when already in the mode', () => {
     const s = roomsWorld([])
     expect(switchWorldMode(s, 'rooms')).toBe(s)
+  })
+})
+
+describe('units put to sleep stand perfectly still (regression: sleepers jittered after the switch)', () => {
+  const run = (s: SimState, ticks: number): SimState => {
+    for (let i = 0; i < ticks; i++) s = stepSim(s, NO_INPUT)
+    return s
+  }
+  /** A room-1 goblin far from Merlin that has been walking at him for a few ticks. */
+  const walkingFar = (): SimState => {
+    const s = run(roomsWorld([{ room: 1, x: 17, symbol: 'goblinWarrior' }]), 6)
+    const g = goblins(s)[0]!
+    expect(g.pos).not.toEqual(g.prevPos)
+    expect(g.vel).not.toEqual({ x: 0, y: 0 })
+    return s
+  }
+  const expectStill = (g: ActorState) => {
+    expect(g.awake).toBe(false)
+    expect(g.prevPos).toEqual(g.pos)
+    expect(g.vel).toEqual({ x: 0, y: 0 })
+    expect(g.anim).toBe('stand')
+  }
+
+  it('settles a formerly walking unit stored in another room when switching to continuous', () => {
+    const s = walkingFar()
+    const g = goblins(s)[0]!
+    const moved = { ...g, pos: { x: g.pos.x + 576, y: g.pos.y }, prevPos: { x: g.prevPos.x + 576, y: g.prevPos.y } }
+    const stored: SimState = { ...s, actors: s.actors.filter((a) => a.id !== g.id), rooms: { ...s.rooms, '2,1': { spawned: true, actors: [moved], graves: [], clear: false } } }
+    expectStill(goblins(switchWorldMode(stored, 'continuous'))[0]!)
+  })
+
+  it('settles a walking unit that falls asleep by distance after the switch, and keeps it still', () => {
+    let s = run(switchWorldMode(walkingFar(), 'continuous'), 1)
+    const g = goblins(s)[0]!
+    expectStill(g)
+    s = run(s, 10)
+    expect(goblins(s)[0]!.pos).toEqual(g.pos)
+    expect(goblins(s)[0]!.prevPos).toEqual(g.pos)
   })
 })

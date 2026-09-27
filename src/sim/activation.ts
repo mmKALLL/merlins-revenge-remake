@@ -95,10 +95,15 @@ export function asleep(s: SimState, a: ActorState): ActorState {
   return copy
 }
 
-/** Stops the unit on its stand strip and clears its AI back to finding a target. */
+/**
+ * Stops the unit on its stand strip and clears its AI back to finding a target. The tick leaves
+ * sleepers untouched, so it is also settled for drawing: prevPos = pos, else the renderer would keep
+ * interpolating between two points that never converge (a jitter).
+ */
 function restAsleep(s: SimState, a: ActorState): void {
   a.awake = false
   a.vel = { x: 0, y: 0 }
+  a.prevPos = a.pos
   a.anim = stripNameFor(s.anims[defOf(s, a).name], 'stand', false)
   a.animFrame = 0
   a.animCounter = 0
