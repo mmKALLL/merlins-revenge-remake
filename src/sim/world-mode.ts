@@ -1,8 +1,8 @@
 // Switching the world mode during play (remake feature, the C key; engine notes walking-and-rooms,
 // "Continuous world"). Runs between ticks and draws no random numbers.
 import type { Vec } from '../mr-open/mr-geometry'
-import { asleep, navModeClear, withinWakeDistance } from './activation'
-import { isAlive, isUnit, playerOf, spawnAllRooms } from './actors'
+import { asleep, canSleep, navModeClear, withinWakeDistance } from './activation'
+import { isUnit, playerOf, spawnAllRooms } from './actors'
 import { roomKey, type ActorState, type SimState, type WorldMode } from './state'
 import { EMPTY_ROOM, withExitsEvaluated } from './tick'
 
@@ -15,7 +15,8 @@ export function switchWorldMode(s: SimState, mode: WorldMode): SimState {
 /**
  * Rooms -> continuous: the current room's actors stay as they are, visited rooms' stored units
  * rejoin the live list and never-visited rooms spawn; those units are awake only within
- * wakeDistance of Merlin, as at a continuous map start. The exits stop gating.
+ * wakeDistance of Merlin, as at a continuous map start, or while they cannot sleep yet (stored
+ * mid-reel, mid-attack or dying: stepActivation puts them to sleep once calm). The exits stop gating.
  */
 function toContinuous(s: SimState): SimState {
   const current = new Set(s.actors.map((a) => a.id))
@@ -32,15 +33,16 @@ function toContinuous(s: SimState): SimState {
   const p = playerOf(spawned)
   const actors = spawned.actors.map((a) => {
     if (current.has(a.id) || !isUnit(spawned, a)) return a
-    return withinWakeDistance(spawned, p, a) ? { ...a, awake: true, wakeHold: 0 } : asleep(spawned, a)
+    return withinWakeDistance(spawned, p, a) || !canSleep(a) ? { ...a, awake: true, wakeHold: 0 } : asleep(spawned, a)
   })
   const next: SimState = { ...spawned, actors, exitsOpen: true, events: [] }
   return { ...next, navMode: navModeClear(next) }
 }
 
 /**
- * Continuous -> rooms: Merlin's room becomes the current room and keeps its actors; living units
- * elsewhere are stored in the room their position is in, and other bullets and spells are dropped.
+ * Continuous -> rooms: Merlin's room becomes the current room and keeps its actors; units elsewhere
+ * (dying ones too, whose death goes on when their room is back in play) are stored in the room their
+ * position is in, and other bullets and spells are dropped.
  * The exits and nav mode then follow the room rule, as on entering the room.
  */
 function toRooms(s: SimState): SimState {
@@ -56,7 +58,7 @@ function toRooms(s: SimState): SimState {
       live.push(awake)
       continue
     }
-    if (!isUnit(s, a) || !isAlive(a)) continue
+    if (!isUnit(s, a)) continue
     const stored = rooms[key] ?? EMPTY_ROOM
     rooms = { ...rooms, [key]: { ...stored, spawned: true, actors: [...stored.actors, awake] } }
   }

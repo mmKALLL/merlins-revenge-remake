@@ -9,9 +9,9 @@
 // take part: hits (splash victims, a bullet's target) and Merlin's aim at the nearest hostile. A
 // sleeper about to be hit is brought into the tick first (hitTargetIn).
 import type { Vec } from '../mr-open/mr-geometry'
-import { createActor } from './actors'
+import { createActor, isStepped } from './actors'
 import type { Rng } from './rng'
-import { isStepped, type ActorState, type SimEvent, type SimState } from './state'
+import type { ActorState, SimEvent, SimState } from './state'
 
 export interface Tick {
   s: SimState // the state being stepped (read-only)

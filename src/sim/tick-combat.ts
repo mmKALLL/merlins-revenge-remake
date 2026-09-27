@@ -39,13 +39,19 @@ function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
 
 /**
  * #die with the dieSound: objCharacter.goMode(#die) (objCharacter.txt:201-202), objDwelling
- * startDeath -> goMode(#dead) (objDwelling.txt:77-80, the same dieSound fields).
+ * startDeath -> goMode(#dead) (objDwelling.txt:77-80, the same dieSound fields). The AI stops: no
+ * attack frame fires from a dying unit, and an attack it was in never finishes back into #walk
+ * (a reel-proof tower killed mid-attack keeps its AI mode through the hit).
  */
 export function startDeath(t: Tick, a: ActorState): void {
   const def = defOf(t.s, a)
   a.energy = Math.min(a.energy, 0) // loseAllEnergy for a dwelling that ran out of residents
   a.mode = 'die'
   a.age = 0
+  if (def.aiType !== null) {
+    a.ai.mode = 'dazed'
+    a.ai.moveTarget = null
+  }
   t.events.push({ kind: 'died', id: a.id })
   playSound(t, def.dieSound, def.dieVolume)
 }
@@ -59,10 +65,6 @@ export function startDeath(t: Tick, a: ActorState): void {
 export function killUnit(t: Tick, a: ActorState): void {
   const def = defOf(t.s, a)
   t.hit.add(a.id)
-  if (def.aiType !== null) {
-    a.ai.mode = 'dazed' // no attack frame fires from a dying unit
-    a.ai.moveTarget = null
-  }
   loseEnergy(t, a, def.maxEnergy)
   if (a.mode !== 'die') startDeath(t, a)
 }
@@ -270,6 +272,7 @@ export function stepReelAndDeath(t: Tick): void {
     if (t.removed.has(a.id)) continue
     const def = defOf(t.s, a)
     const wasMode = t.prev.get(a.id)?.mode
+    if (isOutOfEnergy(t, a, def)) startDeath(t, a)
     switch (a.mode) {
       case 'reel':
         if (t.hit.has(a.id)) break // modReel.updateReel first runs on the update after the hit
@@ -306,6 +309,16 @@ export function stepReelAndDeath(t: Tick): void {
         break
     }
   }
+}
+
+/**
+ * modEnergy.checkDead for a CPU unit whose energy is spent outside the death modes (a state loaded
+ * from before this check existed): it dies as from a lethal hit instead of standing on, not alive
+ * and so unhittable, forever.
+ */
+function isOutOfEnergy(t: Tick, a: ActorState, def: ActorDef): boolean {
+  if (a.id === t.s.playerId || !isUnit(t.s, a)) return false
+  return a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && isDead(a.energy, def.minEnergy)
 }
 
 /**

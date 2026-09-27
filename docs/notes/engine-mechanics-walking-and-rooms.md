@@ -243,7 +243,12 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   also settled for drawing (`prevPos = pos`, on this path and on a world-mode switch), since the
   tick no longer moves it and the renderer would otherwise keep interpolating between two old
   positions (sleepers jittered after the C key). At map
-  start every unit beyond `wakeDistance` starts asleep. Bullets and spells always update.
+  start every unit beyond `wakeDistance` starts asleep. Bullets and spells always update. A unit
+  that is not alive (dying, dead, or out of energy) is never put to sleep and is always stepped
+  (`isStepped`), so its death reaches `#finish` and its grave; a sleeper in that state (e.g. from a
+  loaded snapshot) wakes. A world-mode switch keeps a restored unit that cannot sleep yet (mid-reel,
+  mid-attack, dying) awake until it is calm, and stores dying units with their room like living
+  ones (as does a room change), so their death goes on when the room is back in play.
 - **Elliptical ranges** (owner request): every activation distance is `activationDistance`,
   `hypot(dx, dy / activationVerticalScale)`, so each range reaches its full length sideways and
   `activationVerticalScale` (0.75) of it up and down: `wakeDistance` 192 px sideways, 144 px

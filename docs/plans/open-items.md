@@ -29,9 +29,12 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 
 ## Player feedback
 
-- **Bug (not reproduced):** a goblin froze in place and became unhittable after being hit during
-  its detour pause on `tvsDemo`. 60 headless runs found nothing; a regression test for a hit
-  during the pause exists. Ask the owner for an `mr.exportState()` paste if it recurs.
+- **Bug (fixed, owner to confirm):** an enemy froze in place, unhittable and without a grave.
+  Fixed paths: a reel-proof unit (tower, plant, skeleton head) killed mid-attack went back to
+  `#walk` out of energy; units restored mid-attack by the C key slept on their attack strip; a
+  dying unit could be dropped or left unstepped (now always stepped and stored with its room).
+  Fuzzing goblin maps in the continuous world with K and blasts timed at sleep transitions found no
+  goblin freeze; if it recurs, ask for an `mr.exportState()` paste.
 - **Low priority:** call "energy" "health" in the UI and code, if not too entangled with the
   engine's naming.
 

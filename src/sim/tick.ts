@@ -13,7 +13,7 @@
 //  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
 // 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
-// 12. room change: living characters stored, the new room restored or spawned (combat notes §2);
+// 12. room change: the room's characters stored (a dying one finishes when the room is back), the new room restored or spawned (combat notes §2);
 //     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
 // In a continuous world (remake feature, engine notes walking-and-rooms "Continuous world") every
 // room is spawned at the start and steps 11-12 give way to: units woken or put to sleep
@@ -31,11 +31,11 @@ import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { activateAtStart, navModeClear, stepActivation } from './activation'
 import { checkMapCleared, completeMap, isEndRoom, isWholeMapClear } from './map-complete'
 import {
-  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isUnit, playerOf, roomMusicTrack, spawnAllRooms, spawnRoomActors, stripFor,
+  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isStepped, isUnit, playerOf, roomMusicTrack, spawnAllRooms, spawnRoomActors, stripFor,
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
-  DEFAULT_SIM_CONFIG, isStepped, roomKey,
+  DEFAULT_SIM_CONFIG, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
@@ -254,7 +254,10 @@ function stepWeaponTechnique(t: Tick): void {
   }
 }
 
-/** 12. Store the old room's living characters, then restore the new room's or spawn it on a first visit. */
+/**
+ * 12. Store the old room's characters, then restore the new room's or spawn it on a first visit. A
+ * dying character is stored too: its death goes on to #finish and its grave once the room is back.
+ */
 function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   const fromKey = roomKey(from)
   const toKey = roomKey(to)
@@ -263,7 +266,7 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   // the spell stays with the player (modSpellMultistage #enteringNewRoom), so the charge goes on.
   const player = playerOf(s)
   const charging = s.actors.filter((a) => isSpell(s, a) && a.ownerId === s.playerId && a.mode === 'charge')
-  const survivors = s.actors.filter((a) => a.id !== s.playerId && isUnit(s, a) && isAlive(a))
+  const survivors = s.actors.filter((a) => a.id !== s.playerId && isUnit(s, a))
   const stored = s.rooms[fromKey] ?? EMPTY_ROOM
   const carried = [player, ...charging]
   const next: SimState = {

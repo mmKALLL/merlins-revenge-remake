@@ -73,9 +73,11 @@ export function stepActivation(t: Tick): void {
     if (a === p || t.removed.has(a.id) || !isUnit(t.s, a)) continue
     const next = nextActivation(a, fromMerlin(t.s, p, a), t.hit.has(a.id), rules)
     a.wakeHold = next.wakeHold
-    if (a.awake === next.awake) continue
-    if (next.awake) wake(a)
-    else if (isCalm(a)) fallAsleep(t, a)
+    // a unit that cannot sleep yet stays (or comes) awake: its reel, attack or death plays out first
+    const awake = next.awake || !canSleep(a)
+    if (a.awake === awake) continue
+    if (awake) wake(a)
+    else fallAsleep(t, a)
   }
 }
 
@@ -85,8 +87,11 @@ function wake(a: ActorState): void {
   if (a.ai.mode === 'idleWander') a.ai = { ...a.ai, mode: 'findTarget', wanderGoal: null, idleTicks: 0, pathStall: 0 }
 }
 
-/** A unit only falls asleep when walking or standing: a reel, a death, an attack or a charge plays out first. */
-const isCalm = (a: ActorState): boolean => a.mode === 'walk' || a.mode === 'stand'
+/**
+ * A unit only falls asleep alive and walking or standing: a reel, an attack or a charge plays out
+ * first, and a dying unit stays awake until its #finish (the tick never steps a sleeper's death).
+ */
+export const canSleep = (a: ActorState): boolean => (a.mode === 'walk' || a.mode === 'stand') && isAlive(a)
 
 /** Puts the unit to sleep; a spell it was still charging goes away. */
 function fallAsleep(t: Tick, a: ActorState): void {

@@ -38,6 +38,13 @@ export const isUnit = (s: SimState, a: ActorState): boolean => isCharacter(s, a)
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
 export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
 
+/**
+ * Whether the tick steps the actor: every awake one, the sleepers walking an idle wander, and any
+ * actor that is not alive, so a death always plays out to #finish and its grave (a dying unit is
+ * never left waiting with the sleepers).
+ */
+export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'idleWander' || !isAlive(a)
+
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
 

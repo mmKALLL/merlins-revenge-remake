@@ -177,9 +177,6 @@ export const roomKey = (room: Vec): string => `${room.x},${room.y}`
 /** A sleeping unit walking an idle wander (idle-wander.ts): the tick steps and animates it like an awake one. */
 export const isSleepWandering = (a: ActorState): boolean => !a.awake && a.ai.mode === 'idleWander'
 
-/** Whether the tick steps the actor: every awake one and the sleepers walking an idle wander. */
-export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'idleWander'
-
 export interface SimConfig {
   // TODO(Task 8): derive from frame via collisionRectFor; the player uses this fixed rect until then
   collisionRect: CollisionRect
