@@ -18,7 +18,7 @@ import { switchWorldMode } from './sim/world-mode'
 
 const params = new URLSearchParams(location.search)
 /** A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. */
-const mapId = params.get('map') ?? 'not_fully_tested/mriv_small'
+const mapId = params.get('map') ?? 'works/mriiidemoiv'
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
