@@ -140,6 +140,12 @@ export class Scene {
     this.app.destroy()
   }
 
+  get cameraMode(): CameraMode { return this.cfg.cameraMode }
+  /** Switches between the room camera and the follow camera from the next draw on. */
+  setCameraMode(mode: CameraMode): void {
+    this.cfg = { ...this.cfg, cameraMode: mode }
+  }
+
   setZoom(zoom: ZoomSetting): void {
     this.zoom = zoom
     this.applyZoom()

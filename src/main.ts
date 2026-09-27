@@ -4,10 +4,12 @@ import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSpr
 import { InputTracker } from './input/keyboard'
 import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
+import type { CameraMode } from './render/camera'
 import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
+import { switchWorldMode } from './sim/world-mode'
 
 const params = new URLSearchParams(location.search)
 /** A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. */
@@ -23,7 +25,13 @@ const cfg: RenderConfig = {
   debug: params.get('debug') !== '0',
 }
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
-const worldMode: WorldMode = cfg.cameraMode === 'follow' ? 'continuous' : 'rooms'
+const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
+
+/** Records the camera in the URL (without a reload), so reloading the page keeps it. */
+function rememberCamera(camera: CameraMode): void {
+  params.set('camera', camera)
+  history.replaceState(history.state, '', `${location.pathname}?${params}${location.hash}`)
+}
 
 const ZOOM_KEY = 'mr-remake.zoom'
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
@@ -164,7 +172,7 @@ async function main(): Promise<void> {
   const grid = buildWorldGrid(map, isSolid, objects.data.symbols)
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
   const startPos = findStartPos(grid, playerTile)
-  let sim = createSim(grid, defs, teams, anims, seed, startPos, worldMode)
+  let sim = createSim(grid, defs, teams, anims, seed, startPos, worldModeFor(cfg.cameraMode))
   audio.handle(sim.events) // the start room's music
   let runSeed = seed
 
@@ -193,6 +201,19 @@ async function main(): Promise<void> {
     shownShort = input.spaceAimsShort
     spaceMode.textContent = `Space: ${shownShort ? 'push-back shot' : 'nearest enemy'} (F to toggle)`
   }
+  // shows the camera; C switches it, and the world mode with it, between ticks
+  const cameraMode = document.getElementById('camera-mode')
+  const showCameraMode = () => {
+    if (cameraMode) cameraMode.textContent = `Camera: ${scene.cameraMode} (C)`
+  }
+  showCameraMode()
+  const toggleCamera = () => {
+    const camera: CameraMode = scene.cameraMode === 'room' ? 'follow' : 'room'
+    scene.setCameraMode(camera)
+    sim = switchWorldMode(sim, worldModeFor(camera))
+    rememberCamera(camera)
+    showCameraMode()
+  }
 
   // Pointer position on the canvas in CSS pixels; converted to world pixels each frame.
   let pointer: Vec | null = null
@@ -219,6 +240,7 @@ async function main(): Promise<void> {
     fps = fps * (1 - FPS_NEW_WEIGHT) + (1000 / Math.max(1, dt)) * FPS_NEW_WEIGHT
     acc += dt
     input.setMouseWorld(mouseWorld())
+    if (input.takeCameraToggle()) toggleCamera()
     while (acc >= TICK_MS) {
       sim = stepSim(sim, input.snapshot())
       audio.handle(sim.events) // every tick stepped this frame, not just the last
@@ -226,7 +248,7 @@ async function main(): Promise<void> {
       if (sim.restartRequested) {
         // the player died: start the map again with the loaded assets and a fresh seed
         runSeed = nextRunSeed(runSeed)
-        sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldMode)
+        sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldModeFor(scene.cameraMode))
         audio.handle(sim.events) // the start room's music again
       }
     }
