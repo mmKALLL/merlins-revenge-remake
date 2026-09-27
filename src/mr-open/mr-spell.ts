@@ -16,15 +16,38 @@ export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeL
   const a = caster.attack
   let max = Math.min(a.chargeMax, caster.mana_capacity * a.chargeMaxModifier + a.chargeMaxBasic)
   if (a.limitMagic) max = (max * magicLimitPercent) / 100
-  return { start: Math.min(a.chargeStart + caster.mana_burst, max), max, speed: a.chargeSpeed * caster.mana_flow }
+  const speed = a.chargeSpeed * caster.mana_flow
+  return { start: Math.min(a.chargeStart + caster.mana_burst, max), max, speed: a.chargeSpeedMax === null ? speed : Math.min(speed, a.chargeSpeedMax) }
+}
+
+/**
+ * calcAttackChargeMax's randomSummon branch (modAttack.txt:104-112): when the second stage is below
+ * the max, the max becomes min(max, max * random(20) / 17 + random(stage 1)) + random(2) - 1, so an
+ * AI summoner stops at a random stage (or short of the first: a plain blast). `randomInt` is Lingo random(n).
+ */
+export function randomSummonMax(max: number, a: AttackDef, randomInt: (n: number) => number): number {
+  const [first, second] = a.multistage
+  if (!a.randomSummon || !first || !second || second.chargeRequired - max >= 0) return max
+  const temp = (max * randomInt(20)) / 17 + randomInt(first.chargeRequired)
+  return Math.min(max, temp) + randomInt(2) - 1
+}
+
+/** modSpellMultistage.selectPayload: the last stage whose chargeRequired the charge has reached; null = blank. */
+export function payloadFor(charge: number, a: AttackDef): string | null {
+  let payload: string | null = null
+  for (const stage of a.multistage) {
+    if (stage.chargeRequired > charge) break
+    payload = stage.payload
+  }
+  return payload
 }
 
 /** CounterOnce on the charge counter: pinned at max. */
 export const chargeStep = (charge: number, speed: number, max: number): number => Math.min(max, charge + speed)
 
-/** objCharacter.calcChargeLoc: the charge sprite sits at collisionLoc mirrored by facing. */
+/** objCharacter.calcChargeLoc: the charge sprite sits at the caster's chargeLoc mirrored by facing. */
 export function chargeLoc(caster: Vec, casterDef: ActorDef, facingLeft: boolean): Vec {
-  return { x: caster.x + casterDef.attack.collisionLoc.x * (facingLeft ? -1 : 1), y: caster.y + casterDef.attack.collisionLoc.y }
+  return { x: caster.x + casterDef.chargeLoc.x * (facingLeft ? -1 : 1), y: caster.y + casterDef.chargeLoc.y }
 }
 
 /** GeomMoveVector: velocity of length `speed` toward the release point. */
@@ -61,7 +84,14 @@ export interface Explosion {
  * (the speed still uses dist 0), so a direct hit pushes straight down (+y) with the full (radius + r) * power.
  */
 export function explode(center: Vec, chargeAtRelease: number, a: AttackDef, victims: SplashVictim[]): Explosion {
-  const charge = chargeAtRelease * a.chargeExplodeFactor
+  return explodeWithCharge(center, chargeAtRelease * a.chargeExplodeFactor, a, victims)
+}
+
+/**
+ * The explosion itself for a final `charge` (calcAttackHitMagic / calcCollisionVectSpell): a spell's
+ * charge after chargeExplodeFactor, or an #explode bullet's explodeCharge (modExploder.getCurrentCharge).
+ */
+export function explodeWithCharge(center: Vec, charge: number, a: AttackDef, victims: SplashVictim[]): Explosion {
   const radius = charge / 2
   const power = a.power
   if (typeof power !== 'number') throw new Error(`${a.name}: spell power must be a number`)

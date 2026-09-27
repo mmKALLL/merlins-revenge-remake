@@ -1,0 +1,86 @@
+[#name: "act_tvBox", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "goblin_hut_die_02",
+#energy: 25,
+#experienceImWorth: 20,
+#residentGroups: 
+[
+[
+#typ: #evilTv,
+#buildTime: [25,45],
+#groupSize: [2,5],
+#releaseInterval: [10,25]
+]
+],
+#name: "tvBox",
+#team: #monsters,
+#totalResidents: 8
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

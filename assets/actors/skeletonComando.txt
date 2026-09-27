@@ -1,0 +1,30 @@
+[#name: "act_skeletonComando", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 5,
+#dexterity: 4,
+#energy: 275,
+#inertia: 65,
+#experienceImWorth: 20,
+#eyestrain: 30,
+#strength: 12,
+#team: #undead,
+#stallSpeed: 4,
+#name: "skeletonComando",
+#walkSpeed: 8,
+#weapon: #skeletonComandoSword
+]
+
+
+
+
+
+
+
+
+
+
+
+

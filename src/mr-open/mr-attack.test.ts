@@ -3,18 +3,18 @@ import type { ActorDef, AttackDef } from './mr-actor-data'
 import { aimWithEyestrain, attackLoc, bulletPush, cooldownIncrement, cooldownReady, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown } from './mr-attack'
 
 const attack = (o: Partial<AttackDef>): AttackDef => ({
-  name: 'none', type: 'melee', animType: 'none', animFrame: 2, collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
+  name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
   reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
-  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4,
+  chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
   volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, ...o,
 })
 const actor = (key: string, o: Partial<ActorDef>, a: Partial<AttackDef>): ActorDef => ({
   key, name: key, objType: 'objCPUCharacter', aiType: 'objAiCPU', team: 'goblins', layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 },
-  energy: 100, energyRecoverDelay: 300, friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5,
+  energy: 100, energyRecoverDelay: 300, friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', residentGroups: [], totalResidents: 10, productionTimeScale: 1, reelProof: false, collisionDetection: true, minEnergy: 0, maxEnergy: o.energy ?? 100, graveOn: true, reincarnateAs: [], runReload: false, explodeEvents: [], exploderSound: null, exploderVolume: 50, chargeLoc: { x: 0, y: -8 },
   walkSpeed: 4, walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10, mana_flow: 1,
   mana_regeneration: 1, weapon: null, experienceImWorth: 0,
-  takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null, attack: attack(a), raw: {}, ...o,
+  takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null, attack: attack(a), naturalAttack: attack(a), multiAttack: false, bufferDist: 100, raw: {}, ...o,
 })
 
 const warrior = actor('goblinWarrior', { strength: 4, agility: 1, inertia: 30 }, { type: 'melee', collisionLoc: { x: 15, y: 0 }, idealAttackLoc: { x: 15, y: 0 }, power: { x: 0.7, y: 0 }, damageMultiplier: 2, cooldown: 0 })

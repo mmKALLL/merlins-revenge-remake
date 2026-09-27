@@ -1,0 +1,100 @@
+[#name: "act_hydra1", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 3,
+#animType: #naturalRanged,
+#bullet: #acid,
+#collisionLoc: point(30,-5),
+#cooldown: 30,
+#firingType: #fullstrength,
+#name: #spitBullet,
+#reach: 300,
+#sound: "hydra1_fire",
+#volume: 40
+],
+#damageSpeed: 3,
+#dexterity: 1,
+#dieSound: #none,
+#energy: 500,
+#experienceImWorth: 60,
+#eyestrain: 20,
+#frictionReel: point (30,30),
+#maxEnergy: 1500,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 15,
+#team: #swamp,
+#name: "hydra1",
+#walkSpeed: 2,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

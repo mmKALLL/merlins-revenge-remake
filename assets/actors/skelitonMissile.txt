@@ -1,0 +1,81 @@
+[#name: "act_skelitonMissile", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 10,
+#power: 0.3,
+#type: #bullet
+],
+#character: #bullet,
+#name: "skelitonMissile",
+#friction: point(3,3),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

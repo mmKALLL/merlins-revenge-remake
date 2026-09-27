@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_boulderCave_grave_01_01	gfx	2026	46	46	32	23	23	alpha=255..255
+anm_boulderCave_grave_01_02	gfx	2027	46	46	32	23	23	alpha=255..255
+anm_boulderCave_stand_01_03	gfx	2028	46	46	32	23	23	alpha=255..255

@@ -1,0 +1,14 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_babyOstrich_grave_02_01	gfx	3922	13	7	32	6	4	alpha=255..255
+anm_babyOstrich_grave_03_02	gfx	3923	13	7	32	6	4	alpha=255..255
+anm_babyOstrich_naturalRanged_03_03	gfx	3919	16	28	32	8	14	alpha=0..255
+anm_babyOstrich_naturalRanged_06_01	gfx	3917	13	28	32	8	14	alpha=255..255
+anm_babyOstrich_naturalRanged_06_02	gfx	3918	14	28	32	8	14	alpha=255..255
+anm_babyOstrich_naturalRanged_06_04	gfx	3920	14	28	32	8	14	alpha=255..255
+anm_babyOstrich_stand_03_05	gfx	3921	14	28	32	8	14	alpha=255..255
+anm_babyOstrich_walk_02_01	gfx	3911	14	28	32	7	14	alpha=255..255
+anm_babyOstrich_walk_02_02	gfx	3912	14	27	32	7	13	alpha=255..255
+anm_babyOstrich_walk_02_03	gfx	3913	14	27	32	7	13	alpha=255..255
+anm_babyOstrich_walk_02_04	gfx	3914	14	27	32	7	13	alpha=255..255
+anm_babyOstrich_walk_02_05	gfx	3915	14	27	32	7	13	alpha=255..255
+anm_babyOstrich_walk_02_06	gfx	3916	14	27	32	7	13	alpha=255..255

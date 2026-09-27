@@ -1,0 +1,88 @@
+[#name: "act_thunderBlast", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#explodeCharge: 100,
+#power: 0.5,
+#type: #explode
+],
+#character: #bullet,
+#name: "thunderBlast",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletCollidedWithTarget,
+#bulletLanded
+],
+#explodeSound: "spell_explode",
+#friction: point(3,3),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

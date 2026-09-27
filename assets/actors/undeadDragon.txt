@@ -1,0 +1,99 @@
+[#name: "act_undeadDragon", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: [3],
+#animType: #naturalRanged,
+#bullet: #blueFlame,
+#collisionLoc: point(16,-8),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #blueFlame,
+#reach: 150,
+#sound: "dragon_fire"
+],
+#damageSpeed: 2,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 500,
+#experienceImWorth: 50,
+#frictionReel: point(20,20),
+#inertia: 50,
+#startingLevel: 0,
+#stallSpeed: 3,
+#strength: 10,
+#takeHitSound: "dragon_hit",
+#takeHitVolume: 100,
+#team: #undead,
+#name: "undeadDragon",
+#walkSpeed: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

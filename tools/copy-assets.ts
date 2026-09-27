@@ -1,6 +1,6 @@
 // Copies the original files this project uses from the (git-ignored) archive
 // into ./assets with a sensible structure. Run: pnpm assets:copy
-import { cpSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,9 +28,6 @@ const copies: Copy[] = [
   // key bindings
   { from: join(CASTS, 'bnd_wasd.txt'), to: join(ASSETS, 'keybindings/wasd.txt'), why: 'default bindings' },
   { from: join(CASTS, 'bnd_arrow.txt'), to: join(ASSETS, 'keybindings/arrow.txt'), why: 'arrow bindings' },
-  // combat slice: team data
-  { from: join(CASTS, 'tem_goblins.txt'), to: join(ASSETS, 'teams/goblins.txt'), why: 'goblin team (hates aldevar)' },
-  { from: join(CASTS, 'tem_aldevar.txt'), to: join(ASSETS, 'teams/aldevar.txt'), why: 'player team' },
   // combat slice: the goblin grave is one cast member registered under two names
   // (goblinWarrior and gar both play it as their grave strip); copy it twice to make that explicit
   { from: join(GFX, 'goblinArcher', 'goblin_grave.bmp'), to: join(ASSETS, 'sprites/goblinWarrior/anm_goblinWarrior_grave_3_01.bmp'), why: 'goblin grave (shared cast member) as goblinWarrior grave frame' },
@@ -63,19 +60,22 @@ const actors: [name: string, why: string][] = [
   ['musicLastStand', 'music tile'],
   ['musicWoodsOfEvil', 'music tile'],
   ['musicOff', 'music tile: stops the music'],
+  // enemy slice: goblin mage, dwellings, orcs
+  ['goblinMage', 'goblin spell caster (objAiCPUSpellCaster)'],
+  ['dwelling', 'dwelling base (objDwelling parent)'],
+  ['goblinHut', 'goblin dwelling: archers and warriors'],
+  ['goblinMageHut', 'goblin dwelling: mages'],
+  ['orcHouse', 'orc dwelling (team #goblins in the data)'],
+  ['bowOrc', 'orc archer'],
+  ['swordOrc', 'orc fighter'],
+  ['crossBow', 'orc archer weapon'],
+  ['crossBolt', 'crossbow bullet'],
+  ['orcSword', 'orc fighter weapon'],
 ]
 for (const [name, why] of actors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: `actor: ${why}` })
 }
 
-// Staged for the enemy slice (goblin mage, dwellings, orcs): kept out of assets/actors until their
-// sprites are wired into the converter, so the converter's atlas check keeps passing meanwhile.
-const stagedActors = ['goblinMage', 'goblinHut', 'goblinMageHut', 'dwelling', 'bowOrc', 'swordOrc', 'orcHouse', 'mageOrc',
-  'crossBow', 'crossBolt', 'orcSword', 'goblinSummon']
-for (const name of stagedActors) {
-  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `extracted/actors/${name}.txt`), why: 'staged for the enemy slice' })
-}
-copies.push({ from: join(CASTS, 'tem_orcs.txt'), to: join(ASSETS, 'extracted/teams/orcs.txt'), why: 'staged for the enemy slice' })
 
 // every file in fromDir matching pattern -> toDir/<same name>
 function copyGlob(fromDir: string, pattern: RegExp, toDir: string, why: string): void {
@@ -97,6 +97,74 @@ copyGlob(join(GFX, 'merlin'), /^anm_mer_.*\.bmp$/, join(ASSETS, 'sprites/mer'), 
 copyGlob(join(GFX, 'goblinWarrior'), /^anm_.*\.bmp$/, join(ASSETS, 'sprites/goblinWarrior'), 'goblin warrior frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gar_.*\.bmp$/, join(ASSETS, 'sprites/gar'), 'goblin archer frames')
 copyGlob(join(GFX, 'goblinArcher'), /^anm_gobarrow_.*\.bmp$/, join(ASSETS, 'sprites/gobarrow'), 'goblin arrow frames')
+
+// More enemies (their weapons, bullets and dwellings): act_<name>.txt -> actors/<name>.txt. Chosen
+// because they only need mechanics the port has; see docs/plans/2026-09-27-enemies-progress.md.
+const moreActors = [
+  'acid', 'archer', 'archerArrow', 'archerBow', 'babyOstrich', 'bat', 'batBullet', 'batTree', 'blackAxe',
+  'blackOrc', 'blueFlame', 'bomb', 'bombMage', 'boulder', 'boulderCave', 'boulderMonster', 'bug', 'caveBat',
+  'cocoon', 'darkBlast', 'darkCave', 'darkGolem', 'darkMage', 'darkRock', 'dojo', 'doubleDarkGolem',
+  'dragon', 'druid', 'dwarfTower', 'evilTv', 'fangBunny', 'fangBunnyBaby', 'fangBunnyBabyBullet',
+  'fangBunnyPortal', 'farmer', 'fireBall', 'fireDragon', 'fireLizard', 'flameThrower', 'flamingRock',
+  'fourArmGolem', 'freezeBlast', 'freezeSticks', 'friendlyGoblinArcher', 'friendlyGoblinHero',
+  'friendlyGoblinHut', 'friendlyGoblinMage', 'friendlyGoblinMageHut', 'friendlyGoblinWarrior', 'frostyMonk',
+  'garTower', 'goblinHero', 'goblinHouse', 'goblinSummon', 'greyGhost', 'healBlast', 'hydra1', 'hydra2',
+  'hydra3', 'iceBoulder', 'iceRock', 'karateGuy', 'kingInGame', 'kingSword', 'kongFuChicken', 'laser',
+  'lavaDarkGolem', 'lavaGolem', 'lightning', 'lizard', 'lizardEgg', 'lizardSoldier', 'mageOrc',
+  'magicPortal', 'monk', 'mysteriousCloud', 'necromancer', 'needle', 'ninja', 'ninjaSword', 'orcInvasion',
+  'ostrichEgg', 'pinShooter', 'pitchFork', 'plant', 'powerOstrich', 'quadranid', 'scArcher', 'scArcherArrow',
+  'scArcherBow', 'scMonk', 'scSummon', 'scWarrior', 'scWarriorSword', 'shrouder', 'shuriken',
+  'shurikenNinja', 'skeletonArcher', 'skeletonBow', 'skeletonComando', 'skeletonComandoSword',
+  'skeletonDwelling', 'skeletonGiant', 'skeletonGiantSword', 'skeletonHead', 'skeletonSword',
+  'skeletonThrower', 'skeletonWarrior', 'skelitonArm', 'skelitonFootSoldier', 'skelitonHead', 'skelitonLord',
+  'skelitonLordSword', 'skelitonLowerLeg', 'skelitonMissile', 'skelitonSummon', 'skelitonSword',
+  'skelitonTorsoTank', 'skelitonUpper', 'smoke', 'smokePin', 'spark', 'speedyGuy', 'swordNinja',
+  'thunderBlast', 'thunderMonk', 'thunderSticks', 'towerAxe', 'townMace', 'townWatch', 'tvBox',
+  'undeadDragon', 'undeadInvasion', 'undeadSummon', 'vultureGuard', 'warrior', 'warriorSword',
+]
+for (const name of moreActors) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: more enemies' })
+}
+// every team file (enemy teams also fight each other through their hate lists)
+for (const file of readdirSync(CASTS).sort()) {
+  const m = /^tem_(.+)\.txt$/.exec(file)
+  if (m) copies.push({ from: join(CASTS, file), to: join(ASSETS, `teams/${m[1]}.txt`), why: `${m[1]} team` })
+}
+
+// Sprites dumped from the engine's Director cast (tools/director-extract/dump_bitmaps.py writes
+// anm_*.png plus regpoints.tsv; the owner's reference bundle ships them as cast_bitmaps/). Copied
+// per sprite name with the matching regpoints.tsv rows, when that dump is present.
+const CAST_BITMAPS = join(ROOT, 'assets-mr-original', 'cast_bitmaps')
+const castSprites = [
+  'acid', 'archer', 'archerArrow', 'babyOstrich', 'bat', 'batBullet', 'batTree', 'blackOrc', 'blueFlame',
+  'bomb', 'bombMage', 'boulder', 'boulderCave', 'boulderMonster', 'bowOrc', 'bug', 'cocoon', 'crossBolt',
+  'darkCave', 'darkGolem', 'darkMage', 'darkRock', 'dojo', 'doubleDarkGolem', 'dragon', 'druid',
+  'dwarfTower', 'evilTv', 'fangBunny', 'fangBunnyBaby', 'fangBunnyBabyBullet', 'fangBunnyPortal', 'farmer',
+  'fireBall', 'flamingRock', 'fourArmGolem', 'freezeBlast', 'frostyMonk', 'garTower', 'goblinHouse',
+  'goblinHut', 'goblinMage', 'goblinMageHut', 'greyGhost', 'hydra1', 'hydra2', 'hydra3', 'iceBoulder',
+  'iceRock', 'karateGuy', 'kingInGame', 'kongFuChicken', 'laser', 'lavaDarkGolem', 'lightning', 'lizard',
+  'lizardEgg', 'lizardSoldier', 'mageOrc', 'magicPortal', 'monk', 'mysteriousCloud', 'necromancer', 'needle',
+  'ninja', 'orcHouse', 'orcInvasion', 'ostrichEgg', 'plant', 'powerOstrich', 'quadranid', 'scArcher',
+  'scArcherArrow', 'scMonk', 'scWarrior', 'shrouder', 'shuriken', 'shurikenNinja', 'skeletonArcher',
+  'skeletonComando', 'skeletonDwelling', 'skeletonGiant', 'skeletonHead', 'skeletonThrower', 'skelitonArm',
+  'skelitonFootSoldier', 'skelitonHead', 'skelitonLord', 'skelitonLowerLeg', 'skelitonMissile',
+  'skelitonSword', 'skelitonTorsoTank', 'skelitonUpper', 'skw', 'smoke', 'smokePin', 'spark', 'speedyGuy',
+  'swordOrc', 'thunderBlast', 'thunderMonk', 'towerAxe', 'townWatch', 'tvBox', 'undeadDragon',
+  'undeadInvasion', 'vultureGuard', 'warrior',
+]
+if (existsSync(CAST_BITMAPS)) {
+  const [header, ...rows] = readFileSync(join(CAST_BITMAPS, 'regpoints.tsv'), 'utf8').split('\n')
+  for (const sprite of castSprites) {
+    const frame = new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`)
+    const names = new Set<string>()
+    copyGlob(CAST_BITMAPS, frame, join(ASSETS, `sprites/${sprite}`), `${sprite} frames (Director cast dump)`)
+    for (const f of readdirSync(CAST_BITMAPS)) if (frame.test(f)) names.add(f.slice(0, -4))
+    mkdirSync(join(ASSETS, `sprites/${sprite}`), { recursive: true })
+    writeFileSync(join(ASSETS, `sprites/${sprite}/regpoints.tsv`), [header, ...rows.filter((r) => names.has(r.split('\t')[0]!))].join('\n') + '\n')
+  }
+} else {
+  console.log(`no Director cast dump at ${CAST_BITMAPS}: cast sprites not refreshed`)
+}
 
 for (const c of copies) {
   mkdirSync(dirname(c.to), { recursive: true })

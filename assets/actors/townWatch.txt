@@ -1,0 +1,84 @@
+[#name: "act_townWatch", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 2,
+#dexterity: 6,
+#energy: 75,
+#experienceImWorth: 10,
+#eyestrain: 60,
+#inertia: 90,
+#miniMapStatus: #clr,
+#strength: 8,
+#team: #village,
+#name: "townWatch",
+#walkSpeed: 2,
+#weapon: #townMace
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

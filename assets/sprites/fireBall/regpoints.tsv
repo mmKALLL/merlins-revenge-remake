@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_fireBall_fly_03_01	gfx	2301	20	20	32	10	10	alpha=255..255
+anm_fireBall_land_01_01	gfx	2302	20	20	32	10	10	alpha=255..255
+anm_fireBall_land_01_02	gfx	2303	20	20	32	10	10	alpha=255..255

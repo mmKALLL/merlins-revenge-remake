@@ -203,7 +203,11 @@ export class Scene {
       // Wide frames (attacks) grow toward the facing direction so the back edge stays where the
       // stand frame's back edge is, instead of the body jumping as a centred frame would.
       const bullet = def.objType === 'objBullet'
-      const shift = spell || bullet ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
+      // Frames with a known reg point (extracted with their Director member) hang from it, which also
+      // keeps a wide attack frame's body in place; frames without one are centred.
+      const reg = spell ? undefined : this.regFor(def.name, a.anim, a.animFrame)
+      spr.anchor.set(reg ? reg.x / tex.width : 0.5, reg ? reg.y / tex.height : 0.5)
+      const shift = spell || bullet || reg ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) this.styleSpell(spr, a, def, tex)
       else if (bullet) this.styleBullet(spr, a)
@@ -278,6 +282,15 @@ export class Scene {
     return sprite.frames['stand']?.[0] ?? sprite.frames['walk']?.[0]
   }
 
+  /** The frame's registration point when the atlas records one (same frame choice as frameFor). */
+  private regFor(spriteName: string, anim: string, frame: number): Vec | undefined {
+    const sprite = this.sprites[spriteName]
+    if (!sprite) return undefined
+    const strip = sprite.frames[anim]
+    if (strip && strip.length) return sprite.regs[anim]?.[frame % strip.length]
+    return sprite.frames['stand'] ? sprite.regs['stand']?.[0] : sprite.regs['walk']?.[0]
+  }
+
   private syncGraves(s: SimState): void {
     const room = roomKey(s.room)
     const graves = s.rooms[room]?.graves ?? []
@@ -289,7 +302,8 @@ export class Scene {
       const tex = name ? this.sprites[name]?.frames['grave']?.[0] : undefined
       if (!tex) continue
       const spr = new Sprite(tex)
-      spr.anchor.set(0.5)
+      const reg = name ? this.sprites[name]?.regs['grave']?.[0] : undefined
+      spr.anchor.set(reg ? reg.x / tex.width : 0.5, reg ? reg.y / tex.height : 0.5)
       spr.scale.set(this.cfg.spriteScale)
       spr.position.set(Math.round(g.pos.x), Math.round(g.pos.y))
       this.graveLayer.addChild(spr)

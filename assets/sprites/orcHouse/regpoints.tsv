@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_orcHouse_grave_02_01	gfx	3331	40	18	32	20	-2	alpha=255..255
+anm_orcHouse_grave_02_02	gfx	3332	40	18	32	20	-2	alpha=255..255
+anm_orcHouse_stand_02_01	gfx	3330	40	40	32	20	20	alpha=255..255

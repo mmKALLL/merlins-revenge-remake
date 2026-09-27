@@ -1,0 +1,75 @@
+[#name: "tem_scarlet", #type: #field]
+[
+#teamName: #scarlet,
+#category: #enemies,
+#colour: rgb(100,100,100),
+#friends:[],
+#hates: [[#aldevar,#village, #monsterSummon, #goblins, #ninja, #magicalAlliance, #orcs, #monsters]],
+#maxMembers: 9
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

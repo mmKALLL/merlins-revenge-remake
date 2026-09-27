@@ -1,0 +1,98 @@
+[#name: "act_quadranid", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 23,
+#animType: #naturalRanged,
+#bullet: #laser,
+#collisionLoc: point(0,-5),
+#cooldown: 30,
+#firingType: #fullstrength,
+#name: #fireLaser,
+#reach: 175,
+#sound: "quadranid_fire",
+#volume: 25
+],
+#damageSpeed: 3,
+#dexterity: 1,
+#dieSound: #none,
+#energy: 80,
+#experienceImWorth: 5,
+#eyestrain: 40,
+#inertia: 50,
+#startingLevel: 0,
+#strength: 10,
+#team: #monsters,
+#name: "quadranid",
+#walkSpeed: 4,
+#weaponTechnique: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

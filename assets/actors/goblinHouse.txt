@@ -1,0 +1,98 @@
+[#name: "act_goblinHouse", #type: #field]
+[
+#objType: #objDwelling,
+#inherit: #dwelling,
+#dieSound: "goblin_hut_die_02",
+#energy: 75,
+#experienceImWorth: 18,
+#residentGroups: 
+[
+[
+#typ: #goblinArcher,
+#buildTime: [40,50],
+#groupSize: [3,7],
+#releaseInterval: [30,50]
+],
+[
+#typ: #goblinWarrior,
+#buildTime: [35,45],
+#groupSize: [3,7],
+#releaseInterval: [25,45]
+],
+[
+#typ: #goblinMage,
+#buildTime: [50,60],
+#groupSize: [1,2],
+#releaseInterval: [20,50]
+],
+[
+#typ: #goblinBuilder,
+#buildTime: [30,50],
+#groupSize: [2,4],
+#releaseInterval: [20,40]
+]
+],
+#team: #goblins,
+#teamRole: #teamBuildings,
+#name: "goblinHouse"
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,95 @@
+[#name: "act_greyGhost", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #enemyCharacter,
+#chargeOffsetSide: #side,
+#chargeLoc: point(8,0),
+#collisionDetection: false,
+#damageSpeed: 4,
+#dexterity: 1,
+#dieSound: "greyGhost_die",
+#dieVolume: 20,
+#energy: 100,
+#experienceImWorth: 40,
+#inertia: 70,
+#mana_capacity: 20,
+#mana_flow: 3,
+#mana_capacityIncLevel: 1.75,
+#mana_regeneration:0.5,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#stretchDeath: true,
+#team: #undead,
+#name: "greyGhost",
+#walkSpeed: 1,
+#weapon: #undeadSummon
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

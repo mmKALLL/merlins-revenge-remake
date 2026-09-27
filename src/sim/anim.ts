@@ -5,7 +5,7 @@
 import type { ActorMode, ActorState, AnimationSet, AnimationStrip } from './state'
 
 /**
- * Strip name for a mode. `moving` picks the walking variants (walk, chargewalk, releasewalk);
+ * Strip name for a mode. `moving` picks the walking variants (walk, chargeWalk, releaseWalk);
  * swapping between a still and a walking variant restarts at frame 0 here. The engine does not
  * carry the frame index across either: objAnimSet keeps one objAnimStrip per name, each with its own
  * frame and delay counters, and advances only the strip currently shown (modAnimSet.updateAnim ->
@@ -23,10 +23,10 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
       name = moving ? 'walk' : 'stand'
       break
     case 'charge':
-      name = moving ? 'chargewalk' : 'charge'
+      name = moving ? 'chargeWalk' : 'charge'
       break
     case 'release':
-      name = moving ? 'releasewalk' : 'release'
+      name = moving ? 'releaseWalk' : 'release'
       break
     case 'die':
     case 'dead':
@@ -40,7 +40,17 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
     default:
       name = mode
   }
-  return set?.[name] ? name : 'stand'
+  return (set && stripKey(set, name)) ?? 'stand'
+}
+
+/**
+ * The atlas key for a strip name, compared case-insensitively (Lingo symbols are: Merlin's frames
+ * say `chargewalk`, the goblin mage's `chargeWalk`); undefined when the set has no such strip.
+ */
+export function stripKey(set: AnimationSet, name: string): string | undefined {
+  if (set[name]) return name
+  const lower = name.toLowerCase()
+  return Object.keys(set).find((k) => k.toLowerCase() === lower)
 }
 
 export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' | 'animExtend' | 'animExtendCount' | 'animLooped'>
@@ -62,7 +72,7 @@ export function advanceAnim(a: ActorState, animName: string, strip: AnimationStr
     animCounter = a.animCounter + 1
     animExtend = a.animExtend
     animExtendCount = a.animExtendCount
-    if (animCounter >= strip.delay + a.animExtend) {
+    if (animCounter >= frameDelay(strip, a.animFrame) + a.animExtend) {
       animCounter = 0
       animExtend = 0
       animExtendCount = 0
@@ -72,8 +82,11 @@ export function advanceAnim(a: ActorState, animName: string, strip: AnimationStr
   return { anim: animName, animFrame, animCounter, animExtend, animExtendCount, animLooped: loopedOn(strip, animFrame, animCounter, animExtend) }
 }
 
+/** Ticks the 0-based `frame` of a strip is shown (objAnimStrip: each member keeps its own delay). */
+export const frameDelay = (strip: AnimationStrip, frame: number): number => strip.delays?.[frame] ?? strip.delay
+
 const loopedOn = (strip: AnimationStrip | undefined, frame: number, counter: number, extend: number): boolean =>
-  !!strip && frame === strip.frames - 1 && counter === strip.delay + extend - 1
+  !!strip && frame === strip.frames - 1 && counter === frameDelay(strip, frame) + extend - 1
 
 /**
  * objAnimStrip.extendDelay(1), `times` times: the current frame's delay (tim[2]) grows by one and its
@@ -88,6 +101,9 @@ export function extendFrame(a: ActorState, strip: AnimationStrip | undefined, ti
   return { animExtend, animExtendCount, animLooped: loopedOn(strip, a.animFrame, a.animCounter, animExtend) }
 }
 
-/** isOnAttackFrame: the strip sits on the first tick of the 1-based frame `frame`. */
-export const onFreshFrame = (a: ActorState, frame: number | null): boolean =>
-  frame !== null && a.animCounter === 0 && a.animFrame === frame - 1
+/**
+ * modAttack.isOnAttackFrame: the strip sits on the first tick of one of the 1-based `frames` (a list
+ * strikes or fires on each: crossBow [2,4,6], orcSword [6,10,12]).
+ */
+export const onFreshFrame = (a: ActorState, frames: readonly number[] | null): boolean =>
+  frames !== null && a.animCounter === 0 && frames.includes(a.animFrame + 1)

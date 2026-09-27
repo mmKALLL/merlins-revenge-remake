@@ -8,7 +8,7 @@ import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
 import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
-import { buildAtlas, parseFrameName } from './atlas'
+import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
 import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
@@ -131,7 +131,7 @@ function readTuning(): Record<string, Plain> {
 /** actor definitions resolved through their inheritance chain, with assets/tuning.json overlaid */
 function convertActors(): Record<string, ActorDef> {
   const tuning = readTuning()
-  const actors = resolveActors(readTxtDir('actors'), tuning)
+  const actors = withPortedResidents(resolveActors(readTxtDir('actors'), tuning))
   writeFileSync(join(OUT, 'actors.json'), JSON.stringify(actors))
   console.log(`actors: ${Object.keys(actors).length} resolved (${Object.keys(tuning).length} tuned)`)
   // a bullet without an actor file cannot be spawned yet; energyBlastBullet is not copied in this slice
@@ -144,10 +144,51 @@ function convertActors(): Record<string, ActorDef> {
   return actors
 }
 
+/**
+ * Dwelling resident groups whose actor is not ported yet (orcHouse's mageOrc) are dropped with a
+ * warning, so the dwelling produces its other groups; they come back once the actor file is copied.
+ */
+function withPortedResidents(actors: Record<string, ActorDef>): Record<string, ActorDef> {
+  for (const a of Object.values(actors)) {
+    const missing = a.residentGroups.filter((g) => !actors[g.typ]).map((g) => g.typ)
+    if (missing.length === 0) continue
+    console.warn(`WARNING: ${a.key}: resident groups without an actor file dropped: ${missing.join(', ')}`)
+    a.residentGroups = a.residentGroups.filter((g) => actors[g.typ])
+  }
+  return actors
+}
+
 function convertTeams(): void {
   const teams = parseTeams(readTxtDir('teams'))
   writeFileSync(join(OUT, 'teams.json'), JSON.stringify(teams))
   console.log(`teams: ${Object.keys(teams).length} parsed`)
+}
+
+/**
+ * regpoints.tsv next to extracted PNG frames (tools/director-extract dump_bitmaps.py): frame name
+ * (without extension) -> the Director member's registration point.
+ */
+function readRegPoints(dir: string): Map<string, { x: number; y: number }> {
+  const out = new Map<string, { x: number; y: number }>()
+  const path = join(dir, 'regpoints.tsv')
+  if (!existsSync(path)) return out
+  const [header, ...rows] = readFileSync(path, 'utf8').split('\n').filter((l) => l.trim() !== '')
+  const cols = header!.split('\t')
+  const [name, regX, regY] = ['name', 'regX', 'regY'].map((c) => cols.indexOf(c))
+  if (name! < 0 || regX! < 0 || regY! < 0) throw new Error(`${path}: needs name, regX and regY columns`)
+  for (const row of rows) {
+    const f = row.split('\t')
+    out.set(f[name!]!, { x: Number(f[regX!]), y: Number(f[regY!]) })
+  }
+  return out
+}
+
+/** A sprite frame file: BMP (white is transparent), or an extracted PNG whose white is transparent too. */
+function readFrame(dir: string, file: string, regs: Map<string, { x: number; y: number }>): AtlasFrame {
+  const path = join(dir, file)
+  const image = file.endsWith('.png') ? whiteToAlpha(readPng(path)) : decodeBmp(readFileSync(path))
+  const reg = regs.get(file.replace(/\.\w+$/, ''))
+  return { name: file, image, ...(reg ? { reg } : {}) }
 }
 
 /**
@@ -159,9 +200,10 @@ function convertSprites(): Set<string> {
   const names = new Set<string>()
   for (const sprite of sortedDir(join(ASSETS, 'sprites'))) {
     const dir = join(ASSETS, 'sprites', sprite)
+    const regs = readRegPoints(dir)
     const frames = sortedDir(dir)
-      .filter((f) => f.endsWith('.bmp'))
-      .map((f) => ({ name: f, image: decodeBmp(readFileSync(join(dir, f))) }))
+      .filter((f) => f.endsWith('.bmp') || f.endsWith('.png'))
+      .map((f) => readFrame(dir, f, regs))
     if (frames.length === 0) continue
     const atlas = buildAtlas(frames)
     writePng(join(OUT, 'sprites', `${sprite}.png`), atlas.sheet)

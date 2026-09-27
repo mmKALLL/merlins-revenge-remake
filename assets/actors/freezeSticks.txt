@@ -1,0 +1,83 @@
+[#name: "act_freezeSticks", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 13,
+#animType: #weaponRanged,
+#bullet: #freezeBlast,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #freezeSticks,
+#reach: 300,
+#sound: #none
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

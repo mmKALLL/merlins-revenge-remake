@@ -3,9 +3,9 @@ import type { ActorDef, AttackDef } from './mr-actor-data'
 import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity } from './mr-spell'
 
 const energyBlast: AttackDef = {
-  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: 2, collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 },
+  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 },
   reach: 9999, cooldown: 30, power: 0.75, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
-  chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4,
+  chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
   chargeColour: { r: 255, g: 200, b: 0 }, spellSpeed: 20, limitMagic: false, sound: null, releaseSound: 'spell_release', explodeSound: 'spell_explode',
   volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] },
 }
@@ -30,8 +30,8 @@ describe('charging', () => {
     expect(c).toBe(12.5)
     expect(chargeStep(c, speed, max)).toBe(12.5)
   })
-  it('chargeLoc mirrors collisionLoc by facing', () => {
-    const def = { attack: { ...energyBlast, collisionLoc: { x: 3, y: -8 } } } as ActorDef
+  it('chargeLoc mirrors the caster chargeLoc by facing', () => {
+    const def = { attack: energyBlast, chargeLoc: { x: 3, y: -8 } } as ActorDef
     expect(chargeLoc({ x: 10, y: 10 }, def, false)).toEqual({ x: 13, y: 2 })
     expect(chargeLoc({ x: 10, y: 10 }, def, true)).toEqual({ x: 7, y: 2 })
   })

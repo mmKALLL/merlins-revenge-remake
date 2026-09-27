@@ -1,0 +1,84 @@
+[#name: "act_pinShooter", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: [2,3,4,5,6,7],
+#animType: #naturalRanged,
+#bullet: #smokePin,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #pinShooter,
+#reach: 80,
+#sound: #none,
+#targetRoles: [[#teamMembers, #teamBuildings]]
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

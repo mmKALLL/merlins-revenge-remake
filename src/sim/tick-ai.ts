@@ -12,19 +12,22 @@ import { cooldownReady } from '../mr-open/mr-attack'
 import { distance, type Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
-import { collisionRectFor, defOf, faceAlong, isAlive, isCharacter } from './actors'
+import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
-import type { ActorState } from './state'
+import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, type Tick } from './tick-context'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
 
-/** Living characters as targeting candidates (dead and dying ones are skipped by findTargetInTeam). */
+/**
+ * Living team units as targeting candidates: targetRoles [[#teamMembers, #teamBuildings]] covers
+ * characters and dwellings (dead and dying ones are skipped by findTargetInTeam).
+ */
 export function targetables(t: Tick): Targetable[] {
-  return t.actors.filter((a) => !t.removed.has(a.id) && isCharacter(t.s, a) && isAlive(a)).map(asTargetable)
+  return t.actors.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
 }
 
-/** teamMaster.findTarget: the id of the closest living character in a team `a` hates, or null. */
+/** teamMaster.findTarget: the id of the closest living unit in a team `a` hates, or null. */
 export function nearestHostileId(t: Tick, a: ActorState): number | null {
   return findTarget(asTargetable(a), targetables(t), hatedTeams(a.team, t.s.teams))
 }
@@ -37,7 +40,7 @@ function targetView(t: Tick, id: number | null): TargetView | null {
 }
 
 function decideFor(t: Tick, a: ActorState): AiDecision {
-  const me: AiView = { pos: a.pos, attack: defOf(t.s, a).attack, cooldownReady: cooldownReady(a.cooldown) }
+  const me: AiView = { pos: a.pos, attack: armedDefOf(t.s, a).attack, cooldownReady: cooldownReady(a.cooldown) }
   return decide(a.ai.mode, me, targetView(t, a.ai.targetId), a.ai.retargetCounter)
 }
 
@@ -126,8 +129,31 @@ function retarget(t: Tick, a: ActorState): AiDecision | null {
   }
   a.ai.targetId = targetId
   a.ai.mode = 'moveToAttack'
+  const def = defOf(t.s, a)
+  if (def.multiAttack) selectAttack(t, a, def, actorIn(t, targetId)!)
   return decideFor(t, a)
 }
+
+/**
+ * modWeaponManager.setMultiAttack on a new target: the natural attack (weapon 1) while the target is
+ * beyond bufferDist (the weapon's reach when that is ranged too), else the weapon (2) - unless the
+ * target fights in melee, then weapon 1 again once the squared distance exceeds 20 (the engine
+ * compares GeomDistSqr with 20, so in practice always). Each weapon keeps its own cooldown.
+ */
+function selectAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState): void {
+  const weapon2 = def.attack
+  const buffer = weapon2.type === 'ranged' && typeof weapon2.reach === 'number' ? weapon2.reach : def.bufferDist
+  const dist2 = (target.pos.x - a.pos.x) ** 2 + (target.pos.y - a.pos.y) ** 2
+  let natural = dist2 - buffer * buffer > 0
+  if (!natural) natural = defOf(t.s, target).attack.type === 'melee' && dist2 > MULTI_ATTACK_MELEE_DIST_SQR && weapon2.type === 'melee'
+  if (natural === a.useNatural) return
+  a.useNatural = natural
+  const cooldown = a.cooldown
+  a.cooldown = a.otherCooldown
+  a.otherCooldown = cooldown
+}
+/** setMultiAttack's melee check compares a squared distance with this. */
+const MULTI_ATTACK_MELEE_DIST_SQR = 20
 
 /** modPathFinding + modMoveToLoc toward the decision's goal, then the remake's walking detour roll. */
 function walkToward(t: Tick, a: ActorState, def: ActorDef, goal: Vec): void {
@@ -158,12 +184,36 @@ function stopInReach(a: ActorState): void {
   a.ai = { ...a.ai, pathStall: 0, moveTarget: null, walkTicks: 0 }
 }
 
-/** Starts the attack strip; stepAttackFrames performs and finishes it. */
+/** Starts the attack strip; stepAttackFrames performs and finishes it. `def` carries the current attack (armedDefOf). */
 function startAttack(a: ActorState, def: ActorDef, faceLeft: boolean): void {
   a.facingLeft = faceLeft
-  a.mode = def.attack.animType === 'weaponRanged' ? 'weaponRanged' : 'weaponMelee'
+  // objAiAttack.attack -> goMode(attack.animType): the strip named after the attack's animType
+  a.mode = ATTACK_STRIPS.has(def.attack.animType) ? (def.attack.animType as AttackStrip) : 'weaponMelee'
   a.ai = { ...a.ai, pathStall: 0, mode: 'attack', moveTarget: null, walkTicks: 0 }
   a.vel = { x: 0, y: 0 }
+}
+
+/** Distance factor of GeomMirrorPoint: a run-away goal far beyond the runner. */
+const RUN_AWAY_PX = 2000
+
+/**
+ * objAiCPU #runReload (updateRunReload): walk away from the target until the cooldown is done, then
+ * #moveToAttack. modMoveToLoc.moveAwayFromLoc calls GeomMirrorPoint without a distance (void x 20);
+ * the port follows the evident intent (away from the target) rather than a zero-length mirror.
+ */
+function stepRunReload(t: Tick, a: ActorState, def: ActorDef): void {
+  a.ai.retargetCounter++
+  if (cooldownReady(a.cooldown)) {
+    a.ai.mode = 'moveToAttack'
+    return
+  }
+  const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
+  if (!target) return
+  const away = { x: a.pos.x - target.pos.x, y: a.pos.y - target.pos.y }
+  const d = Math.hypot(away.x, away.y) || 1
+  a.vel = frameMove(a.pos, { x: a.pos.x + (away.x / d) * RUN_AWAY_PX, y: a.pos.y + (away.y / d) * RUN_AWAY_PX }, def.walkSpeed)
+  a.mode = 'walk'
+  faceAlong(a, a.vel.x)
 }
 
 export function stepCpuAi(t: Tick): void {
@@ -171,6 +221,10 @@ export function stepCpuAi(t: Tick): void {
     if (t.removed.has(a.id)) continue
     const def = defOf(t.s, a)
     if (def.aiType !== 'objAiCPU' || (a.mode !== 'walk' && a.mode !== 'stand')) continue
+    if (a.ai.mode === 'runReload') {
+      stepRunReload(t, a, def)
+      if (a.ai.mode === 'runReload') continue
+    }
     if (stepDetour(t, a, def)) continue
     let decision: AiDecision | null = decideFor(t, a)
     if (decision.kind === 'retarget') decision = retarget(t, a)
@@ -183,7 +237,7 @@ export function stepCpuAi(t: Tick): void {
         stopInReach(a)
         break
       case 'startAttack':
-        startAttack(a, def, decision.faceLeft)
+        startAttack(a, armedDefOf(t.s, a), decision.faceLeft)
         break
       default: // idle, a repeated retarget, or no target found
         break

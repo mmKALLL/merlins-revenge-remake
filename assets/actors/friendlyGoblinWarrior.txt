@@ -1,0 +1,83 @@
+[#name: "act_friendlyGoblinWarrior", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 3,
+#experienceImWorth: 2,
+#eyestrain: 30,
+#inertia: 30,
+#strength: 4,
+#team: #village,
+#name: "goblinWarrior",
+#minimapStatus: #clr,
+#walkSpeed: 4,
+#weapon: #goblinSword
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

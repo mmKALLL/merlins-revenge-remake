@@ -1,0 +1,88 @@
+[#name: "act_blackOrc", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#character: #friendlyCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#dieSound: "blackOrc_die",
+#dieVolume: 50,
+#energy: 1200,
+#experienceImWorth: 50,
+#frictionReel: point(20,20),
+#inertia: 80,
+#miniMapStatus: #inf,
+#stallSpeed: 10,
+#strength: 30,
+#team: #monsters,
+#name: "blackOrc",
+#walkSpeed: 6,
+#weapon: #blackAxe
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

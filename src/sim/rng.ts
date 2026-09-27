@@ -31,3 +31,15 @@ export function spreadVec(r: Rng, v: Vec, maxDeg: number): [Vec, Rng] {
   const s = Math.sin(a)
   return [{ x: v.x * c - v.y * s, y: v.x * s + v.y * c }, n]
 }
+
+/** Lingo random(n): uniform integer in [1, n]. */
+export function randomInt(r: Rng, n: number): [number, Rng] {
+  const [v, next] = nextRandom(r)
+  return [1 + Math.floor(v * n), next]
+}
+
+/** VarRndRange([a, b]): uniform integer in [a, b]. */
+export function rndRange(r: Rng, [a, b]: readonly [number, number]): [number, Rng] {
+  const [v, next] = randomInt(r, b - a + 1)
+  return [a + v - 1, next]
+}

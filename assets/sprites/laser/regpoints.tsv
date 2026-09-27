@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_laser_fly_03_01	gfx	2441	24	22	32	12	11	alpha=255..255
+anm_laser_land_01_01	gfx	2442	24	22	32	12	11	alpha=255..255
+anm_laser_land_01_02	gfx	2443	24	22	32	12	11	alpha=255..255

@@ -1,0 +1,96 @@
+[#name: "act_garTower", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 11,
+#animType: #weaponRanged,
+#bullet: #scArcherArrow,
+#collisionLoc: point(5,-30),
+#cooldown: 60,
+#dexterity: 1,
+#firingType: #fullstrength,
+#name: #towerBow,
+#reach: 180,
+#sound: "goblin_fire"
+],
+#damageSpeed: 3,
+#dexterity: 3,
+#experienceImWorth: 50,
+#dieSound: #none,
+#energy: 100,
+#eyestrain: 10,
+#inertia: 85,
+#reelProof: true,
+#frictionReel: point(0,-30),
+#strength: 15,
+#team: #goblins,
+#reincarnateAs: [#goblinArcher],
+#teamRole: #teamBuildings,
+#name: "garTower",
+#walkSpeedIncLevel: 0,
+#walkSpeed: 0
+
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

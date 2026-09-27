@@ -1,0 +1,98 @@
+[#name: "act_ninja", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 120,
+#experienceImWorth: 10,
+#multiAttack: true,
+#attack: 
+[
+#animframe: 12,
+#animType: #naturalRanged,
+#bullet: #shuriken,
+#collisionLoc: point(0,-2),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #shuriken,
+#reach: 200,
+#sound: #none
+],
+#eyestrain: 30,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 12,
+#team: #ninja,
+#name: "ninja",
+#walkSpeed: 5,
+#weapon: #ninjaSword,
+#weaponTechnique: 20
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

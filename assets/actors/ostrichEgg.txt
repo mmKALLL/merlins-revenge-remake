@@ -1,0 +1,83 @@
+[#name: "act_ostrichEgg", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 6,
+#power: 0.3,
+#type: #bullet
+],
+#character: #bullet,
+#name: "ostrichEgg",
+#friction: point(5,5),
+#recordInRoomState: false,
+#reincarnateAs: [#babyOstrich],
+#rotational: true,
+#weight: 1.2
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

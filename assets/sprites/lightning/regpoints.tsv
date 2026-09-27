@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_lightning_fly_03_01	gfx	2444	16	17	32	8	8	alpha=255..255
+anm_lightning_land_01_01	gfx	2445	16	17	32	8	8	alpha=255..255
+anm_lightning_land_01_02	gfx	2446	16	17	32	8	8	alpha=255..255

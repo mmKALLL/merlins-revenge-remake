@@ -1,0 +1,89 @@
+[#name: "act_bomb", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#explodeCharge: 20,
+#power: 0.5,
+#type: #explode
+],
+#character: #bullet,
+#name: "bomb",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletCollidedWithTarget,
+#bulletLanded
+],
+#explodeSound: "spell_explode",
+#friction: point(10,10),
+#recordInRoomState: false,
+#rotational: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

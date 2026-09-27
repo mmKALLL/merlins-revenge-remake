@@ -2,10 +2,11 @@
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
 //  2. player attack input: charge / resume / release (tick-spell.ts)
-//  3. CPU AI decisions (tick-ai.ts)
+//  3. CPU AI decisions (tick-ai.ts), AI spell casters (tick-caster.ts), dwelling production and
+//     resident releases (tick-dwelling.ts)
 //  4. movement of every other actor (every velocity, walkers' included, decays by the actor's
 //     friction first; characters collide with tiles and take wall damage while reeling; bullets
-//     and spells ignore tiles)
+//     and spells ignore tiles; a CPU caster's charging spell follows it)
 //  5. animation advance for every actor, strip by mode (anim.ts); weapon technique stretches attack frames
 //  6. attack frames: melee strike, bullet spawn; 7. bullets (tick-combat.ts); 8. spells (tick-spell.ts)
 //  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
@@ -22,7 +23,7 @@ import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import {
-  collisionRectFor, createActor, defOf, faceAlong, isAlive, isCharacter, isSpell, playerOf, roomMusicTrack, spawnRoomActors, stripFor,
+  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isUnit, playerOf, roomMusicTrack, spawnRoomActors, stripFor,
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
@@ -30,8 +31,10 @@ import {
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState,
 } from './state'
 import { stepCpuAi } from './tick-ai'
+import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
 import { beginTick, playerIn, type Tick } from './tick-context'
+import { stepDwellings } from './tick-dwelling'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
 
@@ -151,14 +154,18 @@ function stepMovement(t: Tick): void {
   for (const a of t.actors) {
     if (a.id === s.playerId || t.removed.has(a.id)) continue
     if (isSpell(s, a)) {
-      if (a.mode === 'charge') continue // aligned to the caster in stepPlayerAttack
+      if (a.mode === 'charge') {
+        // the player's is aligned in stepPlayerAttack; a CPU caster has just moved (earlier in the list)
+        alignCasterSpell(t, a)
+        continue
+      }
       a.prevPos = a.pos
       a.pos = { x: a.pos.x + a.vel.x, y: a.pos.y + a.vel.y }
       continue
     }
     const vel = stepVelocity(a.vel, { x: 0, y: 0 }, 0, a.frictionPercent)
     const loc: Vec = { x: a.pos.x + vel.x, y: a.pos.y + vel.y }
-    const moved = isCharacter(s, a) ? collideCharacter(t, a, loc, vel, roomRect) : { loc, vel }
+    const moved = isUnit(s, a) ? collideCharacter(t, a, loc, vel, roomRect) : { loc, vel }
     a.prevPos = a.pos
     a.pos = moved.loc
     a.vel = moved.vel
@@ -173,6 +180,8 @@ function stepMovement(t: Tick): void {
  */
 function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: Rect): { loc: Vec; vel: Vec } {
   const cr = collisionRectFor(t.s, a)
+  // collisionDetection false (bats, ghosts): no tiles, only the play area (constrainToPlayArea #auto)
+  if (!defOf(t.s, a).collisionDetection) return { loc: clampToRoom(roomRect, loc, cr), vel }
   // A corner push moves both axes but the engine only calls the wall callbacks for it
   // (objCollisionMap.checkCollisions), so it zeroes x and takes wall damage once.
   const hit = resolveTileCollisionHits(t.s.grid.solidAt, loc, { x: Math.sign(vel.x), y: Math.sign(vel.y) }, cr)
@@ -224,7 +233,7 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   // the spell stays with the player (modSpellMultistage #enteringNewRoom), so the charge goes on.
   const player = playerOf(s)
   const charging = s.actors.filter((a) => isSpell(s, a) && a.ownerId === s.playerId && a.mode === 'charge')
-  const survivors = s.actors.filter((a) => a.id !== s.playerId && isCharacter(s, a) && isAlive(a))
+  const survivors = s.actors.filter((a) => a.id !== s.playerId && isUnit(s, a) && isAlive(a))
   const stored = s.rooms[fromKey] ?? EMPTY_ROOM
   const carried = [player, ...charging]
   const next: SimState = {
@@ -269,6 +278,8 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input)
   stepCpuAi(t)
+  stepSpellCasters(t)
+  stepDwellings(t)
   stepMovement(t)
   stepAnimation(t, input)
   stepWeaponTechnique(t)

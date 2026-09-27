@@ -1,0 +1,81 @@
+[#name: "act_boulder", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 1,
+#power: 2,
+#type: #bullet
+],
+#character: #bullet,
+#name: "boulder",
+#friction: point(4.5,4.5),
+#recordInRoomState: false,
+#weight: 2
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

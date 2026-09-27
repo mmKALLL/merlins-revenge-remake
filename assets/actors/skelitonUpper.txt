@@ -1,0 +1,95 @@
+[#name: "act_skelitonUpper", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #enemyCharacter,
+#chargeOffsetSide: #top,
+#chargeLoc: point(0,-12),
+#damageSpeed: 4,
+#dexterity: 1,
+#reincarnateAs: [#skelitonTorsoTank, #skelitonArm, #skelitonArm],
+#reincarnateRadius: 30,
+#energy: 220,
+#experienceImWorth: 20,
+#graveOn: false,
+#inertia: 80,
+#mana_capacity: 24,
+#mana_capacityIncLevel: 2,
+#mana_flow: 0.8,
+#mana_regeneration:0.6,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #undead,
+#name: "skelitonUpper",
+#walkSpeed: 0,
+#walkSpeedIncLevel: 0,
+#weapon: #skelitonSummon
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

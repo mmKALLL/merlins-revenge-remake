@@ -1,0 +1,99 @@
+[#name: "act_fireLizard", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 3,
+#animType: #naturalMelee,
+#damageMultiplier: 1,
+#collisionLoc: point(14,2),
+#cooldown: 0,
+#hits:[#teamMembers, #teamBuildings],
+#power: point(15,2),
+#name: #babyFlamethrower,
+#sound: "dragon_fire",
+#volume: 25
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 100,
+#experienceImWorth: 4,
+#eyestrain: 25,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 2,
+#takeHitSound: "dragon_hit",
+#takeHitVolume: 50,
+#team: #scarlet,
+#name: "lizard",
+#walkSpeed: 2
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

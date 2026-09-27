@@ -1,0 +1,99 @@
+[#name: "act_evilTv", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 5,
+#animType: #naturalRanged,
+#bullet: #spark,
+#collisionLoc: point(-1,-9),
+#cooldown: 150,
+#name: #sparky,
+#firingType: #fullStrength,
+#reach: 200,
+#sound: "quadranid_fire",
+#targetRoles: [[#teamMembers], [#teamBuildings]]
+],
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 125,
+#experienceImWorth: 20,
+#eyestrain: 1,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 7,
+#runReload: true,
+#team: #monsters,
+#name: "evilTv",
+#walkSpeed: 4,
+#weaponTechnique: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

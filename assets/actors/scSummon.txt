@@ -1,0 +1,115 @@
+[#name: "act_scSummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(9,113,255),
+#chargeExplodeFactor: 1.5,
+#chargeSize: 2,
+#chargeSpeed: 0.4,
+#chargeStart: 3,
+#chargeMax: 22,
+#chargeSpeedMax: 0.5,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 15,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers],
+#limitMagic: false,
+#randomSummon: true,
+#multistage:
+[
+#scWarrior: 16,
+#scArcher: 17,
+#scMonk: 20
+],
+#name: #scSummon,
+#payloadFunction: #takeHit,
+#payloadFunctionNonBlank: #takeHit,
+#power: 2,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #enemies,
+#spellSpeed: 25,
+#targetAllegiance: #enemy,
+#targetTileWhenNotBlank: true
+],
+#character: #scSummon,
+#collectSound: "collect_powerup_01",
+#member: member("undeadSummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

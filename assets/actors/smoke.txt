@@ -1,0 +1,91 @@
+[#name: "act_smoke", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 6,
+#explodeCharge: 30,
+#power: 0.25,
+#type: #explode
+],
+#character: #bullet,
+#name: "smoke",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletCollidedWithTarget,
+#bulletLanded
+],
+#explodeSound: "spell_explode",
+#friction: point(2,2),
+#recordInRoomState: false,
+#layerZ: gPlayerLayer,
+#rotational: false,
+#weight: 0.3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

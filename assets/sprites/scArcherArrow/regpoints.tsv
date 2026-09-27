@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_scArcherArrow_fly_03_01	gfx	3730	16	5	32	8	2	alpha=255..255
+anm_scArcherArrow_land_03_01	gfx	3731	13	12	32	6	6	alpha=255..255
+anm_scArcherArrow_land_60_02	gfx	3732	13	12	32	6	6	alpha=255..255

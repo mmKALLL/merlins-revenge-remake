@@ -1,0 +1,94 @@
+[#name: "act_scMonk", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #enemyCharacter,
+#chargeOffsetSide: #top,
+#chargeLoc: point(0,-10),
+#collisionDetection: true,
+#damageSpeed: 6,
+#dexterity: 1,
+#energy: 175,
+#experienceImWorth: 30,
+#inertia: 75,
+#mana_capacity: 17,
+#mana_flow: 2,
+#mana_capacityIncLevel: 1,
+#mana_regeneration:1,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#stallSpeedIncLevel: 1,
+#reincarnateAs: [#fire],
+#strength: 5,
+#team: #scarlet,
+#name: "scMonk",
+#walkSpeed: 4,
+#weapon: #scSummon
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

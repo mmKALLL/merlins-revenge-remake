@@ -1,0 +1,85 @@
+[#name: "act_scArcher", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 175,
+#inertia: 60,
+#stallSpeedIncLevel: 0.25,
+#strength: 15,
+#strenghtIncLevel: 0.5,
+#team: #scarlet,
+#name: "scArcher",
+#reincarnateAs: [#fire],
+#walkSpeed: 5,
+#weapon: #scArcherBow,
+#weaponTechniqueInc: 5
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

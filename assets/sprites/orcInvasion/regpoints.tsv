@@ -1,0 +1,4 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_orcInvasion_grave_03_01	gfx	3802	1	1	32	89	17	alpha=255..255
+anm_orcInvasion_grave_03_02	gfx	3803	1	1	32	-12	45	alpha=255..255
+anm_orcInvasion_stand_03_01	gfx	3801	1	1	32	46	-37	alpha=255..255

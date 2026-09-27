@@ -1,0 +1,82 @@
+[#name: "act_shuriken", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 5,
+#power: 0.5,
+#type: #bullet
+],
+#character: #bullet,
+#name: "shuriken",
+#friction: point(1,1),
+#recordInRoomState: false,
+#rotational: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

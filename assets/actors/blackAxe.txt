@@ -1,0 +1,86 @@
+[#name: "act_blackAxe", #type: #field]
+[
+#objType: #objPowerUp,
+#inherit: #weapon,
+#attack:
+[
+#animframe: 8,
+#animType: #weaponMelee,
+#collisionLoc: point(70,0),
+#cooldown: 0,
+#damageMultiplier: 3,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(70,0),
+#name: #blackAxe,
+#power: point(1, 0),
+#sound: "blackOrc_fire",
+#targetRoles: [[#teamMembers], [#teamBuildings]],
+#volume: 50
+]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

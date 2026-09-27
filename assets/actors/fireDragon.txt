@@ -1,0 +1,89 @@
+[#name: "act_fireDragon", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 3,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 500,
+#experienceImWorth: 50,
+#eyestrain: 50,
+#frictionReel: point(20,20),
+#inertia: 70,
+#startingLevel: 0,
+#stallSpeed: 3,
+#strength: 8,
+#takeHitSound: "dragon_hit",
+#takeHitVolume: 100,
+#team: #scarlet,
+#name: "dragon",
+#walkSpeed: 7,
+#weapon: #flameThrower
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
