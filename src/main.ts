@@ -9,6 +9,7 @@ import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
+import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
 
 const params = new URLSearchParams(location.search)
@@ -19,7 +20,7 @@ const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 const cfg: RenderConfig = {
   logical: { w: 640, h: 320 },
   playOffset: { x: 32, y: 0 }, // assumption: 32 px side margins; verify against the original stage
-  view: { w: 576, h: 288 },
+  view: PLAY_VIEW, // the sim's default SimConfig view too (Space aims on screen)
   cameraMode: params.get('camera') === 'follow' ? 'follow' : 'room',
   spriteScale: 1,
   debug: params.get('debug') !== '0',

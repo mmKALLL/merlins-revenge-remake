@@ -11,6 +11,7 @@ import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadF
 import { defOf, isAlive, isSpell } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
+import { viewRect, type Size } from './view'
 import { actorIn, hitTargetIn, playerIn, playSound, sleeperIn, spawn, type Tick } from './tick-context'
 import { applyHit, splashVictims } from './tick-combat'
 import { nearestHostileId } from './tick-ai'
@@ -39,12 +40,17 @@ function chargeKindFor(input: InputSnapshot): ChargeKind | null {
   return null
 }
 
-/** Where a released spell flies: the mouse (else straight ahead), the nearest hostile, or SHORT_PX short of it. */
-function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null): Vec {
+/**
+ * Where a released spell flies: the mouse (else straight ahead), the nearest hostile, or SHORT_PX
+ * short of it. In a continuous world (remake) only hostiles inside the play view count; in rooms
+ * the room is the view.
+ */
+function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null, view: Size): Vec {
   const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
   const mouse = input.mouseWorld ?? ahead
   if (kind !== 'nearest' && kind !== 'short') return mouse
-  const nearestId = nearestHostileId(t, p, true)
+  const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
+  const nearestId = nearestHostileId(t, p, true, onScreen)
   const nearest = nearestId === null ? undefined : (actorIn(t, nearestId) ?? sleeperIn(t, nearestId))
   if (!nearest) return mouse
   if (kind === 'nearest') return { ...nearest.pos }
@@ -71,14 +77,14 @@ export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef)
  * a charge whenever the cooldown is ready, even during the release strip (releaseSpell has already
  * cleared pCurrentSpell).
  */
-export function stepPlayerAttack(t: Tick, input: InputSnapshot): void {
+export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   const def = defOf(t.s, p)
   const spell = chargingSpellOf(t, p)
   if (!spell) startCharge(t, p, def, input)
   else if (isHeld(input, p.ai.chargeKind)) continueCharge(p, def, spell)
-  else releaseSpell(t, p, def, spell, input)
+  else releaseSpell(t, p, def, spell, input, view)
 }
 
 function continueCharge(p: ActorState, def: ActorDef, spell: ActorState): void {
@@ -89,8 +95,8 @@ function continueCharge(p: ActorState, def: ActorDef, spell: ActorState): void {
   alignSpell(spell, p, def)
 }
 
-function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot): void {
-  releaseMagic(t, p, def, spell, releaseTarget(t, p, input, p.ai.chargeKind))
+function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
+  releaseMagic(t, p, def, spell, releaseTarget(t, p, input, p.ai.chargeKind, view))
   p.ai.chargeKind = null
 }
 

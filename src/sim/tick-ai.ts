@@ -9,13 +9,14 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { rectAt } from '../mr-open/mr-collision'
 import { decide, type AiDecision, type AiView, type TargetView } from '../mr-open/mr-ai-cpu'
 import { cooldownReady } from '../mr-open/mr-attack'
-import { distance, type Vec } from '../mr-open/mr-geometry'
+import { distance, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
 import { nextRandom } from './rng'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, waitingSleepers, type Tick } from './tick-context'
+import { insideRect } from './view'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
 
@@ -29,9 +30,14 @@ export function targetables(t: Tick, withSleepers = false): Targetable[] {
   return candidates.filter((a) => !t.removed.has(a.id) && isUnit(t.s, a) && isAlive(a)).map(asTargetable)
 }
 
-/** teamMaster.findTarget: the id of the closest living unit in a team `a` hates, or null. */
-export function nearestHostileId(t: Tick, a: ActorState, withSleepers = false): number | null {
-  return findTarget(asTargetable(a), targetables(t, withSleepers), hatedTeams(a.team, t.s.teams))
+/**
+ * teamMaster.findTarget: the id of the closest living unit in a team `a` hates, or null; `within`
+ * (remake) limits the candidates to units positioned inside it.
+ */
+export function nearestHostileId(t: Tick, a: ActorState, withSleepers = false, within: Rect | null = null): number | null {
+  const candidates = targetables(t, withSleepers)
+  const inside = within ? candidates.filter((c) => insideRect(c.pos, within)) : candidates
+  return findTarget(asTargetable(a), inside, hatedTeams(a.team, t.s.teams))
 }
 
 function targetView(t: Tick, id: number | null): TargetView | null {

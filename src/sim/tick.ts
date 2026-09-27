@@ -330,7 +330,7 @@ function settleContinuous(t: Tick, room: Vec): SimState {
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
   const t = beginTick(s)
   const room = stepPlayerMove(t, input, cfg)
-  stepPlayerAttack(t, input)
+  stepPlayerAttack(t, input, cfg.view)
   stepCpuAi(t)
   stepSpellCasters(t)
   stepDwellings(t)

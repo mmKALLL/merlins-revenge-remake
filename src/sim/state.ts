@@ -5,6 +5,7 @@ import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Rng } from './rng'
+import { PLAY_VIEW, type Size } from './view'
 import type { WorldGrid } from './world-grid'
 
 export const TICKS_PER_SECOND = 30
@@ -163,6 +164,8 @@ export const roomKey = (room: Vec): string => `${room.x},${room.y}`
 export interface SimConfig {
   // TODO(Task 8): derive from frame via collisionRectFor; the player uses this fixed rect until then
   collisionRect: CollisionRect
+  /** the play view in px: in a continuous world, Space's nearest-enemy shot only aims at units inside it */
+  view: Size
 }
 
-export const DEFAULT_SIM_CONFIG: SimConfig = { collisionRect: PLAYER_COLLISION_RECT }
+export const DEFAULT_SIM_CONFIG: SimConfig = { collisionRect: PLAYER_COLLISION_RECT, view: PLAY_VIEW }

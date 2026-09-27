@@ -5,7 +5,7 @@ import type { MapDefinition } from '../mr-open/mr-map-format'
 import { activationDistance, nextActivation } from './activation'
 import { sleepingFrame } from './anim'
 import { playerOf } from './actors'
-import { NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
+import { DEFAULT_SIM_CONFIG, NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
 import { anims, defs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
@@ -207,5 +207,31 @@ describe('continuous world', () => {
   it('stops Merlin at the map edge', () => {
     const s = run(world([], { x: 2 * ROOM_W - 40, y: ROW_Y }), 30, { ...NO_INPUT, move: { x: 1, y: 0 } })
     expect(playerOf(s).pos.x).toBeLessThan(2 * ROOM_W)
+  })
+})
+
+describe('Space in a continuous world (targets on screen only)', () => {
+  // a narrow 200 px view so both goblins stay awake and close: it shows x 460..660 around Merlin at 560
+  const cfg = { ...DEFAULT_SIM_CONFIG, view: { w: 200, h: 288 } }
+  const MERLIN = { x: 560, y: ROW_Y }
+  const OFF_SCREEN = { room: 2 as const, x: 4, symbol: 'goblinWarrior' } // x 688: 128 px away, right of the view
+  const ON_SCREEN = { room: 1 as const, x: 16, row: 1, symbol: 'goblinWarrior' } // (496, 16): about 143 px away
+  const holdSpace: InputSnapshot = { ...NO_INPUT, shootNearest: true }
+  function releasedAt(s: SimState): { x: number; y: number } | null {
+    s = stepSim(s, holdSpace, cfg)
+    s = stepSim(s, NO_INPUT, cfg)
+    return s.actors.find((a) => a.def === 'spell')!.targetPoint
+  }
+
+  it('fires at the nearest enemy on screen, not a nearer one off screen', () => {
+    const s = world([OFF_SCREEN, ON_SCREEN], MERLIN)
+    const onScreen = ofDef(s, 'goblinWarrior').find((g) => g.pos.x < 600)!
+    const target = releasedAt(s)!
+    expect(Math.abs(target.x - onScreen.pos.x)).toBeLessThan(8)
+    expect(Math.abs(target.y - onScreen.pos.y)).toBeLessThan(8)
+  })
+
+  it('fires straight ahead when no enemy is on screen', () => {
+    expect(releasedAt(world([OFF_SCREEN], MERLIN))).toEqual({ x: MERLIN.x + 100, y: MERLIN.y })
   })
 })
