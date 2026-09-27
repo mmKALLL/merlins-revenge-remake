@@ -241,6 +241,11 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   walking or standing (a reel, death, attack or charge plays out first); it then stops, returns to
   its stand strip and its AI to `#findTarget`, and a spell it was still charging is removed. At map
   start every unit beyond `wakeDistance` starts asleep. Bullets and spells always update.
+- **Elliptical ranges** (owner request): every activation distance is `activationDistance`,
+  `hypot(dx, dy / activationVerticalScale)`, so each range reaches its full length sideways and
+  `activationVerticalScale` (0.75) of it up and down: `wakeDistance` 192 px sideways, 144 px
+  vertically. It applies to waking, falling asleep, the far-hit hold and, for consistency, the
+  nav-mode clear radius.
 - **Asleep** means no AI, no movement, no attacks, no dwelling production, no cooldowns or
   regeneration. The AI does not see sleepers (they are not targeting candidates), but they are
   hittable: explosions catch them, a bullet whose target fell asleep can still hit it, and Merlin's
@@ -251,9 +256,14 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - **Team caps**: the team member and reservation counts that gate dwelling releases and summons
   (reservationsMaster, counted per room in the original) count awake units only, so the rest of the
   map does not fill a team's cap.
-- **Nav mode** is on while no awake, living hostile unit is within `navModeClearRadius` (256 px) of
-  Merlin, re-evaluated every tick.
-- The four distances and times are remake fields of the player's ActorDef (`src/mr-open/mr-actor-data.ts`),
+- **Space aims on screen** (owner request): Merlin's nearest-enemy shot and the F push-back shot
+  only consider hostile units whose position lies inside the play view the follow camera shows
+  (`viewRect`, `src/sim/view.ts`: the renderer's `cameraOrigin` around Merlin's position, clamped to
+  the map, with the view size from `SimConfig.view`, 576x288). With none on screen the shot flies
+  straight ahead, as with no hostile at all. In rooms mode the room is the view and nothing changes.
+- **Nav mode** is on while no awake, living hostile unit is within `navModeClearRadius` (256 px
+  sideways, 192 px vertically) of Merlin, re-evaluated every tick.
+- The four distances and times and `activationVerticalScale` are remake fields of the player's ActorDef (`src/mr-open/mr-actor-data.ts`),
   tunable in `assets/tuning.json` under `player`. They live on the ActorDef rather than a separate
   sim config so they follow the project's one tuning path (defaults in actor data, overrides in
   tuning.json).

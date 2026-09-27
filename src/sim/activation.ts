@@ -3,9 +3,10 @@
 // production, cooldowns or regeneration, and the AI does not see them; they can still be hit and
 // show their stand strip (animated by the renderer, as the tick leaves sleepers untouched). The
 // distances and the hold after a far hit come from the player's ActorDef (wakeDistance,
-// sleepDistance, hitWakeTicks, navModeClearRadius). Bullets and spells are never put to sleep.
+// sleepDistance, hitWakeTicks, navModeClearRadius); every distance is elliptical, shorter up and down
+// by activationVerticalScale (activationDistance). Bullets and spells are never put to sleep.
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { distance } from '../mr-open/mr-geometry'
+import type { Vec } from '../mr-open/mr-geometry'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
 import { defOf, isAlive, isUnit, playerOf } from './actors'
 import { stripNameFor } from './anim'
@@ -15,6 +16,18 @@ import { chargingSpellOf } from './tick-spell'
 
 export type ActivationRules = Pick<ActorDef, 'wakeDistance' | 'sleepDistance' | 'hitWakeTicks'>
 export type Activation = Pick<ActorState, 'awake' | 'wakeHold'>
+
+/**
+ * The distance the activation ranges compare against: vertical offsets count 1 / verticalScale
+ * times longer, so a range r reaches r sideways and r * verticalScale up and down (an ellipse).
+ */
+export function activationDistance(a: Vec, b: Vec, verticalScale: number): number {
+  return Math.hypot(b.x - a.x, (b.y - a.y) / verticalScale)
+}
+
+/** activationDistance from Merlin with the player's rules. */
+const fromMerlin = (s: SimState, p: ActorState, a: ActorState): number =>
+  activationDistance(p.pos, a.pos, defOf(s, p).activationVerticalScale)
 
 /**
  * One tick of the wake/sleep rule for a unit `dist` px (reg point to reg point) from Merlin: closer
@@ -37,10 +50,13 @@ export function nextActivation(a: Activation, dist: number, wasHit: boolean, rul
 /** Every unit starts asleep unless within wakeDistance of Merlin (the map start of a continuous world). */
 export function activateAtStart(s: SimState): SimState {
   const p = playerOf(s)
-  const { wakeDistance } = defOf(s, p)
-  const actors = s.actors.map((a) => (a === p || !isUnit(s, a) ? a : { ...a, awake: distance(a.pos, p.pos) < wakeDistance, wakeHold: 0 }))
+  const actors = s.actors.map((a) => (a === p || !isUnit(s, a) ? a : { ...a, awake: withinWakeDistance(s, p, a), wakeHold: 0 }))
   return { ...s, actors }
 }
+
+/** Whether `a` is close enough to Merlin (`p`) to wake. */
+export const withinWakeDistance = (s: SimState, p: ActorState, a: ActorState): boolean =>
+  fromMerlin(s, p, a) < defOf(s, p).wakeDistance
 
 /**
  * Applies the wake/sleep rule to every unit at the end of the tick, with this tick's hits (a sleeper
@@ -50,11 +66,11 @@ export function stepActivation(t: Tick): void {
   const p = playerIn(t)
   const rules = defOf(t.s, p)
   for (const sleeper of waitingSleepers(t)) {
-    if (distance(sleeper.pos, p.pos) < rules.wakeDistance) bringIn(t, sleeper).awake = true
+    if (withinWakeDistance(t.s, p, sleeper)) bringIn(t, sleeper).awake = true
   }
   for (const a of t.actors) {
     if (a === p || t.removed.has(a.id) || !isUnit(t.s, a)) continue
-    const next = nextActivation(a, distance(a.pos, p.pos), t.hit.has(a.id), rules)
+    const next = nextActivation(a, fromMerlin(t.s, p, a), t.hit.has(a.id), rules)
     a.wakeHold = next.wakeHold
     if (a.awake === next.awake) continue
     if (next.awake) a.awake = true
@@ -92,14 +108,14 @@ function restAsleep(s: SimState, a: ActorState): void {
   if (a.ai.mode === 'none') return
   a.ai = {
     ...a.ai, mode: 'findTarget', targetId: null, moveTarget: null, waypoint: null, pathMode: 'beeline',
-    pathStall: 0, scenicTicks: 0, walkTicks: 0, detourTicks: 0, detourGoal: null,
+    pathStall: 0, scenicTicks: 0, walkTicks: 0, detourTicks: 0, detourGoal: null, idleTicks: 0, wanderGoal: null,
   }
 }
 
-/** Nav mode in a continuous world: no awake living hostile unit within navModeClearRadius of Merlin. */
+/** Nav mode in a continuous world: no awake living hostile unit within navModeClearRadius of Merlin (elliptical, as activation). */
 export function navModeClear(s: SimState): boolean {
   const p = playerOf(s)
   const radius = defOf(s, p).navModeClearRadius
   const hostile = hostileTeamsTo(p.team, s.teams)
-  return !s.actors.some((a) => a.awake && hostile.includes(a.team) && isUnit(s, a) && isAlive(a) && distance(a.pos, p.pos) < radius)
+  return !s.actors.some((a) => a.awake && hostile.includes(a.team) && isUnit(s, a) && isAlive(a) && fromMerlin(s, p, a) < radius)
 }

@@ -103,7 +103,7 @@ function runUntil(s: SimState, pred: (s: SimState) => boolean, max: number, inpu
   return [s, -1]
 }
 /** A stationary target: no AI, so it never chases (the reel still returns it to walk/findTarget). */
-const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null } }
+const dummy: Partial<ActorState> = { ai: { mode: 'none', targetId: null, retargetCounter: 0, pathMode: 'beeline', waypoint: null, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, idleTicks: 0, wanderGoal: null, chargeKind: null } }
 
 describe('warrior melee (combat notes §3-4, §6)', () => {
   it('beelines at walkSpeed 4 less 50 % friction (2 px/tick) to the strike position, then its sword hit pushes and damages the player', () => {
@@ -524,7 +524,7 @@ describe('archer (combat notes §3-4)', () => {
   it('waiting in reach resets only the path stall; a scenic detour resumes toward its waypoint once out of reach', () => {
     // #arrivedAtAttackLoc resets the stall counter and stops the walk but leaves the path mode and
     // waypoint alone (modPathFinding.internalEvent), so a wandering archer keeps its detour.
-    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 250, y: 100 }, pathStall: 4, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, idleTicks: 0, wanderGoal: null, chargeKind: null }
     let { s, enemyId } = setup(ARCHER, { x: 190, y: 144 }, undefined, 1, { cooldown: 200, ai })
     for (let i = 0; i < 10; i++) {
       s = stepSim(s, NO_INPUT)
@@ -772,7 +772,7 @@ describe('stall detection on a wall slide (regression: a goblin stayed in #sceni
     // Waypoint behind a full-height wall, 3 px off the walker's row: the push-out blocks x and the
     // walk vector's y component decays geometrically, so the float position keeps creeping. The
     // stall test is on the on-screen (whole-pixel) move (objMoveXY pMoveVect = pSpr.loc delta).
-    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 200, y: 83 }, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, chargeKind: null }
+    const ai = { mode: 'moveToAttack' as const, targetId: null, retargetCounter: 0, pathMode: 'scenic' as const, waypoint: { x: 200, y: 83 }, pathStall: 0, scenicTicks: 0, moveTarget: null, walkTicks: 0, detourTicks: 0, detourGoal: null, idleTicks: 0, wanderGoal: null, chargeKind: null }
     const map = openMap([{ x: 10, y: 5, tile: WARRIOR }], { solid: wallAt(9) })
     let { s, enemyId } = setup(WARRIOR, { x: 310, y: 80 }, { x: 40, y: 40 }, 1, { ai }, map)
     let [, ticks] = runUntil(s, (t) => actor(t, enemyId)!.ai.pathMode === 'beeline', 40)
