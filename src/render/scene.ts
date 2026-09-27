@@ -5,7 +5,7 @@ import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { isSpell, playerOf } from '../sim/actors'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
-import { roomKey, type ActorState, type RoomState, type SimState } from '../sim/state'
+import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 
 export interface RenderConfig {
@@ -79,7 +79,7 @@ export class Scene {
   private actorSprites = new Map<number, Sprite>()
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
-  private graveKey: { room: string; graves: RoomState['graves'] | null } = { room: '', graves: null }
+  private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
   private bar = new Graphics()
   private barFill = -1
@@ -291,11 +291,12 @@ export class Scene {
     return sprite.frames['stand'] ? sprite.regs['stand']?.[0] : sprite.regs['walk']?.[0]
   }
 
+  /** The current room's graves, or every room's in a continuous world. */
   private syncGraves(s: SimState): void {
     const room = roomKey(s.room)
-    const graves = s.rooms[room]?.graves ?? []
-    if (this.graveKey.room === room && this.graveKey.graves === graves) return
-    this.graveKey = { room, graves }
+    if (this.graveKey.room === room && this.graveKey.rooms === s.rooms) return
+    this.graveKey = { room, rooms: s.rooms }
+    const graves = s.worldMode === 'continuous' ? Object.values(s.rooms).flatMap((r) => r.graves) : (s.rooms[room]?.graves ?? [])
     for (const c of this.graveLayer.removeChildren()) c.destroy()
     for (const g of graves) {
       const name = this.defs[g.def]?.name
