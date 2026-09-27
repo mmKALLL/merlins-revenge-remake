@@ -56,3 +56,8 @@ bitmaps.
 index (drxtract's sequential walk fails on this file); `convert.py` writes the sounds, including
 IMA-ADPCM members decoded to PCM; `dump_bitmaps.py` writes the bitmaps. Details and the full file
 list: `docs/notes/sound-extraction.md`. How the engine plays them: `docs/notes/engine-mechanics-sound.md`.
+
+`dump_bitmaps.py` reads the bitmap palette from the CASt `clutId` field (drxtract uses the
+`clutCastLib` field before it and reports "rainbow"), resolves palette members through their
+`CLUT` chunk, and decodes raw (uncompressed) 32-bit BITD as interleaved ARGB pixels. See the
+2026-09-27 sprite update in `docs/notes/tileset-extraction.md`.

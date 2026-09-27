@@ -1,4 +1,4 @@
 name	cast	member	width	height	bpp	regX	regY	note
-anm_batBullet_fly_03_01	gfx	2061	4	5	32	2	2	alpha=0..255
-anm_batBullet_land_01_02	gfx	2063	4	4	32	2	2	alpha=0..255
-anm_batBullet_land_30_01	gfx	2062	4	4	32	2	2	alpha=0..255
+anm_batBullet_fly_03_01	gfx	2061	4	5	32	2	2	raw alpha=0..255
+anm_batBullet_land_01_02	gfx	2063	4	4	32	2	2	raw alpha=0..255
+anm_batBullet_land_30_01	gfx	2062	4	4	32	2	2	raw alpha=0..255

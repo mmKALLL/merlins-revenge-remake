@@ -110,3 +110,26 @@ row, 88). The highest tile index used by any of the 25 maps fits each sheet. The
 (`bitmap_header`) instead of drxtract's value, and re-running it reproduces every sheet in
 `assets/tilesets/` exactly (RGB compared). The engine movie's copies were not needed; its CASt
 headers for these members carry the same pitch/depth bytes (only the registration points differ).
+
+## Update 2026-09-27: sprite palettes and raw 32-bit bitmaps (`dump_bitmaps.py`)
+
+Two more misreads in the engine-movie sprite dump, both fixed in `tools/director-extract/dump_bitmaps.py`:
+
+- **8-bit palette.** drxtract takes the palette from the `clutCastLib` field (always -1, which its
+  "stored id - 1" rule turns into -2 = Rainbow). The palette is the next field, `clutId`. The
+  MR3-era 8-bit members (`anm_mageOrc_{stand,walk_02_01,charge,release}`) use clutId -101 = System - Win,
+  the same built-in palette every 32-bit member names; the movie still holds their imported GIFs
+  as `ediM` chunks, and the System - Win decode matches them (green orc, like the 32-bit frames).
+  No runtime tint is involved: characters keep `color` black / `bgColor` white (`spriteMaster`),
+  and `colourTransform`/`setSpriteColour` are only used by cut scenes, menus and `objSpell`.
+  Members with a palette *member* (clutId > 0, a `CLUT` chunk in the same cast): `anm_iceRock_*`
+  (member 3111, the blue ice palette) and the unused `anm_scw_*` (3501, 3521).
+- **Raw 32-bit BITD.** When the BITD length is exactly pitch x height the data is uncompressed,
+  and then the pixels are interleaved A, R, G, B, not four planes per row as in the RLE case.
+  Affected (all tiny bullets): `shuriken_fly_03_01`, `batBullet_*`, `fangBunnyBabyBullet_*`,
+  `needle_land_*`, `smokePin_land_02_03/04`, the unused `energyBeam_*` (1x1 members are unaffected).
+
+Re-dumping every `anm_*` member changed exactly those 28 files in `assets/sprites/`; the other
+2085 frames are byte-identical in RGBA. `anm_blackPotion_stand_03_01` (16-bit) is still skipped.
+The owner's reference bundle (`cast_bitmaps/`) was made with the old script, so it carries the
+same errors for these members plus `anm_scw_*` and `anm_energyBeam_*`.
