@@ -34,6 +34,7 @@ export interface SimSnapshot {
   nextId: number
   playerId: number
   restartRequested: boolean
+  mapComplete?: boolean // absent in snapshots made before map completion existed
   actors: ActorState[]
   rooms: Record<string, RoomState>
   /** the inputs of the ticks leading up to this moment, oldest first (context; not replayed on load) */
@@ -102,6 +103,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     nextId: s.nextId,
     playerId: s.playerId,
     restartRequested: s.restartRequested,
+    mapComplete: s.mapComplete,
     actors: s.actors,
     rooms: s.rooms,
     inputs: [...(extras.inputs ?? [])],
@@ -153,6 +155,7 @@ export function deserializeSim(
     rng: snap.rng,
     playerId: snap.playerId,
     restartRequested: snap.restartRequested,
+    mapComplete: snap.mapComplete ?? false,
     events: [],
   }
 }
