@@ -877,3 +877,68 @@ describe('sound and music events (engine notes sound §3, §5)', () => {
     expect(heard).toEqual(['last_stand_v4', null, 'last_stand_v4'])
   })
 })
+
+describe('fast movers against a 1-tile wall (remake: sub-stepped tile collision, see sweepTileCollision)', () => {
+  // wall column 12 spans x 352..383; everything else in room 1 is open
+  const WALL_LEFT = 352
+  const WALL_RIGHT = 383
+  const map = openMap([{ x: 3, y: 3, tile: WARRIOR }], { solid: wallAt(12) })
+  const far = { x: 150, y: 250 }
+  const withKnockback = (s: SimState, knockback: { x: number; y: number }): SimState =>
+    ({ ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, knockback } : a)) })
+
+  // A thunderBlast can stack its bullet hit (applied twice) and its splash into one tick's
+  // knockback, well past 31 px on the first tick, hence the larger pushes.
+  it('a 30-90 px/tick knockback never carries Merlin through the wall, at any offset or diagonal', () => {
+    for (let gap = 1; gap <= 40; gap += 3) {
+      for (const [vx, vy] of [[30, 0], [30, 10], [30, -10], [30, 25], [60, 0], [60, 20], [90, -30]] as const) {
+        for (const side of [1, -1]) {
+          const x = side > 0 ? WALL_LEFT - 8 - gap : WALL_RIGHT + 8 + gap
+          let { s } = setup(WARRIOR, far, { x, y: 144 }, 1, dummy, map)
+          s = withKnockback(s, { x: vx * side, y: vy })
+          for (let i = 0; i < 6; i++) {
+            s = stepSim(s, NO_INPUT)
+            const p = playerOf(s).pos
+            if (side > 0) expect(p.x + 7).toBeLessThan(WALL_LEFT)
+            else expect(p.x - 7).toBeGreaterThan(WALL_RIGHT)
+          }
+        }
+      }
+    }
+  })
+
+  it('a goblin reeling at 30 px/tick stops at the wall and takes its wall damage once', () => {
+    const reel = (vel: { x: number; y: number }, pos: { x: number; y: number }): Partial<ActorState> => ({
+      ...dummy, mode: 'reel', anim: 'reel', vel, pos, prevPos: pos, frictionPercent: { x: 10, y: 10 },
+      ai: { ...dummy.ai!, mode: 'dazed' },
+    })
+    for (let gap = 1; gap <= 40; gap += 3) {
+      for (const vy of [0, 10, -10]) {
+        const pos = { x: WALL_LEFT - 7 - gap, y: 144 }
+        let { s, enemyId } = setup(WARRIOR, pos, { x: 100, y: 144 }, 1, reel({ x: 30, y: vy }, pos), map)
+        for (let i = 0; i < 6; i++) {
+          s = stepSim(s, NO_INPUT)
+          expect(actor(s, enemyId)!.pos.x + 6.5).toBeLessThan(WALL_LEFT)
+        }
+      }
+    }
+    // straight in: the speed after this tick's friction is 27, so it loses 27 - damageSpeed 3 once
+    const pos = { x: WALL_LEFT - 30, y: 144 }
+    let { s, enemyId } = setup(WARRIOR, pos, { x: 100, y: 144 }, 1, reel({ x: 30, y: 0 }, pos), map)
+    s = stepSim(s, NO_INPUT)
+    expect(actor(s, enemyId)!.vel.x).toBe(0)
+    expect(actor(s, enemyId)!.energy).toBeCloseTo(100 - (27 - 3), 10)
+    s = run(s, 3)
+    expect(actor(s, enemyId)!.energy).toBeCloseTo(100 - (27 - 3), 10)
+  })
+
+  it('a strong diagonal push along the wall slides Merlin along it instead of stopping dead', () => {
+    let { s } = setup(WARRIOR, far, { x: WALL_LEFT - 30, y: 100 }, 1, dummy, map)
+    s = withKnockback(s, { x: 30, y: 20 })
+    s = stepSim(s, NO_INPUT)
+    const p = playerOf(s)
+    expect(p.pos).toEqual({ x: WALL_LEFT - 1 - 7, y: 120 })
+    expect(p.knockback.x).toBe(0)
+    expect(p.knockback.y).toBeGreaterThan(0)
+  })
+})
