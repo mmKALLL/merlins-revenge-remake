@@ -11,7 +11,7 @@ TypeScript port of the open-sourced Merlin Open engine.
 
 Query parameters:
 
-- `?map=mriv_small|sam|tvsDemo|combat_test`: the map (default `mriv_small`, 5x1 rooms, MR4 tilesets). Use `?map=combat_test` for combat: a 2x1 test map with a goblin warrior and archer in room 1 and a cluster of goblins in room 2. Regenerate it with `node tools/make-combat-test-map.mjs`, then `pnpm assets:convert`.
+- `?map=<id>`: the map, by its path under `assets/maps/` without `.txt` (`works/sam`, `tvsDemo`; the `/` may be written `%2F`). Default `not_fully_tested/mriv_small` (5x1 rooms, MR4 tilesets). Use `?map=combat_test` for combat: a 2x1 test map with a goblin warrior and archer in room 1 and a cluster of goblins in room 2. Regenerate it with `node tools/make-combat-test-map.mjs`, then `pnpm assets:convert`.
 - `?camera=room|follow`: hard cut per room (default) or a camera that follows Merlin.
 - `?seed=<n>`: the sim's random seed (default: the current time); a restart after death picks a new one.
 - `?debug=0`: hides the debug text next to the energy bar.
@@ -25,7 +25,7 @@ Controls:
 - The buttons below the game set the pixel size: 1x-4x screen pixels per game pixel (default 2x, scaled further by browser zoom) or "fit", the largest whole multiple that fits the window. The choice is remembered.
 - Next to them, **Music** and **Effects** turn music and sound effects on or off (Effects off also cuts the sounds already playing; Music back on restarts the current room's track), and **Vol** sets the master volume (default 70). All three are remembered. Browsers keep audio silent until the first key press or click on the page.
 - Music follows the original's room music tiles (`musicLastStand`, `musicOff`, ...): entering a room with one starts or stops that track, other rooms keep the current one. The track loops (the original played it once). None of the converted maps places a music tile yet.
-- The list next to them shows every converted map with its size in rooms; picking one reloads the page with that `?map=`, keeping the other parameters.
+- The map browser next to them shows one folder of `assets/maps/` at a time, opening in the current map's folder: "(go back)" goes up, `works/` style entries open a subfolder, and a map (`name (WxH)`, size in rooms) reloads the page with that `?map=`, keeping the other parameters. Maps that fail to parse are not listed; maps using the MR3 `merlin*` tilesets show placeholder art.
 
 ### Tuning
 

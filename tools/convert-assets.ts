@@ -1,6 +1,6 @@
 // Converts ./assets into ./public/generated for the browser. Run: pnpm assets:convert
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { resolveActors, type ActorDef, type Plain, needsSprite } from '../src/mr-open/mr-actor-data'
@@ -29,42 +29,65 @@ function readTxtDir(sub: string): Record<string, string> {
   return out
 }
 
-function convertMaps(): MapDefinition[] {
-  const maps: MapDefinition[] = []
-  const index: { name: string; mapSize: { x: number; y: number } }[] = []
-  for (const file of sortedTxt(join(ASSETS, 'maps'))) {
-    const name = stripTxt(file)
+/** Every .txt under dir, as paths relative to it with '/' separators, sorted. */
+function txtFilesUnder(dir: string, prefix = ''): string[] {
+  const out: string[] = []
+  for (const entry of sortedDir(dir)) {
+    const rel = prefix ? `${prefix}/${entry}` : entry
+    if (statSync(join(dir, entry)).isDirectory()) out.push(...txtFilesUnder(join(dir, entry), rel))
+    else if (entry.endsWith('.txt')) out.push(rel)
+  }
+  return out
+}
+
+interface ConvertedMap {
+  id: string // path under assets/maps without .txt, e.g. works/sam
+  def: MapDefinition
+}
+
+/** Every map under assets/maps, keeping its subfolder: assets/maps/<id>.txt -> maps/<id>.json. */
+function convertMaps(): ConvertedMap[] {
+  const out = join(OUT, 'maps')
+  rmSync(out, { recursive: true, force: true }) // no stale maps from an earlier layout
+  const maps: ConvertedMap[] = []
+  let skipped = 0
+  for (const file of txtFilesUnder(join(ASSETS, 'maps'))) {
+    const id = stripTxt(file)
     let def: MapDefinition
     try {
       def = parseMapFile(readFileSync(join(ASSETS, 'maps', file), 'utf8'))
     } catch (err) {
-      console.log(`map ${name}: SKIPPED, failed to parse: ${err instanceof Error ? err.message : String(err)}`)
+      console.log(`map ${id}: SKIPPED, failed to parse: ${err instanceof Error ? err.message : String(err)}`)
+      skipped++
       continue
     }
-    const patchFile = join(ASSETS, 'map-patches', `${name}.json`)
+    const patchFile = join(ASSETS, 'map-patches', `${id}.json`)
     let patched = ''
     if (existsSync(patchFile)) {
       const patch = JSON.parse(readFileSync(patchFile, 'utf8')) as MapPatch
       const objectsSet = def.layers.find((l) => l.name === 'objects')?.tileSet
-      if (!objectsSet) throw new Error(`map patch ${name}: map has no objects layer`)
+      if (!objectsSet) throw new Error(`map patch ${id}: map has no objects layer`)
       const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', `${objectsSet}.txt`), 'utf8'))
-      def = applyMapPatch(def, patch, key.symbols, name)
+      def = applyMapPatch(def, patch, key.symbols, id)
       patched = ` (+${patch.objects.length} patched objects)`
     }
-    maps.push(def)
-    index.push({ name, mapSize: { x: def.mapSize.x, y: def.mapSize.y } })
-    writeFileSync(join(OUT, 'maps', `${name}.json`), JSON.stringify(def))
-    console.log(`map ${name}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
+    maps.push({ id, def })
+    const target = join(out, `${id}.json`)
+    mkdirSync(dirname(target), { recursive: true })
+    writeFileSync(target, JSON.stringify(def))
+    console.log(`map ${id}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
   }
-  // the map menu below the game lists every converted map
-  writeFileSync(join(OUT, 'maps', 'index.json'), JSON.stringify(index))
+  // the map browser below the game lists every converted map
+  const index = maps.map(({ id, def }) => ({ id, mapSize: { x: def.mapSize.x, y: def.mapSize.y } }))
+  writeFileSync(join(out, 'index.json'), JSON.stringify(index))
+  console.log(`maps: ${maps.length} converted, ${skipped} skipped`)
   return maps
 }
 
 /** highest tile index referenced per tileset name, across all converted maps */
-function maxTileIndexByTileSet(maps: MapDefinition[]): Map<string, number> {
+function maxTileIndexByTileSet(maps: ConvertedMap[]): Map<string, number> {
   const out = new Map<string, number>()
-  for (const def of maps) {
+  for (const { def } of maps) {
     for (const layer of def.layers) {
       let max = out.get(layer.tileSet) ?? 0
       for (const room of def.rooms) {
@@ -76,9 +99,14 @@ function maxTileIndexByTileSet(maps: MapDefinition[]): Map<string, number> {
   return out
 }
 
-/** tile keys and sheets: real art from assets/tilesets when present, else a placeholder */
-function convertTileSets(maxIndexByTileSet: Map<string, number>): void {
+/**
+ * Tile keys and sheets: real art from assets/tilesets when present, else a placeholder. A map whose
+ * tileset has no key is still converted (the page names the missing tileset when it is opened).
+ */
+function convertTileSets(maps: ConvertedMap[]): void {
+  const maxIndexByTileSet = maxTileIndexByTileSet(maps)
   const converted = new Set<string>()
+  const placeholders = new Set<string>()
   for (const file of sortedTxt(join(ASSETS, 'tile-keys'))) {
     const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', file), 'utf8'))
     const name = stripTxt(file)
@@ -86,6 +114,7 @@ function convertTileSets(maxIndexByTileSet: Map<string, number>): void {
     const symbols = [...key.symbols]
     const sheetPath = join(ASSETS, 'tilesets', `${name}.png`)
     const sheet = existsSync(sheetPath) ? readPng(sheetPath) : undefined
+    if (!sheet) placeholders.add(name)
     const perRow = sheet ? tilesPerRow(sheet.width, key.tileSize.x) : TILES_PER_ROW
     const capacity = sheet ? tileCapacity(sheet.width, sheet.height, key.tileSize) : 0
     const needed = Math.max(maxIndexByTileSet.get(name) ?? 0, capacity)
@@ -104,10 +133,18 @@ function convertTileSets(maxIndexByTileSet: Map<string, number>): void {
     const art = sheet ? `real art, ${sheet.width}x${sheet.height}, ${perRow} per row` : 'placeholder art'
     console.log(`tileset ${name}: ${symbols.length} tiles (${art}${padded ? `, ${padded} padded` : ''})`)
   }
-  const missing = [...maxIndexByTileSet.keys()].filter((n) => !converted.has(n)).sort()
-  if (missing.length > 0) {
-    console.warn(`WARNING: maps reference tilesets with no key file in assets/tile-keys: ${missing.join(', ')}`)
-  }
+  warnMapsUsing(maps, (n) => !converted.has(n), 'tilesets with no key file in assets/tile-keys (the page will not load them)')
+  warnMapsUsing(maps, (n) => placeholders.has(n), 'tilesets with no sheet in assets/tilesets (drawn with placeholder art)')
+}
+
+/** One warning line per map that uses a tileset matching `lacks`. */
+function warnMapsUsing(maps: ConvertedMap[], lacks: (tileSet: string) => boolean, what: string): void {
+  const affected = maps
+    .map(({ id, def }) => ({ id, sets: [...new Set(def.layers.map((l) => l.tileSet))].filter(lacks) }))
+    .filter((m) => m.sets.length > 0)
+  if (affected.length === 0) return
+  console.warn(`WARNING: ${affected.length} maps use ${what}:`)
+  for (const m of affected) console.warn(`  ${m.id}: ${m.sets.join(', ')}`)
 }
 
 const isPlain = (v: unknown): v is Plain => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -279,13 +316,12 @@ function writePng(path: string, img: RgbaImage): void {
   writeFileSync(path, PNG.sync.write(png))
 }
 
-mkdirSync(join(OUT, 'maps'), { recursive: true })
 mkdirSync(join(OUT, 'tilesets'), { recursive: true })
 mkdirSync(join(OUT, 'sprites'), { recursive: true })
 
 // maps first, so tilesets can be sized to the highest index any map uses
 const maps = convertMaps()
-convertTileSets(maxTileIndexByTileSet(maps))
+convertTileSets(maps)
 const actors = convertActors()
 convertTeams()
 checkActorAtlases(actors, convertSprites())

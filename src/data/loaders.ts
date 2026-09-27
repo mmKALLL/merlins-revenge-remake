@@ -6,6 +6,7 @@ import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
+import type { MapEntry } from './map-tree'
 
 /** Converter output under public/, resolved against Vite's `base` so the build works from any path. */
 const GENERATED = `${import.meta.env.BASE_URL}generated/`
@@ -32,12 +33,16 @@ interface SpriteAtlas {
   animations: Record<string, { delay: number; frames: { x: number; y: number; w: number; h: number; delay?: number; reg?: { x: number; y: number } }[] }>
 }
 
+/** A generated file that is not there (never converted, or pnpm assets:convert not run). */
+export class MissingAssetError extends Error {}
+
 async function json<T>(url: string, check: (v: unknown) => v is T): Promise<T> {
   const res = await fetch(url)
+  if (res.status === 404) throw new MissingAssetError(`${url} is missing (404); run pnpm assets:convert`)
   if (!res.ok) throw new Error(`failed to load ${url}: ${res.status}`)
   // The dev server answers unknown paths with the HTML index and status 200, so check the type too.
   const type = res.headers.get('content-type') ?? ''
-  if (!type.includes('json')) throw new Error(`${url} is missing (got ${type || 'no content type'}); run pnpm assets:convert`)
+  if (!type.includes('json')) throw new MissingAssetError(`${url} is missing (got ${type || 'no content type'}); run pnpm assets:convert`)
   let data: unknown
   try {
     data = await res.json()
@@ -84,22 +89,24 @@ function subTexture(sheet: Texture, x: number, y: number, w: number, h: number):
   return nearest(new Texture({ source: sheet.source, frame: new Rectangle(x, y, w, h) }))
 }
 
-export interface MapIndexEntry {
-  name: string
-  mapSize: { x: number; y: number } // in rooms
-}
-
-const isMapIndex = (v: unknown): v is MapIndexEntry[] =>
+const isMapIndex = (v: unknown): v is MapEntry[] =>
   Array.isArray(v) &&
-  v.every((e) => isObj(e) && typeof e['name'] === 'string' && isObj(e['mapSize']) && isNum(e['mapSize']['x']) && isNum(e['mapSize']['y']))
+  v.every((e) => isObj(e) && typeof e['id'] === 'string' && isObj(e['mapSize']) && isNum(e['mapSize']['x']) && isNum(e['mapSize']['y']))
 
 /** Every converted map (maps/index.json, written by tools/convert-assets.ts). */
-export async function loadMapIndex(): Promise<MapIndexEntry[]> {
+export async function loadMapIndex(): Promise<MapEntry[]> {
   return json(`${GENERATED}maps/index.json`, isMapIndex)
 }
 
-export async function loadMap(name: string): Promise<MapDefinition> {
-  return json(`${GENERATED}maps/${name}.json`, isMap)
+/** A map by id, its path under assets/maps ("works/sam"); each segment is URL-encoded. */
+export async function loadMap(id: string): Promise<MapDefinition> {
+  const path = id.split('/').map(encodeURIComponent).join('/')
+  try {
+    return await json(`${GENERATED}maps/${path}.json`, isMap)
+  } catch (e) {
+    if (e instanceof MissingAssetError) throw new Error(`no converted map "${id}" (${e.message})`)
+    throw e
+  }
 }
 
 /** Resolved actor definitions keyed by act_<key> name (tools/convert-assets.ts). */
@@ -130,10 +137,16 @@ export const soundUrl = (name: string): string => `${GENERATED}audio/${encodeURI
 export const musicUrl = (name: string): string => `${GENERATED}audio/${encodeURIComponent(name)}.mp3`
 
 export async function loadTileset(name: string): Promise<LoadedTileset> {
-  const url = `${GENERATED}tilesets/${name}.json`
-  const data = await json(url, isTileset)
+  const url = `${GENERATED}tilesets/${encodeURIComponent(name)}.json`
+  let data: TilesetData
+  try {
+    data = await json(url, isTileset)
+  } catch (e) {
+    if (!(e instanceof MissingAssetError)) throw e
+    throw new Error(`tileset "${name}" was not converted: assets/tile-keys/${name}.txt is missing (${e.message})`)
+  }
   if (data.tileSize.x !== TILE_PX || data.tileSize.y !== TILE_PX) throw new Error(`${url}: tileSize must be ${TILE_PX}`)
-  const sheet = nearest(await Assets.load<Texture>(`${GENERATED}tilesets/${name}.png`))
+  const sheet = nearest(await Assets.load<Texture>(`${GENERATED}tilesets/${encodeURIComponent(name)}.png`))
   // Keys can list more slots than the sheet holds (objTileSet sizes the grid from the bitmap);
   // indices past the sheet get no texture and draw nothing.
   const textures = data.symbols.map((_, i) => {

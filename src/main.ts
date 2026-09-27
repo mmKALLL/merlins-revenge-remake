@@ -1,7 +1,8 @@
 import { AudioEngine } from './audio/audio'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
-import { loadActors, loadMap, loadMapIndex, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadActors, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
 import { InputTracker } from './input/keyboard'
+import { setupMapBrowser } from './map-browser'
 import type { Vec } from './mr-open/mr-geometry'
 import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet } from './sim/state'
@@ -9,7 +10,8 @@ import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
 
 const params = new URLSearchParams(location.search)
-const mapName = params.get('map') ?? 'mriv_small'
+/** A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. */
+const mapId = params.get('map') ?? 'not_fully_tested/mriv_small'
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
@@ -119,35 +121,6 @@ function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement)
   select(loadZoom())
 }
 
-/** Map list next to the zoom buttons: each entry reloads the page with ?map=<name>, keeping other params. */
-async function setupMapList(list: HTMLElement): Promise<void> {
-  let maps
-  try {
-    maps = await loadMapIndex()
-  } catch (e) {
-    console.warn('map list unavailable:', e)
-    list.hidden = true
-    return
-  }
-  let current: HTMLElement | null = null
-  for (const m of maps) {
-    const q = new URLSearchParams(location.search)
-    q.set('map', m.name)
-    const a = document.createElement('a')
-    a.href = `?${q.toString()}${location.hash}`
-    a.textContent = `${m.name} (${m.mapSize.x}x${m.mapSize.y})`
-    const li = document.createElement('li')
-    li.appendChild(a)
-    list.appendChild(li)
-    if (m.name === mapName) {
-      a.setAttribute('aria-current', 'page')
-      current = li
-    }
-  }
-  // scroll the list (not the page) so the current map shows; #maps is position: relative
-  if (current) list.scrollTop = current.offsetTop - (list.clientHeight - current.offsetHeight) / 2
-}
-
 /** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */
 async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
   const spriteNames = [...new Set(Object.values(defs).filter(needsSprite).map((d) => d.name))]
@@ -165,16 +138,20 @@ async function main(): Promise<void> {
   const audio = new AudioEngine()
   audio.attachUnlock(window)
   void audio.preload()
-  const map = await loadMap(mapName)
-  const tilesetFor = (layer: string) => {
+  const map = await loadMap(mapId)
+  const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
-    if (!name) throw new Error(`map ${mapName} has no ${layer} layer`)
-    return name
+    if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
+    try {
+      return await loadTileset(name)
+    } catch (e) {
+      throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
   const [passive, active, objects, defs, teams] = await Promise.all([
-    loadTileset(tilesetFor('backgroundPassive')),
-    loadTileset(tilesetFor('backgroundActive')),
-    loadTileset(tilesetFor('objects')),
+    layerTileset('backgroundPassive'),
+    layerTileset('backgroundActive'),
+    layerTileset('objects'),
     loadActors(),
     loadTeams(),
   ])
@@ -199,7 +176,7 @@ async function main(): Promise<void> {
   if (controls) {
     game.appendChild(controls) // below the canvas
     isolateControls(controls)
-    if (mapList) await setupMapList(mapList)
+    if (mapList) await setupMapBrowser(mapList, mapId)
     if (soundRow) setupSoundControls(audio, soundRow)
     if (zoomRow) setupZoomButtons(scene, zoomRow, controls)
   }
@@ -265,5 +242,11 @@ main().catch((e: unknown) => {
   pre.style.padding = '16px'
   pre.style.whiteSpace = 'pre-wrap'
   pre.textContent = e instanceof Error ? (e.stack ?? e.message) : String(e)
+  // keep the map browser, so another map can be picked from the error page
+  const mapList = document.getElementById('maps')
   document.body.replaceChildren(pre)
+  if (mapList) {
+    pre.after(mapList)
+    void setupMapBrowser(mapList, mapId)
+  }
 })

@@ -24,9 +24,14 @@
         position: relative; margin: 0; padding: 0; list-style: none; max-height: 5.5em; overflow-y: auto;
         border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
       }
-      #maps a { display: block; padding: 1px 8px; color: #aaa; text-decoration: none; white-space: nowrap; }
-      #maps a:hover { color: #fff; background: #222; }
-      #maps a[aria-current='page'] { color: #000; background: #ccc; }
+      #maps button {
+        display: block; width: 100%; padding: 1px 8px; font: inherit; text-align: left; color: #aaa;
+        background: none; border: 0; white-space: nowrap; cursor: pointer;
+      }
+      #maps button:hover, #maps button:focus-visible { color: #fff; background: #222; }
+      #maps button:focus-visible { outline: 1px solid #888; outline-offset: -1px; }
+      #maps button[aria-current='page'] { color: #000; background: #ccc; }
+      body > #maps { align-self: flex-start; margin: 16px; max-height: 50vh; font: 12px monospace; }
     </style>
   </head>
   <body>

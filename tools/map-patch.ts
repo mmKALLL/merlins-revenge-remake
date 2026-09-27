@@ -1,4 +1,4 @@
-// Applies assets/map-patches/<map>.json on top of a converted map, so test content can be added
+// Applies assets/map-patches/<map id>.json on top of a converted map, so test content can be added
 // without editing the copies of the original map files. A patch places objects-layer symbols.
 import type { MapDefinition } from '../src/mr-open/mr-map-format'
 
