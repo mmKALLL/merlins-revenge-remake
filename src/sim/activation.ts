@@ -108,7 +108,7 @@ function restAsleep(s: SimState, a: ActorState): void {
   if (a.ai.mode === 'none') return
   a.ai = {
     ...a.ai, mode: 'findTarget', targetId: null, moveTarget: null, waypoint: null, pathMode: 'beeline',
-    pathStall: 0, scenicTicks: 0, walkTicks: 0, detourTicks: 0, detourGoal: null,
+    pathStall: 0, scenicTicks: 0, walkTicks: 0, detourTicks: 0, detourGoal: null, idleTicks: 0, wanderGoal: null,
   }
 }
 

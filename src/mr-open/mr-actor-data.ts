@@ -131,6 +131,9 @@ export interface ActorDef {
   projectileSpreadDeg: number // fired bullets turn by a random angle in [-s, s] degrees (on top of eyestrain); 0 = engine
   knockbackSpreadDeg: number // this caster's spell explosion pushes turn by a random angle in [-k, k] degrees; 0 = engine
   productionTimeScale: number // dwelling group production time = groupSize * buildTime * this (see engine notes enemies-2 §7)
+  idleWanderIntervalTicks: number // an idle CPU character rolls for a wander every this many ticks
+  idleWanderChancePerSecond: number // chance per second of starting a wander (each roll: this * interval / 30); 0 = off
+  idleWanderRadius: number // px: a wander walks to a random point within this of the unit's home (spawn position)
   // continuous world (?camera=follow; read from the player's definition only; engine notes walking-and-rooms, "Continuous world")
   wakeDistance: number // px, reg point to reg point: a sleeping unit closer than this to Merlin wakes
   sleepDistance: number // px: an awake unit this far or farther from Merlin falls asleep (hysteresis above wakeDistance)
@@ -212,6 +215,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
     productionTimeScale: 1, // groupSize * buildTime, the evident intent of modResidents.startProduction
+    idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0.1, idleWanderRadius: 32, // idle wander (none in the engine)
     wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, // continuous world: 6 and 8 tiles, 6 s
     activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
   },
@@ -238,6 +242,7 @@ for (const k of [
   // remake additions
   'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
+  'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -536,6 +541,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),
       projectileSpreadDeg: num(r, 'projectileSpreadDeg', ctx), knockbackSpreadDeg: num(r, 'knockbackSpreadDeg', ctx),
       productionTimeScale: num(r, 'productionTimeScale', ctx),
+      idleWanderIntervalTicks: num(r, 'idleWanderIntervalTicks', ctx), idleWanderChancePerSecond: num(r, 'idleWanderChancePerSecond', ctx),
+      idleWanderRadius: num(r, 'idleWanderRadius', ctx),
       wakeDistance: num(r, 'wakeDistance', ctx), sleepDistance: num(r, 'sleepDistance', ctx),
       hitWakeTicks: num(r, 'hitWakeTicks', ctx), navModeClearRadius: num(r, 'navModeClearRadius', ctx),
       activationVerticalScale: num(r, 'activationVerticalScale', ctx),

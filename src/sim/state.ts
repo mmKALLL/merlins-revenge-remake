@@ -54,8 +54,10 @@ export type ActorMode =
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
  * the original AI: stand still, then walk a short way in a random direction, then retarget.
+ * idleWander: the remake's idle wander (tick-ai.ts stepIdleWander): with no target, walk to a random
+ * point near home.
  */
-export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload'
+export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload' | 'idleWander'
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
 export type ChargeKind = 'mouse' | 'nearest' | 'short'
@@ -72,6 +74,8 @@ export interface AiState {
   walkTicks: number // remake detour: consecutive ticks spent walking toward the target
   detourTicks: number // remake detour: pause ticks left in detourPause, then ticks walked in detourMove
   detourGoal: Vec | null // remake detour: where detourMove walks to
+  idleTicks: number // remake idle wander: ticks idle since the last roll, then ticks walked in idleWander
+  wanderGoal: Vec | null // remake idle wander: where idleWander walks to
   chargeKind: ChargeKind | null // player only
 }
 
@@ -81,6 +85,7 @@ export interface ActorState {
   team: string
   pos: Vec
   prevPos: Vec
+  home: Vec // spawn position (remake idle wander stays near it)
   vel: Vec
   facingLeft: boolean
   mode: ActorMode
