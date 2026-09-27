@@ -51,6 +51,23 @@ export function startDeath(t: Tick, a: ActorState): void {
 }
 
 /**
+ * modEnergy.die -> loseAllEnergy (loseEnergy(pMaxEnergy)), what teamMaster.killTeam tells every
+ * member and building (the kill all cheat): the unit dies as from a lethal hit, without the push, so
+ * its death strip, grave, sounds and the exits follow as usual. objDwelling.die also calls
+ * startDeath. It counts as a hit, which wakes a sleeper of a continuous world for its death to play.
+ */
+export function killUnit(t: Tick, a: ActorState): void {
+  const def = defOf(t.s, a)
+  t.hit.add(a.id)
+  if (def.aiType !== null) {
+    a.ai.mode = 'dazed' // no attack frame fires from a dying unit
+    a.ai.moveTarget = null
+  }
+  loseEnergy(t, a, def.maxEnergy)
+  if (a.mode !== 'die') startDeath(t, a)
+}
+
+/**
  * objCPUCharacter.collisionWall / collisionVertical -> modEnergy.takeDamage: a character hitting a
  * wall while reeling takes the impact speed on that axis minus its damageSpeed, when above it.
  */

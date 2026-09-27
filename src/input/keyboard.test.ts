@@ -63,4 +63,17 @@ describe('InputTracker', () => {
     t.setMouseWorld({ x: 12, y: 34 })
     expect(t.snapshot().mouseWorld).toEqual({ x: 12, y: 34 })
   })
+
+  it('reports each K and M press in one snapshot (key repeat does not re-trigger)', () => {
+    const t = new InputTracker()
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatHeal: false })
+    t.keyDown('KeyK')
+    t.keyDown('KeyK')
+    t.keyDown('KeyM')
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: true })
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatHeal: false })
+    t.keyUp('KeyK')
+    t.keyDown('KeyK')
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: false })
+  })
 })
