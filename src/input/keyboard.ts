@@ -1,7 +1,8 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
 // E or the left button charges and fires at the mouse position. Space charges and fires at the
-// nearest enemy, or short of it (a push-back shot) while the F toggle is on.
+// nearest enemy, or short of it (a push-back shot) while the F toggle is on. C switches between the
+// room camera and the follow camera (main.ts takes each press with takeCameraToggle).
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -17,13 +18,22 @@ export class InputTracker {
   private mouseWorld: Vec | null = null
   private mouseDown = false
   private spaceShort = false // F toggles Space between the nearest enemy and the push-back shot
+  private cameraToggle = false // a C press not yet taken (two presses cancel out)
 
   keyDown(code: string): void {
-    if (code === 'KeyF' && !this.held.has('KeyF')) this.spaceShort = !this.spaceShort
+    const pressed = !this.held.has(code) // key repeat sends more keydowns while held
+    if (code === 'KeyF' && pressed) this.spaceShort = !this.spaceShort
+    if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
     this.held.add(code)
   }
   /** Whether Space currently fires the push-back shot (toggled with F). */
   get spaceAimsShort(): boolean { return this.spaceShort }
+  /** Whether C was pressed since the last call: the camera (and world mode) should switch once. */
+  takeCameraToggle(): boolean {
+    const toggle = this.cameraToggle
+    this.cameraToggle = false
+    return toggle
+  }
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
   setMouseButton(down: boolean): void { this.mouseDown = down }

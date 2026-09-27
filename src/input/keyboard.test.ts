@@ -45,6 +45,18 @@ describe('InputTracker', () => {
     expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, chargeHeld: false, shootNearest: false })
   })
 
+  it('reports one camera toggle per C press (key repeat does not re-toggle)', () => {
+    const t = new InputTracker()
+    expect(t.takeCameraToggle()).toBe(false)
+    t.keyDown('KeyC')
+    t.keyDown('KeyC')
+    expect(t.takeCameraToggle()).toBe(true)
+    expect(t.takeCameraToggle()).toBe(false)
+    t.keyUp('KeyC')
+    t.keyDown('KeyC')
+    expect(t.takeCameraToggle()).toBe(true)
+  })
+
   it('carries the latest mouse world position', () => {
     const t = new InputTracker()
     expect(t.snapshot().mouseWorld).toBeNull()
