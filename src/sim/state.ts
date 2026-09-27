@@ -12,7 +12,7 @@ export const TICKS_PER_SECOND = 30
 export const TICK_MS = 1000 / TICKS_PER_SECOND
 
 export interface InputSnapshot {
-  move: Vec // components -1, 0, 1 (opposite keys cancel)
+  move: Vec // keys: components -1, 0, 1 (opposite keys cancel); the touch nub: any angle, larger component +-1
   mouseWorld: Vec | null
   chargeHeld: boolean // E or left mouse button: charge, release at the mouse
   shootNearest: boolean // Space (F toggle off): charge, release at the nearest hostile
