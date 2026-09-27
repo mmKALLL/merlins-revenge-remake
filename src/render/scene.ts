@@ -7,6 +7,7 @@ import { isSpell, playerOf } from '../sim/actors'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { roomKey, type ActorState, type RoomState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
+import { barColour, HealthBars } from './health-bars'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -60,13 +61,6 @@ function whiteDisc(tex: Texture): Texture {
   return out
 }
 
-/** Energy fraction 1 -> green, 0 -> red. */
-function barColour(f: number): number {
-  const r = Math.round(255 * Math.min(1, 2 * (1 - f)))
-  const g = Math.round(255 * Math.min(1, 2 * f))
-  return (r << 16) | (g << 8)
-}
-
 export class Scene {
   readonly app = new Application()
   private world = new Container()
@@ -77,6 +71,7 @@ export class Scene {
   private graveLayer = new Container()
   private actorLayer = new Container()
   private actorSprites = new Map<number, Sprite>()
+  private healthBars: HealthBars
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; graves: RoomState['graves'] | null } = { room: '', graves: null }
@@ -95,7 +90,9 @@ export class Scene {
     private tilesets: Partial<Record<LayerName, LoadedTileset>>,
     private sprites: Record<string, LoadedSprite>, // by sprite name (ActorDef.name)
     private defs: Record<string, ActorDef>,
-  ) {}
+  ) {
+    this.healthBars = new HealthBars(defs)
+  }
 
   /** World pixel shown at the top-left of the play view in the last draw (NaN before the first draw). */
   get origin(): Vec {
@@ -124,7 +121,7 @@ export class Scene {
     }
     // graves above tiles, below every actor
     this.actorLayer.sortableChildren = true
-    this.scrolled.addChild(this.graveLayer, this.actorLayer)
+    this.scrolled.addChild(this.graveLayer, this.actorLayer, this.healthBars.layer)
     this.world.addChild(this.scrolled)
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
@@ -176,6 +173,7 @@ export class Scene {
     this.scrolled.position.set(-origin.x, -origin.y)
     this.syncGraves(s)
     this.syncActors(s, lerp)
+    this.healthBars.update(s, this.actorSprites)
     this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
