@@ -20,19 +20,26 @@
       #zoom button[aria-pressed='true'], #sound button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
       #sound label { color: #aaa; display: flex; gap: 4px; align-items: center; }
       #sound input[type='range'] { width: 72px; margin: 0; accent-color: #ccc; }
-      #maps {
+      /* the map browser and the Favourites list beside it */
+      #maps, #favourites {
         position: relative; margin: 0; padding: 0; list-style: none; overflow-y: auto;
         max-height: calc(8 * (1.25em + 2px)); /* 8 rows: button line-height + its 1px top and bottom padding */
         border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
       }
-      #maps button {
-        display: block; width: 100%; padding: 1px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
+      #maps li, #favourites li { display: flex; }
+      #maps button, #favourites button {
+        flex: 1; padding: 1px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
         background: none; border: 0; white-space: nowrap; cursor: pointer;
       }
-      #maps button:hover, #maps button:focus-visible { color: #fff; background: #222; }
-      #maps button:focus-visible { outline: 1px solid #888; outline-offset: -1px; }
-      #maps button[aria-current='page'] { color: #000; background: #ccc; }
-      body > #maps { align-self: flex-start; margin: 16px; max-height: 50vh; font: 12px monospace; }
+      #maps button.star { flex: none; padding: 1px 6px; }
+      #maps button.star[aria-pressed='true'] { color: #ec4; }
+      #favourites li.empty { padding: 1px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
+      #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: #222; }
+      #maps button:focus-visible, #favourites button:focus-visible { outline: 1px solid #888; outline-offset: -1px; }
+      #maps button[aria-current='page'], #favourites button[aria-current='page'],
+      #maps li:has(> [aria-current='page']) > button.star { color: #000; background: #ccc; }
+      body > #maps, body > #favourites { align-self: flex-start; margin: 16px 16px 16px 0; max-height: 50vh; font: 12px monospace; }
+      body > #maps { margin-left: 16px; }
     </style>
   </head>
   <body>
