@@ -35,7 +35,7 @@ export type TouchListener = (move: Vec, blast: boolean) => void
 
 /**
  * Builds the overlay (#touch, styled in index.html: over the game in landscape, a band below it in
- * portrait) and reports changes to `onChange`. Each control follows one pointer, so moving and
+ * portrait; hidden while a menu is open) and reports changes to `onChange`. Each control follows one pointer, so moving and
  * charging work at the same time. Returns a detach function.
  */
 export function attachTouchControls(parent: HTMLElement, onChange: TouchListener): () => void {
@@ -108,9 +108,12 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
     report()
   }
 
+  // a lost capture ends the press too: the controls are hidden while a menu is open, even under a finger
   const listeners: [HTMLElement, string, (e: PointerEvent) => void][] = [
-    [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'pointerup', nubUp], [zone, 'pointercancel', nubUp],
-    [button, 'pointerdown', blastDown], [button, 'pointerup', blastUp], [button, 'pointercancel', blastUp],
+    [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'pointerup', nubUp],
+    [zone, 'pointercancel', nubUp], [zone, 'lostpointercapture', nubUp],
+    [button, 'pointerdown', blastDown], [button, 'pointerup', blastUp],
+    [button, 'pointercancel', blastUp], [button, 'lostpointercapture', blastUp],
   ]
   for (const [target, type, fn] of listeners) target.addEventListener(type, fn as EventListener)
   // a long press would open the context menu or select text instead of charging

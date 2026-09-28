@@ -76,4 +76,17 @@ describe('InputTracker', () => {
     t.keyDown('KeyK')
     expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: false })
   })
+
+  it('ignores keys and clicks while disabled (a menu is open) and forgets what was held', () => {
+    const t = new InputTracker()
+    t.keyDown('KeyD')
+    t.keyDown('Space')
+    t.setEnabled(false)
+    t.keyDown('KeyW')
+    t.setMouseButton(true)
+    expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, chargeHeld: false, shootNearest: false })
+    t.setEnabled(true)
+    t.keyDown('KeyW')
+    expect(t.snapshot().move).toEqual({ x: 0, y: -1 })
+  })
 })

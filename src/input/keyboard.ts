@@ -6,7 +6,8 @@
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
 // snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
 // touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
-// key is held, the blast button counts as Space.
+// key is held, the blast button counts as Space. While a menu is open (setEnabled(false)) keys and
+// clicks are left to the page.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -27,8 +28,16 @@ export class InputTracker {
   private cheatHeal = false // an M press not yet in a snapshot
   private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
   private touchBlast = false // the touch blast button is held
+  private enabled = true // off while a menu is open: keys and clicks belong to the menu
+
+  /** Turns the game's keyboard and mouse input on or off; off forgets everything held. */
+  setEnabled(on: boolean): void {
+    this.enabled = on
+    if (!on) this.releaseAll()
+  }
 
   keyDown(code: string): void {
+    if (!this.enabled) return
     const pressed = !this.held.has(code) // key repeat sends more keydowns while held
     if (code === 'KeyF' && pressed) this.toggleSpaceShort()
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
@@ -48,7 +57,7 @@ export class InputTracker {
   }
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
-  setMouseButton(down: boolean): void { this.mouseDown = down }
+  setMouseButton(down: boolean): void { this.mouseDown = down && this.enabled }
   /** The touch controls' state: the nub's move (any angle, larger axis 1) and whether the blast button is held (Space). */
   setTouch(move: Vec, blast: boolean): void {
     this.touchMove = move
@@ -101,7 +110,7 @@ export class InputTracker {
   attach(target: Window): () => void {
     const down = (e: KeyboardEvent) => {
       // leave browser/OS shortcuts alone (e.g. Cmd+R is Cmd+KeyS on Colemak)
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.metaKey || e.ctrlKey || e.altKey || !this.enabled) return
       this.keyDown(e.code)
       if (MOVE_KEYS[e.code] || e.code === 'Space') e.preventDefault()
     }
@@ -112,8 +121,8 @@ export class InputTracker {
     }
     const blur = () => this.releaseAll()
     const visibility = () => { if (target.document.hidden) this.releaseAll() }
-    const mdown = (e: MouseEvent) => { if (e.button === 0) this.mouseDown = true }
-    const mup = (e: MouseEvent) => { if (e.button === 0) this.mouseDown = false }
+    const mdown = (e: MouseEvent) => { if (e.button === 0) this.setMouseButton(true) }
+    const mup = (e: MouseEvent) => { if (e.button === 0) this.setMouseButton(false) }
     target.addEventListener('keydown', down)
     target.addEventListener('keyup', up)
     target.addEventListener('blur', blur)

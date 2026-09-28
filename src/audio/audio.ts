@@ -76,6 +76,7 @@ export class AudioEngine {
   private readonly fading = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>() // old tracks fading out
   private pending: string | null = null // track being fetched/decoded
   private musicToken = 0
+  private paused = false // setPaused: the context stays suspended until the game resumes
 
   constructor(settings: AudioSettings = loadAudioSettings()) {
     this.settings = settings
@@ -126,9 +127,21 @@ export class AudioEngine {
         for (const type of UNLOCK_EVENTS) target.removeEventListener(type, unlock, true)
         return
       }
-      void ctx.resume()
+      if (!this.paused) void ctx.resume()
     }
     for (const type of UNLOCK_EVENTS) target.addEventListener(type, unlock, true)
+  }
+
+  /**
+   * Suspends every sound while the game is paused (a menu is open) and resumes it after, the music
+   * where it stopped. Call the resume from a key or click handler: browsers only start audio there.
+   */
+  setPaused(paused: boolean): void {
+    if (this.paused === paused) return
+    this.paused = paused
+    if (!this.ctx) return
+    if (paused) void this.ctx.suspend()
+    else void this.ctx.resume()
   }
 
   /** Forwards one tick's sim events. */
