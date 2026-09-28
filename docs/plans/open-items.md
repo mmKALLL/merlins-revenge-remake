@@ -14,6 +14,9 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 
 ## Backlog
 
+- **Roguelite floors.** One random floor exists (`?map=random/goblin-forest`, `src/gen/`,
+  `docs/plans/2026-09-28-random-floor-design.md`). Next: the other three themes, stacking floors
+  into the tower, potion corner rooms and bosses from the sketch, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an
   experience bar.

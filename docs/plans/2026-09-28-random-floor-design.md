@@ -34,7 +34,8 @@ engine (4,4). Progress is `px = x - 1` (more enemies) and `py = 4 - y` (more dwe
 
 ## Rooms
 
-1. Cellular automata: random fill, a few smoothing steps, giving small forest and rock patches.
+1. A few obstacle patches grow from random tiles (random frontier growth), then one cellular
+   automata step fills notches, giving small forest and rock clumps.
 2. Sometimes a long wall grows from a closed or boundary edge toward the centre (U-shaped rooms).
 3. Stumps as single solid tiles; flowers and pebbles as walkable decoration.
 4. Flood fill from one opening: every other opening must be reached, else retry the room (bounded);
@@ -59,3 +60,12 @@ from a derived seed on failure (bounded) and generation throws rather than retur
 Determinism, start-to-exit connectivity over 500 seeds, matching openings on every shared edge,
 units only on open tiles, start room empty of enemies, theme indices match the tile keys, and
 generation time. `tools/render-random-floor.ts` writes PNG renders for tuning by eye.
+
+## Status (2026-09-28)
+
+Implemented as designed; the floor plays in both camera modes and completes when the exit room is
+cleared (checked in `src/gen/floor-sim.test.ts`). Generation takes about 1 ms per floor.
+Known gaps: `mr.loadState` and the snapshot test helpers fetch maps as converted JSON, so a
+snapshot of a generated floor cannot be replayed yet (it would need the seed passed to
+`generateMap`); the map browser keeps the current `seed` parameter when it switches maps, so
+picking the random floor again from it replays the same floor.
