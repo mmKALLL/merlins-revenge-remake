@@ -8,6 +8,7 @@ import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
 import { GAME_COMPLETE_SOUND } from '../src/mr-open/mr-map-clear'
 import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
 import { parseCutScene } from '../src/cutscene/script'
+import { GENERATED_MAPS } from '../src/gen/generated-maps'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
@@ -80,7 +81,10 @@ function convertMaps(): ConvertedMap[] {
     console.log(`map ${id}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
   }
   // the map browser below the game lists every converted map
-  const index = maps.map(({ id, def }) => ({ id, mapSize: { x: def.mapSize.x, y: def.mapSize.y } }))
+  const index = [
+    ...maps.map(({ id, def }) => ({ id, mapSize: { x: def.mapSize.x, y: def.mapSize.y } })),
+    ...GENERATED_MAPS, // built in the browser from ?seed= (src/gen)
+  ]
   writeFileSync(join(out, 'index.json'), JSON.stringify(index))
   console.log(`maps: ${maps.length} converted, ${skipped} skipped`)
   return maps

@@ -7,7 +7,9 @@ import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeam
 import { loadLastMap, loadZoom, saveLastMap, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
+import { generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
+import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
@@ -56,6 +58,12 @@ function rememberParam(name: string, value: string | null): void {
   history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`)
 }
 
+/** A generated floor for the seed; the seed goes into the URL (no reload) so the floor can be shared. */
+function generatedMapWithSeedInUrl(mapId: string): MapDefinition {
+  rememberParam('seed', String(seed))
+  return generateMap(mapId, seed)
+}
+
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
 const MAX_FRAME_MS = 250
 /** Weight of the latest frame in the smoothed fps readout. */
@@ -88,8 +96,8 @@ interface Shell {
 interface Game {
   mapId: string
   scene: Scene
-  /** A new run of the map with a fresh seed. */
-  restart(): void
+  /** A new run of the same map: with the page's seed again (Restart map), or a fresh one (as after a death). */
+  restart(seedChoice: 'same' | 'fresh'): void
   /** Switches the camera, and the world mode with it, between ticks. */
   setCamera(camera: CameraMode): void
 }
@@ -97,7 +105,7 @@ interface Game {
 /** Loads a map and its assets, puts the canvas in #game and starts the frame loop. */
 async function startGame(mapId: string, shell: Shell): Promise<Game> {
   const { audio, input } = shell
-  const map = await loadMap(mapId)
+  const map = isGeneratedMapId(mapId) ? generatedMapWithSeedInUrl(mapId) : await loadMap(mapId)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
@@ -128,8 +136,8 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   let runSeed = seed
   // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
-  const restart = () => {
-    runSeed = nextRunSeed(runSeed)
+  const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
+    runSeed = seedChoice === 'same' ? seed : nextRunSeed(runSeed)
     sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
@@ -252,7 +260,7 @@ function main(): void {
       resume: () => dispatch({ kind: 'resume' }),
       open: (panel) => dispatch({ kind: 'open', panel }),
       restart: () => {
-        game?.restart()
+        game?.restart('same')
         dispatch({ kind: 'resume' })
       },
       quit: () => {
@@ -305,13 +313,14 @@ function main(): void {
   async function play(): Promise<void> {
     const mapId = mapToPlay()
     audio.setPaused(false) // inside the click: browsers start audio only from a user gesture
-    if (game?.mapId === mapId) {
-      game.restart()
+    // a generated floor gets a fresh seed in a fresh page (mapUrl drops the seed)
+    if (game?.mapId === mapId && !isGeneratedMapId(mapId)) {
+      game.restart('fresh')
       rememberParam('map', mapId)
       dispatch({ kind: 'play' })
       return
     }
-    if (game) {
+    if (game || isGeneratedMapId(mapId)) {
       location.assign(mapUrl(mapId)) // one map per page: another map loads in a fresh page
       return
     }
