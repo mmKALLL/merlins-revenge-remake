@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextAppState, PLAYING, simRuns, TITLE, type AppAction, type AppState } from './app-state'
+import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState } from './app-state'
 
 const run = (s: AppState, ...actions: AppAction[]): AppState => actions.reduce(nextAppState, s)
 
@@ -33,6 +33,14 @@ describe('app state', () => {
     expect(nextAppState(PLAYING, { kind: 'open', panel: 'maps' })).toEqual(PLAYING)
     expect(nextAppState(PLAYING, { kind: 'quit' })).toEqual(PLAYING)
     expect(nextAppState(PLAYING, { kind: 'play' })).toEqual(PLAYING)
+  })
+
+  it('shows the title, the in-game menu or a sub-panel, and no overlay while playing', () => {
+    expect(visiblePanel(TITLE)).toBe('title')
+    expect(visiblePanel(PLAYING)).toBeNull()
+    expect(visiblePanel(run(PLAYING, { kind: 'pause' }))).toBe('pause')
+    expect(visiblePanel(run(PLAYING, { kind: 'pause' }, { kind: 'open', panel: 'maps' }))).toBe('maps')
+    expect(visiblePanel(run(TITLE, { kind: 'open', panel: 'settings' }))).toBe('settings')
   })
 
   it('runs the simulation only while playing', () => {

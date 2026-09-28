@@ -42,5 +42,15 @@ export function nextAppState(s: AppState, a: AppAction): AppState {
   }
 }
 
+/** A panel of the menu overlay: the title screen, the in-game menu, or a sub-panel of either. */
+export type PanelKey = 'title' | 'pause' | Exclude<Panel, 'main'>
+
+/** The panel the overlay shows; null while playing (no overlay). */
+export function visiblePanel(s: AppState): PanelKey | null {
+  if (s.screen === 'playing') return null
+  if (s.panel !== 'main') return s.panel
+  return s.screen === 'title' ? 'title' : 'pause'
+}
+
 /** The simulation (and the end sequence) advances only while playing with no menu open. */
 export const simRuns = (s: AppState): boolean => s.screen === 'playing'

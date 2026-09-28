@@ -93,8 +93,6 @@ export class Scene {
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
   private zoom: ZoomSetting = DEFAULT_ZOOM
-  /** Window height (CSS px) kept free below the canvas in 'fit' and 'scale' modes, e.g. for the zoom buttons. */
-  fitReserve = 0
 
   constructor(
     private cfg: RenderConfig,
@@ -170,7 +168,7 @@ export class Scene {
    * 'fit' and 'scale' fill the window instead (whole and fractional multiples).
    */
   applyZoom(): void {
-    const room = { w: window.innerWidth, h: window.innerHeight - this.fitReserve }
+    const room = { w: window.innerWidth, h: window.innerHeight }
     const z = this.zoom === 'fit'
       ? chooseZoom(this.cfg.logical, room)
       : this.zoom === 'scale'
