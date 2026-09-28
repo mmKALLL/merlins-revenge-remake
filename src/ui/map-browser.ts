@@ -1,9 +1,9 @@
-// The map browser next to the zoom buttons: one folder of converted maps at a time. Folders open in
-// place; a map reloads the page with ?map=<id>, keeping the other query parameters. Each map row has
-// a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
-import { loadMapIndex } from './data/loaders'
-import { favouriteEntries, loadFavourites, saveFavourites, toggleFavourite, type FavouritesStore } from './data/favourites'
-import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from './data/map-tree'
+// The Maps menu's browser: one folder of the map list at a time. Folders open in place; a map
+// reloads the page with ?map=<id> (which starts it), keeping the other query parameters. Each map row
+// has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
+import { loadMapList } from '../data/map-list'
+import { favouriteEntries, loadFavourites, saveFavourites, toggleFavourite, type FavouritesStore } from '../data/favourites'
+import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
 
 /** Keys a focused entry acts on; they must not reach the game's window listeners too. */
 const ACTIVATE_KEYS = new Set(['Enter', 'Space'])
@@ -17,9 +17,14 @@ const browserStore: FavouritesStore = {
   setItem: (key, value) => localStorage.setItem(key, value),
 }
 
-const mapUrl = (id: string): string => {
+/**
+ * The page URL for a map, keeping the other query params except `seed`: a picked random floor gets a
+ * fresh seed (its loader writes the new one into the URL), and a restart keeps the current one.
+ */
+export const mapUrl = (id: string): string => {
   const q = new URLSearchParams(location.search)
   q.set('map', id)
+  q.delete('seed')
   return `?${q.toString()}${location.hash}`
 }
 
@@ -69,7 +74,7 @@ const keepActivateKeys = (el: HTMLElement): void => {
 }
 
 /** Scrolls a list (not the page) so its current map shows; the lists are position: relative. */
-const scrollToCurrent = (list: HTMLElement): void => {
+export const scrollToCurrent = (list: HTMLElement): void => {
   const current = list.querySelector<HTMLElement>('[aria-current]')?.parentElement
   list.scrollTop = current ? current.offsetTop - (list.clientHeight - current.offsetHeight) / 2 : 0
 }
@@ -87,7 +92,7 @@ function favouritesList(browser: HTMLElement): HTMLElement {
 export async function setupMapBrowser(list: HTMLElement, currentId: string): Promise<void> {
   let index: MapEntry[]
   try {
-    index = await loadMapIndex()
+    index = await loadMapList()
   } catch (e) {
     console.warn('map list unavailable:', e)
     list.hidden = true

@@ -44,6 +44,8 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 ## Awaiting the owner's review
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
+- Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The
+  original menu's choose keys, save/load and show army are left out until those features exist.
 
 ## Reference material for sessions without the original archive
 

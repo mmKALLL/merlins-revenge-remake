@@ -4,24 +4,39 @@ import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadLastMap, loadZoom, saveLastMap, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
-import { setupMapBrowser } from './map-browser'
 import { generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
-import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
+import { DEFAULT_ZOOM, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid } from './sim/world-grid'
 import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
+import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
+import { helpPanel } from './ui/help-panel'
+import { mapUrl, setupMapBrowser } from './ui/map-browser'
+import { mapsPanel } from './ui/maps-panel'
+import { menuButton } from './ui/menu-button'
+import { MenuOverlay, type MenuPanel } from './ui/overlay'
+import { pauseMenu } from './ui/pause-menu'
+import { settingsPanel } from './ui/settings-panel'
+import { TickClock } from './ui/tick-clock'
+import { titleScreen } from './ui/title-screen'
 
 const params = new URLSearchParams(location.search)
-/** A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. */
-const mapId = params.get('map') ?? 'works/mriiidemoiv'
+/** The map Play starts when none has been played yet. */
+const DEFAULT_MAP = 'works/mriiidemoiv'
+/**
+ * A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. A page opened
+ * with ?map= starts that map at once (map links, the Maps menu); without it the title screen shows.
+ */
+const linkedMap = params.get('map')
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
@@ -35,20 +50,21 @@ const cfg: RenderConfig = {
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
 const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
 
-/** Records the camera in the URL (without a reload), so reloading the page keeps it. */
-function rememberCamera(camera: CameraMode): void {
-  params.set('camera', camera)
-  history.replaceState(history.state, '', `${location.pathname}?${params}${location.hash}`)
+/** Records a query parameter in the URL (without a reload), so reloading the page keeps it; null removes it. */
+function rememberParam(name: string, value: string | null): void {
+  if (value === null) params.delete(name)
+  else params.set(name, value)
+  const query = params.toString()
+  history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`)
 }
 
 /** A generated floor for the seed; the seed goes into the URL (no reload) so the floor can be shared. */
-function generatedMapWithSeedInUrl(): MapDefinition {
+function generatedMapWithSeedInUrl(mapId: string): MapDefinition {
   params.set('seed', String(seed))
   history.replaceState(history.state, '', `${location.pathname}?${params}${location.hash}`)
   return generateMap(mapId, seed)
 }
 
-const ZOOM_KEY = 'mr-remake.zoom'
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
 const MAX_FRAME_MS = 250
 /** Weight of the latest frame in the smoothed fps readout. */
@@ -56,101 +72,6 @@ const FPS_NEW_WEIGHT = 0.1
 
 /** A fresh seed for the restart after the player dies, derived from the last one (an integer hash). */
 const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
-
-function loadZoom(fallback: ZoomSetting): ZoomSetting {
-  try {
-    const v = localStorage.getItem(ZOOM_KEY)
-    const z = ZOOM_SETTINGS.find((s) => String(s) === v)
-    if (z !== undefined) return z
-  } catch {
-    // storage blocked: use the default
-  }
-  return fallback
-}
-
-function saveZoom(z: ZoomSetting): void {
-  try {
-    localStorage.setItem(ZOOM_KEY, String(z))
-  } catch {
-    // storage blocked: the choice lasts for this page only
-  }
-}
-
-/**
- * Keeps clicks on the controls away from the game's mouse input (window listeners) and keyboard
- * focus. Sliders need their mousedown default to drag; they give focus back on release instead.
- */
-function isolateControls(el: HTMLElement): void {
-  for (const type of ['mousedown', 'mouseup', 'pointerdown', 'pointerup'] as const) {
-    el.addEventListener(type, (e) => {
-      e.stopPropagation()
-      if (type === 'mousedown' && !(e.target instanceof HTMLInputElement)) e.preventDefault()
-    })
-  }
-}
-
-/** Music and Effects toggles and the master volume slider next to the zoom buttons. */
-function setupSoundControls(audio: AudioEngine, row: HTMLElement): void {
-  const toggle = (label: string, title: string, get: () => boolean, set: (on: boolean) => void) => {
-    const b = document.createElement('button')
-    b.type = 'button'
-    b.textContent = label
-    b.title = title
-    const show = () => b.setAttribute('aria-pressed', String(get()))
-    b.addEventListener('click', () => {
-      set(!get())
-      show()
-    })
-    show()
-    row.appendChild(b)
-  }
-  toggle('Music', 'Music on/off', () => audio.current.music, (on) => audio.setMusic(on))
-  toggle('Effects', 'Sound effects on/off', () => audio.current.effects, (on) => audio.setEffects(on))
-  const label = document.createElement('label')
-  label.textContent = 'Vol'
-  label.title = 'Master volume'
-  const slider = document.createElement('input')
-  slider.type = 'range'
-  slider.min = '0'
-  slider.max = '100'
-  slider.value = String(audio.current.volume)
-  slider.setAttribute('aria-label', 'Master volume')
-  slider.addEventListener('input', () => audio.setVolume(Number(slider.value)))
-  // hand the keyboard back to the game (Space and the arrows must not stay on the slider)
-  for (const type of ['change', 'pointerup'] as const) slider.addEventListener(type, () => slider.blur())
-  label.appendChild(slider)
-  row.appendChild(label)
-}
-
-/**
- * The 1x..4x / fit / scale buttons below the canvas; `reserved` is the controls block kept visible
- * in 'fit' and 'scale' modes. With touch controls the canvas fills the screen instead (the controls
- * scroll below it).
- */
-function setupZoomButtons(scene: Scene, row: HTMLElement, reserved: HTMLElement, touch: boolean): void {
-  const buttons = ZOOM_SETTINGS.map((z) => {
-    const b = document.createElement('button')
-    b.type = 'button'
-    b.textContent = typeof z === 'number' ? `${z}x` : z
-    b.title = z === 'fit' ? 'Largest whole multiple that fits the window'
-      : z === 'scale' ? 'Fill the window at any multiple (pixels may be uneven)'
-        : `${z} screen pixels per game pixel`
-    b.addEventListener('click', () => select(z))
-    row.appendChild(b)
-    return [z, b] as const
-  })
-  const select = (z: ZoomSetting) => {
-    for (const [bz, b] of buttons) b.setAttribute('aria-pressed', String(bz === z))
-    saveZoom(z)
-    scene.setZoom(z)
-  }
-  const game = reserved.parentElement
-  const style = game ? getComputedStyle(game) : null
-  const gap = style ? parseFloat(style.rowGap) || 0 : 0
-  const pad = style ? parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) || 0 : 0
-  scene.fitReserve = touch ? 0 : reserved.offsetHeight + gap + pad
-  select(loadZoom(DEFAULT_ZOOM))
-}
 
 /** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */
 async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
@@ -164,12 +85,28 @@ async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: R
   return { sprites, anims }
 }
 
-async function main(): Promise<void> {
-  // effects decode in the background; the context resumes on the first key or click
-  const audio = new AudioEngine()
-  audio.attachUnlock(window)
-  void audio.preload()
-  const map = isGeneratedMapId(mapId) ? generatedMapWithSeedInUrl() : await loadMap(mapId)
+/** What a running game takes from the page. */
+interface Shell {
+  audio: AudioEngine
+  input: InputTracker
+  /** Whether the simulation advances (no menu open). */
+  running: () => boolean
+}
+
+/** A loaded map being played. */
+interface Game {
+  mapId: string
+  scene: Scene
+  /** A new run of the map with a fresh seed. */
+  restart(): void
+  /** Switches the camera, and the world mode with it, between ticks. */
+  setCamera(camera: CameraMode): void
+}
+
+/** Loads a map and its assets, puts the canvas in #game and starts the frame loop. */
+async function startGame(mapId: string, shell: Shell): Promise<Game> {
+  const { audio, input } = shell
+  const map = isGeneratedMapId(mapId) ? generatedMapWithSeedInUrl(mapId) : await loadMap(mapId)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
@@ -206,53 +143,16 @@ async function main(): Promise<void> {
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }
-  const restartAfterEnding = () => { if (ending?.phase === 'done') restart() }
+  const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
-  const touch = wantsTouchControls(params, window)
-  // before the canvas exists: its first (desktop-sized) draw must not widen a phone's layout viewport
-  if (touch) document.documentElement.classList.add('touch-controls')
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows)
-  const game = document.getElementById('game') ?? document.body
-  const controls = document.getElementById('controls')
-  const zoomRow = document.getElementById('zoom')
-  const soundRow = document.getElementById('sound')
-  const mapList = document.getElementById('maps')
-  await scene.init(game)
-  if (controls) {
-    game.appendChild(controls) // below the canvas
-    isolateControls(controls)
-    if (mapList) await setupMapBrowser(mapList, mapId)
-    if (soundRow) setupSoundControls(audio, soundRow)
-    if (zoomRow) setupZoomButtons(scene, zoomRow, controls, touch)
-  }
-
-  const input = new InputTracker()
-  input.attach(window)
-  if (touch) attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast))
-  // shows what Space fires at; F toggles it
-  const spaceMode = document.getElementById('space-mode')
-  let shownShort: boolean | null = null
-  const showSpaceMode = () => {
-    if (!spaceMode || shownShort === input.spaceAimsShort) return
-    shownShort = input.spaceAimsShort
-    const target = shownShort ? 'push-back shot' : 'nearest enemy'
-    spaceMode.textContent = touch ? `Blast: ${target} (tap to toggle)` : `Space: ${target} (F to toggle)`
-  }
-  // there is no F key on a phone: tapping the label toggles instead
-  spaceMode?.addEventListener('click', () => input.toggleSpaceShort())
-  // shows the camera; C switches it, and the world mode with it, between ticks
-  const cameraMode = document.getElementById('camera-mode')
-  const showCameraMode = () => {
-    if (cameraMode) cameraMode.textContent = `Camera: ${scene.cameraMode} (C)`
-  }
-  showCameraMode()
-  const toggleCamera = () => {
-    const camera: CameraMode = scene.cameraMode === 'room' ? 'follow' : 'room'
+  await scene.init(document.getElementById('game') ?? document.body)
+  const setCamera = (camera: CameraMode) => {
+    if (camera === scene.cameraMode) return
     scene.setCameraMode(camera)
     sim = switchWorldMode(sim, worldModeFor(camera))
-    rememberCamera(camera)
-    showCameraMode()
+    rememberParam('camera', camera)
   }
 
   const inputLog = new InputLog()
@@ -263,7 +163,7 @@ async function main(): Promise<void> {
       runSeed = seed
       ending = s.mapComplete ? startEndSequence() : null // a loaded moment replaces any running end sequence
       // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
-      if ((scene.cameraMode === 'follow') !== (s.worldMode === 'continuous')) toggleCamera()
+      setCamera(s.worldMode === 'continuous' ? 'follow' : 'room')
     },
   })
 
@@ -284,18 +184,18 @@ async function main(): Promise<void> {
     }
   }
 
-  let acc = 0
-  let last = performance.now()
+  // ticks only while no menu is open; the paused picture stays on the canvas under the menu
+  const clock = new TickClock(TICK_MS, MAX_FRAME_MS)
   let fps = 0
   const frame = (now: number) => {
-    const dt = Math.min(MAX_FRAME_MS, now - last)
-    last = now
+    requestAnimationFrame(frame)
+    const running = shell.running()
+    const { ticks, alpha, dt } = clock.frame(now, running)
+    if (!running) return
     fps = fps * (1 - FPS_NEW_WEIGHT) + (1000 / Math.max(1, dt)) * FPS_NEW_WEIGHT
-    acc += dt
     input.setMouseWorld(mouseWorld())
-    if (input.takeCameraToggle()) toggleCamera()
-    while (acc >= TICK_MS) {
-      acc -= TICK_MS
+    if (input.takeCameraToggle()) setCamera(scene.cameraMode === 'room' ? 'follow' : 'room')
+    for (let i = 0; i < ticks; i++) {
       if (ending) {
         const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
         ending = r.seq
@@ -310,26 +210,148 @@ async function main(): Promise<void> {
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
     }
-    scene.draw(sim, acc / TICK_MS, fps)
+    scene.draw(sim, alpha, fps)
     scene.drawEndSequence(ending && endSequenceView(ending))
-    showSpaceMode()
-    requestAnimationFrame(frame)
   }
   requestAnimationFrame(frame)
+  return { mapId, scene, restart, setCamera }
 }
 
-main().catch((e: unknown) => {
+/** Replaces the page with the error, keeping a map browser so another map can be picked. */
+function showError(e: unknown, mapId: string): void {
   console.error(e)
   const pre = document.createElement('pre')
   pre.style.color = '#fff'
   pre.style.padding = '16px'
   pre.style.whiteSpace = 'pre-wrap'
   pre.textContent = e instanceof Error ? (e.stack ?? e.message) : String(e)
-  // keep the map browser, so another map can be picked from the error page
-  const mapList = document.getElementById('maps')
-  document.body.replaceChildren(pre)
-  if (mapList) {
-    pre.after(mapList)
-    void setupMapBrowser(mapList, mapId)
+  const mapList = document.createElement('ul')
+  mapList.id = 'maps'
+  document.documentElement.dataset['screen'] = 'error'
+  document.body.replaceChildren(pre, mapList)
+  void setupMapBrowser(mapList, mapId)
+}
+
+function main(): void {
+  // effects decode in the background; the context resumes on the first key or click
+  const audio = new AudioEngine()
+  audio.attachUnlock(window)
+  void audio.preload()
+  const touch = wantsTouchControls(params, window)
+  // before any canvas exists: its first (desktop-sized) draw must not widen a phone's layout viewport
+  if (touch) document.documentElement.classList.add('touch-controls')
+  const input = new InputTracker()
+  input.attach(window)
+  if (touch) attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast))
+
+  let state: AppState = linkedMap ? PLAYING : TITLE
+  let game: Game | null = null
+  let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
+  const mapToPlay = () => linkedMap ?? loadLastMap() ?? DEFAULT_MAP
+  const shell: Shell = { audio, input, running: () => game !== null && simRuns(state) }
+
+  const back = () => dispatch({ kind: 'back' })
+  const title = titleScreen({
+    play: () => void play(),
+    open: (panel) => dispatch({ kind: 'open', panel }),
+  })
+  const panels: Record<PanelKey, MenuPanel> = {
+    title,
+    pause: pauseMenu({
+      resume: () => dispatch({ kind: 'resume' }),
+      open: (panel) => dispatch({ kind: 'open', panel }),
+      restart: () => {
+        game?.restart()
+        dispatch({ kind: 'resume' })
+      },
+      quit: () => {
+        rememberParam('map', null) // a reload shows the title screen too
+        dispatch({ kind: 'quit' })
+      },
+    }, () => game?.mapId ?? ''),
+    maps: mapsPanel(mapToPlay(), back),
+    settings: settingsPanel({
+      zoom: () => zoom,
+      setZoom: (z) => {
+        zoom = z
+        saveZoom(z)
+        game?.scene.setZoom(z)
+      },
+      camera: () => game?.scene.cameraMode ?? cfg.cameraMode,
+      setCamera: (c) => {
+        if (game) game.setCamera(c)
+        else {
+          cfg.cameraMode = c
+          rememberParam('camera', c)
+        }
+      },
+      spaceShort: () => input.spaceAimsShort,
+      setSpaceShort: (on) => { if (on !== input.spaceAimsShort) input.toggleSpaceShort() },
+      audio,
+    }, back),
+    help: helpPanel(touch, back),
   }
-})
+  const overlay = new MenuOverlay(document.body, panels)
+  menuButton(document.body, () => dispatch({ kind: 'pause' }))
+
+  function render(): void {
+    document.documentElement.dataset['screen'] = state.screen
+    title.setMap(mapToPlay())
+    overlay.show(visiblePanel(state))
+    const running = simRuns(state)
+    input.setEnabled(running)
+    audio.setPaused(!running)
+    // no menu button keeps the focus while playing: Space and Enter belong to the game
+    if (running && document.activeElement instanceof HTMLElement) document.activeElement.blur()
+  }
+
+  function dispatch(action: AppAction): void {
+    if (action.kind === 'pause' && !game) return // still loading
+    state = nextAppState(state, action)
+    render()
+  }
+
+  async function play(): Promise<void> {
+    const mapId = mapToPlay()
+    audio.setPaused(false) // inside the click: browsers start audio only from a user gesture
+    if (game?.mapId === mapId) {
+      game.restart()
+      rememberParam('map', mapId)
+      dispatch({ kind: 'play' })
+      return
+    }
+    if (game) {
+      location.assign(mapUrl(mapId)) // one map per page: another map loads in a fresh page
+      return
+    }
+    title.setLoading(true)
+    rememberParam('map', mapId)
+    if (!(await load(mapId))) return
+    title.setLoading(false)
+    dispatch({ kind: 'play' })
+  }
+
+  /** Starts a map; false (with the error on the page) when it failed to load. */
+  async function load(mapId: string): Promise<boolean> {
+    try {
+      game = await startGame(mapId, shell)
+    } catch (e) {
+      showError(e, mapId)
+      return false
+    }
+    game.scene.setZoom(zoom)
+    saveLastMap(mapId)
+    return true
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.repeat) return
+    e.preventDefault()
+    dispatch({ kind: state.screen === 'playing' ? 'pause' : 'back' })
+  })
+
+  render()
+  if (linkedMap) void load(linkedMap).then(render)
+}
+
+main()

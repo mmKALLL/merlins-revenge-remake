@@ -1,54 +1,111 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-screen="title">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
     <title>Merlin's Revenge Remake</title>
     <style>
-      html, body { margin: 0; background: #000; }
-      /* margin: auto centres #game but lets it scroll instead of clipping when it is larger than the window */
-      body { display: flex; min-height: 100vh; }
-      #game { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; }
-      canvas { display: block; image-rendering: pixelated; }
-      #controls { display: flex; gap: 16px; align-items: flex-start; font: 12px monospace; }
-      #zoom, #sound { display: flex; gap: 4px; align-items: center; }
-      #space-mode, #camera-mode { color: #aaa; font: 12px monospace; }
-      #zoom button, #sound button {
-        font: inherit; color: #aaa; background: #111; border: 1px solid #444; border-radius: 3px;
-        padding: 2px 8px; cursor: pointer;
+      :root {
+        color-scheme: dark;
+        --fg: #ccc; --dim: #888; --line: #444; --panel: #111; --hover: #222; --accent: #ec4;
+        --font: ui-monospace, Menlo, Consolas, monospace;
       }
-      #zoom button:hover, #sound button:hover { color: #fff; border-color: #888; }
-      #zoom button[aria-pressed='true'], #sound button[aria-pressed='true'] { color: #000; background: #ccc; border-color: #ccc; }
-      #sound label { color: #aaa; display: flex; gap: 4px; align-items: center; }
-      #sound input[type='range'] { width: 72px; margin: 0; accent-color: #ccc; }
-      /* the map browser and the Favourites list beside it */
+      html, body { margin: 0; background: #000; color: var(--fg); font: 14px/1.4 var(--font); }
+      /* margin: auto centres #game but lets it scroll instead of clipping when it is larger than the window */
+      body { display: flex; min-height: 100vh; min-height: 100dvh; }
+      #game { margin: auto; display: flex; flex-direction: column; align-items: center; }
+      canvas { display: block; image-rendering: pixelated; }
+      html[data-screen='title'] #game { display: none; }
+
+      /* the menu overlay (src/ui/overlay.ts): scrolls like a page, over the paused game or alone on the title screen */
+      #menu {
+        position: fixed; inset: 0; z-index: 30; overflow-y: auto; overscroll-behavior: contain;
+        display: flex; background: rgba(0, 0, 0, 0.8);
+      }
+      #menu[hidden] { display: none; }
+      html[data-screen='title'] #menu { background: radial-gradient(ellipse at 50% 30%, #0c1030, #000 70%); }
+      .panel {
+        margin: auto; width: 100%; max-width: 40rem; box-sizing: border-box;
+        padding: calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+          calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+      }
+      .panel[hidden] { display: none; }
+      .panel h2 { margin: 0 0 16px; font-size: 20px; text-align: center; color: #fff; }
+      .panel h3 { margin: 16px 0 8px; font-size: 15px; color: #fff; }
+      .panel p { margin: 0 0 12px; }
+      .panel a { color: var(--fg); }
+      .hint { display: block; font-size: 12px; color: var(--dim); text-align: center; }
+      .menu-list { display: flex; flex-direction: column; gap: 8px; max-width: 20rem; margin: 16px auto 0; }
+      .panel button {
+        font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+        cursor: pointer;
+      }
+      .menu-list > button { min-height: 44px; padding: 6px 16px; font-size: 16px; }
+      .menu-list > button.primary { border-color: #6a78c8; background: #141a40; color: #fff; }
+      .panel button:hover, .panel button:focus-visible { color: #fff; border-color: #888; }
+      .panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .panel button:disabled { cursor: default; color: var(--dim); }
+
+      /* title screen */
+      .title-art { margin: 0 0 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 24px; font-size: 40px; color: #fff; text-align: center; }
+      .title-art .word { display: flex; align-items: flex-start; white-space: nowrap; }
+      .title-art .letter { height: min(72px, 10.5vw); width: auto; }
+      .title-art .letter.apostrophe { height: min(29px, 4.2vw); }
+      .credits { margin: 24px auto 0 !important; max-width: 30rem; font-size: 12px; color: var(--dim); text-align: center; }
+
+      /* settings */
+      .setting { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid #222; }
+      .setting-name { flex: 0 0 8rem; color: #fff; }
+      .choices { display: flex; flex-wrap: wrap; gap: 6px; }
+      .choices button { min-height: 36px; min-width: 44px; padding: 4px 10px; }
+      .choices button[aria-pressed='true'] { color: #000; background: var(--fg); border-color: var(--fg); }
+      .setting input[type='range'] { flex: 1 1 10rem; max-width: 16rem; accent-color: var(--fg); }
+
+      /* how to play */
+      .help-section dl { display: grid; grid-template-columns: minmax(7rem, max-content) 1fr; gap: 6px 16px; margin: 0; }
+      .help-section dt { color: #fff; }
+      .help-section dd { margin: 0; }
+
+      /* the map browser and the Favourites list beside it (src/ui/map-browser.ts) */
+      .map-lists { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: 13px; }
       #maps, #favourites {
-        position: relative; margin: 0; padding: 0; list-style: none; overflow-y: auto;
-        max-height: calc(8 * (1.25em + 2px)); /* 8 rows: button line-height + its 1px top and bottom padding */
-        border: 1px solid #444; border-radius: 3px; background: #111; min-width: 16ch;
+        position: relative; margin: 0; padding: 0; list-style: none; overflow-y: auto; max-height: 50vh;
+        border: 1px solid var(--line); border-radius: 3px; background: var(--panel); min-width: 16ch; flex: 1 1 16rem;
       }
       #maps li, #favourites li { display: flex; }
       #maps button, #favourites button {
-        flex: 1; padding: 1px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
-        background: none; border: 0; white-space: nowrap; cursor: pointer;
+        flex: 1; padding: 6px 8px; font: inherit; line-height: 1.25; text-align: left; color: #aaa;
+        background: none; border: 0; border-radius: 0; white-space: nowrap; cursor: pointer;
       }
-      /* star column on the left, larger glyph; line-height keeps rows the same height as the 12px text rows */
-      #maps .star { flex: none; width: 22px; padding: 1px 0; font-size: 16px; line-height: 15px; text-align: center; }
-      #maps button.star[aria-pressed='true'] { color: #ec4; }
-      #favourites li.empty { padding: 1px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
-      #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: #222; }
+      /* star column on the left, larger glyph */
+      #maps .star { flex: none; width: 28px; padding: 4px 0; font-size: 18px; line-height: 1; text-align: center; }
+      #maps button.star[aria-pressed='true'] { color: var(--accent); }
+      #favourites li.empty { padding: 6px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
+      #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: var(--hover); }
       #maps button:focus-visible, #favourites button:focus-visible { outline: 1px solid #888; outline-offset: -1px; }
       #maps button[aria-current='page'], #favourites button[aria-current='page'],
-      #maps li:has(> [aria-current='page']) > button.star { color: #000; background: #ccc; }
-      body > #maps, body > #favourites { align-self: flex-start; margin: 16px 16px 16px 0; max-height: 50vh; font: 12px monospace; }
-      body > #maps { margin-left: 16px; }
-      /* touch controls (src/input/touch.ts): over the game in landscape, a band below it in portrait */
-      html.touch-controls { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      #maps li:has(> [aria-current='page']) > button.star { color: #000; background: var(--fg); }
+      /* the error page keeps a map browser */
+      body > #maps { align-self: flex-start; margin: 16px; font-size: 12px; }
+
+      /* the ☰ button (src/ui/menu-button.ts), only while playing */
+      #menu-button {
+        display: none; position: fixed; z-index: 20;
+        top: calc(6px + env(safe-area-inset-top)); right: calc(6px + env(safe-area-inset-right));
+        width: 40px; height: 40px; padding: 0; font: 22px/1 var(--font); color: var(--fg);
+        background: rgba(0, 0, 0, 0.5); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+      }
+      html[data-screen='playing'] #menu-button { display: block; }
+      #menu-button:hover, #menu-button:focus-visible { color: #fff; border-color: #888; }
+
+      /* touch controls (src/input/touch.ts): over the game in landscape, a band below it in portrait.
+         Gestures are blocked only while playing; menus and the title screen scroll as a page. */
+      #touch { display: none; position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+      html[data-screen='playing'] #touch { display: block; }
+      html.touch-controls[data-screen='playing'] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      html.touch-controls[data-screen='playing'] canvas { touch-action: none; }
       html.touch-controls body { overflow-x: hidden; }
-      html.touch-controls #game { margin-top: 0; padding-top: 0; max-width: 100vw; }
-      /* the controls row wraps instead of widening the page past the phone's screen */
-      html.touch-controls #controls { flex-wrap: wrap; justify-content: center; max-width: 100vw; padding: 0 8px; box-sizing: border-box; }
-      #touch { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+      html.touch-controls #game { margin-top: 0; max-width: 100vw; }
       #touch-nub-zone { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
       #touch-nub {
         position: absolute; width: 96px; height: 96px; margin: -50px 0 0 -50px; border-radius: 50%;
@@ -66,22 +123,16 @@
       }
       #touch-blast.active { background: rgba(255, 200, 0, 0.6); }
       @media (orientation: portrait) {
-        html.touch-controls body { padding-bottom: 40vh; }
+        html.touch-controls[data-screen='playing'] body { padding-bottom: 40vh; }
         #touch { top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222; }
         #touch-blast { right: calc(32px + env(safe-area-inset-right)); bottom: calc(50% - 88px + 1em); }
+        /* the ☰ button moves off the game into the band's top right corner, above the blast button */
+        html.touch-controls #menu-button { top: auto; bottom: calc(40vh - 48px); }
       }
     </style>
   </head>
   <body>
-    <div id="game">
-      <div id="controls">
-        <div id="zoom" role="group" aria-label="Pixel size"></div>
-        <div id="sound" role="group" aria-label="Sound"></div>
-        <div id="space-mode" aria-live="polite"></div>
-        <div id="camera-mode" aria-live="polite"></div>
-        <ul id="maps" aria-label="Maps"></ul>
-      </div>
-    </div>
+    <div id="game"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

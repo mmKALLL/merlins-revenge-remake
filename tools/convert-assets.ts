@@ -321,6 +321,15 @@ function convertExitArrows(): void {
   console.log(`exit arrows: ${files.length}`)
 }
 
+/** assets/title/<letter>.png -> title/<letter>.png, white transparent: the title screen's lettering. */
+function convertTitleLetters(): void {
+  const dir = join(ASSETS, 'title')
+  mkdirSync(join(OUT, 'title'), { recursive: true })
+  const files = sortedDir(dir).filter((f) => f.endsWith('.png'))
+  for (const f of files) writePng(join(OUT, 'title', f), whiteToAlpha(readPng(join(dir, f))))
+  console.log(`title letters: ${files.length}`)
+}
+
 /** assets/cut-scenes/<name>.txt -> cut-scenes/<name>.json, parsed (src/cutscene/script.ts). */
 function convertCutScenes(): void {
   mkdirSync(join(OUT, 'cut-scenes'), { recursive: true })
@@ -356,3 +365,4 @@ checkActorAtlases(actors, convertSprites())
 convertAudio(actors)
 convertExitArrows()
 convertCutScenes()
+convertTitleLetters()
