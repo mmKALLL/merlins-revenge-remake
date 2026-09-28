@@ -7,7 +7,9 @@ import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeam
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
 import { setupMapBrowser } from './map-browser'
+import { generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
+import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, Scene, ZOOM_SETTINGS, type RenderConfig, type ZoomSetting } from './render/scene'
@@ -37,6 +39,13 @@ const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? '
 function rememberCamera(camera: CameraMode): void {
   params.set('camera', camera)
   history.replaceState(history.state, '', `${location.pathname}?${params}${location.hash}`)
+}
+
+/** A generated floor for the seed; the seed goes into the URL (no reload) so the floor can be shared. */
+function generatedMapWithSeedInUrl(): MapDefinition {
+  params.set('seed', String(seed))
+  history.replaceState(history.state, '', `${location.pathname}?${params}${location.hash}`)
+  return generateMap(mapId, seed)
 }
 
 const ZOOM_KEY = 'mr-remake.zoom'
@@ -160,7 +169,7 @@ async function main(): Promise<void> {
   const audio = new AudioEngine()
   audio.attachUnlock(window)
   void audio.preload()
-  const map = await loadMap(mapId)
+  const map = isGeneratedMapId(mapId) ? generatedMapWithSeedInUrl() : await loadMap(mapId)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
