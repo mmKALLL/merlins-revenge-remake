@@ -1,5 +1,6 @@
 // Copies the original files this project uses from the (git-ignored) archive
 // into ./assets with a sensible structure. Run: pnpm assets:copy
+import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -186,4 +187,15 @@ for (const c of copies) {
   mkdirSync(dirname(c.to), { recursive: true })
   cpSync(c.from, c.to)
   console.log(`${c.to.slice(ROOT.length)}  <- ${c.why}`)
+}
+
+// The title lettering: one GIF per letter in gfx/title/output (the apostrophe's file is "'.gif"),
+// converted to PNG because the converter reads PNG and BMP only (sips ships with macOS).
+const titleLetters: [file: string, name: string][] = [...'EGILMNRSV'].map((l) => [l, l])
+titleLetters.push(["'", 'apostrophe'])
+mkdirSync(join(ASSETS, 'title'), { recursive: true })
+for (const [file, name] of titleLetters) {
+  const to = join(ASSETS, 'title', `${name}.png`)
+  execFileSync('sips', ['-s', 'format', 'png', join(GFX, 'title', 'output', `${file}.gif`), '--out', to], { stdio: 'ignore' })
+  console.log(`${to.slice(ROOT.length)}  <- title letter`)
 }
