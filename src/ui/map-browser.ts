@@ -1,5 +1,5 @@
 // The Maps menu's browser: one folder of the map list at a time. Folders open in place; a map
-// reloads the page with ?map=<id> (which starts it), keeping the other query parameters. Each map row
+// reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed. Each map row
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
 import { loadMapList } from '../data/map-list'
 import { favouriteEntries, loadFavourites, saveFavourites, toggleFavourite, type FavouritesStore } from '../data/favourites'
@@ -17,9 +17,11 @@ const browserStore: FavouritesStore = {
   setItem: (key, value) => localStorage.setItem(key, value),
 }
 
+/** The page URL that starts a map: the other query parameters stay, except the seed (a random floor gets a fresh one). */
 export const mapUrl = (id: string): string => {
   const q = new URLSearchParams(location.search)
   q.set('map', id)
+  q.delete('seed')
   return `?${q.toString()}${location.hash}`
 }
 
