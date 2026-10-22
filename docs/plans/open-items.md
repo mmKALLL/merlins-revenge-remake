@@ -32,9 +32,10 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an
   experience bar.
 - **Potions: what is left.** Ported (`docs/notes/engine-mechanics-potions.md`): the four potions,
-  medikit, maxikit, pickup, writing fade, temporary invincibility and the HUD. Open: the real
-  `maxikit_potion` / `maxikit_writing` members (stand-ins from the objects tile and the medikit's
-  writing), `pulseWhite` (Merlin's alpha pulses instead), save/load of the pickups.
+  medikit, maxikit, pickup, writing fade, temporary invincibility and the HUD. Open: wire in the real
+  `maxikit_potion` / `maxikit_writing` members (gfx cast members 679/680, dumpable with
+  `tools/director-extract/dump_bitmaps.py maxikit_`; stand-ins now: the objects tile and the
+  medikit's writing), `pulseWhite` (Merlin's alpha pulses instead), save/load of the pickups.
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in

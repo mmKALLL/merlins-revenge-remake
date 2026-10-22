@@ -3,12 +3,13 @@ import { InputLog } from './debug/sim-snapshot'
 import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
-import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
-import { loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
+import { loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import { loadDebugInfo, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
 import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
+import { GAME_SCREEN } from './mr-open/mr-hud'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
@@ -44,11 +45,11 @@ const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
   logical: { w: 640, h: 320 },
-  playOffset: { x: 32, y: 0 }, // assumption: 32 px side margins; verify against the original stage
+  playOffset: GAME_SCREEN.map, // the room's top-left on the stage (the score's dd_map_to_play mark)
   view: PLAY_VIEW, // the sim's default SimConfig view too (Space aims on screen)
   cameraMode: params.get('camera') === 'follow' ? 'follow' : 'room',
   spriteScale: 1,
-  debug: params.get('debug') !== '0',
+  debug: loadDebugInfo(params.get('debug')),
 }
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
 const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
@@ -129,7 +130,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, defs, teams, exitArrows, endScript] = await Promise.all([
+  const [passive, active, objects, defs, teams, exitArrows, endScript, hud] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
@@ -137,6 +138,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     loadTeams(),
     loadExitArrows(),
     loadCutScene(GAME_COMPLETE_SCRIPT),
+    loadHudTextures(),
   ])
   const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
@@ -170,7 +172,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
-  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows)
+  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud)
   await scene.init(document.getElementById('game') ?? document.body)
   const setCamera = (camera: CameraMode) => {
     if (camera === scene.cameraMode) return
@@ -324,6 +326,13 @@ function main(): void {
       setRandomMaps: (m) => {
         randomMaps = m
         saveRandomMaps(m)
+      },
+      debugInfo: () => cfg.debug,
+      setDebugInfo: (on) => {
+        cfg.debug = on
+        saveDebugInfo(on)
+        rememberParam('debug', null) // the stored choice holds from now on, over a reload too
+        game?.scene.setDebugInfo(on)
       },
       audio,
     }, back),

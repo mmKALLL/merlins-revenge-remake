@@ -218,3 +218,18 @@ export async function loadExitArrows(): Promise<ExitArrowTextures | null> {
     return null
   }
 }
+
+/** The game screen's health bar members (assets/hud): its surround and the "health" label. */
+export interface HudTextures { healthSurround: Texture; healthLabel: Texture }
+
+/** hud/<member>.png (tools/convert-assets.ts); null, with a warning, when not converted. */
+export async function loadHudTextures(): Promise<HudTextures | null> {
+  const load = async (member: string) => nearest(await Assets.load<Texture>(`${GENERATED}hud/${member}.png`))
+  try {
+    const [healthSurround, healthLabel] = await Promise.all([load('health_bar_surround'), load('health_grey_locz151')])
+    return { healthSurround, healthLabel }
+  } catch (e) {
+    console.warn(`HUD images not loaded (run pnpm assets:convert): ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
+}

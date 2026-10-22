@@ -22,8 +22,9 @@ they do to Merlin, and what the HUD shows. Lingo paths are under the archive's `
   (MR3) has the first five too. Original maps that place these tiles now get the pickups.
 - The gfx members (archive `gfx/potions/`, `gfx/medikit/`): `<name>_potion` 16x16 (the pickup and
   its HUD icon), `<name>_writing` (the name in letters, shown once collected), `medikit_on` /
-  `medikit_off` 16x16 (the HUD icon). The maxikit's `maxikit_potion` is not in `gfx/` (only in the
-  Director cast, which the bundle does not dump); see the port section.
+  `medikit_off` 16x16 (the HUD icon). The maxikit's `maxikit_potion` (14x12, reg 7,6) and
+  `maxikit_writing` (44x12) are not in `gfx/`, only in the engine movie's gfx cast (members 679,
+  680; `dump_bitmaps.py maxikit_` writes them); see the port section.
 
 ## 2. Pickup
 
@@ -118,8 +119,11 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
   (`rgb(0,200,0)`) energy bar 6 px wide and as tall as the icon with a 1 px border, showing the
   current kit's hitpoints out of the max, then 1 px right a counter (3 px lower) with
   `getNumOfMedikits`.
-- Where both sit comes from the game screen's marks in the Director score (`objScreen`
-  `startPrgs`); the exported Lingo does not say.
+- Where both sit comes from the game screen's marks in the Director score (`objScreen.startPrgs`;
+  engine-mechanics-hud.md): `prg_potionmaster` is the rect (470, 0)-(608, 16), so the potions are
+  right-aligned at the **top right**, in the 16 px strip above the room and flush with its right
+  edge; `prg_medikitmaster` is (32, 0), the **top left** of that strip. They sit above the room,
+  not over it.
 
 ## Port
 
@@ -136,9 +140,9 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
 - Sprites: each pickup's folder under `assets/sprites/<name>/` holds `stand` (the `_potion` member)
   and `writing` strips; the medikit's also `hudOn` / `hudOff`. **Remake decisions:** the maxikit's
   stand frame is cut from its merlinOpenObjects tile (46), the editor's picture of the same item,
-  and it shows the medikit's writing (no `maxikit_writing` member is available).
-- HUD (`src/render/pickup-hud.ts`): the potions drunk and the medikit display as above, right-aligned
-  in the strip below the play view.
+  and it shows the medikit's writing (stand-ins from before the cast members were found; open item).
+- HUD (`src/render/pickups.ts`): the potions drunk and the medikit display as above, at their
+  marks in the strip above the play view (until 2026-10 both were right-aligned in the strip below).
 - Stand-ins removed: `player.mana_capacity` 13 and `mana_flow` 3 in `assets/tuning.json` mimicked
   4 Max Blast and 4 Quick Charge potions before potions existed. Merlin now starts at the engine's
   capacity 10 and flow 1: full charge (13.5 with the tuned `chargeMaxBasic` 6) takes about 13 ticks

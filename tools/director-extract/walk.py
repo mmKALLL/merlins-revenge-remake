@@ -28,7 +28,7 @@ import os
 out = sys.argv[2] if len(sys.argv)>2 else None
 if out:
     os.makedirs(out, exist_ok=True)
-    want = {'BITD','CLUT','ALFA','CASt','KEY*','snd ','sndH','sndS','ediM','XMED','CAS*','Cinf','MCsL','Lnam','STXT'}
+    want = {'BITD','CLUT','ALFA','CASt','KEY*','snd ','sndH','sndS','ediM','XMED','CAS*','Cinf','MCsL','Lnam','STXT','VWSC','VWLB'}
     mism=0
     for i,fc,ln,off in entries:
         if fc not in want: continue

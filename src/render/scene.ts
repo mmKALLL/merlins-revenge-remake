@@ -1,7 +1,8 @@
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import type { ExitArrowTextures, LoadedSprite, LoadedTileset } from '../data/loaders'
+import type { ExitArrowTextures, HudTextures, LoadedSprite, LoadedTileset } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
+import { GAME_SCREEN } from '../mr-open/mr-hud'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { isPickup, isSpell, isStepped, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
@@ -11,9 +12,10 @@ import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import type { EndSequenceView } from '../cutscene/end-sequence'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
-import { barColour, HealthBars, type StandBox } from './health-bars'
+import { HealthBars, type StandBox } from './health-bars'
 import { MiniMapLayer } from './minimap'
 import { PickupHud, pickupAlpha } from './pickups'
+import { PlayerHealthBar } from './player-health-bar'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -37,13 +39,9 @@ const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActiv
 /** Engine draw layers (actor data `#layerZ`) -> z within the actor container; unknown layers draw with objects. */
 const LAYER_Z: Record<string, number> = { gGameObjectLayer: 0, gPlayerLayer: 1, gGameBulletLayer: 2 }
 
-/** The player's energy bar in the HUD strip below the play view: x, size and empty colour. */
-const BAR = { x: 32, w: 200, h: 8, background: 0x202020 }
-/** The debug readout sits right of the bar: gap to the bar, offset from the HUD strip's top. */
-const DEBUG_TEXT = { gap: 8, top: 4 }
+/** The debug readout's two lines fill the strip below the play view, `gap` px right of the health bar (remake). */
+const DEBUG_TEXT = { gap: 8, fontSize: 8, lineHeight: 8 }
 const NO_TINT = 0xffffff
-/** Height of the HUD's potion and medikit icons (their 16x16 members), for centring them in the strip. */
-const PICKUP_ICON_PX = 16
 /** Cut scene characters drawn with an actor's sprite under another key (#merlin plays as the player). */
 const CUTSCENE_ACTOR: Record<string, string> = { merlin: 'player' }
 
@@ -91,11 +89,10 @@ export class Scene {
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
-  private bar = new Graphics()
-  private pickupHud: PickupHud | null = null
-  private barFill = -1
+  private healthBar: PlayerHealthBar
+  private pickupHud: PickupHud
   private cutScene: CutSceneOverlay | null = null
-  private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
+  private debugText = new Text({ text: '', style: { fill: '#0f0', fontFamily: 'monospace', fontSize: DEBUG_TEXT.fontSize, lineHeight: DEBUG_TEXT.lineHeight } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
   private zoom: ZoomSetting = DEFAULT_ZOOM
@@ -106,8 +103,11 @@ export class Scene {
     private sprites: Record<string, LoadedSprite>, // by sprite name (ActorDef.name)
     private defs: Record<string, ActorDef>,
     exitArrows: ExitArrowTextures | null = null,
+    hud: HudTextures | null = null,
   ) {
     this.healthBars = new HealthBars(defs)
+    this.healthBar = new PlayerHealthBar(hud)
+    this.pickupHud = new PickupHud(sprites, defs)
     this.exitArrows = new ExitArrowLayer(exitArrows)
     this.miniMap = new MiniMapLayer(cfg.view)
   }
@@ -148,13 +148,10 @@ export class Scene {
     this.world.addChild(this.scrolled, this.miniMap.layer) // modMiniMap draws on gGameTextLayer, above the game
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
-    const hudY = this.cfg.playOffset.y + this.cfg.view.h // top of the HUD strip below the play view
-    this.bar.position.set(BAR.x, hudY + Math.floor((this.cfg.logical.h - hudY - BAR.h) / 2))
-    this.app.stage.addChild(this.bar)
-    this.debugText.position.set(BAR.x + BAR.w + DEBUG_TEXT.gap, hudY + DEBUG_TEXT.top)
-    this.app.stage.addChild(this.debugText)
-    this.pickupHud = new PickupHud(this.sprites, this.defs, this.cfg.playOffset.x + this.cfg.view.w, hudY + Math.floor((this.cfg.logical.h - hudY - PICKUP_ICON_PX) / 2))
-    this.app.stage.addChild(this.pickupHud.layer)
+    // the HUD on the stage around the play view, at the original's gameScreen marks
+    const { healthSurround } = GAME_SCREEN
+    this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, this.cfg.playOffset.y + this.cfg.view.h)
+    this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.debugText)
     this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
@@ -175,6 +172,11 @@ export class Scene {
   /** Remake: hides or shows the mini-map (the N key). */
   toggleMiniMap(): void {
     this.miniMap.toggle()
+  }
+
+  /** Shows or hides the debug readout below the play view (Settings, Debug info). */
+  setDebugInfo(on: boolean): void {
+    this.cfg = { ...this.cfg, debug: on }
   }
 
   setZoom(zoom: ZoomSetting): void {
@@ -217,8 +219,9 @@ export class Scene {
     this.syncActors(s, lerp)
     this.healthBars.update(s, lerp, (name) => this.standBox(name))
     this.drawMiniMap(s, origin, ipos, mouseWorld)
-    this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
-    this.pickupHud?.update(s)
+    const def = this.defs[p.def]
+    this.healthBar.update(p.energy, def?.maxEnergy || def?.energy || 1)
+    this.pickupHud.update(s)
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
       this.debugText.text =
@@ -387,16 +390,6 @@ export class Scene {
       origin,
       roomPx: { w: room.right - room.left, h: room.bottom - room.top },
     })
-  }
-
-  private drawBar(fraction: number): void {
-    const f = Math.max(0, Math.min(1, fraction))
-    const fill = Math.round(f * BAR.w)
-    if (fill === this.barFill) return
-    this.barFill = fill
-    this.bar.clear()
-    this.bar.rect(0, 0, BAR.w, BAR.h).fill(BAR.background)
-    if (fill > 0) this.bar.rect(0, 0, fill, BAR.h).fill(barColour(f))
   }
 
   private rebuildTiles(s: SimState, origin: Vec): void {

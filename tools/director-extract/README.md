@@ -61,3 +61,19 @@ list: `docs/notes/sound-extraction.md`. How the engine plays them: `docs/notes/e
 `clutCastLib` field before it and reports "rainbow"), resolves palette members through their
 `CLUT` chunk, and decodes raw (uncompressed) 32-bit BITD as interleaved ARGB pixels. See the
 2026-09-27 sprite update in `docs/notes/tileset-extraction.md`.
+
+## Score marks and HUD members (2026-10-22)
+
+`member_index.py` writes the `member_index.txt` that `dump_bitmaps.py` reads (every cast member:
+cast, number, CASt chunk, type, name). `score_marks.py <frame>` decodes the score (VWSC) and
+prints the sprites on one frame with their stage rects (`walk.py` dumps the VWSC and VWLB
+chunks it needs). The engine's `gameScreen` is frame 240: its marks place the room, the HUD
+displays and the health bar (`docs/notes/engine-mechanics-hud.md`). `assets/hud/` was dumped with
+`dump_bitmaps.py health_`. drxtract needs Python 3.10 or later.
+
+```
+../extract/venv/bin/python walk.py merlin_engine_76_speed.dir bin
+../extract/venv/bin/python member_index.py
+../extract/venv/bin/python dump_bitmaps.py health_ maxikit_
+../extract/venv/bin/python score_marks.py 240
+```
