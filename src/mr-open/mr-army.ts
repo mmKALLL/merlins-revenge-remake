@@ -43,3 +43,18 @@ export function topAvailableStage(army: ArmyReserve, team: string, a: AttackDef)
   for (let i = a.multistage.length; i >= 1; i--) if (reserveCount(army, team, a.multistage[i - 1]!.payload) > 0) return i
   return 0
 }
+
+/** modTeleport pTeleportHeight: how tall the stretched sprite is at the far end of a teleport. */
+const TELEPORT_HEIGHT = 1000
+
+/**
+ * modTeleport.updateTeleportInStretch / updateTeleportOutStretch: the sprite height `age` ticks into
+ * a teleport, its bottom on the floor: in, from TELEPORT_HEIGHT down to the member's height; out,
+ * from the member's height up. The fade (startTransBlend) goes with it: `alpha` 0 to 1 in, 1 to 0 out.
+ */
+export function teleportLook(kind: 'in' | 'out', age: number, memberHeight: number): { height: number; alpha: number } {
+  const step = TELEPORT_HEIGHT / TELEPORT_TICKS
+  const share = Math.min(1, age / TELEPORT_TICKS)
+  if (kind === 'in') return { height: Math.max(memberHeight, TELEPORT_HEIGHT - step * age), alpha: share }
+  return { height: Math.min(TELEPORT_HEIGHT, memberHeight + step * age), alpha: 1 - share }
+}

@@ -3,18 +3,21 @@ import { InputLog } from './debug/sim-snapshot'
 import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
-import { loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
+import {
+  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, type LoadedSprite,
+} from './data/loaders'
 import { loadDebugInfo, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
-import { attachTouchControls, wantsTouchControls } from './input/touch'
+import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
 import { GAME_SCREEN } from './mr-open/mr-hud'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
-import { DEFAULT_ZOOM, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
+import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
+import { playerOf } from './sim/actors'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
 import { PLAY_VIEW } from './sim/view'
@@ -76,9 +79,12 @@ const FPS_NEW_WEIGHT = 0.1
 /** A fresh seed for the restart after the player dies, derived from the last one (an integer hash). */
 const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9) >>> 0
 
-/** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist). */
+/** Atlases no actor is named after: objSpellIcons' summon stage icons. */
+const EFFECT_SPRITES = [SPELL_ICONS]
+
+/** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist), and the effects'. */
 async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
-  const spriteNames = [...new Set(Object.values(defs).filter(needsSprite).map((d) => d.name))]
+  const spriteNames = [...new Set([...Object.values(defs).filter(needsSprite).map((d) => d.name), ...EFFECT_SPRITES])]
   const sprites: Record<string, LoadedSprite> = {}
   const anims: Record<string, AnimationSet> = {}
   for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {
@@ -96,7 +102,12 @@ interface Shell {
   running: () => boolean
   /** Whether a restart of a generated map builds a new layout (Settings, Random maps). */
   newLayoutEachRun: () => boolean
+  /** The on-screen touch controls, when shown (their weapon button shows the current weapon). */
+  touch: TouchControls | null
 }
+
+/** A weapon's selector icon as a URL (the touch weapon button). */
+const weaponIconUrl = (key: string): string => `${import.meta.env.BASE_URL}generated/hud/weapon-selector/${key}_ws.png`
 
 /** A map's world grid and where the player starts on it. */
 interface World { grid: WorldGrid; startPos: Vec }
@@ -130,7 +141,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, defs, teams, exitArrows, endScript, hud] = await Promise.all([
+  const [passive, active, objects, defs, teams, exitArrows, endScript, hud, weaponTextures] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
@@ -139,6 +150,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     loadExitArrows(),
     loadCutScene(GAME_COMPLETE_SCRIPT),
     loadHudTextures(),
+    loadWeaponSelectorTextures(),
   ])
   const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
@@ -172,7 +184,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
-  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud)
+  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud, weaponTextures)
   await scene.init(document.getElementById('game') ?? document.body)
   const setCamera = (camera: CameraMode) => {
     if (camera === scene.cameraMode) return
@@ -200,15 +212,29 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   canvas.addEventListener('pointermove', (e) => { pointer = e.pointerType === 'touch' ? null : { x: e.clientX, y: e.clientY } })
   canvas.addEventListener('pointerleave', () => { pointer = null })
   canvas.addEventListener('pointerdown', restartAfterEnding)
-  const mouseWorld = (): Vec | null => {
-    const origin = scene.origin
-    if (!pointer || Number.isNaN(origin.x)) return null
+  /** A client position in stage px (the logical 640x320 screen). */
+  const toStage = (client: Vec): Vec => {
     const rect = canvas.getBoundingClientRect()
     const zoom = rect.width / cfg.logical.w
-    return {
-      x: (pointer.x - rect.left) / zoom - cfg.playOffset.x + origin.x,
-      y: (pointer.y - rect.top) / zoom - cfg.playOffset.y + origin.y,
-    }
+    return { x: (client.x - rect.left) / zoom, y: (client.y - rect.top) / zoom }
+  }
+  const pointerStage = (): Vec | null => (pointer ? toStage(pointer) : null)
+  const mouseWorld = (): Vec | null => {
+    const origin = scene.origin
+    const at = pointerStage()
+    if (!at || Number.isNaN(origin.x)) return null
+    return { x: at.x - cfg.playOffset.x + origin.x, y: at.y - cfg.playOffset.y + origin.y }
+  }
+  // a click on an open weapon palette picks that weapon and charges nothing (objPalette.selectionMade)
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' || e.button !== 0) return
+    const key = scene.pickWeapon(toStage({ x: e.clientX, y: e.clientY }))
+    if (key !== null) input.pickWeapon(key)
+  })
+  /** Merlin on the stage: where the weapon palettes open without a mouse position. */
+  const playerStage = (): Vec => {
+    const p = playerOf(sim)
+    return { x: p.pos.x - scene.origin.x + cfg.playOffset.x, y: p.pos.y - scene.origin.y + cfg.playOffset.y }
   }
 
   // ticks only while no menu is open; the paused picture stays on the canvas under the menu
@@ -224,6 +250,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     input.setMouseWorld(mouse)
     if (input.takeCameraToggle()) setCamera(scene.cameraMode === 'room' ? 'follow' : 'room')
     if (input.takeMiniMapToggle()) scene.toggleMiniMap()
+    if (input.takeWeaponSelector()) scene.openWeaponSelector(pointerStage() ?? playerStage(), sim.tick)
     for (let i = 0; i < ticks; i++) {
       if (ending) {
         const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
@@ -239,7 +266,8 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
     }
-    scene.draw(sim, alpha, fps, mouse)
+    scene.draw(sim, alpha, fps, mouse, pointerStage())
+    shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     scene.drawEndSequence(ending && endSequenceView(ending))
   }
   requestAnimationFrame(frame)
@@ -271,7 +299,7 @@ function main(): void {
   if (touch) document.documentElement.classList.add('touch-controls')
   const input = new InputTracker(loadSpaceMode('nearest'), saveSpaceMode)
   input.attach(window)
-  if (touch) attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast))
+  const touchControls = touch ? attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast), () => input.nextWeapon()) : null
 
   let state: AppState = linkedMap ? PLAYING : TITLE
   let game: Game | null = null
@@ -283,6 +311,7 @@ function main(): void {
     input,
     running: () => game !== null && simRuns(state),
     newLayoutEachRun: () => randomMaps === 'newEachRun',
+    touch: touchControls,
   }
 
   const back = () => dispatch({ kind: 'back' })

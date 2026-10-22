@@ -355,18 +355,25 @@ function convertTitleLetters(): void {
 
 /**
  * assets/hud/<member>.png -> hud/<member>.png: the health bar's surround (ink background
- * transparent, so white becomes transparent) and the "health" label (ink copy, kept as is).
+ * transparent, so white becomes transparent) and the "health" label (ink copy, kept as is); and
+ * assets/hud/weapon-selector/ the same way: the weapon icons as they are, the palette's selection
+ * boxes with their white inside transparent.
  */
-const HUD_BACKGROUND_TRANSPARENT = new Set(['health_bar_surround.png'])
+const HUD_BACKGROUND_TRANSPARENT = new Set(['health_bar_surround.png', 'greenBox_ws.png', 'yellowBox_ws.png'])
+const HUD_FOLDERS = ['', 'weapon-selector']
 function convertHud(): void {
-  const dir = join(ASSETS, 'hud')
-  mkdirSync(join(OUT, 'hud'), { recursive: true })
-  const files = sortedDir(dir).filter((f) => f.endsWith('.png'))
-  for (const f of files) {
-    const image = readPng(join(dir, f))
-    writePng(join(OUT, 'hud', f), HUD_BACKGROUND_TRANSPARENT.has(f) ? whiteToAlpha(image) : image)
+  let count = 0
+  for (const folder of HUD_FOLDERS) {
+    const dir = join(ASSETS, 'hud', folder)
+    mkdirSync(join(OUT, 'hud', folder), { recursive: true })
+    const files = sortedDir(dir).filter((f) => f.endsWith('.png'))
+    for (const f of files) {
+      const image = readPng(join(dir, f))
+      writePng(join(OUT, 'hud', folder, f), HUD_BACKGROUND_TRANSPARENT.has(f) ? whiteToAlpha(image) : image)
+    }
+    count += files.length
   }
-  console.log(`hud images: ${files.length}`)
+  console.log(`hud images: ${count}`)
 }
 
 /** assets/cut-scenes/<name>.txt -> cut-scenes/<name>.json, parsed (src/cutscene/script.ts). */
