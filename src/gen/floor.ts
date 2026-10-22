@@ -9,7 +9,7 @@ import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
-import { TIERS, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type Weighted } from './themes'
+import { TIERS, type Alliance, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type UnitTuning, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -235,7 +235,7 @@ interface TableDraw { table: readonly EnemyChoice[]; draw: TierDraw | null }
 const resolveDraw = (rng: GenRandom, spec: DrawSpec | undefined): TierDraw | null =>
   spec === undefined ? null : Array.isArray(spec) ? rng.weighted(spec) : spec
 
-/** The cell's producer and regular draws, or by the wildcard chance another normal cell's. */
+/** The cell's producer, regular and mixed draws, or by the wildcard chance another normal cell's. */
 function roomDraws(rng: GenRandom, theme: FloorTheme, cell: RoomPlanCell): TableDraw[] {
   const u = theme.units
   let source = cell
@@ -248,14 +248,29 @@ function roomDraws(rng: GenRandom, theme: FloorTheme, cell: RoomPlanCell): Table
     { table: [...u.dwellings, ...u.enemies.filter((c) => c.producer)], draw: resolveDraw(rng, source.producers) },
     { table: regulars, draw: resolveDraw(rng, source.regulars) },
     { table: regulars, draw: resolveDraw(rng, source.extras) },
+    { table: [...u.dwellings, ...u.enemies], draw: resolveDraw(rng, source.mixed) },
   ]
 }
 
-const inFaction = (c: EnemyChoice, faction: string | null): boolean => c.faction === undefined || faction === null || c.faction === faction
+/** The factions a room takes choices of, besides the factionless ones (null: any). */
+type RoomFactions = ReadonlySet<string> | null
 
-/** The choices a draw can take in a faction (null: any). */
-const choicesFor = ({ table, draw }: TableDraw, faction: string | null): EnemyChoice[] =>
-  draw ? table.filter((c) => inFaction(c, faction) && (draw.tiers[c.tier] ?? 0) > 0) : []
+const inFactions = (c: EnemyChoice, factions: RoomFactions): boolean => c.faction === undefined || factions === null || factions.has(c.faction)
+
+/** The choices a draw can take with these factions. */
+const choicesFor = ({ table, draw }: TableDraw, factions: RoomFactions): EnemyChoice[] =>
+  draw ? table.filter((c) => inFactions(c, factions) && (draw.tiers[c.tier] ?? 0) > 0) : []
+
+/** Whether the factions have choices for every draw that asks for at least one unit. */
+const fillsDraws = (draws: readonly TableDraw[], factions: RoomFactions): boolean =>
+  draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, factions).length > 0)
+
+/** A room's factions: its group's, or one drawn for it; with alliances, one alliance's. */
+function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null): RoomFactions {
+  if (u.alliances) return pickAlliance(rng, u, u.alliances, draws, group)
+  const faction = group?.faction ?? pickFaction(rng, draws)
+  return faction === null ? null : new Set([faction])
+}
 
 /**
  * One faction for the room, weighted by its own choices the room's draws can take, among the
@@ -264,12 +279,32 @@ const choicesFor = ({ table, draw }: TableDraw, faction: string | null): EnemyCh
  */
 function pickFaction(rng: GenRandom, draws: readonly TableDraw[]): string | null {
   const factions = new Set(draws.flatMap((d) => choicesFor(d, null)).flatMap((c) => (c.faction ? [c.faction] : [])))
-  const weightOf = (f: string) => draws.flatMap((d) => choicesFor(d, f)).filter((c) => c.faction === f).reduce((s, c) => s + c.weight, 0)
-  const fills = (f: string) => draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, f).length > 0)
+  const weightOf = (f: string) => draws.flatMap((d) => choicesFor(d, new Set([f]))).filter((c) => c.faction === f).reduce((s, c) => s + c.weight, 0)
   const all = [...factions].map((value) => ({ value, weight: weightOf(value) }))
-  const filling = all.filter((o) => fills(o.value))
+  const filling = all.filter((o) => fillsDraws(draws, new Set([o.value])))
   const options = filling.length > 0 ? filling : all
   return options.length > 0 ? rng.weighted(options) : null
+}
+
+/** The factions a group needs in its room: its own, and those of its units in the theme's tables. */
+function groupFactions(u: UnitTuning, group: UnitGroup | null): string[] {
+  if (!group) return []
+  const choices = [...u.enemies, ...u.dwellings]
+  const ofUnits = Object.keys(group.units).flatMap((key) => choices.find((c) => c.key === key)?.faction ?? [])
+  return [...(group.faction ? [group.faction] : []), ...ofUnits]
+}
+
+/**
+ * One alliance for the room by weight, among those holding every faction its group needs, and of
+ * those, the ones with choices for every draw that asks for at least one unit.
+ */
+function pickAlliance(rng: GenRandom, u: UnitTuning, alliances: readonly Alliance[], draws: readonly TableDraw[], group: UnitGroup | null): RoomFactions {
+  const needed = groupFactions(u, group)
+  const holding = alliances.filter((a) => needed.every((f) => a.factions.includes(f)))
+  if (holding.length === 0) throw new Error(`no alliance holds the factions of "${group?.label}" (${needed.join(', ')})`)
+  const filling = holding.filter((a) => fillsDraws(draws, new Set(a.factions)))
+  const options = filling.length > 0 ? filling : holding
+  return new Set(rng.weighted(options.map((a) => ({ value: a, weight: a.weight }))).factions)
 }
 
 /**
@@ -279,17 +314,36 @@ function pickFaction(rng: GenRandom, draws: readonly TableDraw[]): string | null
 const varietyWeight = (c: EnemyChoice, counts: ReadonlyMap<string, number>, variety: boolean): number =>
   variety ? c.weight / (1 + (counts.get(c.key) ?? 0)) : c.weight
 
-/** One unit for a draw: a tier by the draw's weights among those still open, then a choice by weight. */
-function pickUnit(rng: GenRandom, d: TableDraw, faction: string | null, counts: Map<string, number>, variety: boolean): string | null {
-  const open = choicesFor(d, faction).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity))
+/**
+ * One unit for a draw: a tier by the draw's weights among those still open (and that `fits`), then
+ * a choice by weight.
+ */
+function pickUnit(rng: GenRandom, d: TableDraw, factions: RoomFactions, counts: Map<string, number>, variety: boolean, fits: (key: string) => boolean): string | null {
+  const open = choicesFor(d, factions).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity) && fits(c.key))
   if (open.length === 0) return null
   const tiers = TIERS.filter((t) => open.some((c) => c.tier === t)).map((t) => ({ value: t, weight: d.draw!.tiers[t]! }))
   const tier = rng.weighted(tiers)
   return rng.weighted(open.filter((c) => c.tier === tier).map((c) => ({ value: c.key, weight: varietyWeight(c, counts, variety) })))
 }
 
-/** Energy a budget allows on a floor of this level. */
+/** The least energy a budget allows on a floor of this level (a room may draw up to `spread` more). */
 export const budgetEnergy = (budget: HpBudget, level: number): number => budget.base + budget.perLevel * level
+
+/** The most energy a budget allows on a floor of this level. */
+const budgetCeiling = (budget: HpBudget, level: number): number => budgetEnergy(budget, level) + (budget.spread ?? 0)
+
+/** One room's budget: the least, plus a uniform draw up to the budget's spread. */
+const roomBudget = (rng: GenRandom, budget: HpBudget, level: number): number =>
+  budgetEnergy(budget, level) + (budget.spread ? rng.int(0, budget.spread) : 0)
+
+/** What a unit counts towards a budget: its energy, or by the budget's producer rule for a producer. */
+export function budgetCost(budget: HpBudget, producers: ReadonlySet<string>, energyOf: EnergyOf): EnergyOf {
+  const rule = budget.producers
+  return (key) => (rule && producers.has(key) ? Math.max(energyOf(key), rule.least) * rule.factor : energyOf(key))
+}
+
+/** A theme's producers: its dwellings and summoners. */
+export const producerKeys = (u: UnitTuning): ReadonlySet<string> => new Set([...u.dwellings, ...u.enemies.filter((c) => c.producer)].map((c) => c.key))
 
 /** What a room holds before a budget draw: its group's units. */
 export interface BudgetStart { units: number; energy: number }
@@ -297,28 +351,29 @@ export interface BudgetStart { units: number; energy: number }
 /**
  * The units of a budget draw, each taken by `next` (null: nothing left to take), while the room,
  * `start` included, has fewer than `count[0]` units or less than `energy` in all, never past `count[1]`.
+ * `next` is told how much the room may still take before it passes `ceiling`.
  */
-export function drawToBudget(count: readonly [number, number], energy: number, start: BudgetStart, next: () => string | null, energyOf: EnergyOf): string[] {
+export function drawToBudget(count: readonly [number, number], energy: number, start: BudgetStart, next: (allowance: number) => string | null, costOf: EnergyOf, ceiling = Infinity): string[] {
   const [least, most] = count
   const out: string[] = []
   let units = start.units
   let total = start.energy
   while (units < most && (units < least || total < energy)) {
-    const key = next()
+    const key = next(ceiling - total)
     if (!key) break
     out.push(key)
     units++
-    total += energyOf(key)
+    total += costOf(key)
   }
   return out
 }
 
-/** A group's units and their energy, for the budget of the room it leads. */
-function groupStart(group: UnitGroup | null, energyOf: EnergyOf): BudgetStart {
+/** A group's units and what they count, for the budget of the room it leads. */
+function groupStart(group: UnitGroup | null, costOf: EnergyOf): BudgetStart {
   const units = Object.entries(group?.units ?? {})
   return {
     units: units.reduce((sum, [, n]) => sum + n, 0),
-    energy: units.reduce((sum, [key, n]) => sum + n * energyOf(key), 0),
+    energy: units.reduce((sum, [key, n]) => sum + n * costOf(key), 0),
   }
 }
 
@@ -378,7 +433,8 @@ function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec
 /**
  * A room's units by its plan cell: the start room's own placements, or the corner potions, the
  * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
- * producers and regulars (a budget draw counting the group in), all of the room's one faction.
+ * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
+ * one faction or alliance.
  */
 function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions): Placement[] {
   const u = theme.units
@@ -391,7 +447,7 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   const boss = cell.kind === 'boss' ? rng.pick(u.bosses) : null
   const group = boss ?? (cell.groups?.length ? rng.pick(cell.groups) : null)
   const draws = group?.alone ? [] : roomDraws(rng, theme, cell)
-  const faction = group?.faction ?? pickFaction(rng, draws)
+  const factions = roomFactions(rng, u, draws, group)
   const counts = new Map<string, number>()
   const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
   const add = (key: string | null) => {
@@ -409,13 +465,15 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   for (const d of draws) {
     const { draw } = d
     if (!draw) continue
-    const take = () => {
-      const key = pickUnit(rng, d, faction, counts, !boss)
+    const costOf = draw.hpBudget ? budgetCost(draw.hpBudget, producerKeys(u), energyOf) : energyOf
+    const take = (allowance = Infinity) => {
+      const key = pickUnit(rng, d, factions, counts, !boss, (k) => allowance === Infinity || costOf(k) <= allowance)
       add(key)
       return key
     }
     if (draw.hpBudget) {
-      drawToBudget(draw.count, budgetEnergy(draw.hpBudget, theme.level), groupStart(group, energyOf), take, energyOf)
+      const b = draw.hpBudget
+      drawToBudget(draw.count, roomBudget(rng, b, theme.level), groupStart(group, costOf), take, costOf, b.capped ? budgetCeiling(b, theme.level) : Infinity)
     } else {
       const n = rng.int(draw.count[0], draw.count[1])
       for (let i = 0; i < n; i++) take()

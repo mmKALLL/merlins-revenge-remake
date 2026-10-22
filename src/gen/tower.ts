@@ -10,13 +10,13 @@ import { ROOM_SIZE, exitRoom, floorIsConnected, generateFloor, randomOpening, re
 import { mirrorOpeningX, placeFloor } from './floor-transform'
 import { GenRandom } from './random'
 import type { Opening } from './room-shape'
-import { THEMES, type FloorTheme } from './themes'
+import { TOWER_THEMES, type FloorTheme } from './themes'
 import { TOWER_TILESETS, inTowerTilesets } from './tower-tilesets'
 
 export const TOWER_ID = 'sorcerers-tower'
 
 /** The floors from the bottom up, drawing from the tower tilesets. */
-export const TOWER_FLOORS: readonly FloorTheme[] = THEMES.map(inTowerTilesets)
+export const TOWER_FLOORS: readonly FloorTheme[] = TOWER_THEMES.map(inTowerTilesets)
 
 const floorWidth = TOWER_FLOORS[0]!.floorSize.x
 if (TOWER_FLOORS.some((t) => t.floorSize.x !== floorWidth)) throw new Error('tower floors must be equally wide')

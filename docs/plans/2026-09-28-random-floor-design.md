@@ -17,7 +17,7 @@ rooms (the sketch has 4x4).
   `?seed=`; Same layout only reseeds the sim on the same layout. The seed also seeds the sim. Every
   theme is listed in the converted maps index (`GENERATED_MAPS` in `src/gen/generated-maps.ts`), so
   the Maps menu offers `randomly_generated/1-goblin-forest`, `randomly_generated/2-undead-marsh`, `randomly_generated/3-dragon-canyon`
-  and `randomly_generated/4-magic-maze` (numbered by difficulty, so the browser lists them in that order), then
+  `randomly_generated/4-magic-maze` and `randomly_generated/5-golden-fort` (numbered by difficulty, so the browser lists them in that order; the fort is not part of the tower), then
   the tower, `randomly_generated/sorcerers-tower`.
 - Code lives in `src/gen/`: `random.ts` (seeded mutable RNG), `grid.ts` (cells, flood fill),
   `floor.ts` (edges, rooms, units), `room-shape.ts` (patches, retries, carving), `interior-walls.ts`
@@ -228,6 +228,7 @@ tilesets; every obstacle is `#solid` and every decoration `#none` in its tile ke
 | Undead Marsh | merlinOpen | undead: skeleton warriors, throwers, archers, ghosts, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | skeleton army (skeleton lord); necromancer pair; necromancer and giant |
 | Dragon Canyon | merlinOpen | karate guys, kung fu chickens, lizards, plants (traps), boulder monsters, lizard soldiers; hydra1, dragons, dark golems | dojos, boulder caves, dark caves | dark golems (four-arm + double dark golem); dragon's lair; hydra den (hydra3, plants) |
 | Magic Maze | merlinOpen | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | dark sorcerer's court (dark mages); Scarlet's guard |
+| Golden Fort (not in the tower) | merlinOpen | every floor's enemies, in alliances of teams (see Golden Fort) | every floor's dwellings | any floor's boss group |
 
 Corner groups and tiers: see Room plans.
 
@@ -297,7 +298,7 @@ at the bottom and the maze at the top, seeded via `?seed=` like the single floor
 
 ## Status (2026-10-22)
 
-Four themes on 3x3 floors and the tower. Known gaps: `mr.loadState` and the snapshot test helpers
+Five themes on 3x3 floors (the Golden Fort a floor of its own) and the tower of the first four. Known gaps: `mr.loadState` and the snapshot test helpers
 fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
 the seed passed to `generateMap`). Start rewards are placed; their spell scrolls (and the army
 summon's starting army, and the maze's golden machine gun) wait for the spell port.
@@ -416,3 +417,54 @@ the midboss and boss rooms 11 -> 115 (tested loosely: over a third). Ninjas were
 undead faction: they are on the `ninja` team, which hates the undead and is hated by them, so
 they stay out of it.
 
+## Golden Fort (owner, 2026-10-22)
+
+`randomly_generated/5-golden-fort`: level 5, listed after the maze, not part of the tower
+(`TOWER_THEMES` holds the tower's four; `THEMES` adds the fort).
+
+- **Look** (merlinOpen tilesets): the golden palace rows of merlinOpenActive, which no original map
+  uses. Ground: the cream palace floor (passive 36) with an occasional gold floor tile (17, 1 in
+  41). Walls, edge and interior, autotiled (`GOLD_WALLS`): a horizontal run is the banded wall face
+  (25) ending in the column with the wall running off to its right (24) or left (26); vertical runs
+  are plain columns (14) with a dome (4) where a column's top stands free; a lone wall tile is a
+  column. Interior walls: 1-thick baffles (65 % of rooms, 1-2 walls, 50-70 % across) and sometimes
+  a long wall (25 %), straight lines that read as ramparts and keep the rooms roomy. Obstacles:
+  gold heaps (5, 6, 15, 16) and white/beige urns; stumps a lone gold column or dome; walkable gold
+  coins and pebbles.
+- **Enemies: everything.** The fort's tables are every tower floor's enemies and dwellings
+  (`everyThemesChoices`; goblins and orcs use merlinOpenObjects' tiles 61-74, so the fort's object
+  tiles add those), each at weight 1 with its own floor's tier and `maxPerRoom`, and its engine team
+  as its faction (`TEAM_OF`, tested against the actor data).
+- **Factions: alliances.** Teams that hate each other brawl at once, so a fully mixed room would
+  empty itself before Merlin arrives. Instead each room draws an **alliance** of teams with no hate
+  either way between them (`UnitTuning.alliances`; tested against `assets/teams`): greenskins and
+  beasts (goblins, orcs, monsters, swamp, cave; weight 3), the dead and the red (undead, Scarlet,
+  cave; 2), martial beasts (karate, monsters, swamp; 2), dojo and Scarlet (karate, Scarlet; 1), the
+  magical alliance on its own (it hates every other enemy team; 1). Rooms still mix 2-4 teams of
+  very different units, which is the owner's "very random", without instant brawls. A group (the
+  boss) needs an alliance holding its faction and its units' factions (the hydra trainer's
+  goblins: greenskins only). A test over every theme checks that no room holds two teams that hate
+  each other.
+- **Budget rooms.** Every room but the start is one `mixed` draw (producers and regular enemies
+  from one table, all tiers equal) to an HP budget drawn per room in 1500-2000 (`HpBudget.spread`).
+  Producers (dwellings and summoners) count `max(energy, 100) * 3` (`HpBudget.producers`): a goblin
+  hut, portal, dojo or cocoon counts 300, a necromancer 300, a Scarlet monk 525, an orc mage 600, a
+  boulder cave 1575. The budget is `capped`: a unit that would take the room past 2000 is not drawn,
+  so the dark cave (3000) never comes and the big ones (black orc, vulture guard 800) only into
+  rooms with room for them. No unit cap but the free tiles. Without the cap 17 % of rooms went over
+  2500 (a dark cave on top of a full room).
+- **Boss room**: one of every tower floor's bosses (faction: its own, or its boss unit's team), on
+  the boss tile as everywhere, plus the budget draw (counting the group in) unless the group is
+  `alone` (the marsh's necromancer pair and necromancer with giant). No midboss.
+- **Corner potions** in the side corners as elsewhere; no wildcards.
+- **Start room**: 10 potions (the usual four, weighted), 2 medikits and one spell scroll drawn from
+  every spell at weight 1.
+- **Measured** (200 seeds, 1600 budget rooms): 7.3 units a room on average (most 14), budget cost
+  460-2000 (average 1800); 61 rooms under 1500, the `alone` boss rooms and rooms whose free tiles ran
+  out. Seeds 1 and 2 (units / budget cost / starting energy per room, start room aside):
+  seed 1: 6/1880/1680, 10/1735/1035, 7/1940/990 (boss), 12/1640/1155, 9/1935/885, 9/1985/935,
+  6/1710/960, 5/1800/1550; seed 2: 10/1895/1195, 12/1640/1440, 7/1825/1375 (boss), 8/1805/805,
+  7/1760/660, 5/1925/875, 4/1950/1675, 8/1690/1040.
+- Data model additions (other floors unchanged, checked by hashing 30 generated floors of each):
+  `HpBudget.spread`, `.producers`, `.capped`; `RoomPlanCell.mixed`; `UnitTuning.alliances`;
+  `FloorTheme.wallAutotile`. `drawToBudget` tells its source how much the room may still take.
