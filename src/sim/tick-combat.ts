@@ -380,13 +380,19 @@ function reincarnate(t: Tick, a: ActorState, def: ActorDef): void {
   }
 }
 
-/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every awake team unit (a dwelling: +1 per 1000 ticks). */
+/** modFreeze.updateFreeze: the frozen ticks count down; at the end defrost (the teal glow goes). */
+function stepFreeze(a: ActorState): void {
+  if (a.freezeTicks === 0) return
+  a.freezeTicks = Math.max(0, a.freezeTicks - 1)
+  if (a.freezeTicks === 0) a.glowTeal = false
+}
+
+/** modWeaponManager.updateCooldowns, modFreeze.updateFreeze and modEnergy.recoverEnergy for every awake team unit (a dwelling: +1 per 1000 ticks). */
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isUnit(t.s, a) || !a.awake) continue
     const def = defOf(t.s, a)
-    // modFreeze.updateFreeze: the freeze counts down, then defrost
-    if (a.freezeTicks > 0 && --a.freezeTicks === 0) a.glowTeal = false
+    stepFreeze(a)
     // updateCooldowns runs every weapon's counter, each advanced by its attack type's stat
     if (a.id === t.s.playerId) stepPlayerCooldowns(t, a)
     else a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armedDefOf(t.s, a)))
