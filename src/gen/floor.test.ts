@@ -7,7 +7,7 @@ import { pageDefs } from '../debug/snapshot-test-data'
 import { BOSS_TILE, ROOM_SIZE, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
-import { THEMES, flippedPlan, type DrawSpec, type FloorTheme, type RoomPlanCell, type TierDraw, type UnitGroup } from './themes'
+import { THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
 /** the page's resolved actor data, so a unit without a definition fails here */
@@ -23,7 +23,7 @@ const planRooms = (theme: FloorTheme) => theme.units.roomPlan.flatMap((row, r) =
 })))
 /** Where each theme's generators gather (the owner's plan, flipped for the marsh and the maze). */
 const GENERATOR_HALF: Record<string, 'topLeft' | 'bottomRight'> = {
-  'goblin-forest': 'topLeft', 'undead-marsh': 'bottomRight', 'dragon-canyon': 'topLeft', 'magic-maze': 'bottomRight',
+  'goblin-forest': 'topLeft', 'undead-marsh': 'topLeft', 'dragon-canyon': 'topLeft', 'magic-maze': 'topLeft',
 }
 const drawsOf = (spec: DrawSpec | undefined): TierDraw[] => (spec === undefined ? [] : Array.isArray(spec) ? spec.map((o) => o.value) : [spec])
 
@@ -305,15 +305,6 @@ describe('HP budget draws', () => {
   it('scales the budget with the floor level, and names an actor without data', () => {
     expect(budgetEnergy({ base: 10, perLevel: 5 }, 3)).toBe(25)
     expect(() => energyLookup({})('nobody')).toThrow(/nobody/)
-  })
-})
-
-describe('room plans', () => {
-  it('flips across the start-exit diagonal, swapping the far corners and leaving the diagonal', () => {
-    const cell = (label: string): RoomPlanCell => ({ kind: 'normal', groups: [{ label, units: {} }] })
-    const labels = (plan: readonly (readonly RoomPlanCell[])[]) => plan.map((row) => row.map((c) => c.groups![0]!.label).join(''))
-    const plan = ['abc', 'def', 'ghi'].map((row) => [...row].map(cell))
-    expect(labels(flippedPlan(plan))).toEqual(['ifc', 'heb', 'gda'])
   })
 })
 

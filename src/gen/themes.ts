@@ -257,16 +257,6 @@ const normal = (fill: CellFill): RoomPlanCell => ({ kind: 'normal', ...fill })
 const midboss = (groups: UnitGroup[], fill: CellFill = {}): RoomPlanCell => ({ kind: 'midboss', groups, ...fill })
 const boss = (fill: CellFill): RoomPlanCell => ({ kind: 'boss', ...fill })
 
-/**
- * The plan reflected across the start-exit diagonal: the top-left half swaps with the bottom-right
- * half, so the farY corner's room goes to farX and the other way round.
- */
-export function flippedPlan(plan: RoomPlan): RoomPlan {
-  const last = plan.length - 1
-  if (plan.some((row) => row.length !== plan.length)) throw new Error('only a square room plan can be flipped')
-  return plan.map((row, r) => row.map((_, c) => plan[last - c]![last - r]!))
-}
-
 // ---- floor-start rewards ----
 
 /** Owner rule: every floor starts with three potions and a medikit (four before Merlin kept his tuned starting charge). */
@@ -580,11 +570,10 @@ const MUD_STONES = 9
 const BLUE_COBBLES = 35
 
 /**
- * The forest's plan flipped: written in the forest's orientation, so after the flip the generators
- * and the midboss sit toward the bottom-right (farX) and the regular-enemy rooms toward the top-left.
- * Owner: necromancers are midboss/boss tier here, so they only come in fixed groups.
+ * The forest's plan (regular enemies grow along x, generators along y; the tower mirrors this floor
+ * in x). Owner: necromancers are midboss/boss tier here, so they only come in fixed groups.
  */
-const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
+const UNDEAD_MARSH_PLAN: RoomPlan = [
   [
     midboss([
       { label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true },
@@ -609,7 +598,7 @@ const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
       regulars: NUMEROUS_WEAK,
     }),
   ],
-])
+]
 
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
@@ -768,8 +757,8 @@ export const DRAGON_CANYON: FloorTheme = {
   },
 }
 
-/** The forest's plan flipped, as the marsh's: generators and the midboss toward the bottom-right (farX). */
-const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
+/** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
+const MAGIC_MAZE_PLAN: RoomPlan = [
   [
     midboss([
       { label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' },
@@ -794,7 +783,7 @@ const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
       regulars: NUMEROUS_WEAK,
     }),
   ],
-])
+]
 
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',

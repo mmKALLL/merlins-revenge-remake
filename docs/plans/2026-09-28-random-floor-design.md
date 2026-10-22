@@ -301,9 +301,9 @@ balances, with fewer generators than enemies and stronger enemies. "Few weak" ge
 - **Goblin Forest and Dragon Canyon** use the plan as is. The canyon keeps the forest's
   orientation because its sketch already put a producer-led group (the golem quarry: boulder
   cave + boulder monster) in the farY corner, which is now its midboss.
-- **Undead Marsh and Magic Maze** use it flipped across the start-exit diagonal (`flippedPlan`):
-  their generators and midboss are toward the bottom-right (farX), the regular-enemy rooms toward
-  the top-left, with the "numerous weak enemies" corner at farY.
+- **Undead Marsh and Magic Maze** use the same orientation (owner correction, 2026-10-22: regular
+  enemies keep growing along x and generators along y on every floor). Their flip is only the
+  tower's mirroring in x. Until then they were reflected across the start-exit diagonal.
 - The tower mirrors every second floor after generating it, so the plan mirrors with its rooms.
 
 Groups per special corner (each has at least two; tested). New ones marked *new*:
@@ -311,9 +311,9 @@ Groups per special corner (each has at least two; tested). New ones marked *new*
 | Floor | midboss corner | "numerous weak enemies" corner |
 |---|---|---|
 | Goblin Forest | farY: orc hole (orc house, bow orc) *new*; orc shamans (2 orc mages) *new* | farX: goblin warrior band (4 warriors); archers and bats (3 archers, 2 bats) *new* |
-| Undead Marsh | farX: lone necromancer (alone); haunted crypt (skeleton dwelling, 2 grey ghosts) *new* | farY: critter nest (cocoon, 3 quadranids); skeleton patrol (3 warriors, 1 thrower) *new* |
+| Undead Marsh | farY: lone necromancer (alone); haunted crypt (skeleton dwelling, 2 grey ghosts) *new* | farX: critter nest (cocoon, 3 quadranids); skeleton patrol (3 warriors, 1 thrower) *new* |
 | Dragon Canyon | farY: golem quarry (boulder cave, boulder monster); dark cave (dark cave, dark golem) *new* | farX: dojo class (3 karate guys, 2 kung fu chickens) *new*; lizard pack (4 lizards) *new* |
-| Magic Maze | farX: necromancy study (2 necromancers, dark mage); Scarlet chapel (2 Scarlet monks, Scarlet warrior) *new* | farY: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
+| Magic Maze | farY: necromancy study (2 necromancers, dark mage); Scarlet chapel (2 Scarlet monks, Scarlet warrior) *new* | farX: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
 
 ### HP budget: the numerous weak corner (owner, 2026-10-22)
 
