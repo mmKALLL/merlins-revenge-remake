@@ -149,13 +149,15 @@ export type DrawSpec = TierDraw | Weighted<TierDraw>[]
  * One room of the plan. `start` is the start room (no enemies), `boss` the exit room (one of the
  * theme's bosses), `midboss` a side corner led by a powerful group. Any cell but the start can
  * hold fixed `groups` (one picked at random, on top of the counts unless it is `alone`) and draws
- * `producers` (dwellings and summoners) and `regulars` (the other enemies) by tier.
+ * `producers` (dwellings and summoners), `regulars` (the other enemies) and `extras` (more regular
+ * enemies, e.g. a few weak ones among strong ones) by tier.
  */
 export interface RoomPlanCell {
   kind: 'start' | 'boss' | 'midboss' | 'normal'
   groups?: UnitGroup[]
   producers?: DrawSpec
   regulars?: DrawSpec
+  extras?: DrawSpec
 }
 
 /** The floor's rooms as on screen: the first row is the far row (engine y 1), the start bottom-left, the exit top-right. */
@@ -241,6 +243,8 @@ const n = (lo: number, hi: number, tiers: TierWeights): TierDraw => ({ count: [l
 const either = (...options: [TierDraw, number][]): Weighted<TierDraw>[] => options.map(([draw, weight]) => w(draw, weight))
 /** The owner's centre room: a few weak producers, or a single strong one. */
 const FEW_WEAK_OR_ONE_STRONG = either([n(2, 3, WEAK), 2], [n(1, 1, MOSTLY_STRONG), 1])
+/** Owner: many weak enemies are more fun than a few strong ones, so strong rooms get some weak ones too. */
+const WEAK_SPRINKLE = n(2, 3, WEAK)
 /**
  * The owner's "numerous weak" corner (farX in the forest's orientation): weak units, group included,
  * until about 800 + 400 * level energy in all. No unit limit (owner decision); the room's free tiles still cap it.
@@ -385,8 +389,8 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
   ],
   [
     normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
-    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
-    normal({ regulars: n(4, 5, STRONG_MID) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
+    normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
   [
     START,
@@ -591,8 +595,8 @@ const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
   ],
   [
     normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
-    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
-    normal({ regulars: n(4, 5, STRONG_MID) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
+    normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
   [
     START,
@@ -684,8 +688,8 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
   ],
   [
     normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
-    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
-    normal({ regulars: n(4, 5, STRONG_MID) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
+    normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
   [
     START,
@@ -776,8 +780,8 @@ const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
   ],
   [
     normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
-    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
-    normal({ regulars: n(4, 5, STRONG_MID) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
+    normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
   [
     START,

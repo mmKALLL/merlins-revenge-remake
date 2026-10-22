@@ -376,3 +376,13 @@ Owner decision (2026-10-22): the numerous weak corner has no unit limit, only th
 room's free tiles still cap it). Over 300 seeds the corner averages about 18 units / 1140 HP in the
 forest, 19 / 1540 in the marsh, 12 / 2000 in the canyon and 16 / 2260 in the maze; the few rooms
 far under budget are wildcard rooms.
+
+Owner tuning (2026-10-22): more weak enemies, more variety.
+- Strong rooms get weak company: a cell's `extras` draw adds more regular enemies. The strong
+  regulars room (middle-right in the forest's orientation) adds 2-3 weak ones (`WEAK_SPRINKLE`),
+  the centre 1-2.
+- Variety: outside boss rooms, each copy of a kind already in the room divides that kind's draw
+  weight by one more (1, 1/2, 1/3, ...), so busy rooms mix kinds. Over 200 seeds the strong room
+  averages about 7 units of 4-5 kinds (2-3 in the maze, whose factions are narrow), the centre
+  5-6 units of about 4 kinds, and the numerous weak corner about 3 kinds.
+

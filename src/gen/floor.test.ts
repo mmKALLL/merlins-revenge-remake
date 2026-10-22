@@ -162,20 +162,22 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 
     it("draws each room without groups within its cell's counts and tiers", () => {
       const plain = planRooms(theme).filter(({ cell }) => cell.kind === 'normal' && !cell.groups)
-      const check = (cell: RoomPlanCell, units: string[], spec: DrawSpec | undefined, label: string) => {
-        const draws = drawsOf(spec)
-        const tiers = new Set(draws.flatMap((d) => Object.keys(d.tiers)))
-        expect(units.length, label).toBeLessThanOrEqual(Math.max(0, ...draws.map((d) => d.count[1])))
+      // the room's draws for these units (regulars and extras both draw regular enemies) add up
+      const check = (units: string[], specs: (DrawSpec | undefined)[], label: string) => {
+        const each = specs.map(drawsOf)
+        const tiers = new Set(each.flat().flatMap((d) => Object.keys(d.tiers)))
+        const most = each.reduce((sum, draws) => sum + Math.max(0, ...draws.map((d) => d.count[1])), 0)
+        const least = each.reduce((sum, draws) => sum + (draws.length > 0 ? Math.min(...draws.map((d) => d.count[0])) : 0), 0)
+        expect(units.length, label).toBeLessThanOrEqual(most)
         for (const k of units) expect(tiers.has(tierOf.get(k)!), `${label}: ${k}`).toBe(true)
-        const least = draws.length > 0 ? Math.min(...draws.map((d) => d.count[0])) : 0
         return units.length >= least
       }
       for (const { room, cell } of plain) {
         let filled = 0
         for (const f of planFloors) {
           const units = unitsIn(f, room)
-          const producersOk = check(cell, units.filter((k) => producerKeys.has(k)), cell.producers, `${roomKey(room)} producers`)
-          const regularsOk = check(cell, units.filter((k) => !producerKeys.has(k)), cell.regulars, `${roomKey(room)} regulars`)
+          const producersOk = check(units.filter((k) => producerKeys.has(k)), [cell.producers], `${roomKey(room)} producers`)
+          const regularsOk = check(units.filter((k) => !producerKeys.has(k)), [cell.regulars, cell.extras], `${roomKey(room)} regulars`)
           if (producersOk && regularsOk) filled++
         }
         // draws can fall short (faction, maxPerRoom, free tiles), but not usually

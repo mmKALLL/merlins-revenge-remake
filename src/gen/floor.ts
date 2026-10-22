@@ -242,9 +242,11 @@ function roomDraws(rng: GenRandom, theme: FloorTheme, cell: RoomPlanCell): Table
     const others = u.roomPlan.flat().filter((c) => c.kind === 'normal' && c !== cell)
     if (others.length > 0) source = rng.pick(others)
   }
+  const regulars = u.enemies.filter((c) => !c.producer)
   return [
     { table: [...u.dwellings, ...u.enemies.filter((c) => c.producer)], draw: resolveDraw(rng, source.producers) },
-    { table: u.enemies.filter((c) => !c.producer), draw: resolveDraw(rng, source.regulars) },
+    { table: regulars, draw: resolveDraw(rng, source.regulars) },
+    { table: regulars, draw: resolveDraw(rng, source.extras) },
   ]
 }
 
@@ -269,13 +271,20 @@ function pickFaction(rng: GenRandom, draws: readonly TableDraw[]): string | null
   return options.length > 0 ? rng.weighted(options) : null
 }
 
+/**
+ * Owner: a room with many enemies should mix a few kinds, so each copy of a kind already in the room
+ * divides that kind's weight by one more (1, 1/2, 1/3, ...). Boss rooms draw without it.
+ */
+const varietyWeight = (c: EnemyChoice, counts: ReadonlyMap<string, number>, variety: boolean): number =>
+  variety ? c.weight / (1 + (counts.get(c.key) ?? 0)) : c.weight
+
 /** One unit for a draw: a tier by the draw's weights among those still open, then a choice by weight. */
-function pickUnit(rng: GenRandom, d: TableDraw, faction: string | null, counts: Map<string, number>): string | null {
+function pickUnit(rng: GenRandom, d: TableDraw, faction: string | null, counts: Map<string, number>, variety: boolean): string | null {
   const open = choicesFor(d, faction).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity))
   if (open.length === 0) return null
   const tiers = TIERS.filter((t) => open.some((c) => c.tier === t)).map((t) => ({ value: t, weight: d.draw!.tiers[t]! }))
   const tier = rng.weighted(tiers)
-  return rng.weighted(open.filter((c) => c.tier === tier).map((c) => ({ value: c.key, weight: c.weight })))
+  return rng.weighted(open.filter((c) => c.tier === tier).map((c) => ({ value: c.key, weight: varietyWeight(c, counts, variety) })))
 }
 
 /** Energy a budget allows on a floor of this level. */
@@ -400,7 +409,7 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
     const { draw } = d
     if (!draw) continue
     const take = () => {
-      const key = pickUnit(rng, d, faction, counts)
+      const key = pickUnit(rng, d, faction, counts, !boss)
       add(key)
       return key
     }
