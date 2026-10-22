@@ -52,9 +52,11 @@ they do to Merlin, and what the HUD shows. Lingo paths are under the archive's `
 - `objPotion.collected` (`objPotion.txt:26-29`): the above, then
   `collector.potionCollected(character, me)`. `objMedikit.collected` (`objMedikit.txt:10-13`):
   the above, then `collector.medikitCollected(character)`.
-- **Remake decision (owner request, 2026-10-22):** potions and kits disappear the moment they are
-  collected, with no fading writing: `vanishOnCollect: true` on each potion and kit in
-  `assets/tuning.json` (the engine default `false` keeps the fade).
+- **Owner request (2026-10-22), as the engine does it:** a collected potion or kit disappears at once
+  and its name fades out in its place (the writing). For a while the remake removed collected
+  pickups outright (`vanishOnCollect`), because the writing was not drawn and the potion's own
+  picture faded instead; with the writing drawn, the engine's behaviour is what the owner asked for
+  and the setting is gone.
 
 ## 3. Potions on Merlin
 

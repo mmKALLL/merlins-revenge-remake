@@ -89,27 +89,6 @@
   "scArcher": {
     "energy": 120
   },
-  "manaBurst": {
-    "vanishOnCollect": true
-  },
-  "manaCapacity": {
-    "vanishOnCollect": true
-  },
-  "manaFlow": {
-    "vanishOnCollect": true
-  },
-  "walkSpeed": {
-    "vanishOnCollect": true
-  },
-  "powerUp": {
-    "vanishOnCollect": true
-  },
-  "medikit": {
-    "vanishOnCollect": true
-  },
-  "maxikit": {
-    "vanishOnCollect": true
-  },
   "armySummon": {
     "startingArmy": {
       "warrior": 2,

@@ -168,7 +168,6 @@ export interface ActorDef {
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
-  vanishOnCollect: boolean // a pickup goes at once when collected; false = engine (its writing fades out first)
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
   startingArmy: Record<string, number>
   /**
@@ -272,7 +271,6 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
-    vanishOnCollect: false, // collected pickups fade their writing out, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
   },
   objCharacter: { energyRecoverDelay: 30 },
@@ -301,7 +299,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'vanishOnCollect', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'startingArmy',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -642,7 +640,6 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
-      vanishOnCollect: bool(r, 'vanishOnCollect', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),

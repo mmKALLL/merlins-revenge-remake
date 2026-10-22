@@ -55,7 +55,6 @@ function collect(t: Tick, a: ActorState, p: ActorState): void {
     collectScroll(t, p, def)
     return
   }
-  if (def.vanishOnCollect) t.removed.add(a.id)
   if (def.objType === POTION_OBJ_TYPE) {
     startTempInvince(t)
     t.pickups = { ...t.pickups, potionsDrunk: drinkPotion(t.pickups.potionsDrunk, def.character ?? def.key) }
