@@ -48,8 +48,9 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   Fuzzing goblin maps in the continuous world with K and blasts timed at sleep transitions found no
   goblin freeze; if it recurs, ask for an `mr.exportState()` paste.
 - **Wizard allies and the army list.** Ulin, Prestotolin and Verdanlin (`act_*InGame`,
-  `wizardMaster`, `modSummonWizard`) and the original's Show army menu (`showArmyMaster`); see the
-  2026-10-22 notes in the session (not started).
+  `wizardMaster`, `modSummonWizard`) and the original's Show army menu (`showArmyMaster`: the reserve
+  army as unit figures in rows and pages). Wizards are separate from the army in the original: found
+  wizards are called in with their own key and selector and fight as AI spell casters. Not started.
 - **Morph (MR2 spell).** Only its art is in the archive (scroll, writing, `gfx/morph` forms); no data or
   Lingo, so it would be a remake design; waiting for the owner's description of how it worked.
 - **Low priority:** call "energy" "health" in the UI and code, if not too entangled with the
