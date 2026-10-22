@@ -105,6 +105,11 @@ export class Scene {
     this.exitArrows = new ExitArrowLayer(exitArrows)
   }
 
+  /** Redraws the tiles on the next draw, for a new grid (a generated map's new layout). */
+  invalidateTiles(): void {
+    this.lastOrigin = { x: NaN, y: NaN }
+  }
+
   /** World pixel shown at the top-left of the play view in the last draw (NaN before the first draw). */
   get origin(): Vec {
     return { ...this.lastOrigin }

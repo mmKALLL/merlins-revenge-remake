@@ -11,7 +11,10 @@ rooms (the sketch has 4x4).
   rest of the engine (tiles, enemies, exits, arrows, map complete, both camera modes) needs no changes.
 - `?map=randomly_generated/<theme>&seed=N` builds the floor instead of fetching JSON. Without `seed`, `main.ts`
   picks one and writes it into the URL (`history.replaceState`) so a floor can be shared; picking a
-  map from the menu drops the seed, so it is a new floor each time. The seed also seeds the sim. Every
+  map from the menu drops the seed, so it is a new floor each time. Settings, Random maps: on New
+  each run (default) every restart (after a death, after map complete, Restart map) regenerates
+  the map from a fresh seed (`nextRunSeed`), rebuilds the grid and start position and updates
+  `?seed=`; Same layout only reseeds the sim on the same layout. The seed also seeds the sim. Every
   theme is listed in the converted maps index (`GENERATED_MAPS` in `src/gen/generated-maps.ts`), so
   the Maps menu offers `randomly_generated/1-goblin-forest`, `randomly_generated/2-undead-marsh`, `randomly_generated/3-dragon-canyon`
   and `randomly_generated/4-magic-maze` (numbered by difficulty, so the browser lists them in that order), then
