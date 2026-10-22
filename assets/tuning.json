@@ -29,5 +29,58 @@
   },
   "goblinArrow": {
     "collisionRectScale": 0.5
+  },
+  "boulderMonster": {
+    "energy": 300
+  },
+  "fourArmGolem": {
+    "energy": 900
+  },
+  "boulderCave": {
+    "energy": 525
+  },
+  "bowOrc": {
+    "energy": 200
+  },
+  "swordOrc": {
+    "energy": 200
+  },
+  "mageOrc": {
+    "energy": 200
+  },
+  "skeletonArcher": {
+    "energy": 80
+  },
+  "skeletonGiant": {
+    "energy": 160
+  },
+  "hydra1": {
+    "energy": 300,
+    "maxEnergy": 900
+  },
+  "hydra2": {
+    "energy": 600,
+    "minEnergy": 300,
+    "maxEnergy": 900
+  },
+  "hydra3": {
+    "energy": 900,
+    "minEnergy": 600,
+    "maxEnergy": 900
+  },
+  "blackOrc": {
+    "energy": 800
+  },
+  "vultureGuard": {
+    "energy": 800
+  },
+  "bombMage": {
+    "energy": 160
+  },
+  "thunderMonk": {
+    "energy": 120
+  },
+  "shrouder": {
+    "energy": 120
   }
 }

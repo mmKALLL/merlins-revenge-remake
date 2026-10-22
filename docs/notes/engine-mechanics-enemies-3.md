@@ -81,3 +81,13 @@ engine's enemies run from their data. Read against the owner's reference bundle
 All team files are copied. Enemy teams hate each other too (undead hate goblins and orcs, karate hates
 goblins, ...), so mixed rooms fight among themselves; `isPlayerEnemiesDead` only waits for teams whose
 first hate group holds the player's team (or `#all`).
+
+## Remake decisions: enemy life (owner request, 2026-10-22)
+
+Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an entry restores the data file's value):
+
+- Non-dark golems and their dwelling about -25 %: boulderMonster 400 -> 300, fourArmGolem 1200 -> 900, boulderCave 700 -> 525.
+- Orcs about -33 %: bowOrc, swordOrc, mageOrc 300 -> 200; blackOrc 1200 -> 800.
+- skeletonArcher 120 -> 80, skeletonGiant 200 -> 160, vultureGuard 1300 -> 800.
+- Hydras -40 %: each stage keeps its share, so hydra1 500 -> 300, hydra2 1000 / minEnergy 500 -> 600 / 300, hydra3 1500 / 1000 -> 900 / 600, and the shared `maxEnergy` (health bar scale) 1500 -> 900.
+- MR3 wizards -20 %: bombMage 200 -> 160, thunderMonk (lightning) 150 -> 120, shrouder (pins, taken as the poison mage) 150 -> 120.
