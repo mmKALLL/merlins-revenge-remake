@@ -13,8 +13,9 @@ rooms (the sketch has 4x4).
   picks one and writes it into the URL (`history.replaceState`) so a floor can be shared; picking a
   map from the menu drops the seed, so it is a new floor each time. The seed also seeds the sim. Every
   theme is listed in the converted maps index (`GENERATED_MAPS` in `src/gen/generated-maps.ts`), so
-  the Maps menu offers `random/goblin-forest`, `random/undead-marsh`, `random/dragon-canyon` and
-  `random/magic-maze`.
+  the Maps menu offers `random/1-goblin-forest`, `random/2-undead-marsh`, `random/3-dragon-canyon`
+  and `random/4-magic-maze` (numbered by difficulty, so the browser lists them in that order), then
+  the tower, `random/sorcerers-tower`.
 - Code lives in `src/gen/`: `random.ts` (seeded mutable RNG), `grid.ts` (cells, flood fill),
   `floor.ts` (edges, rooms, units), `room-shape.ts` (patches, retries, carving), `interior-walls.ts`
   (one small strategy per wall style), `themes.ts` (all theme data). A theme is data: floor size,
@@ -36,8 +37,10 @@ column/row, 1 at the far one), so the sketch's ramps read the same on any floor 
    open edge a fixed opening (offset and width along the edge).
 2. A random spanning tree over the rooms is always open; every other edge opens by the theme's
    chance (high in the forest, lower in the maze).
-3. Map boundary and closed edges get a solid wall on the room's edge line. Open edges have no wall;
-   the opening is kept clear two tiles deep on both sides, so the rooms meet there.
+3. A room's whole edge line is solid wall except for its openings (map boundary and closed edges
+   are walled end to end). The opening is kept clear two tiles deep on both sides, so facing edge
+   tiles of neighbours always agree and an entrance is exactly its opening. Every opening is at
+   least 3 tiles wide (owner rule; the maze's openings were widened to 3-4 for it).
 
 ## Rooms
 
@@ -55,7 +58,7 @@ column/row, 1 at the far one), so the sketch's ramps read the same on any floor 
 3. Stumps as single solid tiles; walkable decoration (flowers, pebbles, puddles, coins).
 4. Flood fill from one opening: every other opening must be reached and enough of the room must be
    open, else retry the room (bounded); after the last try, carve straight corridors from every
-   opening to the centre. Unreachable open pockets are filled in, so nothing spawns where the player
+   opening (and the exit room's boss tile) to the centre. Unreachable open pockets are filled in, so nothing spawns where the player
    cannot go.
 5. Obstacle patches are labelled; each picks a material, each tile a variant.
 
@@ -66,17 +69,27 @@ disconnected map. Generation takes 1-7 ms per floor.
 ## Units
 
 - Start room: the player only (plus the theme's music tile), no enemies.
-- Enemies per room: `enemiesBase + enemiesFarX * fx + random`; dwellings `floor(dwellingsFarY * fy +
-  random)`, so the x direction brings more enemies and the y direction more dwellings/summoners.
-  Difficulty ramps from the theme's start to its exit value over x + y steps and gates the stronger
+- **Quality over y, quantity over x** (owner rule). Difficulty ramps over the y share only, from the
+  theme's start value in the start row to its exit value in the far row, and gates the stronger
   choices (`minDifficulty`, `maxPerRoom`). Choices can also gain weight toward the far column or row
   (`weightFarX`, `weightFarY`: the canyon's dragons along x, golems along y).
+- **Room forms.** Every other room takes one of two forms by the theme's `quantity` weights: a
+  **swarm** of single regular enemies, `floor(swarm.base + swarm.farX * fx + random 0..1)`, with no
+  producers; or **producers**, `floor(producers.base + producers.farX * fx + random 0..1)` dwellings
+  and summoners (1 near the start column up to 2-3 in the far one) with only `escorts` regular enemies
+  alongside. Summoners are enemy choices tagged `producer` (their weapon is a summon spell in the
+  actor data: necromancer, grey ghost, orc mage, Scarlet monk; the shrouder and dark mage do not
+  summon). A room whose faction has no producer (the maze's monsters, Scarlet below difficulty 6) is
+  a swarm. The side corner groups come on top of the form.
+- **Boss.** The exit room has both forms (swarm and producers) plus one of the theme's `bosses`
+  groups; the group's `boss` unit stands 2 tiles in from the floor's far corner (the exit room's
+  outer corner tile, `BOSS_TILE`), which the room layout keeps open and connected to its openings.
 - **Factions.** Enemy teams hate each other and brawl (engine behaviour,
   `engine-mechanics-enemies-3.md`, Teams). Where a theme mixes rival teams, each choice names a
   faction and a room draws one faction (weighted by its eligible choices), taking only choices of
   that faction or of none. Corner groups set their room's faction.
-- **Corner groups.** `farX`, `farY` and the exit room each pick one of their groups (the sketch's
-  "boss A or boss B") on top of the usual enemies. The sketch's potion pickups in the side corners
+- **Corner groups.** `farX` and `farY` each pick one of their groups, the exit room one of its
+  bosses (the sketch's "boss A or boss B"). The sketch's potion pickups in the side corners
   wait for potions to be ported. The exit room gets the last-stand music.
 - Units go on reachable open tiles at least two tiles from every room edge, one per tile.
 
@@ -116,16 +129,47 @@ rock spires and cacti; the maze blue cobbles with grey brick walls, iron bars, p
 ## Tests
 
 For every theme: determinism, start-to-exit connectivity over 500 seeds, matching openings on every
-shared edge, units only on open tiles with the right object symbols, start room empty of enemies,
-one faction per room, corner groups present, tile solidity against the tile keys, object tiles
+shared edge, facing edge tiles solid together with entrances at least 3 wide and a closed border,
+units only on open tiles with the right object symbols, start room empty of enemies,
+one faction per room, corner groups and the boss present, tile solidity against the tile keys, object tiles
 against the key symbols, generation time; in the sim, a clear start in both world modes, map
 complete when the exit room is cleared, and every placeable unit a ported actor with sprites.
-`pnpm tsx tools/render-random-floor.ts <outDir> [theme|all] [seed...]` writes PNG renders for
-tuning by eye.
+For the tower (`tower.test.ts`, against the converted tower keys): connectivity over 40 seeds,
+floors joined only through the stairs, the player on the bottom floor only, each floor's start music
+and boss, and object symbols in the combined key. `pnpm tsx tools/render-random-floor.ts <outDir>
+[map|all] [seed...]` (map: `goblin-forest`, `sorcerers-tower`, ...) writes PNG renders for tuning
+by eye.
+
+## The tower
+
+`random/sorcerers-tower` (`src/gen/tower.ts`) stacks the four floors into one 3x12 map, the forest
+at the bottom and the maze at the top, seeded via `?seed=` like the single floors.
+
+- Each floor is an ordinary `generateFloor` of its theme (its own room shapes, walls, enemies,
+  difficulty, corner groups, bosses and music) with options: `placePlayer` (only the bottom floor
+  places the player; later start rooms only play their start music) and `boundaryOpenings`. The floor
+  is then moved into the tower and every second one mirrored in x (`placeFloor`,
+  `src/gen/floor-transform.ts`), which mirrors its rooms, tiles, openings and units, so the corner
+  roles (farX, farY) and the ramps mirror with it. The corners snake: the forest starts bottom-left
+  and exits top-right, the marsh starts bottom-right and exits top-left, and so on.
+- The stairs: one opening (the lower floor's `endOpening` width) from each floor's exit room up into
+  the next floor's start room, decided by the tower in tower coordinates and passed to both floors
+  (mirrored back for a mirrored floor) so both rooms keep it clear. Every other edge between floors
+  is walled. The map's `startRoom` is the forest's start, `endRoom` the maze's exit.
+- Each floor checks itself as usual (the flood starts from its start room's first unit: the player,
+  or the start music); the whole tower is flood-filled from the player once more and rebuilt from a
+  derived seed on failure. A tower takes 4-10 ms.
+- **Tilesets.** A map has one tileset per layer, but the forest draws from merlin4 and the others
+  from merlinOpen. `tools/convert-assets.ts` builds `towerPassive`, `towerActive` and `towerObjects`
+  (10 per row): merlinOpen's tiles and key symbols from tile 1, merlin4's from tile 301
+  (`TOWER_TILESET_PARTS` in `src/gen/tower-tilesets.ts`; the converter fails if a part overruns the
+  next). The forest's tile numbers move by 300 in the tower (`inTowerTilesets`); object keys both
+  sets have use merlinOpen's tile, so the player is on the key's first `player` tile, where the page
+  looks for the start. The single floors keep their own tilesets.
 
 ## Status (2026-10-22)
 
-Four themes on 3x3 floors. Known gaps: `mr.loadState` and the snapshot test helpers fetch maps as
-converted JSON, so a snapshot of a generated floor cannot be replayed yet (it would need the seed
-passed to `generateMap`). Not yet: stacking floors into the tower, the floor-start rewards (spell or
-allies), potion corner rooms.
+Four themes on 3x3 floors and the tower. Known gaps: `mr.loadState` and the snapshot test helpers
+fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
+the seed passed to `generateMap`). Not yet: the floor-start rewards (spell or allies), potion corner
+rooms.

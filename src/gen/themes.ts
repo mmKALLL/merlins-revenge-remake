@@ -89,6 +89,8 @@ export interface EnemyChoice {
   /** only from this difficulty on */
   minDifficulty?: number
   maxPerRoom?: number
+  /** summons units (its weapon is a summon spell), so it counts as a producer like a dwelling */
+  producer?: boolean
   /**
    * Teams that hate each other brawl (engine-mechanics-enemies-3.md, Teams), so a room draws one
    * faction and only takes choices of that faction (or of none).
@@ -105,24 +107,41 @@ export type Corner = 'exit' | 'farX' | 'farY'
 /** A fixed group of units; `faction` sets the room's faction for its other enemies. */
 export interface UnitGroup { label: string; units: Record<string, number>; faction?: string }
 
-/** A corner room with one of its groups (picked at random) on top of the usual enemies. */
-export interface SpecialRoom { corner: Corner; groups: UnitGroup[] }
+/** A side corner room with one of its groups (picked at random) on top of the usual enemies. */
+export interface SpecialRoom { corner: Exclude<Corner, 'exit'>; groups: UnitGroup[] }
+
+/** An exit room group; its `boss` unit stands two tiles in from the floor's far corner. */
+export interface BossGroup extends UnitGroup { boss: string }
+
+/** An amount ramping over x progress (0 at the start column, 1 at the far one): floor(base + farX * x + a random 0..1). */
+export interface Amount { base: number; farX: number }
+
+/**
+ * How a room brings its numbers (quantity, over x): a swarm of single regular enemies, or a few
+ * producers (dwellings and summoners) with a few regular enemies alongside. The exit room has both.
+ */
+export interface QuantityTuning {
+  swarmWeight: number
+  producerWeight: number
+  swarm: Amount
+  producers: Amount
+  /** regular enemies alongside the producers */
+  escorts: readonly [number, number]
+}
 
 export interface UnitTuning {
   player: string
   startMusic: string
   exitMusic: string
-  /** difficulty at the start and the exit; rooms in between ramp over x + y progress */
+  /** quality: the difficulty in the start row and the far row, ramping over y progress in between */
   difficulty: readonly [number, number]
-  /** enemies per room: base + farX * x progress (0 at the start column, 1 at the far one) + a random 0..random */
-  enemiesBase: number
-  enemiesFarX: number
-  enemiesRandom: number
+  quantity: QuantityTuning
+  /** regular enemies and summoners (`producer`) */
   enemies: EnemyChoice[]
-  /** dwellings per room: floor(farY * y progress (0..1) + a random 0..1) */
-  dwellingsFarY: number
   dwellings: EnemyChoice[]
   specialRooms: SpecialRoom[]
+  /** the exit room picks one */
+  bosses: BossGroup[]
 }
 
 export interface FloorTheme {
@@ -152,7 +171,7 @@ const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 // ---- Goblin Forest (merlin4 tilesets) ----
 
 /** merlin4Objects key indices (assets/tile-keys/merlin4Objects.txt, 8 per row). */
-const MERLIN4_OBJECTS: Record<string, number> = {
+export const MERLIN4_OBJECTS: Record<string, number> = {
   player: 1,
   goblinHero: 19,
   goblinHut: 20,
@@ -169,6 +188,12 @@ const MERLIN4_OBJECTS: Record<string, number> = {
   orcHouse: 69,
   musicLastStand: 77,
   musicWoodsOfEvil: 78,
+}
+
+export const MERLIN4_TILESETS: Record<LayerName, string> = {
+  backgroundPassive: 'merlin4Passive',
+  backgroundActive: 'merlin4Active',
+  objects: 'merlin4Objects',
 }
 
 // merlin4Active tiles (8 per row): trees and rocks are #solid, flowers and pebbles #none.
@@ -197,7 +222,7 @@ export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'Goblin Forest',
   floorSize: DEFAULT_FLOOR_SIZE,
-  tileSets: { backgroundPassive: 'merlin4Passive', backgroundActive: 'merlin4Active', objects: 'merlin4Objects' },
+  tileSets: MERLIN4_TILESETS,
   objectTiles: MERLIN4_OBJECTS,
   ground: [w(GRASS, 20), w(GRASS_FLOWERS, 1)],
   wall: [w(PINES, 3), w(PINE_CLUMP, 3), w(LEAFY_TREE, 1), w(BUSHY_TREE, 1)],
@@ -226,9 +251,13 @@ export const GOBLIN_FOREST: FloorTheme = {
     startMusic: 'musicWoodsOfEvil',
     exitMusic: 'musicLastStand',
     difficulty: [0, 3],
-    enemiesBase: 2,
-    enemiesFarX: 3.6,
-    enemiesRandom: 1,
+    quantity: {
+      swarmWeight: 2,
+      producerWeight: 1,
+      swarm: { base: 2, farX: 3.6 },
+      producers: { base: 1, farX: 1.5 },
+      escorts: [0, 2],
+    },
     enemies: [
       { key: 'goblinArcher', weight: 6 },
       { key: 'goblinWarrior', weight: 1.5 },
@@ -236,9 +265,8 @@ export const GOBLIN_FOREST: FloorTheme = {
       { key: 'goblinMage', weight: 1.5, minDifficulty: 1.5, maxPerRoom: 2 },
       { key: 'swordOrc', weight: 1, minDifficulty: 2.5, maxPerRoom: 1 },
       { key: 'bowOrc', weight: 0.7, minDifficulty: 2.5, maxPerRoom: 1 },
-      { key: 'mageOrc', weight: 0.5, minDifficulty: 2.9, maxPerRoom: 1 },
+      { key: 'mageOrc', weight: 0.5, minDifficulty: 2.9, maxPerRoom: 1, producer: true },
     ],
-    dwellingsFarY: 1.8,
     dwellings: [
       { key: 'goblinHut', weight: 4 },
       { key: 'batTree', weight: 0.6, minDifficulty: 1.5, maxPerRoom: 1 },
@@ -246,13 +274,10 @@ export const GOBLIN_FOREST: FloorTheme = {
     ],
     specialRooms: [
       { corner: 'farX', groups: [{ label: 'goblin warrior band', units: { goblinWarrior: 4 } }] },
-      {
-        corner: 'exit',
-        groups: [
-          { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 } },
-          { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 } },
-        ],
-      },
+    ],
+    bosses: [
+      { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
+      { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
   },
 }
@@ -260,7 +285,7 @@ export const GOBLIN_FOREST: FloorTheme = {
 // ---- the other floors (merlinOpen tilesets, which hold every ported actor) ----
 
 /** merlinOpenObjects key indices (assets/tile-keys/merlinOpenObjects.txt, 10 per row). */
-const MERLIN_OPEN_OBJECTS: Record<string, number> = {
+export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   player: 2,
   skeletonArcher: 81,
   skeletonWarrior: 82,
@@ -306,7 +331,7 @@ const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   musicElectronicMerlin: 180,
 }
 
-const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
+export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
   backgroundPassive: 'merlinOpenPassive',
   backgroundActive: 'merlinOpenActive',
   objects: 'merlinOpenObjects',
@@ -391,22 +416,25 @@ export const UNDEAD_MARSH: FloorTheme = {
     startMusic: 'musicBaroqueRock',
     exitMusic: 'musicLastStand',
     difficulty: [1, 5],
-    enemiesBase: 2,
-    enemiesFarX: 3,
-    enemiesRandom: 1,
+    quantity: {
+      swarmWeight: 1.2,
+      producerWeight: 1,
+      swarm: { base: 2, farX: 3 },
+      producers: { base: 1, farX: 1.5 },
+      escorts: [0, 2],
+    },
     enemies: [
       { key: 'skeletonWarrior', weight: 6, faction: 'undead' },
       { key: 'skeletonThrower', weight: 2, minDifficulty: 1.5, faction: 'undead' },
       { key: 'skeletonArcher', weight: 2, minDifficulty: 2, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, minDifficulty: 3, maxPerRoom: 1, faction: 'undead' },
-      { key: 'necromancer', weight: 0.6, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead' },
+      { key: 'greyGhost', weight: 1, minDifficulty: 3, maxPerRoom: 1, faction: 'undead', producer: true },
+      { key: 'necromancer', weight: 0.6, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead', producer: true },
       { key: 'skeletonComando', weight: 1, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead' },
       { key: 'skeletonGiant', weight: 0.8, minDifficulty: 4, maxPerRoom: 1, faction: 'undead' },
       // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own
       { key: 'quadranid', weight: 4, faction: 'critters' },
       { key: 'bat', weight: 1.5, maxPerRoom: 2 },
     ],
-    dwellingsFarY: 1.6,
     dwellings: [
       { key: 'skeletonDwelling', weight: 3, faction: 'undead' },
       { key: 'cocoon', weight: 2, maxPerRoom: 1, faction: 'critters' },
@@ -415,13 +443,10 @@ export const UNDEAD_MARSH: FloorTheme = {
     specialRooms: [
       { corner: 'farY', groups: [{ label: 'necromancer guard', units: { necromancer: 2, skeletonWarrior: 2 }, faction: 'undead' }] },
       { corner: 'farX', groups: [{ label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' }] },
-      {
-        corner: 'exit',
-        groups: [
-          { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead' },
-          { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead' },
-        ],
-      },
+    ],
+    bosses: [
+      { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
+      { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead', boss: 'necromancer' },
     ],
   },
 }
@@ -461,9 +486,13 @@ export const DRAGON_CANYON: FloorTheme = {
     startMusic: 'musicBaroqueRockTechno',
     exitMusic: 'musicLastStand',
     difficulty: [3, 6],
-    enemiesBase: 2,
-    enemiesFarX: 2.5,
-    enemiesRandom: 1,
+    quantity: {
+      swarmWeight: 2,
+      producerWeight: 1,
+      swarm: { base: 2, farX: 2.5 },
+      producers: { base: 1, farX: 1.5 },
+      escorts: [1, 2],
+    },
     // martial artists everywhere, golems more along y, dragons more along x (the sketch)
     enemies: [
       { key: 'karateGuy', weight: 4 },
@@ -476,7 +505,6 @@ export const DRAGON_CANYON: FloorTheme = {
       { key: 'dragon', weight: 0.3, weightFarX: 2.5, minDifficulty: 4, maxPerRoom: 2 },
       { key: 'darkGolem', weight: 0, weightFarY: 1.2, minDifficulty: 5, maxPerRoom: 1 },
     ],
-    dwellingsFarY: 1.5,
     dwellings: [
       { key: 'dojo', weight: 3, maxPerRoom: 1 },
       { key: 'boulderCave', weight: 0.5, weightFarY: 2.5, minDifficulty: 4, maxPerRoom: 1 },
@@ -485,14 +513,11 @@ export const DRAGON_CANYON: FloorTheme = {
     specialRooms: [
       { corner: 'farY', groups: [{ label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } }] },
       { corner: 'farX', groups: [{ label: 'dragon roost', units: { dragon: 2 } }] },
-      {
-        corner: 'exit',
-        groups: [
-          { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 } },
-          { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 } },
-          { label: 'hydra den', units: { hydra3: 1, plant: 2 } },
-        ],
-      },
+    ],
+    bosses: [
+      { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 }, boss: 'fourArmGolem' },
+      { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, boss: 'dragon' },
+      { label: 'hydra den', units: { hydra3: 1, plant: 2 }, boss: 'hydra3' },
     ],
   },
 }
@@ -525,32 +550,35 @@ export const MAGIC_MAZE: FloorTheme = {
     decorationChance: 0.02,
     minOpenShare: 0.4,
   },
-  edges: { extraOpenChance: 0.55, sideOpening: [2, 3], endOpening: [2, 4], openingDepth: 2 },
+  edges: { extraOpenChance: 0.55, sideOpening: [3, 3], endOpening: [3, 4], openingDepth: 2 },
   units: {
     player: 'player',
     startMusic: 'musicElectronicMerlin',
     exitMusic: 'musicLastStand',
     difficulty: [5, 7],
-    enemiesBase: 2,
-    enemiesFarX: 2,
-    enemiesRandom: 1,
+    quantity: {
+      swarmWeight: 1,
+      producerWeight: 1,
+      swarm: { base: 2, farX: 2 },
+      producers: { base: 1, farX: 1.2 },
+      escorts: [0, 2],
+    },
     // MR3's wizards are not ported: the magical alliance, the undead casters and Scarlet's army
     // (the chromatic sorcerers' troops) stand in, each faction in rooms of its own
     enemies: [
       { key: 'bombMage', weight: 3, faction: 'alliance' },
       { key: 'thunderMonk', weight: 3, faction: 'alliance' },
       { key: 'shrouder', weight: 2, minDifficulty: 5.5, faction: 'alliance' },
-      { key: 'necromancer', weight: 2, maxPerRoom: 2, faction: 'undead' },
+      { key: 'necromancer', weight: 2, maxPerRoom: 2, faction: 'undead', producer: true },
       { key: 'darkMage', weight: 2, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, maxPerRoom: 1, faction: 'undead' },
+      { key: 'greyGhost', weight: 1, maxPerRoom: 1, faction: 'undead', producer: true },
       { key: 'scWarrior', weight: 2, faction: 'scarlet' },
       { key: 'scArcher', weight: 2, faction: 'scarlet' },
-      { key: 'scMonk', weight: 1, minDifficulty: 6, maxPerRoom: 1, faction: 'scarlet' },
+      { key: 'scMonk', weight: 1, minDifficulty: 6, maxPerRoom: 1, faction: 'scarlet', producer: true },
       // giant orcs and vultures are monsters, who brawl with all of the above
       { key: 'blackOrc', weight: 1.5, minDifficulty: 6, maxPerRoom: 2, faction: 'monsters' },
       { key: 'vultureGuard', weight: 1, minDifficulty: 5.5, maxPerRoom: 1, faction: 'monsters' },
     ],
-    dwellingsFarY: 1.2,
     dwellings: [
       { key: 'magicPortal', weight: 2, maxPerRoom: 1, faction: 'alliance' },
       { key: 'skeletonDwelling', weight: 1, maxPerRoom: 1, faction: 'undead' },
@@ -558,14 +586,11 @@ export const MAGIC_MAZE: FloorTheme = {
     specialRooms: [
       { corner: 'farY', groups: [{ label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' }] },
       { corner: 'farX', groups: [{ label: 'portal ward', units: { magicPortal: 1, shrouder: 1, thunderMonk: 1 }, faction: 'alliance' }] },
-      {
-        // the Black Sorcerer is not in the engine's data: his stand-ins hold the exit
-        corner: 'exit',
-        groups: [
-          { label: "dark sorcerer's court", units: { darkMage: 3, necromancer: 1, greyGhost: 1 }, faction: 'undead' },
-          { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet' },
-        ],
-      },
+    ],
+    // the Black Sorcerer is not in the engine's data: his stand-ins hold the exit
+    bosses: [
+      { label: "dark sorcerer's court", units: { darkMage: 3, necromancer: 1, greyGhost: 1 }, faction: 'undead', boss: 'darkMage' },
+      { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
     ],
   },
 }

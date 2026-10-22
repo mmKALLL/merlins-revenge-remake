@@ -3,8 +3,9 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
-import { ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, roomKey, startRoom, type GeneratedFloor } from './floor'
-import { generateMap, isGeneratedMapId } from './generated-maps'
+import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, roomKey, startRoom, type GeneratedFloor } from './floor'
+import { edgeMismatches } from './edge-check'
+import { GENERATED_MAPS, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { THEMES } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
@@ -22,7 +23,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 
   it('is the same map for the same seed', () => {
     expect(generateFloor(theme, 1234)).toEqual(generateFloor(theme, 1234))
-    expect(generateMap(`random/${theme.id}`, 99)).toEqual(generateMap(`random/${theme.id}`, 99))
+    expect(generateMap(floorMapId(theme), 99)).toEqual(generateMap(floorMapId(theme), 99))
     expect(generateFloor(theme, 1)).not.toEqual(generateFloor(theme, 2))
   })
 
@@ -54,6 +55,10 @@ describe.each(THEMES)('random floor: $name', (theme) => {
         }
       }
     }
+  })
+
+  it('blocks facing edge tiles together and leaves entrances at least 3 wide', () => {
+    for (const [seed, f] of [...floors].slice(0, 50)) expect(edgeMismatches(f.map, isSolid), `seed ${seed}`).toEqual([])
   })
 
   it('places units on open tiles away from the room edges, and nothing hostile in the start room', () => {
@@ -89,13 +94,17 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     }
   })
 
-  it('puts a corner group into each special corner room', () => {
+  it('puts a corner group into each special corner room, and a boss group into the exit room', () => {
     const f = floors.get(SEEDS[0]!)!
+    const keysIn = (room: Vec) => new Set(f.placements.filter((p) => sameRoom(p.room, room)).map((p) => p.key))
     for (const special of theme.units.specialRooms) {
-      const room = cornerRoom(size, special.corner)
-      const keys = new Set(f.placements.filter((p) => sameRoom(p.room, room)).map((p) => p.key))
+      const keys = keysIn(cornerRoom(size, special.corner))
       expect(special.groups.some((g) => Object.keys(g.units).every((k) => keys.has(k))), special.corner).toBe(true)
     }
+    const exit = exitRoom(size)
+    const keys = keysIn(exit)
+    const boss = f.placements.find((p) => sameRoom(p.room, exit) && sameRoom(p.tile, BOSS_TILE))
+    expect(theme.units.bosses.some((g) => g.boss === boss?.key && Object.keys(g.units).every((k) => keys.has(k)))).toBe(true)
   })
 
   it('sets the start and exit corners on the map', () => {
@@ -104,7 +113,8 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     expect(map.startRoom).toEqual(startRoom(size))
     expect(map.endRoom).toEqual(exitRoom(size))
     expect(map.rooms.map((r) => r.num)).toEqual(Array.from({ length: size.x * size.y }, (_, i) => i + 1))
-    expect(isGeneratedMapId(`random/${theme.id}`)).toBe(true)
+    expect(map.layers.map((l) => l.tileSet)).toEqual(Object.values(theme.tileSets))
+    expect(isGeneratedMapId(floorMapId(theme))).toBe(true)
   })
 
   it('generates a floor well under 100 ms', () => {
@@ -123,14 +133,16 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     for (const [symbol, index] of Object.entries(theme.objectTiles)) expect(objects.symbols[index - 1]).toBe(symbol)
     const u = theme.units
     const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
-      ...u.specialRooms.flatMap((s) => s.groups.flatMap((g) => Object.keys(g.units)))]
+      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units))]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
   })
 })
 
 describe('generated map ids', () => {
-  it('lists one map per theme under random/', () => {
-    expect(THEMES.map((t) => `random/${t.id}`)).toEqual(['random/goblin-forest', 'random/undead-marsh', 'random/dragon-canyon', 'random/magic-maze'])
+  it('lists one map per theme under random/, numbered by difficulty, then the tower', () => {
+    expect(GENERATED_MAPS.map((m) => m.id)).toEqual([
+      'random/1-goblin-forest', 'random/2-undead-marsh', 'random/3-dragon-canyon', 'random/4-magic-maze', 'random/sorcerers-tower',
+    ])
     expect(isGeneratedMapId('random/nowhere')).toBe(false)
   })
 })

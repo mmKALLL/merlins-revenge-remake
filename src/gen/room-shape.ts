@@ -78,37 +78,43 @@ export function patchComponents(cells: readonly Cell[], size: Vec): number[][] {
 }
 
 /**
- * A room whose openings all connect. Tries `ROOM_ATTEMPTS` random layouts, then falls back to the
- * last one with corridors carved from every opening to the centre.
+ * A room whose openings (and `keepOpen` tiles, kept clear for a unit) all connect. Tries
+ * `ROOM_ATTEMPTS` random layouts, then falls back to the last one with corridors carved from every
+ * opening and kept tile to the centre.
  */
-export function generateRoomShape(rng: GenRandom, size: Vec, edges: RoomEdges, t: RoomShapeTuning, openingDepth: number): RoomShape {
-  const reserved = reservedTiles(size, edges, openingDepth)
+export function generateRoomShape(rng: GenRandom, size: Vec, edges: RoomEdges, t: RoomShapeTuning, openingDepth: number, keepOpen: readonly Vec[] = []): RoomShape {
+  const reserved = reservedTiles(size, edges, openingDepth, keepOpen)
   let grid = new Grid(size, Cell.Open)
   for (let attempt = 0; attempt < ROOM_ATTEMPTS; attempt++) {
     grid = layout(rng, size, edges, t, reserved)
-    const shape = finish(grid, edges, t, false)
+    const shape = finish(grid, edges, keepOpen, t, false)
     if (shape) return shape
   }
-  carveCorridors(grid, edges)
-  const shape = finish(grid, edges, t, true)
+  carveCorridors(grid, edges, keepOpen)
+  const shape = finish(grid, edges, keepOpen, t, true)
   if (!shape) throw new Error('room generation: carved room is still disconnected')
   return shape
 }
 
-function reservedTiles(size: Vec, edges: RoomEdges, depth: number): boolean[] {
+function reservedTiles(size: Vec, edges: RoomEdges, depth: number, keepOpen: readonly Vec[]): boolean[] {
   const reserved = new Array<boolean>(size.x * size.y).fill(false)
   for (const edge of EDGE_LIST) {
     const o = edges[edge]
     if (o) for (const p of openingTiles(edge, o, size, depth)) reserved[p.y * size.x + p.x] = true
   }
+  for (const p of keepOpen) reserved[p.y * size.x + p.x] = true
   return reserved
 }
 
 function layout(rng: GenRandom, size: Vec, edges: RoomEdges, t: RoomShapeTuning, reserved: readonly boolean[]): Grid {
   const g = new Grid(size, Cell.Open)
   const free = (x: number, y: number) => !reserved[y * size.x + x] && g.get(x, y) !== Cell.Wall
+  // the edge line is wall but for the opening, so facing edge tiles of neighbours always agree
   for (const edge of EDGE_LIST) {
-    if (!edges[edge]) for (const p of edgeTiles(edge, size)) g.set(p.x, p.y, Cell.Wall)
+    const o = edges[edge]
+    edgeTiles(edge, size).forEach((p, along) => {
+      if (!o || along < o.from || along > o.to) g.set(p.x, p.y, Cell.Wall)
+    })
   }
   const patches = rng.int(t.patches[0], t.patches[1])
   for (let i = 0; i < patches; i++) growPatch(rng, g, rng.int(t.patchSize[0], t.patchSize[1]), free)
@@ -170,14 +176,20 @@ function addLongWall(rng: GenRandom, g: Grid, edges: RoomEdges, t: RoomShapeTuni
   }
 }
 
-/** Clears straight corridors from the middle of every opening to the room centre. */
-function carveCorridors(g: Grid, edges: RoomEdges): void {
-  const centre = { x: Math.floor(g.size.x / 2), y: Math.floor(g.size.y / 2) }
-  for (const edge of EDGE_LIST) {
+/** The middle tile of each opening on its edge line. */
+function openingMiddles(edges: RoomEdges, size: Vec): Vec[] {
+  return EDGE_LIST.flatMap((edge) => {
     const o = edges[edge]
-    if (!o) continue
+    if (!o) return []
     const mid = Math.floor((o.from + o.to) / 2)
-    const start = openingTiles(edge, { from: mid, to: mid }, g.size, 1)[0]!
+    return openingTiles(edge, { from: mid, to: mid }, size, 1)
+  })
+}
+
+/** Clears straight corridors from the middle of every opening, and every kept tile, to the room centre. */
+function carveCorridors(g: Grid, edges: RoomEdges, keepOpen: readonly Vec[]): void {
+  const centre = { x: Math.floor(g.size.x / 2), y: Math.floor(g.size.y / 2) }
+  for (const start of [...openingMiddles(edges, g.size), ...keepOpen]) {
     let { x, y } = start
     const clear = () => { if (g.get(x, y) !== Cell.Wall) g.set(x, y, Cell.Open) }
     clear()
@@ -187,14 +199,17 @@ function carveCorridors(g: Grid, edges: RoomEdges): void {
 }
 
 /**
- * Checks the openings connect and enough of the room is reachable; fills unreachable pockets and
- * scatters decoration. Returns null when the room should be retried (unless `force`).
+ * Checks the openings and kept tiles connect and enough of the room is reachable; fills unreachable
+ * pockets. Returns null when the room should be retried (unless `force`).
  */
-function finish(g: Grid, edges: RoomEdges, t: RoomShapeTuning, force: boolean): RoomShape | null {
-  const openings = EDGE_LIST.flatMap((e) => {
-    const o = edges[e]
-    return o ? [openingTiles(e, o, g.size, 1)] : []
-  })
+function finish(g: Grid, edges: RoomEdges, keepOpen: readonly Vec[], t: RoomShapeTuning, force: boolean): RoomShape | null {
+  const openings = [
+    ...EDGE_LIST.flatMap((e) => {
+      const o = edges[e]
+      return o ? [openingTiles(e, o, g.size, 1)] : []
+    }),
+    ...keepOpen.map((p) => [p]),
+  ]
   if (openings.length === 0) throw new Error('room generation: a room needs at least one opening')
   const reachable = floodOpen(g.cells, g.size, openings[0]!)
   const allConnected = openings.every((tiles) => tiles.every((p) => reachable[p.y * g.size.x + p.x]))
