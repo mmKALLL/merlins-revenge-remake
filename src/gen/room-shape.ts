@@ -3,22 +3,10 @@
 // Coordinates are 0-based room tiles, index = row * width + col.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { Edge } from '../mr-open/mr-screen-exits'
+import { Cell, Grid, NEIGHBOURS_4, NEIGHBOURS_8, floodOpen, isSolidCell } from './grid'
+import { addBaffles, addCuts, divideIntoChambers } from './interior-walls'
 import type { GenRandom } from './random'
 import type { RoomShapeTuning } from './themes'
-
-export const Cell = {
-  Open: 0,
-  /** walkable decoration on the active layer */
-  Decoration: 1,
-  /** boundary or closed edge */
-  Wall: 2,
-  LongWall: 3,
-  Patch: 4,
-  Stump: 5,
-} as const
-export type Cell = (typeof Cell)[keyof typeof Cell]
-
-export const isSolidCell = (c: Cell): boolean => c >= Cell.Wall
 
 /** An open edge's opening: tiles [from, to] along the edge (rows on left/right, columns on top/bottom). */
 export interface Opening { from: number; to: number }
@@ -35,11 +23,6 @@ export interface RoomShape {
 
 /** Attempts at a room before carving corridors instead. */
 const ROOM_ATTEMPTS = 12
-const NEIGHBOURS_8: readonly Vec[] = [
-  { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 0 },
-  { x: 1, y: 0 }, { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 },
-]
-const NEIGHBOURS_4: readonly Vec[] = [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }]
 
 /** The tiles of an opening, `depth` tiles inward from its edge. */
 export function openingTiles(edge: Edge, o: Opening, size: Vec, depth: number): Vec[] {
@@ -63,60 +46,6 @@ function edgeTiles(edge: Edge, size: Vec): Vec[] {
 }
 
 const EDGE_LIST: readonly Edge[] = ['left', 'top', 'right', 'bottom']
-
-class Grid {
-  readonly cells: Cell[]
-  constructor(readonly size: Vec, fill: Cell) {
-    this.cells = new Array<Cell>(size.x * size.y).fill(fill)
-  }
-  inside(x: number, y: number): boolean {
-    return x >= 0 && y >= 0 && x < this.size.x && y < this.size.y
-  }
-  get(x: number, y: number): Cell {
-    return this.cells[y * this.size.x + x]!
-  }
-  set(x: number, y: number, c: Cell): void {
-    this.cells[y * this.size.x + x] = c
-  }
-  solidNeighbours(x: number, y: number): number {
-    let n = 0
-    for (const d of NEIGHBOURS_8) {
-      const nx = x + d.x
-      const ny = y + d.y
-      if (this.inside(nx, ny) && isSolidCell(this.get(nx, ny))) n++
-    }
-    return n
-  }
-}
-
-/** Open tiles 4-connected to any of `from`. */
-export function floodOpen(cells: readonly Cell[], size: Vec, from: readonly Vec[]): boolean[] {
-  const seen = new Array<boolean>(cells.length).fill(false)
-  const stack: number[] = []
-  for (const p of from) {
-    const i = p.y * size.x + p.x
-    if (!isSolidCell(cells[i]!) && !seen[i]) {
-      seen[i] = true
-      stack.push(i)
-    }
-  }
-  while (stack.length > 0) {
-    const i = stack.pop()!
-    const x = i % size.x
-    const y = (i - x) / size.x
-    for (const d of NEIGHBOURS_4) {
-      const nx = x + d.x
-      const ny = y + d.y
-      if (nx < 0 || ny < 0 || nx >= size.x || ny >= size.y) continue
-      const j = ny * size.x + nx
-      if (!seen[j] && !isSolidCell(cells[j]!)) {
-        seen[j] = true
-        stack.push(j)
-      }
-    }
-  }
-  return seen
-}
 
 /** Connected groups of `Patch` cells (8-connected), as tile index lists. */
 export function patchComponents(cells: readonly Cell[], size: Vec): number[][] {
@@ -193,6 +122,10 @@ function layout(rng: GenRandom, size: Vec, edges: RoomEdges, t: RoomShapeTuning,
     }
     g.cells.splice(0, g.cells.length, ...next)
   }
+  const canBuild = (x: number, y: number) => free(x, y) && g.get(x, y) === Cell.Open
+  if (t.division) divideIntoChambers(rng, g, edges, t.division, canBuild)
+  if (t.baffles) addBaffles(rng, g, t.baffles, canBuild)
+  if (t.cuts) addCuts(rng, g, t.cuts, canBuild)
   if (rng.chance(t.longWallChance)) addLongWall(rng, g, edges, t, reserved)
   for (let y = 0; y < size.y; y++) {
     for (let x = 0; x < size.x; x++) {
