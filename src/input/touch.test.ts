@@ -39,6 +39,16 @@ describe('InputTracker touch input', () => {
     expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, shootNearest: false, shootShort: false })
   })
 
+  it('the army button is R once per tap, at the nearest enemy even in mouse mode', () => {
+    const t = new InputTracker('mouse')
+    t.touchArmy()
+    expect(t.snapshot()).toMatchObject({ armyKey: true, armyAtNearest: true })
+    expect(t.snapshot()).toMatchObject({ armyKey: false, armyAtNearest: false })
+    // R itself keeps the mouse in mouse mode
+    t.keyDown('KeyR')
+    expect(t.snapshot()).toMatchObject({ armyKey: true, armyAtNearest: false })
+  })
+
   it('in mouse mode blasts at the mouse when one is known, else at the nearest enemy', () => {
     const t = new InputTracker('mouse')
     t.setTouch({ x: 0, y: 0 }, true)

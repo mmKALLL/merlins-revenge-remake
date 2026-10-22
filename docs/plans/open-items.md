@@ -61,9 +61,15 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   monks now freeze Merlin.
 - R and M (2026-10, owner request): R summons the whole reserve army at the mouse
   (modAutoSummon, the original's C key; at most 2 of each type with Merlin's 12-member team cap),
-  and sends the whole army back into the reserve while any of it is out; M gives one medikit (as
-  collecting one: +25 energy and invincibility too) instead of the full heal. R has no touch
-  control yet (would need a third button).
+  and sends the whole army back into the reserve while any of it is out once the fight is over
+  (room clear / nav mode; mid-fight R does nothing); M gives one medikit (as collecting one: +25
+  energy and invincibility too) instead of the full heal. Touch: a blue army button above the
+  weapon button (below it in portrait) acts as R, at the nearest enemy. A blank army summon (below
+  its first stage) flies at Merlin's nearest ally, sending one home.
+- The dwarf tower's axe splashes (2026-10-22, owner request): on landing it hits every hostile
+  whose sprite rect meets a 16 px circle (`towerAxe.splashRadius` in `assets/tuning.json`). The
+  original's splashDamageOn reaches `power` = 50 px from the axe to each unit's reg point; to
+  confirm the radius (16 vs 50) and that the Lingo's push pulls toward the axe.
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The

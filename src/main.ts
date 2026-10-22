@@ -307,7 +307,12 @@ function main(): void {
   if (touch) document.documentElement.classList.add('touch-controls')
   const input = new InputTracker(loadSpaceMode('nearest'), saveSpaceMode)
   input.attach(window)
-  const touchControls = touch ? attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast), () => input.nextWeapon()) : null
+  const touchControls = touch ? attachTouchControls(document.body, {
+    onChange: (move, blast) => input.setTouch(move, blast),
+    onNextWeapon: () => input.nextWeapon(),
+    onArmy: () => input.touchArmy(),
+    armyIconUrl: weaponIconUrl('armySummon'),
+  }) : null
 
   let state: AppState = linkedMap ? PLAYING : TITLE
   let game: Game | null = null

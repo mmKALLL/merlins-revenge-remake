@@ -370,10 +370,13 @@ const GRASS_FLOWERS = 14
  */
 const GOBLIN_FOREST_PLAN: RoomPlan = [
   [
-    midboss([
-      { label: 'orc hole', units: { orcHouse: 1, bowOrc: 1 } },
-      { label: 'orc shamans', units: { mageOrc: 2 } },
-    ], { regulars: n(0, 2, WEAK) }),
+    midboss(
+      [
+        { label: 'orc hole', units: { orcHouse: 1, bowOrc: 1 } },
+        { label: 'orc shamans', units: { mageOrc: 2 } },
+      ],
+      { regulars: n(0, 2, WEAK) }
+    ),
     normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
@@ -575,10 +578,13 @@ const BLUE_COBBLES = 35
  */
 const UNDEAD_MARSH_PLAN: RoomPlan = [
   [
-    midboss([
-      { label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true },
-      { label: 'haunted crypt', units: { skeletonDwelling: 1, greyGhost: 2 }, faction: 'undead' },
-    ], { regulars: n(0, 2, WEAK) }),
+    midboss(
+      [
+        { label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true },
+        { label: 'haunted crypt', units: { skeletonDwelling: 1, greyGhost: 2 }, faction: 'undead' },
+      ],
+      { regulars: n(0, 2, WEAK) }
+    ),
     normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
@@ -668,10 +674,13 @@ export const UNDEAD_MARSH: FloorTheme = {
  */
 const DRAGON_CANYON_PLAN: RoomPlan = [
   [
-    midboss([
-      { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } },
-      { label: 'dark cave', units: { darkCave: 1, darkGolem: 1 } },
-    ], { regulars: n(0, 2, WEAK) }),
+    midboss(
+      [
+        { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } },
+        { label: 'dark cave', units: { darkCave: 1, darkGolem: 1 } },
+      ],
+      { regulars: n(0, 2, WEAK) }
+    ),
     normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
@@ -760,10 +769,13 @@ export const DRAGON_CANYON: FloorTheme = {
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
   [
-    midboss([
-      { label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' },
-      { label: 'Scarlet chapel', units: { scMonk: 2, scWarrior: 1 }, faction: 'scarlet' },
-    ], { regulars: n(0, 2, WEAK) }),
+    midboss(
+      [
+        { label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' },
+        { label: 'Scarlet chapel', units: { scMonk: 2, scWarrior: 1 }, faction: 'scarlet' },
+      ],
+      { regulars: n(0, 2, WEAK) }
+    ),
     normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
