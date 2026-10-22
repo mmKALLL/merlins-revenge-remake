@@ -90,6 +90,9 @@ function whiteDisc(tex: Texture): Texture {
   return out
 }
 
+/** Canvas pixels per game pixel (owner request: HUD and cut scene text at 2x detail). */
+const RENDER_RESOLUTION = 2
+
 export class Scene {
   readonly app = new Application()
   private world = new Container()
@@ -153,6 +156,8 @@ export class Scene {
       background: '#000',
       antialias: false,
       roundPixels: true,
+      // twice the game's pixels: sprites stay sharp (nearest scaling), text renders at double detail
+      resolution: RENDER_RESOLUTION,
       autoStart: false, // the game's frame loop draws (present), so every frame shows that frame's positions
     })
     parent.appendChild(this.app.canvas)
