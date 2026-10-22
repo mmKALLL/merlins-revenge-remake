@@ -50,6 +50,12 @@ describe('cooldowns', () => {
 })
 
 describe('melee', () => {
+  it('a #magicMelee push scales by (strength + 1.5 x mana_capacity) / 1.5 (calcCollisionVectMelee)', () => {
+    const energyPunch = actor('player', { strength: 8, mana_capacity: 10 }, { type: 'melee', animType: 'magicMelee', power: { x: 3, y: 1 } })
+    const push = meleePush(energyPunch, true)
+    expect(push.x).toBeCloseTo(-46)
+    expect(push.y).toBeCloseTo(46 / 3)
+  })
   it('warrior sword push is (2.8, 0) facing right and (-2.8, 0) facing left', () => {
     expect(meleePush(warrior, false)).toEqual({ x: 2.8, y: 0 })
     expect(meleePush(warrior, true)).toEqual({ x: -2.8, y: 0 })

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef } from './mr-actor-data'
-import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, releaseVelocity } from './mr-spell'
+import { freezeTicksAfter } from './mr-freeze'
+import { chargeAfterBullet, fireBulletsPeriod, mineCount } from './mr-mine'
+import { armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFunctionsFor, releaseVelocity } from './mr-spell'
 
 const energyBlast: AttackDef = {
   name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 },
@@ -81,5 +83,58 @@ describe('explode', () => {
   })
   it('throws on a non-scalar power', () => {
     expect(() => explode({ x: 0, y: 0 }, 12.5, { ...energyBlast, power: { x: 1, y: 0 } }, [])).toThrow()
+  })
+})
+
+// act_armySummon's stages (warrior 10 ... kingInGame 32)
+const armySummon: AttackDef = {
+  ...energyBlast, name: 'armySummon', chargeStart: 0, chargeStartMax: 8, payloadFunction: ['armyTeleportOut'], payloadFunctionNonBlank: [],
+  multistage: [['warrior', 10], ['archer', 15], ['monk', 20], ['dwarf', 25], ['kingInGame', 32]].map(([payload, c]) => ({ payload: payload as string, chargeRequired: c as number })),
+}
+
+describe('summon stages', () => {
+  it('calcAttackChargeStart: with a chargeStartMax the start is the attack\'s own, without mana_burst', () => {
+    expect(chargeLimits({ ...player, attack: armySummon }).start).toBe(0)
+    expect(chargeLimits({ ...player, attack: { ...armySummon, chargeStart: 9 } }).start).toBe(8)
+  })
+  it('a stage reached switches to the non-blank payload functions', () => {
+    expect(payloadFunctionsFor(9, armySummon)).toEqual(['armyTeleportOut'])
+    expect(payloadFunctionsFor(10, armySummon)).toEqual([])
+  })
+  it('chargeReinInToAvailable holds the army summon below the stage above the best reserve unit', () => {
+    // best unit in the reserve: the monk (stage 3)
+    expect(armyReinIn(19, armySummon, 3)).toBeNull()
+    expect(armyReinIn(20.4, armySummon, 3)).toBeCloseTo(24.9)
+    // no unit at all: any stage reached drops just below the first
+    expect(armyReinIn(9, armySummon, 0)).toBeNull()
+    expect(armyReinIn(10.2, armySummon, 0)).toBeCloseTo(9.9)
+    // the king in the reserve: nothing to hold
+    expect(armyReinIn(37, armySummon, 5)).toBeNull()
+  })
+})
+
+describe('pulses, beams and mines', () => {
+  const pulse: AttackDef = { ...energyBlast, chargePerUnit: 2, fireDelay: 5 }
+  it('modFireBullets fires floor(charge / chargePerUnit) + 1 bullets, every ceil(fireDelay) ticks', () => {
+    let charge = 10
+    let bullets = 0
+    for (let last = false; !last; bullets++) ({ charge, last } = chargeAfterBullet(charge, pulse))
+    expect(bullets).toBe(6)
+    expect(fireBulletsPeriod(pulse)).toBe(5)
+    expect(fireBulletsPeriod({ ...pulse, fireDelay: 6.75 })).toBe(7)
+  })
+  it('depositMines lays charge / chargePerUnit mines, none below one unit', () => {
+    const mines: AttackDef = { ...energyBlast, chargePerUnit: 10 }
+    expect(mineCount(9, mines)).toBe(0)
+    expect(mineCount(10, mines)).toBe(1)
+    expect(mineCount(25, mines)).toBe(2)
+  })
+})
+
+describe('freeze', () => {
+  it('modFreeze.takeFreeze: the first freeze lasts 1 + 4 x |push| x multiplier ticks, a freeze while frozen adds to it', () => {
+    const first = freezeTicksAfter(0, { x: 3, y: -2 }, 1)
+    expect(first).toBe(21)
+    expect(freezeTicksAfter(first, { x: 1, y: 0 }, 3)).toBe(33)
   })
 })

@@ -88,6 +88,20 @@ describe('InputTracker', () => {
     expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: false })
   })
 
+  it('reports each spell key 1-9 once per press, and a palette pick without charging on that click', () => {
+    const t = new InputTracker()
+    t.keyDown('Digit3')
+    t.keyDown('Digit3')
+    expect(t.snapshot().selectSpell).toBe(3)
+    expect(t.snapshot().selectSpell).toBeNull()
+    t.pickWeapon('punch')
+    t.setMouseButton(true)
+    expect(t.snapshot()).toMatchObject({ selectWeapon: 'punch', chargeHeld: false })
+    t.setMouseButton(false)
+    t.setMouseButton(true)
+    expect(t.snapshot()).toMatchObject({ selectWeapon: null, chargeHeld: true })
+  })
+
   it('ignores keys and clicks while disabled (a menu is open) and forgets what was held', () => {
     const t = new InputTracker()
     t.keyDown('KeyD')
