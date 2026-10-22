@@ -90,4 +90,5 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
 - Orcs about -33 %: bowOrc, swordOrc, mageOrc 300 -> 200; blackOrc 1200 -> 800.
 - skeletonArcher 120 -> 80, skeletonGiant 200 -> 160, vultureGuard 1300 -> 800.
 - Hydras -40 %: each stage keeps its share, so hydra1 500 -> 300, hydra2 1000 / minEnergy 500 -> 600 / 300, hydra3 1500 / 1000 -> 900 / 600, and the shared `maxEnergy` (health bar scale) 1500 -> 900.
+- Scarlet's army (the red team) about -30 %: scWarrior 250 -> 175, scArcher 175 -> 120.
 - MR3 wizards -20 %: bombMage 200 -> 160, thunderMonk (lightning) 150 -> 120, shrouder (pins, taken as the poison mage) 150 -> 120.

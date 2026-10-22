@@ -82,5 +82,11 @@
   },
   "shrouder": {
     "energy": 120
+  },
+  "scWarrior": {
+    "energy": 175
+  },
+  "scArcher": {
+    "energy": 120
   }
 }
