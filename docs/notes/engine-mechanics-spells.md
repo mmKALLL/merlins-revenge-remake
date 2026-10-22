@@ -270,7 +270,7 @@ Details:
 - Drawing: `src/render/weapon-selector.ts` (the palettes, the current weapon icon), and in
   `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
 - Every spell in the table is ported but the golden machine gun (an open item; its scroll tile
-  stays unspawned). Test content: `?map=spells_test` (`tools/make-spells-test-map.mjs`).
+  stays unspawned). Test content: `?map=not_fully_tested/spell_test` (`tools/make-spells-test-map.mjs`).
 - Left out: experience in the army details (not ported anywhere), the in-game wizards, the axe's
   `splashGraveOn` stamp, the engine's 50 px splash test (see the remake decision), the monk's ghost
   (`reincarnateAs #monkGhost`, objAiCPUGhost), and the enemies that fire pulses, beams or lay mines

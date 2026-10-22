@@ -59,7 +59,7 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 ## Awaiting the owner's review
 
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
-  `?map=spells_test`): every scroll but the golden machine gun gives its weapon; Q opens the
+  `?map=not_fully_tested/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
   original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
   weapon. To confirm: the army summon's starting army (2 warriors, 2 archers, a monk, a dwarf; in
   `assets/tuning.json`), the current weapon icon in the top strip (the original only shows the Q
