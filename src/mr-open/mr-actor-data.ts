@@ -175,9 +175,9 @@ export interface ActorDef {
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
   startingArmy: Record<string, number>
   /**
-   * A bullet that hits on landing, every hated unit whose sprite rect meets a circle of this radius
-   * (px) around where it lands, with modSplashDamage's push; null = it hits its target on contact.
-   * The engine's #splashDamageOn bullets (the dwarf tower's axe) reach `power` px instead.
+   * A bullet that hits on landing (modSplashDamage): every hated unit whose reg point is within this
+   * many px of where it lands, with the splash push; null = it hits its target on contact. The
+   * engine's #splashDamageOn bullets (the dwarf tower's axe) reach `power` px (50); tuned to match.
    */
   splashRadius: number | null
   splashGraveOn: boolean // modSplashDamage: a splash bullet stamps its #grave image where it lands (the dwarf tower's axe: a crack)

@@ -285,9 +285,9 @@ Details:
   it demolishes the team's buildings of the type left behind (no grave) and starts a new one beside
   itself (`buildingInActiveRange`, `demolishOutOfRange` in `src/sim/tick-builder.ts`).
 
-- **The dwarf tower's attack (owner requests, 2026-10-22).** Its axe now lands with a 24 px circle
-  (`towerAxe.splashRadius` 24 in `assets/tuning.json`; the engine's own reach is 50 px centre to
-  centre) and leaves a crack where it lands: `splashGraveOn` (act_towerAxe) stamps the bullet's
+- **The dwarf tower's attack (owner requests, 2026-10-22).** Its axe now hits, as the engine does, every
+  hostile whose reg point is within 50 px of where it lands (`towerAxe.splashRadius` 50; owner
+  decision, after trying 16 and 24 px circles meeting the sprite rect) and leaves a crack where it lands: `splashGraveOn` (act_towerAxe) stamps the bullet's
   grave image, and the axe's grave frame is cut from the middle of the cracks actor's grave
   (`tools/copy-assets.ts`, 40x36 around its reg point). The tower also no longer drops an attack
   whose target dies during its long wind-up (strike frame 31): `keepAttackOnTargetLoss` (remake,

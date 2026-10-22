@@ -16,7 +16,7 @@ import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
 import { HealthBars, type StandBox } from './health-bars'
 import { MiniMapLayer } from './minimap'
-import { PickupHud, pickupAlpha } from './pickups'
+import { PickupHud, pickupAlpha, pulseWhiteness } from './pickups'
 import { PlayerHealthBar } from './player-health-bar'
 import { WeaponSelectorLayer } from './weapon-selector'
 import { PIXEL_TEXT } from './text-options'
@@ -48,6 +48,12 @@ const DEBUG_TEXT = { gap: 8, fontSize: 8, lineHeight: 8 }
 const NO_TINT = 0xffffff
 /** modColourTransform.glowTeal: the frozen sprite is blended this far toward its target colour rgb(0, 255, 255). */
 const TEAL_GLOW_SHARE = 0.5
+
+/** The colours blended toward white by `w` (0 = unchanged, 1 = a white silhouette), alpha kept. */
+function setWhiteness(f: ColorMatrixFilter, w: number): void {
+  const k = 1 - w
+  f.matrix = [k, 0, 0, 0, w, 0, k, 0, 0, w, 0, 0, k, 0, w, 0, 0, 0, 1, 0]
+}
 
 /** A colour matrix blending every pixel TEAL_GLOW_SHARE of the way to teal (shared by every frozen sprite). */
 function tealGlowFilter(): ColorMatrixFilter {
@@ -114,6 +120,7 @@ export class Scene {
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
   private tealGlow = tealGlowFilter()
+  private whiteFlash = new ColorMatrixFilter()
   private healthBar: PlayerHealthBar
   private pickupHud: PickupHud
   private weaponSelector: WeaponSelectorLayer
@@ -324,7 +331,7 @@ export class Scene {
       if (spell) this.styleSpell(spr, a, def, tex)
       else if (bullet && a.beamFrom) this.styleBeam(spr, a, pos)
       else if (bullet) this.styleBullet(spr, a)
-      else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg)
+      else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a))
       if (spell) this.syncSpellIcon(s, a, def, spr)
     }
     for (const [id, spr] of this.actorSprites) {
@@ -424,11 +431,16 @@ export class Scene {
    * Characters mirror to face left; a frozen one glows teal (modFreeze.glowTeal); a teleporting one
    * stretches tall from the floor and fades (modTeleport).
    */
-  private styleCharacter(spr: Sprite, a: ActorState, alpha: number, tex: Texture, reg: Vec | undefined): void {
+  private styleCharacter(spr: Sprite, a: ActorState, alpha: number, tex: Texture, reg: Vec | undefined, whiteness: number): void {
     spr.rotation = 0
     spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
     spr.tint = NO_TINT
-    spr.filters = a.glowTeal ? [this.tealGlow] : null
+    if (whiteness > 0) {
+      setWhiteness(this.whiteFlash, whiteness)
+      spr.filters = [this.whiteFlash]
+    } else {
+      spr.filters = a.glowTeal ? [this.tealGlow] : null
+    }
     spr.alpha = alpha
     if (a.teleport === null) return
     const look = teleportLook(a.teleport, a.teleportAge, tex.height)

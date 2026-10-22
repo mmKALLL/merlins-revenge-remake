@@ -188,9 +188,9 @@ describe('pulses and mines', () => {
 })
 
 describe("the dwarf tower's axe with a splash radius (remake)", () => {
-  it('hits every hostile unit whose sprite rect meets the circle around where it lands, and no other', () => {
+  it('hits every hostile unit within its radius of where it lands (reg point to reg point), and no other', () => {
     const base = world({})
-    let s: SimState = { ...base, defs: { ...base.defs, towerAxe: { ...base.defs['towerAxe']!, splashRadius: 16 } } }
+    let s: SimState = { ...base, defs: { ...base.defs, towerAxe: { ...base.defs['towerAxe']!, splashRadius: 50 } } }
     const impact = { x: 300, y: PLAYER.y }
     const goblinAt = [impact, { x: impact.x + 20, y: impact.y }, { x: impact.x + 60, y: impact.y }]
     for (const pos of goblinAt) {

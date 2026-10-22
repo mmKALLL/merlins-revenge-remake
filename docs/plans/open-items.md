@@ -28,7 +28,7 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   medikit, maxikit, pickup, writing fade, temporary invincibility and the HUD. Open: wire in the real
   `maxikit_potion` / `maxikit_writing` members (gfx cast members 679/680, dumpable with
   `tools/director-extract/dump_bitmaps.py maxikit_`; stand-ins now: the objects tile and the
-  medikit's writing), `pulseWhite` (Merlin's alpha pulses instead), save/load of the pickups.
+  medikit's writing) save/load of the pickups.
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in
@@ -75,10 +75,9 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   energy and invincibility too) instead of the full heal. Touch: a blue army button above the
   weapon button (below it in portrait) acts as R, at the nearest enemy. A blank army summon (below
   its first stage) flies at Merlin's nearest ally, sending one home.
-- The dwarf tower (2026-10-22, owner requests): its axe hits every hostile whose sprite rect meets a
-  24 px circle where it lands and leaves a crack (`towerAxe.splashRadius`; the original's
-  splashDamageOn reaches 50 px from the axe to each unit's reg point and its push pulls toward the
-  axe), it throws at a dead target's last spot, the dwarf builds 4x slower and leaves mid-build once
+- The dwarf tower (2026-10-22, owner requests): its axe hits every hostile within 50 px (reg point to
+  reg point) of where it lands, as the original's splashDamageOn does, and leaves a crack (to
+  confirm: the Lingo's push pulls toward the axe), it throws at a dead target's last spot, the dwarf builds 4x slower and leaves mid-build once
   the fight is over, and in the open world continues the nearest unfinished tower in range.
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.

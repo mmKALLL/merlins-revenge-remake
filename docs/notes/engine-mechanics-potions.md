@@ -165,3 +165,8 @@ energy every 5 ticks at all times. Once the fight is over (the room is clear; in
 world, nav mode) the kit runs `medikitRestRate` heal steps a tick (player 3 in `assets/tuning.json`,
 engine default 1), so it heals three times as fast between fights.
 
+**pulseWhite (2026-10-22).** The invincible Merlin now flashes white as the engine does
+(modInvince.pulseWhite -> modColourTransform: an objTransColor from white to his normal colour and
+back, 0 -> 100 at speed 10, so ten ticks each way): a colour matrix blends his sprite toward white
+(`pulseWhiteness` in `src/render/pickups.ts`). Until then the remake pulsed his alpha instead.
+

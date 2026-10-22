@@ -4,12 +4,12 @@
 // (charge, release, explosion) is in tick-spell.ts.
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import {
-  aimWithEyestrain, bulletPush, circleMeetsRect, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, splashPush, tickCooldown,
+  aimWithEyestrain, bulletPush, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, splashPush, tickCooldown,
 } from '../mr-open/mr-attack'
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
 import { rectAt } from '../mr-open/mr-collision'
 import { freezeTicksAfter } from '../mr-open/mr-freeze'
-import type { Vec } from '../mr-open/mr-geometry'
+import { distance, type Vec } from '../mr-open/mr-geometry'
 import { explodeWithCharge, type SplashVictim } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
@@ -309,7 +309,8 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
  */
 function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number): void {
   for (const v of hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits)) {
-    if (!circleMeetsRect(a.pos, radius, spriteRectFor(t.s, v))) continue
+    // modSplashDamage.calcAttackHitSplash: the unit's reg point within `radius` of the axe
+    if (distance(v.pos, a.pos) >= radius) continue
     const victim = hitTargetIn(t, v.id)
     if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), withOwnerDamage(t, a, def.attack))
   }

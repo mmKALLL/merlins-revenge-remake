@@ -110,7 +110,7 @@
     }
   },
   "towerAxe": {
-    "splashRadius": 24
+    "splashRadius": 50
   },
   "dwarf": {
     "buildRate": 25

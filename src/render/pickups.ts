@@ -10,16 +10,24 @@ import { WRITING_FADE_TICKS, medikitsHeld } from '../mr-open/mr-pickup'
 import type { ActorState, SimState } from '../sim/state'
 import { PIXEL_TEXT } from './text-options'
 
-/** Ticks per alpha pulse of the invincible Merlin (modInvince.pulseWhite; the remake fades instead of whitening). */
-const INVINCE_PULSE_TICKS = 10
-const INVINCE_MIN_ALPHA = 0.35
+/**
+ * modInvince.pulseWhite -> modColourTransform: an objTransColor from white to the sprite's normal
+ * colour and back (pingpong), 0 -> 100 at speed 10 a tick: ten ticks each way.
+ */
+const PULSE_WHITE_HALF_TICKS = 10
 
-/** The sprite alpha for an actor: a collected pickup's writing fades out, an invincible Merlin pulses. */
+/** The sprite alpha for an actor: a collected pickup's writing fades out. */
 export function pickupAlpha(s: SimState, a: ActorState): number {
   if (a.mode === 'collected') return Math.max(0, 1 - a.age / WRITING_FADE_TICKS)
-  if (a.id !== s.playerId || s.pickups.invinceTicks === 0) return 1
-  const wave = (1 + Math.cos((2 * Math.PI * s.tick) / INVINCE_PULSE_TICKS)) / 2
-  return INVINCE_MIN_ALPHA + (1 - INVINCE_MIN_ALPHA) * wave
+  return 1
+}
+
+/** How white the invincible Merlin is drawn (1 = all white, 0 = normal; pulseWhite), 0 for anyone else. */
+export function pulseWhiteness(s: SimState, a: ActorState): number {
+  if (a.id !== s.playerId || s.pickups.invinceTicks === 0) return 0
+  const phase = s.tick % (2 * PULSE_WHITE_HALF_TICKS)
+  const towardNormal = phase < PULSE_WHITE_HALF_TICKS ? phase : 2 * PULSE_WHITE_HALF_TICKS - phase
+  return 1 - towardNormal / PULSE_WHITE_HALF_TICKS
 }
 
 /** objMedikitDisplayer and potionMaster spacings in px. */
