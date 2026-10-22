@@ -86,6 +86,26 @@ describe("The Sorcerer's Tower", () => {
     }
   })
 
+  it("gives each floor's start rewards in its start room, with a different spell scroll on every floor", () => {
+    for (const { seed, tower } of towers) {
+      const scrolls = TOWER_FLOORS.map((theme, k) => {
+        const rewards = theme.units.startRewards
+        const inStart = tower.placements.filter((p) => sameVec(p.room, corners(k).start))
+        const potions = inStart.filter((p) => rewards.potions.some((r) => r.value === p.key))
+        const scroll = inStart.filter((p) => rewards.spellScrolls.some((s) => s.value === p.key))
+        expect(potions, `seed ${seed} floor ${k}`).toHaveLength(rewards.potionCount)
+        expect(inStart.filter((p) => p.key === 'medikit')).toHaveLength(rewards.medikits)
+        expect(scroll).toHaveLength(1)
+        if (k === 0) {
+          const player = inStart.find((p) => p.key === 'player')!
+          for (const p of [...potions, ...scroll]) expect(sameVec(p.tile, player.tile)).toBe(false)
+        }
+        return scroll[0]!.key
+      })
+      expect(new Set(scrolls).size).toBe(scrolls.length)
+    }
+  })
+
   it('names every unit by its symbol in the combined objects key', () => {
     const { tower } = towers[0]!
     for (const p of tower.placements) {

@@ -68,6 +68,8 @@ export interface FloorOptions {
   /** false for the tower's later floors: their start room only plays the start music */
   placePlayer?: boolean
   boundaryOpenings?: readonly BoundaryOpening[]
+  /** the start room's spell scroll; drawn from the theme's list when unset */
+  spellScroll?: string
 }
 
 export interface GeneratedFloor {
@@ -96,7 +98,6 @@ function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): Gen
   const size = theme.floorSize
   const edges = decideEdges(rng, theme)
   for (const b of options.boundaryOpenings ?? []) edges[roomKey(b.room)]![b.edge] = b.opening
-  const placePlayer = options.placePlayer ?? true
   const rooms: RoomDefinition[] = []
   const placements: Placement[] = []
   for (let y = 1; y <= size.y; y++) {
@@ -105,7 +106,7 @@ function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): Gen
       const keepOpen = reservedTiles(size, room)
       const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
       decorate(rng, shape, theme.shape.decorationChance)
-      const units = placeUnits(rng, theme, room, shape, placePlayer)
+      const units = placeUnits(rng, theme, room, shape, options)
       placements.push(...units)
       rooms.push(roomDefinition(rng, theme, room, shape, units))
     }
@@ -242,48 +243,95 @@ function pickForm(rng: GenRandom, q: QuantityTuning, canProduce: boolean): RoomF
 
 const amountAt = (rng: GenRandom, a: Amount, fx: number): number => Math.floor(a.base + a.farX * fx + rng.next())
 
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, placePlayer: boolean): Placement[] {
+// ---- the start room ----
+
+/** Start rewards keep at least this many tiles (along x or y) from Merlin's start or arrival tile. */
+const REWARD_MIN_DISTANCE = 2
+const MEDIKIT = 'medikit'
+
+/** The floor-start rewards, in the order they take the tiles nearest Merlin. */
+export function startRewardKeys(rng: GenRandom, theme: FloorTheme, spellScroll?: string): string[] {
+  const r = theme.units.startRewards
+  return [
+    ...Array.from({ length: r.potionCount }, () => rng.weighted(r.potions)),
+    ...Array.from({ length: r.medikits }, () => MEDIKIT),
+    spellScroll ?? rng.weighted(r.spellScrolls),
+    ...r.extras,
+  ]
+}
+
+const byDistanceTo = (to: Vec) => (a: Vec, b: Vec): number => Math.hypot(a.x - to.x, a.y - to.y) - Math.hypot(b.x - to.x, b.y - to.y)
+
+/**
+ * Where Merlin comes into the start room: the player's tile, or on the tower's later floors the
+ * inside end of the stair from below (the middle of the room's bottom boundary opening).
+ */
+function arrivalTile(room: Vec, options: FloorOptions, playerTile: Vec | undefined): Vec {
+  if (playerTile) return playerTile
+  const stair = options.boundaryOpenings?.find((b) => sameVec(b.room, room) && b.edge === 'bottom')
+  if (!stair) throw new Error('a start room without the player needs a stair from below')
+  return { x: (stair.opening.from + stair.opening.to) / 2, y: ROOM_SIZE.y - 1 }
+}
+
+/**
+ * The start room: the player (unless the floor is not the first in the tower) and the start music
+ * on the tiles nearest the room's centre, then the rewards on the free tiles nearest where Merlin
+ * starts or arrives, at least REWARD_MIN_DISTANCE away from it.
+ */
+function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec[], options: FloorOptions): Placement[] {
+  const u = theme.units
+  const centre = { x: (ROOM_SIZE.x - 1) / 2, y: (ROOM_SIZE.y - 1) / 2 }
+  const free = [...tiles].sort(byDistanceTo(centre))
+  const take = (key: string, tile: Vec): Placement => {
+    free.splice(free.indexOf(tile), 1)
+    return { key, room, tile }
+  }
+  const player = (options.placePlayer ?? true) ? take(u.player, free[0]!) : undefined
+  const music = take(u.startMusic, free[0]!)
+  const arrival = arrivalTile(room, options, player?.tile)
+  const farEnough = (t: Vec) => Math.max(Math.abs(t.x - arrival.x), Math.abs(t.y - arrival.y)) >= REWARD_MIN_DISTANCE
+  const rewardTiles = free.filter(farEnough).sort(byDistanceTo(arrival))
+  const rewards = startRewardKeys(rng, theme, options.spellScroll).slice(0, rewardTiles.length)
+    .map((key, i) => ({ key, room, tile: rewardTiles[i]! }))
+  return [...(player ? [player] : []), music, ...rewards]
+}
+
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, options: FloorOptions): Placement[] {
   const u = theme.units
   const isExit = sameVec(room, exitRoom(theme.floorSize))
   const reserved = reservedTiles(theme.floorSize, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)))
+  if (sameVec(room, startRoom(theme.floorSize))) return placeStartRoom(rng, theme, room, tiles, options)
   const keys: string[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
-  if (sameVec(room, startRoom(theme.floorSize))) {
-    const centre = { x: (shape.size.x - 1) / 2, y: (shape.size.y - 1) / 2 }
-    tiles.sort((a, b) => Math.hypot(a.x - centre.x, a.y - centre.y) - Math.hypot(b.x - centre.x, b.y - centre.y))
-    if (placePlayer) keys.push(u.player)
-    keys.push(u.startMusic)
-  } else {
-    const { fx, fy } = progress(theme.floorSize, room)
-    const draw: RoomDraw = { difficulty: difficultyOf(theme, fy), fx, fy, faction: null }
-    const boss = isExit ? rng.pick(u.bosses) : null
-    const group = boss ?? specialGroup(rng, theme, room)
-    draw.faction = group?.faction ?? pickFaction(rng, u.enemies, draw)
-    const counts = new Map<string, number>()
-    const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
-    const add = (key: string | null) => {
-      if (!key) return
-      keys.push(key)
-      count(key)
-    }
-    if (boss) {
-      fixed.push({ key: boss.boss, room, tile: BOSS_TILE })
-      count(boss.boss)
-    }
-    for (const [key, n] of Object.entries(group?.units ?? {})) {
-      for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
-    }
-    const regulars = u.enemies.filter((c) => !c.producer)
-    const producers = [...u.dwellings, ...u.enemies.filter((c) => c.producer)]
-    const q = u.quantity
-    const form: RoomForm = isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
-    const addFrom = (table: readonly EnemyChoice[], n: number) => { for (let i = 0; i < n; i++) add(pickUnit(rng, table, draw, counts)) }
-    if (form !== 'producers') addFrom(regulars, amountAt(rng, q.swarm, fx))
-    if (form !== 'swarm') addFrom(producers, amountAt(rng, q.producers, fx))
-    if (form === 'producers') addFrom(regulars, rng.int(q.escorts[0], q.escorts[1]))
-    if (isExit) keys.push(u.exitMusic)
+  const { fx, fy } = progress(theme.floorSize, room)
+  const draw: RoomDraw = { difficulty: difficultyOf(theme, fy), fx, fy, faction: null }
+  const boss = isExit ? rng.pick(u.bosses) : null
+  const group = boss ?? specialGroup(rng, theme, room)
+  draw.faction = group?.faction ?? pickFaction(rng, u.enemies, draw)
+  const counts = new Map<string, number>()
+  const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
+  const add = (key: string | null) => {
+    if (!key) return
+    keys.push(key)
+    count(key)
   }
+  if (boss) {
+    fixed.push({ key: boss.boss, room, tile: BOSS_TILE })
+    count(boss.boss)
+  }
+  for (const [key, n] of Object.entries(group?.units ?? {})) {
+    for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
+  }
+  const regulars = u.enemies.filter((c) => !c.producer)
+  const producers = [...u.dwellings, ...u.enemies.filter((c) => c.producer)]
+  const q = u.quantity
+  const form: RoomForm = isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
+  const addFrom = (table: readonly EnemyChoice[], n: number) => { for (let i = 0; i < n; i++) add(pickUnit(rng, table, draw, counts)) }
+  if (form !== 'producers') addFrom(regulars, amountAt(rng, q.swarm, fx))
+  if (form !== 'swarm') addFrom(producers, amountAt(rng, q.producers, fx))
+  if (form === 'producers') addFrom(regulars, rng.int(q.escorts[0], q.escorts[1]))
+  if (isExit) keys.push(u.exitMusic)
   return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]
 }
 

@@ -20,6 +20,8 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   const floors = new Map<number, GeneratedFloor>(SEEDS.map((s) => [s, generateFloor(theme, s)]))
   const roomOf = (f: GeneratedFloor, room: Vec) => f.map.rooms[(room.y - 1) * size.x + room.x - 1]!
   const activeAt = (f: GeneratedFloor, room: Vec, x: number, y: number): number => roomOf(f, room).layers.backgroundActive![y]![x]!
+  const rewards = theme.units.startRewards
+  const rewardKeys = new Set(['medikit', ...rewards.potions.map((p) => p.value), ...rewards.spellScrolls.map((s) => s.value), ...rewards.extras])
 
   it('is the same map for the same seed', () => {
     expect(generateFloor(theme, 1234)).toEqual(generateFloor(theme, 1234))
@@ -72,7 +74,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
         expect(objects.symbols[roomOf(f, p.room).layers.objects![p.tile.y]![p.tile.x]! - 1]).toBe(p.key)
       }
       const start = f.placements.filter((p) => sameRoom(p.room, startRoom(size))).map((p) => p.key)
-      expect(start.sort()).toEqual([theme.units.player, theme.units.startMusic].sort())
+      expect(start.filter((k) => !rewardKeys.has(k)).sort()).toEqual([theme.units.player, theme.units.startMusic].sort())
       const exitUnits = f.placements.filter((p) => sameRoom(p.room, exitRoom(size)))
       expect(exitUnits.some((p) => p.key !== theme.units.exitMusic)).toBe(true)
     }
@@ -120,8 +122,24 @@ describe.each(THEMES)('random floor: $name', (theme) => {
           expect(fromCorner).toBeLessThanOrEqual(3)
         }
       }
-      expect(f.placements.filter((p) => potionKeys.has(p.key))).toHaveLength(4)
+      expect(f.placements.filter((p) => potionKeys.has(p.key) && !sameRoom(p.room, startRoom(size)))).toHaveLength(4)
     }
+  })
+
+  it('gives the start rewards in the start room, off the player tile and connected to it', () => {
+    const potionKeys = new Set(rewards.potions.map((p) => p.value))
+    const scrollKeys = new Set(rewards.spellScrolls.map((s) => s.value))
+    for (const [seed, f] of floors) {
+      const inStart = f.placements.filter((p) => sameRoom(p.room, startRoom(size)))
+      const player = inStart.find((p) => p.key === theme.units.player)!
+      const given = inStart.filter((p) => rewardKeys.has(p.key))
+      expect(given.filter((p) => potionKeys.has(p.key)), `seed ${seed}`).toHaveLength(rewards.potionCount)
+      expect(given.filter((p) => p.key === 'medikit')).toHaveLength(rewards.medikits)
+      expect(given.filter((p) => scrollKeys.has(p.key))).toHaveLength(1)
+      for (const extra of rewards.extras) expect(given.some((p) => p.key === extra)).toBe(true)
+      for (const p of given) expect(sameRoom(p.tile, player.tile)).toBe(false)
+    }
+    // floorIsConnected (checked above for every seed) reaches every placement from the player
   })
 
   it('sets the start and exit corners on the map', () => {
@@ -150,7 +168,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     for (const [symbol, index] of Object.entries(theme.objectTiles)) expect(objects.symbols[index - 1]).toBe(symbol)
     const u = theme.units
     const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
-      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value)]
+      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
   })
 })

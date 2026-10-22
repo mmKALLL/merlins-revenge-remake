@@ -10,14 +10,23 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   (`act_*Spell` and scroll data). Needs weapon selection (the original `weaponSelector` palette and
   the spell1..9 keys), spell scroll pickups, and per-spell mechanics. Many mechanics (summons,
   heals, exploding bullets, multi-attacks) are already ported for enemies
-  (`docs/notes/engine-mechanics-enemies-3.md`), so much may be data plus player wiring.
+  (`docs/notes/engine-mechanics-enemies-3.md`), so much may be data plus player wiring. The random
+  floors already place one spell scroll in each start room (skipped by the sim until `objScroll`
+  spawns; `docs/plans/2026-09-28-random-floor-design.md`, Start rewards). Owner rule for the army
+  summon scroll: it comes with 2 warriors, 2 archers, 1 monk (healer) and 1 dwarf (tower builder),
+  as a starting reserve army (the original's scroll brings none; see the design doc).
+- **Golden machine gun (pending reward).** `act_gmg` (an objScroll: `gmgOn` swaps the spell's
+  charge for the `gmg*` fields and auto-fires). Once ported, the Magic Maze (floor 4) also gives it
+  at the start: set `MAZE_GIVES_GOLDEN_MACHINE_GUN` in `src/gen/themes.ts` (the `gmg` tile is
+  merlinOpenObjects 38).
 
 ## Backlog
 
 - **Roguelite floors.** Four random 3x3 floors exist, one per sketch floor
   (`?map=randomly_generated/1-goblin-forest`, `2-undead-marsh`, `3-dragon-canyon`, `4-magic-maze`), and the
   four stacked into the tower (`randomly_generated/sorcerers-tower`; `src/gen/`,
-  `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Two potions wait in each floor's side corner rooms. Next: floor-start rewards, MR3 wizards and the
+  `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Two potions wait in each floor's side corner rooms; each start room gives 4 potions, a medikit
+  and a spell scroll (inert until scrolls are ported). Next: MR3 wizards and the
   Black Sorcerer once ported, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an

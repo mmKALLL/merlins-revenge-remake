@@ -144,6 +144,26 @@ export interface UnitTuning {
   bosses: BossGroup[]
   /** pickups for the two side corner rooms, each potion drawn by weight (floor.ts potionTiles) */
   potions: Weighted<string>[]
+  startRewards: StartRewards
+}
+
+/**
+ * The floor-start rewards (owner request): pickups in the start room near where Merlin starts, or
+ * on the tower's later floors where he comes up the stair (floor.ts startRewardKeys, rewardTiles).
+ */
+export interface StartRewards {
+  /** potions drawn by weight, `potionCount` of them */
+  potions: Weighted<string>[]
+  potionCount: number
+  medikits: number
+  /**
+   * One spell scroll per floor, drawn by weight; the tower draws one per floor without repeats.
+   * The sim does not spawn scrolls yet (PENDING_SCROLLS), so until they are ported they are only
+   * tiles on the map.
+   */
+  spellScrolls: Weighted<string>[]
+  /** further pickups, one each */
+  extras: string[]
 }
 
 export interface FloorTheme {
@@ -170,6 +190,36 @@ export const DEFAULT_FLOOR_SIZE: Vec = { x: 3, y: 3 }
 
 const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 
+// ---- floor-start rewards ----
+
+/** Owner rule: every floor starts with four potions and a medikit. */
+const START_POTIONS = 4
+const START_MEDIKITS = 1
+/** The four potions without the kits, weighted as the corner lists weigh them. */
+const START_POTION_WEIGHTS = [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1)]
+
+const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): StartRewards =>
+  ({ potions: START_POTION_WEIGHTS, potionCount: START_POTIONS, medikits: START_MEDIKITS, spellScrolls, extras })
+
+/**
+ * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols. The sim
+ * skips objScroll tiles until scrolls are ported (src/sim/actors.ts spawnRoomActors). energyBlast
+ * is left out: Merlin starts with it.
+ */
+export const SPELL_SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon',
+  'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword'] as const
+
+/** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
+export const GOLDEN_MACHINE_GUN = 'gmg'
+/**
+ * Owner note: the Magic Maze also gives the golden machine gun once act_gmg is ported. Off until
+ * then; on, the maze's start rewards include it.
+ */
+export const MAZE_GIVES_GOLDEN_MACHINE_GUN = false
+
+/** Reward keys the sim does not spawn yet: the scrolls. */
+export const PENDING_SCROLLS: ReadonlySet<string> = new Set<string>([...SPELL_SCROLLS, GOLDEN_MACHINE_GUN])
+
 // ---- Goblin Forest (merlin4 tilesets) ----
 
 /** merlin4Objects key indices (assets/tile-keys/merlin4Objects.txt, 8 per row). */
@@ -195,6 +245,14 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   manaFlow: 15,
   walkSpeed: 16,
   medikit: 17,
+  armySummon: 10,
+  energyMines: 11,
+  energyPulseSpell: 12,
+  cBlast: 32,
+  merlinSword: 40,
+  healBlast: 101,
+  energyPunch: 103,
+  monsterSummon: 104,
 }
 
 export const MERLIN4_TILESETS: Record<LayerName, string> = {
@@ -287,6 +345,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
     potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2)],
+    startRewards: startRewards([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)]),
   },
 }
 
@@ -343,6 +402,17 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   walkSpeed: 44,
   medikit: 45,
   maxikit: 46,
+  armySummon: 22,
+  energyMines: 23,
+  energyPulseSpell: 24,
+  cBlast: 25,
+  energyPunch: 26,
+  monsterSummon: 27,
+  healBlast: 28,
+  arcticBlast: 29,
+  energyBeamSpell: 30,
+  gmg: 38,
+  merlinSword: 39,
 }
 
 export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
@@ -461,6 +531,8 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead', boss: 'necromancer' },
     ],
     potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
+    startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1),
+      w('healBlast', 1), w('monsterSummon', 1)]),
   },
 }
 
@@ -533,6 +605,7 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: 'hydra den', units: { hydra3: 1, plant: 2 }, boss: 'hydra3' },
     ],
     potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
+    startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
   },
 }
 
@@ -607,6 +680,8 @@ export const MAGIC_MAZE: FloorTheme = {
       { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1), w('medikit', 1), w('maxikit', 2)],
+    startRewards: startRewards([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
+      MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []),
   },
 }
 

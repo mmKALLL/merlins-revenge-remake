@@ -1,6 +1,6 @@
 // Generated floors and the tower in the real sim, with the page's converted data (pnpm assets:convert): they
 // start clear in the start room, clearing the exit room completes the map, and every unit a theme
-// can place is a ported actor with sprites.
+// can place (the pending scrolls aside) is a ported actor with sprites.
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { tileCentre } from '../mr-open/mr-geometry'
@@ -10,7 +10,7 @@ import { anims } from '../sim/test-data'
 import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
 import { ROOM_SIZE, exitRoom, generateFloor } from './floor'
-import { THEMES, type FloorTheme } from './themes'
+import { PENDING_SCROLLS, THEMES, type FloorTheme } from './themes'
 import { generateTower } from './tower'
 import { TOWER_TILESETS } from './tower-tilesets'
 
@@ -53,6 +53,7 @@ describe.each(THEMES)('random floor in the sim: $name', (theme) => {
 
   it('places only ported actors with sprites', () => {
     for (const key of Object.keys(theme.objectTiles)) {
+      if (PENDING_SCROLLS.has(key)) continue
       const def = pageDefs[key]
       expect(def, key).toBeDefined()
       if (def!.objType === MUSIC_OBJ_TYPE) continue

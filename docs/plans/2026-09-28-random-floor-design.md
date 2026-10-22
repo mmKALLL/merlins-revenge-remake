@@ -71,7 +71,7 @@ disconnected map. Generation takes 1-7 ms per floor.
 
 ## Units
 
-- Start room: the player only (plus the theme's music tile), no enemies.
+- Start room: the player (plus the theme's music tile) and the start rewards below, no enemies.
 - **Quality over y, quantity over x** (owner rule). Difficulty ramps over the y share only, from the
   theme's start value in the start row to its exit value in the far row, and gates the stronger
   choices (`minDifficulty`, `maxPerRoom`). Choices can also gain weight toward the far column or row
@@ -104,6 +104,94 @@ disconnected map. Generation takes 1-7 ms per floor.
   (the original maps place them as rewards alongside potions), maxikits only on the merlinOpen
   floors (merlin4Objects has no maxikit tile), most of them in the maze.
 - Units go on reachable open tiles at least two tiles from every room edge, one per tile.
+
+## Start rewards (owner request)
+
+Every floor's start room, and in the tower every floor's start room, gives (`units.startRewards`
+in `themes.ts`, `placeStartRoom` in `floor.ts`):
+
+- **4 potions** drawn from the theme's start potion list (the four potions weighted as the corner
+  lists weigh them: Quick Charge 3, Max Blast 3, Burst 2, Walk Speed 1; no kits) and **1 medikit**.
+- **1 spell scroll** drawn from the theme's weighted `spellScrolls` (below). The tower draws the
+  four floors' scrolls up front, bottom up, each without the ones drawn below it, so a tower run
+  never repeats a spell (`drawSpellScrolls` in `tower.ts`, passed as `FloorOptions.spellScroll`).
+- `extras`: further pickups, one each; the maze's golden machine gun goes here (below).
+
+Placement: the player and the music take the reachable tiles nearest the room's centre as before;
+the rewards then take the free unit tiles (reachable, two tiles off every edge, so never on a stair
+opening) nearest the tile where Merlin comes in, at least 2 tiles (Chebyshev) from it: the
+player's tile, or on the tower's floors 2-4 the inside end of the stair from below (the middle of
+the start room's bottom boundary opening). They are placements, so the connectivity check covers
+them, and a mirrored tower floor mirrors them with the room. Tests: counts per start room (single
+floors over 500 seeds, the tower over 40), never on the player's tile, distinct scrolls per tower.
+
+### Spell scrolls
+
+The scroll pickups are the original's `act_<spell>` files with `objType #objScroll`
+(`objScroll.collected` -> `objPlayerMerlinCharacter.newScrollCollected`: `addWeapon(character,
+attack)`, +25 energy, temporary invincibility; for `#gmg` `gmgCollected` instead). The sim does not
+spawn objScroll yet: `spawnRoomActors` skips the tile with its "not spawnable yet" (or "no actor
+definition", for scrolls whose `act_` file is not copied yet) console note, so until scrolls are
+ported a scroll is only a tile on the map (`PENDING_SCROLLS`; `floor-sim.test.ts` exempts them from
+the ported-actor check). Energy blast is left out (Merlin starts with it).
+
+| Key | merlinOpenObjects | merlin4Objects | Spell |
+|---|---|---|---|
+| armySummon | 22 | 10 | summons the reserve army (below) |
+| energyMines | 23 | 11 | `explodeFunction #depositMines` |
+| energyPulseSpell | 24 | 12 | `releaseFunction #fireBullets`, bullet `#energyPulse` |
+| cBlast | 25 | 32 | blast variant |
+| energyPunch | 26 | 103 | `animType #magicMelee` |
+| monsterSummon | 27 | 104 | summons by charge: summonArcher, summonWarrior, summonOrc, summonBoulder, summonGolem |
+| healBlast | 28 | 101 | `payloadFunction #takeHeal` on friendlies |
+| arcticBlast | 29 | - | `[#takeFreeze, #takeHit]` |
+| energyBeamSpell | 30 | - | beam, bullet `#energyBeam` |
+| merlinSword | 39 | 40 | `animType #weaponMelee` (a sword, not a spell) |
+| gmg | 38 | - | golden machine gun |
+
+Theme lists (weights): Goblin Forest armySummon 3, energyMines 2, energyPulseSpell 2, merlinSword 2,
+healBlast 1 (allies early, merlin4 has no arctic or beam tile); Undead Marsh energyPulseSpell 2,
+energyMines 2, arcticBlast 2, cBlast 2, armySummon 1, healBlast 1, monsterSummon 1; Dragon Canyon
+arcticBlast 2, energyBeamSpell 2, cBlast 2, energyPunch 2, armySummon 1, monsterSummon 1; Magic Maze
+energyBeamSpell 3, cBlast 2, energyPunch 2, monsterSummon 2, arcticBlast 1.
+
+### Army summon and the owner's army
+
+Owner rule: the army summon spell comes with 2 warriors, 2 archers, 1 healer and 1 tower dwarf.
+What the original does (archive `casts/`):
+
+- `act_armySummon`: `explodeFunction #summonUnit`, `residentTeamCategory #aldevar`,
+  `payloadFunction #armyTeleportOut`, `targetAllegiance #friendly`, and the charge stages
+  `multistage [#warrior: 10, #archer: 15, #monk: 20, #dwarf: 25, #kingInGame: 32]`: the longer the
+  charge, the stronger the unit type summoned.
+- It does not create units. `armyMaster.createUnit` (`master_objects/armyMaster.txt`) returns
+  `#none` for `#armySummon` when `lookupArmyDetails(team, typ)` finds no saved unit, and
+  `checkUnitAvailability` / `modSpellMultistage.chargeReinInToAvailable` rein the charge in to the
+  best stage that has a unit. Units get into the reserve (`pReserveArmy`, per team and type) by
+  the same spell's payload: a blast on a friendly unit calls `modArmyUnit.armyTeleportOut`, which
+  records it (`recordUnitDetails`, with its experience level); summoning restores the highest-level
+  one (`restoreUnitToCombat`, `armyTeleportIn`). So in the original the spell moves an army Merlin
+  already has (allies placed on the map) between rooms.
+- `act_player #armyMembers [#warrior, #archer, #monk, #dwarf, #kingInGame]` is for
+  `modAutoSummon.summonArmy` (summon many reserve units at once with a button, slots shared by type).
+- The units: `act_warrior` (warriorSword), `act_archer` (archerBow), `act_monk`
+  (`objAiCPUSpellCaster`, weapon `#healBlast`: the healer), `act_dwarf` (`objAiCPUBuilder`,
+  `unitToBuild [#dwarfTower]`, `buildOne`, throws axes: the "tower dwarf"; `act_dwarfTower` is the
+  tower he builds, an `#aldevar` building that fires axes). All `#aldevar`, Merlin's team.
+
+Mapping: the owner's list is a **starting reserve army** filled in when the scroll is collected:
+`pReserveArmy[#aldevar]` gets `warrior` x2, `archer` x2, `monk` x1, `dwarf` x1 (level 0), which the
+spell's charge stages then summon (warrior from 10, archer 15, monk 20, dwarf 25). The king stage
+stays empty. To be done with the spell port, as a remake decision: tunable data on the scroll (an
+`ActorDef` field such as `startingArmy`, empty by default, set for `armySummon` in
+`assets/tuning.json`), recorded in the engine notes.
+
+### Golden machine gun (pending)
+
+Owner note: the Magic Maze (the mage tower, floor 4) should also give the golden machine gun once
+`act_gmg` is ported. The data is in place behind `MAZE_GIVES_GOLDEN_MACHINE_GUN = false`
+(`themes.ts`); on, the maze's `extras` hold `gmg` (merlinOpenObjects tile 38; merlin4Objects has
+none, and the tower takes merlinOpen's tile).
 
 ## Themes
 
@@ -183,4 +271,5 @@ at the bottom and the maze at the top, seeded via `?seed=` like the single floor
 
 Four themes on 3x3 floors and the tower. Known gaps: `mr.loadState` and the snapshot test helpers
 fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
-the seed passed to `generateMap`). Not yet: the floor-start rewards (spell or allies).
+the seed passed to `generateMap`). Start rewards are placed; their spell scrolls (and the army
+summon's starting army, and the maze's golden machine gun) wait for the spell port.
