@@ -117,5 +117,21 @@
   },
   "dwarfTower": {
     "keepAttackOnTargetLoss": true
+  },
+  "monsterSummon": {
+    "attack": {
+      "chargeSpeed": 0.42
+    }
+  },
+  "team:monsterSummon": {
+    "maxMembers": 12,
+    "overlay": {
+      "colour": {
+        "r": 150,
+        "g": 210,
+        "b": 255
+      },
+      "opacity": 0.3
+    }
   }
 }

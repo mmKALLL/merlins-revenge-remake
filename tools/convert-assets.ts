@@ -10,7 +10,7 @@ import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
 import { parseCutScene } from '../src/cutscene/script'
 import { GENERATED_MAPS } from '../src/gen/generated-maps'
 import { TOWER_TILESETS, TOWER_TILESET_PARTS, TOWER_TILES_PER_ROW } from '../src/gen/tower-tilesets'
-import { parseTeams } from '../src/mr-open/mr-team-data'
+import { parseTeams, withTeamTuning } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
 import { combineTilesets } from './combined-tileset'
@@ -178,7 +178,7 @@ function warnMapsUsing(maps: ConvertedMap[], lacks: (tileSet: string) => boolean
 
 const isPlain = (v: unknown): v is Plain => typeof v === 'object' && v !== null && !Array.isArray(v)
 
-/** assets/tuning.json: { actorKey: { field: value, ... } }; anything else is a data error named by file */
+/** assets/tuning.json: { actorKey: { field: value, ... }, 'team:<key>': { ... } }; anything else is a data error named by file */
 function readTuning(): Record<string, Plain> {
   const path = join(ASSETS, 'tuning.json')
   let parsed: unknown
@@ -225,7 +225,7 @@ function withPortedResidents(actors: Record<string, ActorDef>): Record<string, A
 }
 
 function convertTeams(): void {
-  const teams = parseTeams(readTxtDir('teams'))
+  const teams = withTeamTuning(parseTeams(readTxtDir('teams')), readTuning())
   writeFileSync(join(OUT, 'teams.json'), JSON.stringify(teams))
   console.log(`teams: ${Object.keys(teams).length} parsed`)
 }

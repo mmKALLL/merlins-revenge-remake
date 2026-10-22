@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { hostileTeamsTo, parseTeams } from './mr-team-data'
+import { hostileTeamsTo, parseTeams, withTeamTuning } from './mr-team-data'
 
 function loadFiles(): Record<string, string> {
   const out: Record<string, string> = {}
@@ -42,5 +42,16 @@ describe('parseTeams', () => {
 
   it('prefixes Lingo parse errors with the team key', () => {
     expect(() => parseTeams({ bad: '[#name: "tem_bad", #type: #field]\n[#teamName: ' })).toThrow(/^team bad: /)
+  })
+})
+
+describe('withTeamTuning (assets/tuning.json team:<key>)', () => {
+  it('sets a team\'s maxMembers and overlay, and names an unknown team', () => {
+    const base = parseTeams({ monsterSummon: '[#name: "tem_monsterSummon", #type: #field]\n[#teamName: #monsterSummon, #maxMembers: 3]' })
+    const tuned = withTeamTuning(base, { 'team:monsterSummon': { maxMembers: 12, overlay: { colour: { r: 150, g: 210, b: 255 }, opacity: 0.3 } }, player: {} })
+    expect(tuned['monsterSummon']!.maxMembers).toBe(12)
+    expect(tuned['monsterSummon']!.overlay).toEqual({ colour: { r: 150, g: 210, b: 255 }, opacity: 0.3 })
+    expect(base['monsterSummon']!.overlay).toBeNull()
+    expect(() => withTeamTuning(base, { 'team:nobody': { maxMembers: 1 } })).toThrow(/nobody/)
   })
 })

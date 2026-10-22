@@ -49,15 +49,32 @@ const NO_TINT = 0xffffff
 /** modColourTransform.glowTeal: the frozen sprite is blended this far toward its target colour rgb(0, 255, 255). */
 const TEAL_GLOW_SHARE = 0.5
 
+/**
+ * A colour matrix filter drawn at the canvas's own resolution ('inherit'), so a filtered sprite stays as
+ * sharp as the others (Pixi's default renders filters at 1x, which the 2x canvas blurs), without antialiasing.
+ */
+function pixelFilter(): ColorMatrixFilter {
+  return new ColorMatrixFilter({ resolution: 'inherit', antialias: 'off' })
+}
+
 /** The colours blended toward white by `w` (0 = unchanged, 1 = a white silhouette), alpha kept. */
 function setWhiteness(f: ColorMatrixFilter, w: number): void {
   const k = 1 - w
   f.matrix = [k, 0, 0, 0, w, 0, k, 0, 0, w, 0, 0, k, 0, w, 0, 0, 0, 1, 0]
 }
 
+/** A colour matrix blending every pixel `share` of the way to `colour` (0-255 channels), alpha kept. */
+function blendTowardFilter(colour: { r: number; g: number; b: number }, share: number): ColorMatrixFilter {
+  const f = pixelFilter()
+  const keep = 1 - share
+  const to = (c: number) => (c / 255) * share
+  f.matrix = [keep, 0, 0, 0, to(colour.r), 0, keep, 0, 0, to(colour.g), 0, 0, keep, 0, to(colour.b), 0, 0, 0, 1, 0]
+  return f
+}
+
 /** A colour matrix blending every pixel TEAL_GLOW_SHARE of the way to teal (shared by every frozen sprite). */
 function tealGlowFilter(): ColorMatrixFilter {
-  const f = new ColorMatrixFilter()
+  const f = pixelFilter()
   const keep = 1 - TEAL_GLOW_SHARE
   // rows R, G, B, A: [r, g, b, a, offset]; teal adds to green and blue
   f.matrix = [keep, 0, 0, 0, 0, 0, keep, 0, 0, TEAL_GLOW_SHARE, 0, 0, keep, 0, TEAL_GLOW_SHARE, 0, 0, 0, 1, 0]
@@ -120,7 +137,8 @@ export class Scene {
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
   private tealGlow = tealGlowFilter()
-  private whiteFlash = new ColorMatrixFilter()
+  private teamOverlays = new Map<string, ColorMatrixFilter | null>()
+  private whiteFlash = pixelFilter()
   private healthBar: PlayerHealthBar
   private pickupHud: PickupHud
   private weaponSelector: WeaponSelectorLayer
@@ -331,7 +349,7 @@ export class Scene {
       if (spell) this.styleSpell(spr, a, def, tex)
       else if (bullet && a.beamFrom) this.styleBeam(spr, a, pos)
       else if (bullet) this.styleBullet(spr, a)
-      else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a))
+      else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a), this.teamOverlay(s.teams, a.team))
       if (spell) this.syncSpellIcon(s, a, def, spr)
     }
     for (const [id, spr] of this.actorSprites) {
@@ -431,15 +449,26 @@ export class Scene {
    * Characters mirror to face left; a frozen one glows teal (modFreeze.glowTeal); a teleporting one
    * stretches tall from the floor and fades (modTeleport).
    */
-  private styleCharacter(spr: Sprite, a: ActorState, alpha: number, tex: Texture, reg: Vec | undefined, whiteness: number): void {
+  /** The team's overlay as a shared filter (a remake team tuning; summoned monsters), null for none. */
+  private teamOverlay(teams: SimState['teams'], team: string): ColorMatrixFilter | null {
+    if (!this.teamOverlays.has(team)) {
+      const overlay = teams[team]?.overlay
+      this.teamOverlays.set(team, overlay ? blendTowardFilter(overlay.colour, overlay.opacity) : null)
+    }
+    return this.teamOverlays.get(team)!
+  }
+
+  private styleCharacter(spr: Sprite, a: ActorState, alpha: number, tex: Texture, reg: Vec | undefined, whiteness: number, overlay: ColorMatrixFilter | null): void {
     spr.rotation = 0
     spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
     spr.tint = NO_TINT
     if (whiteness > 0) {
       setWhiteness(this.whiteFlash, whiteness)
       spr.filters = [this.whiteFlash]
+    } else if (a.glowTeal) {
+      spr.filters = [this.tealGlow]
     } else {
-      spr.filters = a.glowTeal ? [this.tealGlow] : null
+      spr.filters = overlay ? [overlay] : null
     }
     spr.alpha = alpha
     if (a.teleport === null) return

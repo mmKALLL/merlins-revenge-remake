@@ -278,6 +278,16 @@ Details:
 
 ### Remake decisions
 
+- **Monster summon (owner requests, 2026-10-22).** It charges at 70 % of the engine's speed
+  (`monsterSummon.attack.chargeSpeed` 0.42 in `assets/tuning.json`, engine 0.6), the summoned team
+  holds up to 12 (`team:monsterSummon` `maxMembers` 12, engine 3; `team:<key>` entries in
+  tuning.json tune teams, `withTeamTuning`), and its units are drawn blended 30 % toward light blue
+  (the remake team `overlay`, rgb(150, 210, 255)) so Merlin's monsters stand out from the wild ones.
+  Its scroll carries an M (drawn by `tools/copy-assets.ts` in the outline colour, where cBlast's
+  scroll has its C).
+- **Filters stay sharp.** The colour filters (white flash, teal glow, team overlay) render at the
+  canvas's resolution (`pixelFilter` in `src/render/scene.ts`); Pixi's 1x default blurred them.
+
 - **Builders in the open world (owner request, 2026-10-22).** teamMaster.getBuildingOfType takes the
   team's first building anywhere, which in the continuous world can be one left far behind. There a
   builder only counts the team's buildings within Merlin's active range (wakeDistance): it continues

@@ -276,6 +276,39 @@ if (existsSync(AXE_CRACK.from)) {
   console.log(`${to.slice(ROOT.length)}  <- axe crack (middle of the cracks grave)`)
 }
 
+// Remake (owner request): the monster summon scroll gets an M, as the cBlast scroll carries a C, so
+// the plain scrolls can be told apart. Drawn in the scroll's outline colour where cBlast's C sits.
+const SCROLL_LETTERS: Record<string, { glyph: string[]; at: { x: number; y: number } }> = {
+  monsterSummon: { glyph: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], at: { x: 6, y: 5 } },
+}
+for (const [key, { glyph, at }] of Object.entries(SCROLL_LETTERS)) {
+  const file = join(ASSETS, `sprites/${key}/anm_${key}_stand_1_01.png`)
+  if (!existsSync(file)) continue
+  const scroll = PNG.sync.read(readFileSync(file))
+  const ink = outlineColour(scroll)
+  glyph.forEach((row, dy) => [...row].forEach((c, dx) => {
+    if (c !== '#') return
+    const o = ((at.y + dy) * scroll.width + at.x + dx) * 4
+    scroll.data.set(ink, o)
+  }))
+  writeFileSync(file, PNG.sync.write(scroll))
+  console.log(`${file.slice(ROOT.length)}  <- ${key} scroll letter`)
+}
+
+/** The darkest opaque pixel of an image (a scroll's outline), as RGBA. */
+function outlineColour(png: PNG): [number, number, number, number] {
+  let best: [number, number, number, number] = [0, 0, 0, 255]
+  let bestSum = Infinity
+  for (let i = 0; i < png.data.length; i += 4) {
+    const sum = png.data[i]! + png.data[i + 1]! + png.data[i + 2]!
+    if (png.data[i + 3]! > 0 && sum < bestSum) {
+      bestSum = sum
+      best = [png.data[i]!, png.data[i + 1]!, png.data[i + 2]!, 255]
+    }
+  }
+  return best
+}
+
 // The title lettering: one GIF per letter in gfx/title/output (the apostrophe's file is "'.gif"),
 // converted to PNG because the converter reads PNG and BMP only (sips ships with macOS).
 const titleLetters: [file: string, name: string][] = [...'EGILMNRSV'].map((l) => [l, l])

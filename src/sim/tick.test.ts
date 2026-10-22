@@ -85,8 +85,8 @@ const defs: Record<string, ActorDef> = {
   goblinArrow: def({ key: 'goblinArrow', name: 'gobarrow', objType: 'objBullet', team: 'none', friction: { x: 5, y: 5 } }),
 }
 const teams: Record<string, TeamDef> = {
-  aldevar: { key: 'aldevar', teamName: 'aldevar', category: 'friends', hates: [['goblins']], friends: [], maxMembers: null },
-  goblins: { key: 'goblins', teamName: 'goblins', category: 'enemies', hates: [['aldevar']], friends: [], maxMembers: null },
+  aldevar: { key: 'aldevar', teamName: 'aldevar', category: 'friends', hates: [['goblins']], friends: [], maxMembers: null, overlay: null },
+  goblins: { key: 'goblins', teamName: 'goblins', category: 'enemies', hates: [['aldevar']], friends: [], maxMembers: null, overlay: null },
 }
 const anims = {
   mer: { walk: { frames: 8, delay: 3, w: 16, h: 16 } },
