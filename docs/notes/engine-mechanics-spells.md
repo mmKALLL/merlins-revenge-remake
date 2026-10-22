@@ -278,8 +278,10 @@ Details:
 
 ### Remake decisions
 
-- **Monster summon (owner requests, 2026-10-22).** It charges at 70 % of the engine's speed
-  (`monsterSummon.attack.chargeSpeed` 0.42 in `assets/tuning.json`, engine 0.6), the summoned team
+- **Monster summon (owner requests, 2026-10-22).** It charges at 70 % of the engine's speed: the
+  charge per tick is `chargeSpeed` 0.6 x Merlin's mana_flow capped at `chargeSpeedMax`, and with his
+  starting flow of 3 the cap decides, so `monsterSummon.attack.chargeSpeedMax` is 0.7 in
+  `assets/tuning.json` (engine 1; tuning chargeSpeed alone changed nothing), the summoned team
   holds up to 12 (`team:monsterSummon` `maxMembers` 12, engine 3; `team:<key>` entries in
   tuning.json tune teams, `withTeamTuning`), and its units are drawn blended 30 % toward light blue
   (the remake team `overlay`, rgb(150, 210, 255)) so Merlin's monsters stand out from the wild ones.

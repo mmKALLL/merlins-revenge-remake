@@ -120,7 +120,7 @@
   },
   "monsterSummon": {
     "attack": {
-      "chargeSpeed": 0.42
+      "chargeSpeedMax": 0.7
     }
   },
   "team:monsterSummon": {
