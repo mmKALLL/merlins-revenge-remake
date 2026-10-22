@@ -124,6 +124,31 @@ describe('army summon', () => {
     expect(Math.abs(axe!.targetPoint!.x - goblinAt.x)).toBeLessThan(40)
   })
 
+  it('open world: a dwarf continues the unfinished tower in Merlin\'s range, and demolishes one left behind', () => {
+    const cont = (objects: Record<string, number>): SimState => {
+      const w = world(objects)
+      return { ...w, worldMode: 'continuous' }
+    }
+    // an unfinished tower near Merlin (and a goblin to keep the fight going): the dwarf takes it up
+    const near = createActor(cont({ goblinWarrior: 18 }), 'dwarfTower', { x: PLAYER.x + 60, y: PLAYER.y })
+    let s: SimState = { ...near[1], actors: [...near[1].actors, { ...near[0], mode: 'beBuilt', anim: 'beBuilt', energy: 1, team: playerOf(near[1]).team }] }
+    const [dwarf, s1] = createActor(s, 'dwarf', { x: PLAYER.x + 20, y: PLAYER.y })
+    s = { ...s1, actors: [...s1.actors, { ...dwarf, team: playerOf(s1).team }] }
+    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.ai.buildingId !== null)
+    expect(ofDef(s, 'dwarf')[0]!.ai.buildingId).toBe(near[0].id)
+    expect(ofDef(s, 'dwarfTower')).toHaveLength(1)
+    // a tower far outside Merlin's range: demolished, and a new one starts beside the dwarf
+    const far = createActor(cont({ goblinWarrior: 18 }), 'dwarfTower', { x: PLAYER.x + 1200, y: PLAYER.y })
+    s = { ...far[1], actors: [...far[1].actors, { ...far[0], awake: false, team: playerOf(far[1]).team }] }
+    const [dwarf2, s2] = createActor(s, 'dwarf', { x: PLAYER.x + 20, y: PLAYER.y })
+    s = { ...s2, actors: [...s2.actors, { ...dwarf2, team: playerOf(s2).team }] }
+    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.ai.buildingId !== null)
+    const towers = ofDef(s, 'dwarfTower')
+    expect(towers).toHaveLength(1)
+    expect(towers[0]!.id).not.toBe(far[0].id)
+    expect(Math.abs(towers[0]!.pos.x - PLAYER.x)).toBeLessThan(200)
+  })
+
   it('a building dwarf teleports out once the fight is over, leaving its tower unfinished', () => {
     let s = stepUntil(world({ dwarf: 9 }), NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out' || ofDef(n, 'dwarfTower').length > 0)
     s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out')

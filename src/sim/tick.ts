@@ -340,7 +340,8 @@ function onExitsOpened(s: SimState): SimState {
 /** The stepped state before steps 11-12: the tick's surviving actors (sleepers after them), RNG, ids and events. */
 function afterTick(t: Tick): SimState {
   const working = t.actors.filter((a) => !t.removed.has(a.id))
-  const sleepers = waitingSleepers(t)
+  // a sleeper can be removed too (a builder demolishing a building left far behind)
+  const sleepers = t.removed.size ? waitingSleepers(t).filter((a) => !t.removed.has(a.id)) : waitingSleepers(t)
   return {
     ...t.s,
     tick: t.s.tick + 1,

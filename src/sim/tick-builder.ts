@@ -12,7 +12,8 @@ import { arrived, frameMove } from '../mr-open/mr-pathfinding'
 import { defOf, isAlive, spriteRectFor, stripFor, walkSpeedOf } from './actors'
 import { randomInt } from './rng'
 import type { ActorState, AiMode } from './state'
-import { actorIn, spawn, type Tick } from './tick-context'
+import { actorIn, playerIn, spawn, waitingSleepers, type Tick } from './tick-context'
+import { withinWakeDistance } from './activation'
 import { fightOver, teleportOut } from './tick-army'
 
 /** The builder's own AI modes; objAiCPU takes over in the others. */
@@ -63,8 +64,11 @@ function startBuilding(t: Tick, a: ActorState, def: ActorDef): void {
   const [pick, rng] = randomInt(t.rng, def.unitToBuild.length) // modBuilder.getUnitToBuild: random(count)
   t.rng = rng
   const typ = def.unitToBuild[pick - 1]
-  const existing = typ === undefined ? undefined : teamBuildingOfType(t, a, typ)
+  const existing = typ === undefined ? undefined : t.s.worldMode === 'continuous' ? buildingInActiveRange(t, a, typ) : teamBuildingOfType(t, a, typ)
   let building: ActorState | undefined
+  // remake: a team building of the type left behind outside Merlin's active range is demolished, so
+  // a buildOne builder starts anew beside him (the continuous world)
+  if (!existing && typ !== undefined && def.buildOne && t.s.worldMode === 'continuous') demolishOutOfRange(t, a, typ)
   if (existing?.mode === BE_BUILT) building = existing
   else if (typ !== undefined && (!existing || !def.buildOne)) building = startNewConstruction(t, a, typ)
   if (!building) {
@@ -78,6 +82,26 @@ function startBuilding(t: Tick, a: ActorState, def: ActorDef): void {
 /** teamMaster.getBuildingOfType: the first living building of `typ` on the builder's team. */
 function teamBuildingOfType(t: Tick, a: ActorState, typ: string): ActorState | undefined {
   return t.actors.find((o) => !t.removed.has(o.id) && o.def === typ && o.team === a.team && isAlive(o) && defOf(t.s, o).teamRole === 'teamBuildings')
+}
+
+/**
+ * Remake (owner request), the continuous world: the team's buildings of `typ` within Merlin's active
+ * range (wakeDistance) count, the nearest unfinished one to the builder first, else a finished one
+ * (with buildOne, nothing to build); none in range and the builder starts a new one.
+ */
+function buildingInActiveRange(t: Tick, a: ActorState, typ: string): ActorState | undefined {
+  const p = playerIn(t)
+  const inRange = t.actors.filter((o) => !t.removed.has(o.id) && o.def === typ && o.team === a.team && isAlive(o)
+    && defOf(t.s, o).teamRole === 'teamBuildings' && withinWakeDistance(t.s, p, o))
+  const byDistance = (x: ActorState, y: ActorState) => distance(a.pos, x.pos) - distance(a.pos, y.pos)
+  return inRange.filter((o) => o.mode === BE_BUILT).sort(byDistance)[0] ?? inRange.sort(byDistance)[0]
+}
+
+/** The team's buildings of `typ` (none of them in Merlin's active range) are taken down, without a grave. */
+function demolishOutOfRange(t: Tick, a: ActorState, typ: string): void {
+  for (const o of [...t.actors, ...waitingSleepers(t)]) {
+    if (o.def === typ && o.team === a.team && defOf(t.s, o).teamRole === 'teamBuildings') t.removed.add(o.id)
+  }
 }
 
 /** objAiCPUBuilder.startNewConstruction: the building (preBuilt false) beside the builder, unless the tile there is solid. */

@@ -278,6 +278,13 @@ Details:
 
 ### Remake decisions
 
+- **Builders in the open world (owner request, 2026-10-22).** teamMaster.getBuildingOfType takes the
+  team's first building anywhere, which in the continuous world can be one left far behind. There a
+  builder only counts the team's buildings within Merlin's active range (wakeDistance): it continues
+  the nearest unfinished one, or (buildOne) leaves a finished one be and fights; with none in range
+  it demolishes the team's buildings of the type left behind (no grave) and starts a new one beside
+  itself (`buildingInActiveRange`, `demolishOutOfRange` in `src/sim/tick-builder.ts`).
+
 - **The dwarf tower's attack (owner requests, 2026-10-22).** Its axe now lands with a 24 px circle
   (`towerAxe.splashRadius` 24 in `assets/tuning.json`; the engine's own reach is 50 px centre to
   centre) and leaves a crack where it lands: `splashGraveOn` (act_towerAxe) stamps the bullet's
