@@ -378,8 +378,6 @@ const DARK_PEBBLES = 140
 // merlinOpenPassive tiles (10 per row)
 const MUD = 2
 const MUD_STONES = 9
-const DARK_GRASS = 22
-const MARSH_WATER = 23
 const BLUE_COBBLES = 35
 
 export const UNDEAD_MARSH: FloorTheme = {
@@ -388,7 +386,7 @@ export const UNDEAD_MARSH: FloorTheme = {
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
-  ground: [w(DARK_GRASS, 16), w(MARSH_WATER, 3)],
+  ground: [w(MUD)],
   wall: [w(BARE_TREE, 4), w(THORN_TREE, 4), w(DEAD_TREE, 2), w(EYED_TREE, 0.5), w(EYED_SHRUB, 0.5)],
   longWall: [w(BARE_TREE, 4), w(THORN_TREE, 4), w(DEAD_TREE, 2), w(DEAD_SAPLING, 1), w(EYED_TREE_B, 0.5), w(EYED_SHRUB_B, 0.5)],
   materials: [
