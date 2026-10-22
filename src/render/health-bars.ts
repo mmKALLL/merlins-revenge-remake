@@ -16,8 +16,8 @@ const BAR_H = 4
 const NOT_DRAWN = new Set(['objBullet', 'objSpell'])
 const GONE_MODES = new Set<ActorState['mode']>(['die', 'dead', 'finish'])
 
-/** Energy fraction 1 -> green, 0 -> red; also used for Merlin's HUD bar. */
-export function barColour(f: number): number {
+/** Energy fraction 1 -> green, 0 -> red. */
+function barColour(f: number): number {
   const r = Math.round(255 * Math.min(1, 2 * (1 - f)))
   const g = Math.round(255 * Math.min(1, 2 * f))
   return (r << 16) | (g << 8)

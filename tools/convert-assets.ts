@@ -353,6 +353,22 @@ function convertTitleLetters(): void {
   console.log(`title letters: ${files.length}`)
 }
 
+/**
+ * assets/hud/<member>.png -> hud/<member>.png: the health bar's surround (ink background
+ * transparent, so white becomes transparent) and the "health" label (ink copy, kept as is).
+ */
+const HUD_BACKGROUND_TRANSPARENT = new Set(['health_bar_surround.png'])
+function convertHud(): void {
+  const dir = join(ASSETS, 'hud')
+  mkdirSync(join(OUT, 'hud'), { recursive: true })
+  const files = sortedDir(dir).filter((f) => f.endsWith('.png'))
+  for (const f of files) {
+    const image = readPng(join(dir, f))
+    writePng(join(OUT, 'hud', f), HUD_BACKGROUND_TRANSPARENT.has(f) ? whiteToAlpha(image) : image)
+  }
+  console.log(`hud images: ${files.length}`)
+}
+
 /** assets/cut-scenes/<name>.txt -> cut-scenes/<name>.json, parsed (src/cutscene/script.ts). */
 function convertCutScenes(): void {
   mkdirSync(join(OUT, 'cut-scenes'), { recursive: true })
@@ -389,3 +405,4 @@ convertAudio(actors)
 convertExitArrows()
 convertCutScenes()
 convertTitleLetters()
+convertHud()
