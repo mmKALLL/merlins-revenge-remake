@@ -78,6 +78,18 @@ export interface RoomShapeTuning {
   minOpenShare: number
 }
 
+/** A wall cell's four neighbours, for wall autotiling (wall-autotile.ts). */
+export type WallSide = 'up' | 'right' | 'down' | 'left'
+
+/** Wall tiles for the wall cells whose neighbours match `when`: true = a wall there, false = none, unnamed = either. */
+export interface WallTileRule {
+  when: Partial<Record<WallSide, boolean>>
+  tiles: Weighted<number>[]
+}
+
+/** A neighbour-to-tile table for walls: the first matching rule wins, so the last one should match anything. */
+export type WallAutotile = readonly WallTileRule[]
+
 export interface EdgeTuning {
   /** chance that an edge outside the spanning tree opens too */
   extraOpenChance: number
@@ -213,6 +225,8 @@ export interface FloorTheme {
   wall: Weighted<number>[]
   /** interior walls: long walls, cuts, baffles and maze walls */
   longWall: Weighted<number>[]
+  /** when set, edge and interior walls take their tiles from it by their wall neighbours instead of `wall` and `longWall` */
+  wallAutotile?: WallAutotile
   materials: Material[]
   stumps: Weighted<number>[]
   decorations: Weighted<number>[]
@@ -530,12 +544,15 @@ export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
 }
 
 // merlinOpenActive tiles (10 per row). Solid: bricks, bars, rocks, trees, pots, skull, shrine.
-const BRICK_WALL = 12
-const BRICK_WALL_B = 13
-const BRICK_WALL_LOW = 22
-const BRICK_WALL_LOW_B = 23
-const IRON_BARS = 18
-const IRON_BARS_B = 28
+// the grey castle wall (rows 1-3): towers 1 wide, top / middle / base, a left and a right variant
+// (the original maps put the B variant at the right end of a wall), and the crenellated wall face
+const TOWER_TOP = 2
+const TOWER_TOP_B = 3
+const TOWER = 12
+const TOWER_B = 13
+const TOWER_BASE = 22
+const TOWER_BASE_B = 23
+const CASTLE_WALL = 21
 const STONE_SHRINE = 7
 const STONE_BLOCK = 27
 const GREY_BOULDER = 32
@@ -766,6 +783,25 @@ export const DRAGON_CANYON: FloorTheme = {
   },
 }
 
+/**
+ * The castle walls as the original MR3 maps draw them (Scarlet_Castle, mr4Demo): vertical runs are
+ * towers (top, middle, base), horizontal runs the wall face, a corner or junction the tower, and a
+ * wall face ending in the open stops at a one-tile tower. Towers with a wall to their left only take
+ * the B variant, as the right-hand towers do in the originals.
+ */
+const CASTLE_WALLS: WallAutotile = [
+  { when: { up: false, down: false, left: false, right: false }, tiles: [w(TOWER_TOP)] },
+  { when: { up: false, down: false, left: true, right: false }, tiles: [w(TOWER_TOP_B)] },
+  { when: { up: false, down: false, left: false, right: true }, tiles: [w(TOWER_TOP)] },
+  { when: { up: false, down: false }, tiles: [w(CASTLE_WALL)] },
+  { when: { up: false, left: true, right: false }, tiles: [w(TOWER_TOP_B)] },
+  { when: { up: false }, tiles: [w(TOWER_TOP)] },
+  { when: { down: false, left: true, right: false }, tiles: [w(TOWER_BASE_B)] },
+  { when: { down: false }, tiles: [w(TOWER_BASE)] },
+  { when: { left: true, right: false }, tiles: [w(TOWER_B)] },
+  { when: {}, tiles: [w(TOWER)] },
+]
+
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
   [
@@ -805,8 +841,9 @@ export const MAGIC_MAZE: FloorTheme = {
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
   ground: [w(BLUE_COBBLES)],
-  wall: [w(BRICK_WALL, 3), w(BRICK_WALL_B, 3), w(BRICK_WALL_LOW, 1), w(BRICK_WALL_LOW_B, 1)],
-  longWall: [w(BRICK_WALL, 4), w(BRICK_WALL_B, 4), w(IRON_BARS, 0.5), w(IRON_BARS_B, 0.5)],
+  wall: [w(TOWER), w(TOWER_B)],
+  longWall: [w(TOWER), w(TOWER_B)],
+  wallAutotile: CASTLE_WALLS,
   materials: [
     { name: 'pots', weight: 2, tiles: [w(WHITE_POT, 2), w(CRACKED_POT, 1), w(VINE_POT, 1), w(BEIGE_POT, 1)] },
     { name: 'stone', weight: 1, tiles: [w(STONE_BLOCK, 2), w(STONE_SHRINE, 1)] },

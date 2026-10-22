@@ -64,6 +64,20 @@ on screen, so their first row is engine y 1.
    opening (from its middle tile just inside the room, not along the walled edge line) and the exit room's boss tile to the centre. Unreachable open pockets are filled in, so nothing spawns where the player
    cannot go.
 5. Obstacle patches are labelled; each picks a material, each tile a variant.
+6. **Wall autotiling** (owner request, 2026-10-22; `src/gen/wall-autotile.ts`). A theme with a
+   `wallAutotile` table picks each wall cell's tile (edge walls and interior walls alike) by which
+   of its four neighbours are walls too, instead of drawing from `wall`/`longWall`. The table is a
+   list of rules `{ when: { up?, right?, down?, left? }, tiles }` (true = a wall there, false = none,
+   unnamed = either); the first match wins and the last rule matches anything (tested). Beyond the
+   room's edge counts as no wall, so every room frames itself and facing edges still agree in
+   solidity. Every rule tile must be `#solid` (tested with the other obstacles). The Magic Maze's
+   castle table follows the original MR3 maps (Scarlet_Castle, mr4Demo; neighbour counts over
+   every merlinOpen map): vertical runs are towers, top 2 / middle 12 / base 22; horizontal runs the
+   crenellated wall face 21; corners and junctions take the tower piece (so a wall face runs off a
+   tower, as in the originals); a wall face ending in the open, or a lone wall tile, stops at a
+   one-tile tower top (2). Towers with a wall on their left only take the B variant (3 / 13 / 23),
+   which the originals put at a wall's right end. In the tower the maze is mirrored, so those
+   variants swap sides there (a shading difference only).
 
 A final flood fill over the whole floor checks start room to exit room and every unit; the floor is
 regenerated from a derived seed on failure (bounded) and generation throws rather than return a
@@ -214,7 +228,7 @@ Corner groups and tiers: see Room plans.
 
 Looks: the forest is grass with pine copses and rock clumps; the marsh dark grass and marsh water
 with barren black and dead trees, skulls and puddles; the canyon brown earth with grey boulder walls,
-rock spires and cacti; the maze blue cobbles with grey brick walls, iron bars, pots and shrines.
+rock spires and cacti; the maze blue cobbles with grey castle walls (towers and crenellated wall faces, autotiled), pots and shrines.
 
 ### Substitutions (sketch enemy -> ported stand-in)
 

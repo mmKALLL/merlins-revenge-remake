@@ -8,6 +8,7 @@ import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
+import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
 import { TIERS, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
@@ -444,12 +445,13 @@ function roomDefinition(rng: GenRandom, theme: FloorTheme, room: Vec, shape: Roo
   shape.cells.forEach((c, i) => {
     const x = i % w
     const y = (i - x) / w
-    const choices = c === Cell.Wall ? theme.wall
-      : c === Cell.LongWall ? theme.longWall
-        : c === Cell.Patch ? patchTiles.get(i)!
-          : c === Cell.Stump ? theme.stumps
-            : c === Cell.Decoration ? theme.decorations
-              : null
+    const choices = theme.wallAutotile && isWallCell(c) ? autotileChoices(theme.wallAutotile, wallNeighbours(shape.cells, shape.size, x, y))
+      : c === Cell.Wall ? theme.wall
+        : c === Cell.LongWall ? theme.longWall
+          : c === Cell.Patch ? patchTiles.get(i)!
+            : c === Cell.Stump ? theme.stumps
+              : c === Cell.Decoration ? theme.decorations
+                : null
     if (choices) active[y]![x] = pickTile(rng, choices)
   })
   for (const p of units) {

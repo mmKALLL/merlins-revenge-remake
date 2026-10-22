@@ -256,7 +256,8 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   })
 
   it('lays solid obstacles and walkable decoration, by the tile key', () => {
-    const obstacles = [...theme.wall, ...theme.longWall, ...theme.stumps, ...theme.materials.flatMap((m) => m.tiles)]
+    const autotiled = (theme.wallAutotile ?? []).flatMap((rule) => rule.tiles)
+    const obstacles = [...theme.wall, ...theme.longWall, ...autotiled, ...theme.stumps, ...theme.materials.flatMap((m) => m.tiles)]
     for (const o of obstacles) expect(active.isSolid(o.value), `tile ${o.value}`).toBe(true)
     for (const d of theme.decorations) expect(active.isSolid(d.value), `tile ${d.value}`).toBe(false)
   })
