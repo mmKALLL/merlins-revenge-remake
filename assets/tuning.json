@@ -6,6 +6,7 @@
     "mana_capacity": 13,
     "mana_flow": 3,
     "damageDealtMultiplier": 2,
+    "medikitRestRate": 3,
     "attack": {
       "chargeMaxBasic": 6
     }

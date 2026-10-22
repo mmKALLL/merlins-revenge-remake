@@ -169,6 +169,7 @@ export interface ActorDef {
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
+  medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
@@ -283,6 +284,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
+    medikitRestRate: 1, // the medikit heals at the same rate in and out of battle, as in the engine
     keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
@@ -314,7 +316,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -658,6 +660,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
+      medikitRestRate: num(r, 'medikitRestRate', ctx),
       keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),

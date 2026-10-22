@@ -106,3 +106,23 @@ describe('M: medikit cheat', () => {
     expect(medikitsHeld(stepSim(hurt, NO_INPUT).pickups.medikits)).toBe(0)
   })
 })
+
+describe('medikit out of battle (remake)', () => {
+  it('heals medikitRestRate times as fast once the room is clear', () => {
+    const healed = (objects: Placed[]) => {
+      const w = world('rooms', objects)
+      let s: SimState = { ...w, defs: { ...w.defs, player: { ...w.defs['player']!, medikitRestRate: 3 } } }
+      s = stepSim(s, MEDIKIT)
+      const hurt = s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: 50 } : a))
+      s = { ...s, actors: hurt }
+      for (let i = 0; i < 60; i++) s = stepSim(s, NO_INPUT)
+      return playerOf(s).energy - 50
+    }
+    // a hut in Merlin's room keeps the fight going; one only next door leaves his room clear (and the map unfinished)
+    const inBattle = healed([{ room: 1, x: 17, symbol: 'goblinMageHut' }])
+    const atRest = healed([{ room: 2, x: 17, symbol: 'goblinMageHut' }])
+    expect(inBattle).toBeGreaterThan(0)
+    expect(atRest).toBeGreaterThanOrEqual(inBattle * 3 - 3)
+  })
+})
+

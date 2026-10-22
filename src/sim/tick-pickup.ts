@@ -75,7 +75,15 @@ export function medikitCollected(t: Tick, p: ActorState, character: string | nul
 /** modMedikit.update, while Merlin is alive. */
 function stepMedikit(t: Tick, p: ActorState): void {
   if (!isAlive(p)) return
-  const r = medikitStep(t.pickups.medikits, p.energy, defOf(t.s, p).maxEnergy)
-  t.pickups = { ...t.pickups, medikits: r.medikits }
-  p.energy = r.energy
+  const def = defOf(t.s, p)
+  // remake (owner request): out of battle the kit heals `medikitRestRate` times as fast
+  const steps = outOfBattle(t) ? def.medikitRestRate : 1
+  for (let i = 0; i < steps; i++) {
+    const r = medikitStep(t.pickups.medikits, p.energy, def.maxEnergy)
+    t.pickups = { ...t.pickups, medikits: r.medikits }
+    p.energy = r.energy
+  }
 }
+
+/** The fight is over: the room is clear, or (continuous world) no awake hostile is near (nav mode). */
+const outOfBattle = (t: Tick): boolean => (t.s.worldMode === 'rooms' ? t.s.exitsOpen : t.s.navMode)

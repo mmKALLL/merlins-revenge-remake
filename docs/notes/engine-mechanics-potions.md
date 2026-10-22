@@ -159,3 +159,9 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
   `assets/tuning.json` stay. They began as stand-ins for 4 Max Blast and 4 Quick Charge potions;
   without them (the engine's capacity 10 and flow 1) a full charge took about 13 ticks instead of
   5 and felt worse. To compensate, the random floors' start rooms give 3 potions instead of 4.
+
+**Remake decision (owner request, 2026-10-22): faster medikit out of battle.** modMedikit heals 1
+energy every 5 ticks at all times. Once the fight is over (the room is clear; in the continuous
+world, nav mode) the kit runs `medikitRestRate` heal steps a tick (player 3 in `assets/tuning.json`,
+engine default 1), so it heals three times as fast between fights.
+
