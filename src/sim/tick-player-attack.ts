@@ -12,7 +12,7 @@ import { onFreshFrame } from './anim'
 import { aimPoint, chargeKindFor, isHeld } from './player-aim'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip, type InputSnapshot } from './state'
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
-import { applyPayload } from './tick-combat'
+import { applyPayload, withOwnerDamage } from './tick-combat'
 import { nearestAllyOnScreen } from './tick-army'
 import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage } from './tick-spell'
 import { stepWeaponChoice } from './tick-weapons'
@@ -138,6 +138,6 @@ function impactMelee(t: Tick, p: ActorState, def: ActorDef): void {
   for (const v of candidates) {
     if (!meleeHits(p.pos, def, p.facingLeft, spriteRectFor(t.s, v))) continue
     const victim = hitTargetIn(t, v.id)
-    if (victim) applyPayload(t, victim, push, def.attack)
+    if (victim) applyPayload(t, victim, push, withOwnerDamage(t, p, def.attack))
   }
 }

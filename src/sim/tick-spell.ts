@@ -21,7 +21,7 @@ import { randomInt, roughly, spreadVec } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
-import { applyPayload, splashVictims } from './tick-combat'
+import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
 import type { Size } from './view'
 
@@ -256,7 +256,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
     if (!victim) continue
     const [turned, rng] = spreadVec(t.rng, push, spread)
     t.rng = rng
-    applyPayload(t, victim, turned, atk, payloadFunctions)
+    applyPayload(t, victim, turned, withOwnerDamage(t, spell, atk), payloadFunctions)
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
   playSound(t, atk.explodeSound, explodeVolume)

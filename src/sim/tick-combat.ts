@@ -122,6 +122,17 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
   return hit.push
 }
 
+/**
+ * Remake (owner request): Merlin's `damageDealtMultiplier` multiplies the damage of everything he deals, his
+ * swings and spells and the bullets and mines his spells leave (owned by him), but not his allies'.
+ */
+export function withOwnerDamage(t: Tick, source: ActorState, atk: AttackDef): AttackDef {
+  const merlins = source.id === t.s.playerId || (!isUnit(t.s, source) && source.ownerId === t.s.playerId)
+  const player = merlins ? actorIn(t, t.s.playerId) : undefined
+  const scale = player ? defOf(t.s, player).damageDealtMultiplier : 1
+  return scale === 1 ? atk : { ...atk, damageMultiplier: atk.damageMultiplier * scale }
+}
+
 /** CallPayloadFunction's handlers (general_functions/CallPayloadFunction ().txt). */
 const PAYLOAD = { takeHit: 'takeHit', takeHeal: 'takeHeal', takeFreeze: 'takeFreeze', armyTeleportOut: 'armyTeleportOut' } as const
 /** modEnergy.takeHeal: energy += (|vx| + |vy|) * this, up to the maximum. */
@@ -267,8 +278,9 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   // objGameObject.takeHit already scaled by the victim's inertia in place. An #explode bullet's
   // collisionVect is the explosion's (calcCollisionVectSpell with its explodeCharge).
   const push = def.attack.type === 'explode' ? explosionPushOn(t, a, def, target) : bulletPush(a.vel, def)
-  const scaled = applyHit(t, target, push, def.attack.damageMultiplier)
-  applyPayload(t, target, scaled, def.attack)
+  const atk = withOwnerDamage(t, a, def.attack)
+  const scaled = applyHit(t, target, push, atk.damageMultiplier)
+  applyPayload(t, target, scaled, atk)
   // #bulletCollidedWithTarget: explode (modExploder) or die
   if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
   else t.removed.add(a.id)
@@ -284,7 +296,7 @@ function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number):
   for (const v of hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits)) {
     if (!circleMeetsRect(a.pos, radius, spriteRectFor(t.s, v))) continue
     const victim = hitTargetIn(t, v.id)
-    if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), def.attack)
+    if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), withOwnerDamage(t, a, def.attack))
   }
 }
 
@@ -304,9 +316,10 @@ export function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
   playSound(t, def.exploderSound, def.exploderVolume)
   const atk = def.attack
   const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits))
+  const dealt = withOwnerDamage(t, a, atk)
   for (const { id, push } of ex.pushes) {
     const victim = hitTargetIn(t, id)
-    if (victim) applyPayload(t, victim, push, atk)
+    if (victim) applyPayload(t, victim, push, dealt)
   }
   t.events.push({ kind: 'explode', pos: a.pos, radius: ex.radius })
   a.mode = 'explode'

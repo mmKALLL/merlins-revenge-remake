@@ -168,6 +168,7 @@ export interface ActorDef {
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
+  damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
   startingArmy: Record<string, number>
   /**
@@ -277,6 +278,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
+    damageDealtMultiplier: 1, // damage as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
   },
@@ -306,7 +308,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'startingArmy',
   'splashRadius',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -648,6 +650,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
+      damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
