@@ -9,7 +9,7 @@ const KEYBOARD: Line[] = [
   ['WASD / arrow keys', 'move'],
   ['E or left mouse button', 'hold to charge the energy blast, release to fire at the mouse'],
   ['Space', 'hold to charge, release to fire at the nearest enemy'],
-  ['F', 'switch what Space fires at: nearest enemy, a push-back shot that lands short of it, or the mouse (Settings shows the mode)'],
+  ['F', 'switch what Space fires at between the nearest enemy and a push-back shot that lands short of it (Settings also offers the mouse cursor)'],
   ['C', 'switch between the room camera and the follow camera'],
   ['Esc', 'menu (pauses the game)'],
   ['Enter', 'play the map again after it is complete'],

@@ -1,8 +1,8 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
 // E or the left button charges and fires at the mouse position. Space charges and fires by its mode
-// (SpaceMode, cycled with F): at the nearest enemy, short of it (a push-back shot), or at the mouse
-// like E (straight ahead while no mouse position is known). C switches between the
+// (SpaceMode): at the nearest enemy, short of it (a push-back shot), or at the mouse
+// like E; F toggles the first two (the mouse mode is chosen in Settings) (straight ahead while no mouse position is known). C switches between the
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
 // snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
@@ -20,13 +20,13 @@ const MOVE_KEYS: Record<string, Vec> = {
   KeyD: { x: 1, y: 0 }, ArrowRight: { x: 1, y: 0 },
 }
 
-/** What Space (and the touch blast button) fires at; F steps through them in this order. */
+/** What Space (and the touch blast button) fires at. */
 export const SPACE_MODES = ['nearest', 'pushBack', 'mouse'] as const
 export type SpaceMode = typeof SPACE_MODES[number]
 
-/** The Space mode after one F press: nearest -> pushBack -> mouse -> nearest. */
+/** The Space mode after one F press: nearest <-> pushBack; F skips the mouse mode (owner request), leaving it for nearest. */
 export function nextSpaceMode(mode: SpaceMode): SpaceMode {
-  return SPACE_MODES[(SPACE_MODES.indexOf(mode) + 1) % SPACE_MODES.length]!
+  return mode === 'nearest' ? 'pushBack' : 'nearest'
 }
 
 type SpaceShot = 'chargeHeld' | 'shootNearest' | 'shootShort'

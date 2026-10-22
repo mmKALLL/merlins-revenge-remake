@@ -33,8 +33,8 @@ describe('InputTracker', () => {
     expect(space('mouse')).toEqual({ chargeHeld: true, shootNearest: false, shootShort: false })
   })
 
-  it('F steps the Space mode once per press: nearest, push-back, mouse, nearest; and reports each change', () => {
-    expect(SPACE_MODES.map(nextSpaceMode)).toEqual(['pushBack', 'mouse', 'nearest'])
+  it('F toggles the Space mode once per press between nearest and push-back, skipping mouse; and reports each change', () => {
+    expect(SPACE_MODES.map(nextSpaceMode)).toEqual(['pushBack', 'nearest', 'nearest'])
     const heard: SpaceMode[] = []
     const t = new InputTracker('nearest', (m) => heard.push(m))
     t.keyDown('KeyF')
@@ -43,12 +43,10 @@ describe('InputTracker', () => {
     expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: false }) // F alone fires nothing
     t.keyUp('KeyF')
     t.keyDown('KeyF')
-    t.keyUp('KeyF')
-    t.keyDown('KeyF')
     expect(t.spaceMode).toBe('nearest')
-    expect(heard).toEqual(['pushBack', 'mouse', 'nearest'])
+    expect(heard).toEqual(['pushBack', 'nearest'])
     t.setSpaceMode('nearest') // no change, nothing to report
-    expect(heard).toHaveLength(3)
+    expect(heard).toHaveLength(2)
   })
 
   it('releaseAll drops held keys and the mouse button', () => {

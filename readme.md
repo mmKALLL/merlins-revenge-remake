@@ -23,7 +23,7 @@ Controls:
 
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
-- Hold Space to charge and fire at the nearest enemy. Press F to cycle Space's mode: nearest enemy, a push-back shot that lands 20 px short of the nearest enemy, or the mouse cursor (like E; straight ahead while the mouse is off the game). Settings shows the current mode and switches it too; the choice is remembered.
+- Hold Space to charge and fire at the nearest enemy. Press F to switch Space between the nearest enemy and a push-back shot that lands 20 px short of it. Settings shows the current mode and also offers the mouse cursor (like E; straight ahead while the mouse is off the game); the choice is remembered.
 - On phones and tablets: press anywhere on the left half and drag to move (a nub appears where the finger lands; Merlin walks at the finger's angle, at the same speed as with WASD), hold the yellow button on the right to charge and let go to fire, like Space. It follows the Space mode from Settings; the mouse mode fires at the nearest enemy when there is no mouse. ☰ opens the menu. The controls lie over the game in landscape and in a band below it in portrait.
 - Press C to switch between the room camera and the follow camera (with it, between the room-by-room world and the continuous world) without restarting the map; enemies keep their energy and positions. The `camera` URL parameter follows, so a reload keeps the choice. Settings shows and switches the camera too.
 - The bar at the bottom left is Merlin's health; the map restarts when he runs out.
@@ -50,7 +50,7 @@ Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the en
 ## What's new compared with the original
 
 - Plays in any modern browser; no Shockwave or Director needed.
-- Space charges and fires the energy blast at the nearest enemy on screen; F cycles it to a push-back shot or to the mouse; E or a click still aims at the mouse.
+- Space charges and fires the energy blast at the nearest enemy on screen; F switches it to a push-back shot (Settings also offers the mouse); E or a click still aims at the mouse.
 - Touch controls on phones and tablets: a movement nub and a blast button; the title screen and the in-game menu work on phones in portrait and landscape.
 - Scalable view: crisp 1x-4x pixel sizes, "fit" or a fractional "scale", and it respects browser zoom.
 - The game keeps the original's 30 ticks per second but draws at the display's refresh rate with interpolated movement.

@@ -13,7 +13,7 @@ export interface SettingsHost {
   setZoom(z: ZoomSetting): void
   camera(): CameraMode
   setCamera(c: CameraMode): void
-  spaceMode(): SpaceMode // what Space and the touch blast button fire at (F cycles it)
+  spaceMode(): SpaceMode // what Space and the touch blast button fire at (F toggles nearest and push-back)
   setSpaceMode(m: SpaceMode): void
   randomMaps(): RandomMapsMode
   setRandomMaps(m: RandomMapsMode): void
@@ -84,9 +84,9 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'follow', label: 'Open world', title: 'Follows Merlin through the whole map as one world (C)' },
     ], host.camera, host.setCamera),
     choiceRow(body, 'Spacebar shot targeting', [
-      { value: 'nearest', label: 'Nearest', title: 'The nearest enemy on screen (F cycles the modes)' },
+      { value: 'nearest', label: 'Nearest', title: 'The nearest enemy on screen (F toggles with push-back)' },
       { value: 'pushBack', label: 'Push-back', title: 'Lands short of the nearest enemy (F)' },
-      { value: 'mouse', label: 'Mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy (F)' },
+      { value: 'mouse', label: 'Mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy' },
     ], host.spaceMode, host.setSpaceMode),
     choiceRow(body, 'Random maps', [
       { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
