@@ -24,3 +24,22 @@ export class TickClock {
     return { ticks, alpha: this.acc / this.tickMs, dt }
   }
 }
+
+/** Early-frame allowance: well under half a 120 Hz frame (8.3 ms), so 60 fps on it keeps every other frame. */
+const FRAME_SLACK_MS = 2
+
+/**
+ * Lets through at most `fps` animation frames a second (null: every frame the display gives). A frame
+ * up to `slackMs` early still counts as due, as the browser's frame times jitter around the refresh rate.
+ */
+export class FrameLimiter {
+  private last: number | null = null
+
+  constructor(public fps: number | null, private readonly slackMs = FRAME_SLACK_MS) {}
+
+  due(now: number): boolean {
+    if (this.fps !== null && this.last !== null && now - this.last < 1000 / this.fps - this.slackMs) return false
+    this.last = now
+    return true
+  }
+}

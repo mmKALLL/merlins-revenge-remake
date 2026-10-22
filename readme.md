@@ -9,7 +9,7 @@ TypeScript port of the open-sourced Merlin Open engine.
     pnpm assets:convert
     pnpm dev              # serves on http://localhost:3371/
 
-The page opens on the title screen (the original's lettering): **Play** starts the last map played (at first `works/mriiidemoiv`, 3x3 rooms, the MR3 demo), **Maps** picks another, **Settings** holds the pixel size, camera, Space mode, random maps, the debug text and sound, **How to play** lists the controls. While playing, the game fills the window; Esc or the ☰ button in the top right corner (in portrait on a phone: the top right of the touch band) pauses it under the in-game menu: Resume, Maps, Settings, How to play, Restart map, Quit to title. Nothing moves and no sound plays while a menu is open. Menus work with the mouse, touch (they scroll like a page), Tab or the arrow keys and Enter; Esc goes back. Design: `docs/plans/2026-09-28-menus-design.md`.
+The page opens on the title screen (the original's lettering): **Play** starts the last map played (at first `works/mriiidemoiv`, 3x3 rooms, the MR3 demo), **Maps** picks another, **Settings** holds the pixel size, camera, Space mode, random maps, the frame rate (60 fps or the display's rate), the debug text and sound, **How to play** lists the controls. While playing, the game fills the window; Esc or the ☰ button in the top right corner (in portrait on a phone: the top right of the touch band) pauses it under the in-game menu: Resume, Maps, Settings, How to play, Restart map, Quit to title. Nothing moves and no sound plays while a menu is open. Menus work with the mouse, touch (they scroll like a page), Tab or the arrow keys and Enter; Esc goes back. Design: `docs/plans/2026-09-28-menus-design.md`.
 
 Query parameters:
 

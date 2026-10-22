@@ -4,7 +4,7 @@ import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
-import { loadDebugInfo, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
+import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
 import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
@@ -27,7 +27,7 @@ import { menuButton } from './ui/menu-button'
 import { MenuOverlay, type MenuPanel } from './ui/overlay'
 import { pauseMenu } from './ui/pause-menu'
 import { settingsPanel } from './ui/settings-panel'
-import { TickClock } from './ui/tick-clock'
+import { FrameLimiter, TickClock } from './ui/tick-clock'
 import { titleScreen } from './ui/title-screen'
 
 const params = new URLSearchParams(location.search)
@@ -96,6 +96,8 @@ interface Shell {
   running: () => boolean
   /** Whether a restart of a generated map builds a new layout (Settings, Random maps). */
   newLayoutEachRun: () => boolean
+  /** Frames a second to draw (Settings, Frame rate); null: every display refresh. */
+  targetFps: () => number | null
 }
 
 /** A map's world grid and where the player starts on it. */
@@ -213,12 +215,18 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
 
   // ticks only while no menu is open; the paused picture stays on the canvas under the menu
   const clock = new TickClock(TICK_MS, MAX_FRAME_MS)
+  const limiter = new FrameLimiter(shell.targetFps())
   let fps = 0
   const frame = (now: number) => {
     requestAnimationFrame(frame)
+    limiter.fps = shell.targetFps()
+    if (!limiter.due(now)) return
     const running = shell.running()
     const { ticks, alpha, dt } = clock.frame(now, running)
-    if (!running) return
+    if (!running) {
+      scene.present() // the paused picture under the menu, kept up through resizes
+      return
+    }
     fps = fps * (1 - FPS_NEW_WEIGHT) + (1000 / Math.max(1, dt)) * FPS_NEW_WEIGHT
     const mouse = mouseWorld()
     input.setMouseWorld(mouse)
@@ -241,6 +249,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     }
     scene.draw(sim, alpha, fps, mouse)
     scene.drawEndSequence(ending && endSequenceView(ending))
+    scene.present()
   }
   requestAnimationFrame(frame)
   return { mapId, scene, restart, setCamera }
@@ -277,12 +286,14 @@ function main(): void {
   let game: Game | null = null
   let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
   let randomMaps = loadRandomMaps('newEachRun')
+  let frameRate = loadFrameRate('60')
   const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const shell: Shell = {
     audio,
     input,
     running: () => game !== null && simRuns(state),
     newLayoutEachRun: () => randomMaps === 'newEachRun',
+    targetFps: () => framesPerSecond(frameRate),
   }
 
   const back = () => dispatch({ kind: 'back' })
@@ -326,6 +337,11 @@ function main(): void {
       setRandomMaps: (m) => {
         randomMaps = m
         saveRandomMaps(m)
+      },
+      frameRate: () => frameRate,
+      setFrameRate: (r) => {
+        frameRate = r
+        saveFrameRate(r)
       },
       debugInfo: () => cfg.debug,
       setDebugInfo: (on) => {

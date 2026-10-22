@@ -129,6 +129,7 @@ export class Scene {
       background: '#000',
       antialias: false,
       roundPixels: true,
+      autoStart: false, // the game's frame loop draws (present), so every frame shows that frame's positions
     })
     parent.appendChild(this.app.canvas)
     this.world.position.set(this.cfg.playOffset.x, this.cfg.playOffset.y)
@@ -235,6 +236,11 @@ export class Scene {
   /** The end sequence over the whole screen (the game fading out, the cut scene, the prompt); null hides it. */
   drawEndSequence(view: EndSequenceView | null): void {
     this.cutScene?.draw(view)
+  }
+
+  /** Renders the stage as the last draw left it. */
+  present(): void {
+    this.app.render()
   }
 
   /** A cut scene character's stand frame: the sprite of the actor with its key (or its stand-in). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TickClock } from './tick-clock'
+import { FrameLimiter, TickClock } from './tick-clock'
 
 const TICK = 100 / 3
 const MAX_FRAME = 250
@@ -29,5 +29,15 @@ describe('TickClock', () => {
     const c = new TickClock(TICK, MAX_FRAME)
     c.frame(0, true)
     expect(c.frame(10_000, true).ticks).toBe(Math.floor(MAX_FRAME / TICK))
+  })
+})
+
+describe('FrameLimiter', () => {
+  it('keeps every other frame of a 120 Hz display at 60 fps, and every frame without a target', () => {
+    const frames = Array.from({ length: 12 }, (_, i) => i * (1000 / 120))
+    const at60 = new FrameLimiter(60)
+    expect(frames.filter((t) => at60.due(t))).toHaveLength(6)
+    const uncapped = new FrameLimiter(null)
+    expect(frames.filter((t) => uncapped.due(t))).toHaveLength(12)
   })
 })

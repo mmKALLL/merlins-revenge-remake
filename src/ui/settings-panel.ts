@@ -1,7 +1,7 @@
 // Settings: pixel size, camera, what Space (and the touch blast button) fires at, whether random
-// maps get a new layout each run, the debug readout, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
+// maps get a new layout each run, the frame rate, the debug readout, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
 import type { AudioEngine } from '../audio/audio'
-import type { RandomMapsMode } from '../data/preferences'
+import type { FrameRate, RandomMapsMode } from '../data/preferences'
 import type { SpaceMode } from '../input/keyboard'
 import type { CameraMode } from '../render/camera'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
@@ -17,6 +17,8 @@ export interface SettingsHost {
   setSpaceMode(m: SpaceMode): void
   randomMaps(): RandomMapsMode
   setRandomMaps(m: RandomMapsMode): void
+  frameRate(): FrameRate
+  setFrameRate(r: FrameRate): void
   debugInfo(): boolean // the fps / tick / room / position readout below the play view
   setDebugInfo(on: boolean): void
   audio: AudioEngine
@@ -94,6 +96,10 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
       { value: 'sameLayout', label: 'Same layout', title: 'Restarts keep the layout (Play from the title still builds a new one)' },
     ], host.randomMaps, host.setRandomMaps),
+    choiceRow(body, 'Frame rate', [
+      { value: '60', label: '60 fps', title: 'Draws 60 frames a second, blending between the 30 game ticks' },
+      { value: 'display', label: 'Display rate', title: 'Draws at every refresh of the display (120 Hz and up on some screens)' },
+    ], host.frameRate, host.setFrameRate),
     choiceRow(body, 'Debug info', ON_OFF, host.debugInfo, host.setDebugInfo),
     choiceRow(body, 'Music', ON_OFF, () => audio.current.music, (on) => audio.setMusic(on)),
     choiceRow(body, 'Effects', ON_OFF, () => audio.current.effects, (on) => audio.setEffects(on)),
