@@ -59,6 +59,7 @@ export function inTowerTilesets(theme: FloorTheme): FloorTheme {
     ground: move(theme.ground),
     wall: move(theme.wall),
     longWall: move(theme.longWall),
+    ...(theme.wallAutotile ? { wallAutotile: theme.wallAutotile.map((rule) => ({ ...rule, tiles: move(rule.tiles) })) } : {}),
     materials: theme.materials.map((m) => ({ ...m, tiles: move(m.tiles) })),
     stumps: move(theme.stumps),
     decorations: move(theme.decorations),

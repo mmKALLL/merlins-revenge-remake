@@ -78,6 +78,18 @@ export interface RoomShapeTuning {
   minOpenShare: number
 }
 
+/** A wall cell's four neighbours, for wall autotiling (wall-autotile.ts). */
+export type WallSide = 'up' | 'right' | 'down' | 'left'
+
+/** Wall tiles for the wall cells whose neighbours match `when`: true = a wall there, false = none, unnamed = either. */
+export interface WallTileRule {
+  when: Partial<Record<WallSide, boolean>>
+  tiles: Weighted<number>[]
+}
+
+/** A neighbour-to-tile table for walls: the first matching rule wins, so the last one should match anything. */
+export type WallAutotile = readonly WallTileRule[]
+
 export interface EdgeTuning {
   /** chance that an edge outside the spanning tree opens too */
   extraOpenChance: number
@@ -125,10 +137,18 @@ export interface BossGroup extends UnitGroup {
   boss: string
 }
 
-/** Total starting energy for a draw on a floor: `base + perLevel * level` (FloorTheme.level). */
+/**
+ * Total starting energy for a draw on a floor: `base + perLevel * level` (FloorTheme.level), plus
+ * up to `spread` more drawn per room. With `producers` set, a producer (dwelling or summoner) counts
+ * as `max(energy, least) * factor`, since what it releases outweighs its own energy. `capped` draws
+ * only units that keep the room within the top of the range (`base + perLevel * level + spread`).
+ */
 export interface HpBudget {
   base: number
   perLevel: number
+  spread?: number
+  producers?: { factor: number; least: number }
+  capped?: boolean
 }
 
 /**
@@ -158,6 +178,8 @@ export interface RoomPlanCell {
   producers?: DrawSpec
   regulars?: DrawSpec
   extras?: DrawSpec
+  /** units of any kind, producers and regular enemies alike */
+  mixed?: DrawSpec
 }
 
 /** The floor's rooms as on screen: the first row is the far row (engine y 1), the start bottom-left, the exit top-right. */
@@ -182,6 +204,18 @@ export interface UnitTuning {
   /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) */
   potions: Weighted<string>[]
   startRewards: StartRewards
+  /**
+   * When set, a room draws one alliance (by weight) instead of one faction and takes choices of any
+   * of its factions; an alliance holds teams that leave each other alone (assets/teams).
+   */
+  alliances?: Alliance[]
+}
+
+/** Factions that share a room peacefully. */
+export interface Alliance {
+  name: string
+  factions: string[]
+  weight: number
 }
 
 /**
@@ -213,6 +247,8 @@ export interface FloorTheme {
   wall: Weighted<number>[]
   /** interior walls: long walls, cuts, baffles and maze walls */
   longWall: Weighted<number>[]
+  /** when set, edge and interior walls take their tiles from it by their wall neighbours instead of `wall` and `longWall` */
+  wallAutotile?: WallAutotile
   materials: Material[]
   stumps: Weighted<number>[]
   decorations: Weighted<number>[]
@@ -289,6 +325,22 @@ export const SPELL_SCROLLS = [
   'energyBeamSpell',
   'merlinSword',
 ] as const
+
+/** Owner: any spell can come up on any floor at this weight; the floor's own spells weigh more. */
+const ANY_SPELL_WEIGHT = 1
+/** Added to a floor's own spell weights (its lists' 1 / 2 / 3 become 4 / 5 / 6). */
+const THEMED_SPELL_BONUS = 3
+
+/**
+ * A floor's start scroll list: every spell its objects tileset has a tile for (merlin4Objects has
+ * no arctic blast or energy beam), the floor's themed spells weighted up by THEMED_SPELL_BONUS.
+ */
+function spellWeights(themed: Weighted<string>[], objectTiles: Record<string, number>): Weighted<string>[] {
+  return SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined).map((spell) => {
+    const own = themed.find((t) => t.value === spell)
+    return w(spell, own ? own.weight + THEMED_SPELL_BONUS : ANY_SPELL_WEIGHT)
+  })
+}
 
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
@@ -453,7 +505,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)]),
+    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)], MERLIN4_OBJECTS)),
   },
 }
 
@@ -530,12 +582,26 @@ export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
 }
 
 // merlinOpenActive tiles (10 per row). Solid: bricks, bars, rocks, trees, pots, skull, shrine.
-const BRICK_WALL = 12
-const BRICK_WALL_B = 13
-const BRICK_WALL_LOW = 22
-const BRICK_WALL_LOW_B = 23
-const IRON_BARS = 18
-const IRON_BARS_B = 28
+// the grey castle wall (rows 1-3): towers 1 wide, top / middle / base, a left and a right variant
+// (the original maps put the B variant at the right end of a wall), and the crenellated wall face
+const TOWER_TOP = 2
+const TOWER_TOP_B = 3
+const TOWER = 12
+const TOWER_B = 13
+const TOWER_BASE = 22
+const TOWER_BASE_B = 23
+const CASTLE_WALL = 21
+// the golden palace (rows 1-3): a column 1 wide with a dome on top, the column with a wall running
+// off to its right or left, and the banded wall face between them
+const GOLD_DOME = 4
+const GOLD_COLUMN = 14
+const GOLD_COLUMN_WALL_RIGHT = 24
+const GOLD_WALL = 25
+const GOLD_COLUMN_WALL_LEFT = 26
+const GOLD_HEAP = 5
+const GOLD_HEAP_B = 6
+const GOLD_HEAP_C = 15
+const GOLD_HEAP_D = 16
 const STONE_SHRINE = 7
 const STONE_BLOCK = 27
 const GREY_BOULDER = 32
@@ -568,6 +634,8 @@ const GREY_FLOWER = 83
 const PUDDLE = 120
 const DARK_PEBBLES = 140
 // merlinOpenPassive tiles (10 per row)
+const GOLD_FLOOR = 17
+const PALACE_FLOOR = 36
 const MUD = 2
 const MUD_STONES = 9
 const BLUE_COBBLES = 35
@@ -664,7 +732,7 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'necromancer and giant', units: { necromancer: 1, skeletonGiant: 1 }, faction: 'undead', boss: 'necromancer', alone: true },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)]),
+    startRewards: startRewards(spellWeights([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
   },
 }
 
@@ -762,9 +830,34 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
+    startRewards: startRewards(spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
   },
 }
+
+/**
+ * The castle walls as the original MR3 maps draw them (Scarlet_Castle, mr4Demo): vertical runs are
+ * towers (top, middle, base), horizontal runs the wall face, a corner or junction the tower, and a
+ * wall face ending in the open stops at a one-tile tower. Towers with a wall to their left only take
+ * the B variant, as the right-hand towers do in the originals.
+ */
+const CASTLE_WALLS: WallAutotile = [
+  { when: { up: false, down: false, left: false, right: false }, tiles: [w(TOWER_TOP)] },
+  { when: { up: false, down: false, left: true, right: false }, tiles: [w(TOWER_TOP_B)] },
+  { when: { up: false, down: false, left: false, right: true }, tiles: [w(TOWER_TOP)] },
+  { when: { up: false, down: false }, tiles: [w(CASTLE_WALL)] },
+  { when: { up: false, left: true, right: false }, tiles: [w(TOWER_TOP_B)] },
+  { when: { up: false }, tiles: [w(TOWER_TOP)] },
+  { when: { down: false, left: true, right: false }, tiles: [w(TOWER_BASE_B)] },
+  { when: { down: false }, tiles: [w(TOWER_BASE)] },
+  { when: { left: true, right: false }, tiles: [w(TOWER_B)] },
+  { when: {}, tiles: [w(TOWER)] },
+]
+
+/**
+ * Owner: necromancers should be a regular sight in the maze, so its generator rooms also draw strong
+ * producers (necromancers in an undead room; the other factions fall back to weak ones).
+ */
+const WEAK_SOME_STRONG: TierWeights = { weak: 2, strong: 1 }
 
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
@@ -776,11 +869,11 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
       ],
       { regulars: n(0, 2, WEAK) }
     ),
-    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK_SOME_STRONG), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
   [
-    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(2, 3, WEAK_SOME_STRONG), regulars: n(0, 2, WEAK) }),
     normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
     normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
@@ -805,8 +898,9 @@ export const MAGIC_MAZE: FloorTheme = {
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
   ground: [w(BLUE_COBBLES)],
-  wall: [w(BRICK_WALL, 3), w(BRICK_WALL_B, 3), w(BRICK_WALL_LOW, 1), w(BRICK_WALL_LOW_B, 1)],
-  longWall: [w(BRICK_WALL, 4), w(BRICK_WALL_B, 4), w(IRON_BARS, 0.5), w(IRON_BARS_B, 0.5)],
+  wall: [w(TOWER), w(TOWER_B)],
+  longWall: [w(TOWER), w(TOWER_B)],
+  wallAutotile: CASTLE_WALLS,
   materials: [
     { name: 'pots', weight: 2, tiles: [w(WHITE_POT, 2), w(CRACKED_POT, 1), w(VINE_POT, 1), w(BEIGE_POT, 1)] },
     { name: 'stone', weight: 1, tiles: [w(STONE_BLOCK, 2), w(STONE_SHRINE, 1)] },
@@ -839,7 +933,7 @@ export const MAGIC_MAZE: FloorTheme = {
       { key: 'bombMage', weight: 3, tier: 'weak', faction: 'alliance' },
       { key: 'thunderMonk', weight: 3, tier: 'weak', faction: 'alliance' },
       { key: 'shrouder', weight: 2, tier: 'mid', faction: 'alliance' },
-      { key: 'necromancer', weight: 2, tier: 'strong', maxPerRoom: 2, faction: 'undead', producer: true },
+      { key: 'necromancer', weight: 5, tier: 'strong', maxPerRoom: 2, faction: 'undead', producer: true },
       { key: 'darkMage', weight: 2, tier: 'mid', faction: 'undead' },
       { key: 'greyGhost', weight: 1, tier: 'weak', maxPerRoom: 1, faction: 'undead', producer: true },
       { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
@@ -860,10 +954,164 @@ export const MAGIC_MAZE: FloorTheme = {
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      [w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
+      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)], MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },
 }
 
-export const THEMES: readonly FloorTheme[] = [GOBLIN_FOREST, UNDEAD_MARSH, DRAGON_CANYON, MAGIC_MAZE]
+/** The Sorcerer's Tower's floors, from the bottom up. */
+export const TOWER_THEMES: readonly FloorTheme[] = [GOBLIN_FOREST, UNDEAD_MARSH, DRAGON_CANYON, MAGIC_MAZE]
+
+// ---- Golden Fort (merlinOpen tilesets; not part of the tower) ----
+
+/** merlinOpenObjects' goblin and orc tiles (61-74), for the fort's goblins. */
+const MERLIN_OPEN_GOBLIN_OBJECTS: Record<string, number> = {
+  goblinArcher: 61,
+  goblinWarrior: 62,
+  goblinHero: 63,
+  goblinMage: 64,
+  goblinHut: 66,
+  goblinMageHut: 67,
+  bowOrc: 71,
+  swordOrc: 72,
+  mageOrc: 73,
+  orcHouse: 74,
+}
+
+/**
+ * Each unit's team in the actor data (`team`; floor.test.ts checks this). The fort mixes the
+ * themes' units, so its factions are the engine's teams themselves.
+ */
+const TEAM_OF: Record<string, string> = {
+  goblinArcher: 'goblins', goblinWarrior: 'goblins', goblinHero: 'goblins', goblinMage: 'goblins',
+  goblinHut: 'goblins', goblinMageHut: 'goblins', orcHouse: 'goblins',
+  bowOrc: 'orcs', swordOrc: 'orcs', mageOrc: 'orcs',
+  bat: 'cave', batTree: 'cave',
+  skeletonWarrior: 'undead', skeletonThrower: 'undead', skeletonArcher: 'undead', skeletonComando: 'undead',
+  skeletonGiant: 'undead', skeletonDwelling: 'undead', skelitonLord: 'undead', greyGhost: 'undead',
+  necromancer: 'undead', darkMage: 'undead',
+  quadranid: 'monsters', cocoon: 'monsters', lizard: 'monsters', lizardSoldier: 'monsters',
+  boulderMonster: 'monsters', boulderCave: 'monsters', dragon: 'monsters', darkGolem: 'monsters',
+  darkCave: 'monsters', fourArmGolem: 'monsters', doubleDarkGolem: 'monsters', blackOrc: 'monsters',
+  vultureGuard: 'monsters',
+  plant: 'swamp', hydra1: 'swamp', hydra3: 'swamp',
+  karateGuy: 'karate', kongFuChicken: 'karate', dojo: 'karate',
+  bombMage: 'magicalAlliance', thunderMonk: 'magicalAlliance', shrouder: 'magicalAlliance', magicPortal: 'magicalAlliance',
+  scWarrior: 'scarlet', scArcher: 'scarlet', scMonk: 'scarlet',
+}
+
+const teamOf = (key: string): string => {
+  const team = TEAM_OF[key]
+  if (!team) throw new Error(`golden fort: no team for "${key}"`)
+  return team
+}
+
+/**
+ * Owner: the fort's enemies are very random, so its rooms draw from every theme's enemies and
+ * dwellings, each at weight 1 and its own theme's tier, with its team as its faction.
+ */
+function everyThemesChoices(pick: (u: UnitTuning) => EnemyChoice[]): EnemyChoice[] {
+  const byKey = new Map<string, EnemyChoice>()
+  for (const theme of TOWER_THEMES) {
+    for (const c of pick(theme.units)) if (!byKey.has(c.key)) byKey.set(c.key, { ...c, weight: 1, faction: teamOf(c.key) })
+  }
+  return [...byKey.values()]
+}
+
+/**
+ * Teams that leave each other alone (no hate either way in assets/teams; floor.test.ts checks
+ * this), so a fort room mixes several teams without them brawling at once. The magical alliance
+ * hates every other enemy team, so it holds rooms of its own.
+ */
+const FORT_ALLIANCES: Alliance[] = [
+  { name: 'greenskins and beasts', factions: ['goblins', 'orcs', 'monsters', 'swamp', 'cave'], weight: 3 },
+  { name: 'the dead and the red', factions: ['undead', 'scarlet', 'cave'], weight: 2 },
+  { name: 'martial beasts', factions: ['karate', 'monsters', 'swamp'], weight: 2 },
+  { name: 'dojo and Scarlet', factions: ['karate', 'scarlet'], weight: 1 },
+  { name: 'magical alliance', factions: ['magicalAlliance'], weight: 1 },
+]
+
+/**
+ * Owner: every room but the start holds units to an HP budget of 1500-2000, drawn per room, with
+ * generators and summoners counting three times their energy (at least 100, so fragile huts and
+ * portals still count 300). No unit cap but the room's free tiles; no unit that would take the
+ * room past 2000 (so the dark cave, 3 x 1000, never comes).
+ */
+const FORT_BUDGET: TierDraw = {
+  count: [0, Infinity],
+  tiers: { weak: 1, mid: 1, strong: 1 },
+  hpBudget: { base: 1500, perLevel: 0, spread: 500, producers: { factor: 3, least: 100 }, capped: true },
+}
+const FORT_ROOM = normal({ mixed: FORT_BUDGET })
+
+/** No midboss: every room is a budget room; the exit adds one of every theme's bosses. */
+const GOLDEN_FORT_PLAN: RoomPlan = [
+  [FORT_ROOM, FORT_ROOM, boss({ mixed: FORT_BUDGET })],
+  [FORT_ROOM, FORT_ROOM, FORT_ROOM],
+  [START, FORT_ROOM, FORT_ROOM],
+]
+
+/**
+ * The golden palace walls: horizontal runs are the banded wall face between columns, a run's ends
+ * and corners the column with the wall running off it, vertical runs plain columns with a dome
+ * where a column's top stands free.
+ */
+const GOLD_WALLS: WallAutotile = [
+  { when: { up: false, down: false, left: false, right: false }, tiles: [w(GOLD_COLUMN)] },
+  { when: { left: false, right: true }, tiles: [w(GOLD_COLUMN_WALL_RIGHT)] },
+  { when: { left: true, right: false }, tiles: [w(GOLD_COLUMN_WALL_LEFT)] },
+  { when: { left: true, right: true }, tiles: [w(GOLD_WALL)] },
+  { when: { up: false }, tiles: [w(GOLD_DOME)] },
+  { when: {}, tiles: [w(GOLD_COLUMN)] },
+]
+
+export const GOLDEN_FORT: FloorTheme = {
+  id: 'golden-fort',
+  name: 'Golden Fort',
+  level: 5,
+  floorSize: DEFAULT_FLOOR_SIZE,
+  tileSets: MERLIN_OPEN_TILESETS,
+  objectTiles: { ...MERLIN_OPEN_OBJECTS, ...MERLIN_OPEN_GOBLIN_OBJECTS },
+  ground: [w(PALACE_FLOOR, 40), w(GOLD_FLOOR, 1)],
+  wall: [w(GOLD_COLUMN)],
+  longWall: [w(GOLD_COLUMN)],
+  wallAutotile: GOLD_WALLS,
+  materials: [
+    { name: 'treasure', weight: 3, tiles: [w(GOLD_HEAP, 2), w(GOLD_HEAP_B, 2), w(GOLD_HEAP_C, 1), w(GOLD_HEAP_D, 1)] },
+    { name: 'urns', weight: 1, tiles: [w(WHITE_POT, 2), w(BEIGE_POT, 1)] },
+  ],
+  stumps: [w(GOLD_COLUMN, 2), w(GOLD_DOME, 1)],
+  decorations: [w(GOLD_COINS, 3), w(GREY_PEBBLES, 1)],
+  shape: {
+    patches: [1, 3],
+    patchSize: [1, 4],
+    smoothSteps: 0,
+    birth: 5,
+    baffles: { chance: 0.65, count: [1, 2], reach: [0.5, 0.7], verticalChance: 0.6, thickness: [1, 1] },
+    longWallChance: 0.25,
+    longWallSide: [5, 8],
+    longWallEnd: [2, 4],
+    stumpChance: 0.008,
+    decorationChance: 0.03,
+    minOpenShare: 0.55,
+  },
+  edges: { extraOpenChance: 0.65, sideOpening: [3, 5], endOpening: [4, 7], openingDepth: 2 },
+  units: {
+    player: 'player',
+    startMusic: 'musicElectronicMerlin',
+    exitMusic: 'musicLastStand',
+    roomPlan: GOLDEN_FORT_PLAN,
+    wildcardChance: 0,
+    enemies: everyThemesChoices((u) => u.enemies),
+    dwellings: everyThemesChoices((u) => u.dwellings),
+    bosses: TOWER_THEMES.flatMap((t) => t.units.bosses).map((b) => ({ ...b, faction: b.faction ?? teamOf(b.boss) })),
+    alliances: FORT_ALLIANCES,
+    potions: POTION_WEIGHTS,
+    // owner: ten potions, two medikits and one spell scroll of any kind
+    startRewards: { potions: POTION_WEIGHTS, potionCount: 10, medikits: 2, spellScrolls: spellWeights([], MERLIN_OPEN_OBJECTS), extras: [] },
+  },
+}
+
+/** Every generated floor: the tower's four, then the Golden Fort (a floor of its own). */
+export const THEMES: readonly FloorTheme[] = [...TOWER_THEMES, GOLDEN_FORT]
