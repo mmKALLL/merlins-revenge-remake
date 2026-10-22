@@ -4,10 +4,10 @@ import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
-import { loadLastMap, loadSpaceMode, loadZoom, saveLastMap, saveSpaceMode, saveZoom } from './data/preferences'
+import { loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
-import { generateMap, isGeneratedMapId } from './gen/generated-maps'
+import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
@@ -15,7 +15,7 @@ import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { createSim, findStartPos, stepSim } from './sim/tick'
-import { buildWorldGrid } from './sim/world-grid'
+import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
 import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
 import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
@@ -32,11 +32,14 @@ import { titleScreen } from './ui/title-screen'
 const params = new URLSearchParams(location.search)
 /** The map Play starts when none has been played yet. */
 const DEFAULT_MAP = 'works/mriiidemoiv'
+/** A map id from the URL or storage, with an id from before a rename brought up to date. */
+const upToDate = (id: string | null): string | null => (id === null ? null : currentMapId(id))
 /**
  * A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. A page opened
  * with ?map= starts that map at once (map links, the Maps menu); without it the title screen shows.
  */
-const linkedMap = params.get('map')
+const linkedMap = upToDate(params.get('map'))
+const lastPlayedMap = (): string | null => upToDate(loadLastMap())
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
@@ -58,10 +61,10 @@ function rememberParam(name: string, value: string | null): void {
   history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`)
 }
 
-/** A generated floor for the seed; the seed goes into the URL (no reload) so the floor can be shared. */
-function generatedMapWithSeedInUrl(mapId: string): MapDefinition {
-  rememberParam('seed', String(seed))
-  return generateMap(mapId, seed)
+/** A generated map for a seed; the seed goes into the URL (no reload) so the layout can be shared. */
+function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number): MapDefinition {
+  rememberParam('seed', String(layoutSeed))
+  return generateMap(mapId, layoutSeed)
 }
 
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
@@ -90,13 +93,22 @@ interface Shell {
   input: InputTracker
   /** Whether the simulation advances (no menu open). */
   running: () => boolean
+  /** Whether a restart of a generated map builds a new layout (Settings, Random maps). */
+  newLayoutEachRun: () => boolean
 }
+
+/** A map's world grid and where the player starts on it. */
+interface World { grid: WorldGrid; startPos: Vec }
 
 /** A loaded map being played. */
 interface Game {
   mapId: string
   scene: Scene
-  /** A new run of the same map: with the page's seed again (Restart map), or a fresh one (as after a death). */
+  /**
+   * A new run of the same map: with the page's seed again (Restart map), or a fresh one (as after a
+   * death). A generated map gets a new layout from a fresh seed either way, unless the Random maps
+   * setting keeps the layout.
+   */
   restart(seedChoice: 'same' | 'fresh'): void
   /** Switches the camera, and the world mode with it, between ticks. */
   setCamera(camera: CameraMode): void
@@ -105,7 +117,9 @@ interface Game {
 /** Loads a map and its assets, puts the canvas in #game and starts the frame loop. */
 async function startGame(mapId: string, shell: Shell): Promise<Game> {
   const { audio, input } = shell
-  const map = isGeneratedMapId(mapId) ? generatedMapWithSeedInUrl(mapId) : await loadMap(mapId)
+  const loaded = isGeneratedMapId(mapId) ? null : await loadMap(mapId)
+  const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed)
+  const map = mapFor(seed)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
@@ -128,17 +142,28 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'
-  const grid = buildWorldGrid(map, isSolid, objects.data.symbols)
   const playerTile = objects.data.symbols.indexOf('player') + 1 || null
-  const startPos = findStartPos(grid, playerTile)
-  let sim = createSim(grid, defs, teams, anims, seed, startPos, worldModeFor(cfg.cameraMode))
+  const worldOf = (m: MapDefinition): World => {
+    const grid = buildWorldGrid(m, isSolid, objects.data.symbols)
+    return { grid, startPos: findStartPos(grid, playerTile) }
+  }
+  let world = worldOf(map)
+  let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
   audio.handle(sim.events) // the start room's music
+  /** the seed in the URL: the layout's, and the sim's for Restart map */
+  let pageSeed = seed
   let runSeed = seed
   // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
   const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
-    runSeed = seedChoice === 'same' ? seed : nextRunSeed(runSeed)
-    sim = createSim(grid, defs, teams, anims, runSeed, startPos, worldModeFor(scene.cameraMode))
+    const newLayout = loaded === null && shell.newLayoutEachRun()
+    runSeed = seedChoice === 'same' && !newLayout ? pageSeed : nextRunSeed(runSeed)
+    if (newLayout) {
+      pageSeed = runSeed
+      world = worldOf(mapFor(pageSeed))
+      scene.invalidateTiles()
+    }
+    sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }
@@ -156,7 +181,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
 
   const inputLog = new InputLog()
   installStateExport({
-    mapId, grid, defs, teams, anims, inputs: inputLog, getSim: () => sim, getSeed: () => runSeed,
+    mapId, getGrid: () => world.grid, defs, teams, anims, inputs: inputLog, getSim: () => sim, getSeed: () => runSeed,
     restore: (s, seed) => {
       sim = s
       runSeed = seed
@@ -247,8 +272,14 @@ function main(): void {
   let state: AppState = linkedMap ? PLAYING : TITLE
   let game: Game | null = null
   let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
-  const mapToPlay = () => linkedMap ?? loadLastMap() ?? DEFAULT_MAP
-  const shell: Shell = { audio, input, running: () => game !== null && simRuns(state) }
+  let randomMaps = loadRandomMaps('newEachRun')
+  const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
+  const shell: Shell = {
+    audio,
+    input,
+    running: () => game !== null && simRuns(state),
+    newLayoutEachRun: () => randomMaps === 'newEachRun',
+  }
 
   const back = () => dispatch({ kind: 'back' })
   const title = titleScreen({
@@ -287,6 +318,11 @@ function main(): void {
       },
       spaceMode: () => input.spaceMode,
       setSpaceMode: (m) => input.setSpaceMode(m),
+      randomMaps: () => randomMaps,
+      setRandomMaps: (m) => {
+        randomMaps = m
+        saveRandomMaps(m)
+      },
       audio,
     }, back),
     help: helpPanel(touch, back),

@@ -8,7 +8,7 @@ import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
-import type { Corner, EnemyChoice, FloorTheme, UnitGroup, Weighted } from './themes'
+import type { Amount, Corner, EnemyChoice, FloorTheme, QuantityTuning, UnitGroup, Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -25,12 +25,25 @@ export function cornerRoom(floorSize: Vec, corner: Corner): Vec {
 }
 /** Units keep this many tiles from every room edge. */
 const UNIT_EDGE_MARGIN = 2
+/** The boss stands this many tiles in from the floor's far corner (the exit room's top-right corner). */
+const BOSS_CORNER_INSET = 2
+/** The exit room tile for the boss, kept open and reachable when the room is laid out. */
+export const BOSS_TILE: Vec = { x: ROOM_SIZE.x - 1 - BOSS_CORNER_INSET, y: BOSS_CORNER_INSET }
 /** Whole-floor attempts (each from a derived seed) before giving up. */
 const FLOOR_ATTEMPTS = 8
 const RETRY_SEED_STEP = 0x9e3779b9
 
 /** A placed unit: an objects-layer key at a room tile (0-based). */
 export interface Placement { key: string; room: Vec; tile: Vec }
+
+/** An opening on the floor's boundary, into a neighbouring floor (the tower's stairs). */
+export interface BoundaryOpening { room: Vec; edge: Edge; opening: Opening }
+
+export interface FloorOptions {
+  /** false for the tower's later floors: their start room only plays the start music */
+  placePlayer?: boolean
+  boundaryOpenings?: readonly BoundaryOpening[]
+}
 
 export interface GeneratedFloor {
   map: MapDefinition
@@ -41,27 +54,33 @@ export interface GeneratedFloor {
 
 export const roomKey = (r: Vec): string => `${r.x},${r.y}`
 
-/** A seeded floor for a theme; the same theme and seed always give the same floor. */
-export function generateFloor(theme: FloorTheme, seed: number): GeneratedFloor {
+/** A seed for the next attempt after `attempt` failed ones. */
+export const retrySeed = (seed: number, attempt: number): number => (seed + attempt * RETRY_SEED_STEP) >>> 0
+
+/** A seeded floor for a theme; the same theme, seed and options always give the same floor. */
+export function generateFloor(theme: FloorTheme, seed: number, options: FloorOptions = {}): GeneratedFloor {
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
-    const floor = buildFloor(theme, (seed + attempt * RETRY_SEED_STEP) >>> 0)
+    const floor = buildFloor(theme, retrySeed(seed, attempt), options)
     if (floorIsConnected(floor, themeIsSolid(theme))) return floor
   }
   throw new Error(`random floor ${theme.id}: no connected floor for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
 }
 
-function buildFloor(theme: FloorTheme, seed: number): GeneratedFloor {
+function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): GeneratedFloor {
   const rng = new GenRandom(seed)
   const size = theme.floorSize
   const edges = decideEdges(rng, theme)
+  for (const b of options.boundaryOpenings ?? []) edges[roomKey(b.room)]![b.edge] = b.opening
+  const placePlayer = options.placePlayer ?? true
   const rooms: RoomDefinition[] = []
   const placements: Placement[] = []
   for (let y = 1; y <= size.y; y++) {
     for (let x = 1; x <= size.x; x++) {
       const room = { x, y }
-      const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth)
+      const keepOpen = sameVec(room, exitRoom(size)) ? [BOSS_TILE] : []
+      const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
       decorate(rng, shape, theme.shape.decorationChance)
-      const units = placeUnits(rng, theme, room, shape)
+      const units = placeUnits(rng, theme, room, shape, placePlayer)
       placements.push(...units)
       rooms.push(roomDefinition(rng, theme, room, shape, units))
     }
@@ -94,6 +113,13 @@ function sharedEdges(size: Vec): SharedEdge[] {
   return out
 }
 
+/** An opening of a width in `[lo, hi]` along an edge `length` tiles long, off the corner tiles. */
+export function randomOpening(rng: GenRandom, length: number, [lo, hi]: readonly [number, number]): Opening {
+  const width = rng.int(lo, hi)
+  const from = rng.int(1, length - 1 - width)
+  return { from, to: from + width - 1 }
+}
+
 /** Opens a random spanning tree (Kruskal) plus extra edges by chance; gives each open edge its opening. */
 function decideEdges(rng: GenRandom, theme: FloorTheme): Record<string, RoomEdges> {
   const size = theme.floorSize
@@ -115,12 +141,7 @@ function decideEdges(rng: GenRandom, theme: FloorTheme): Record<string, RoomEdge
     const inTree = ra !== rb
     if (inTree) parent.set(ra, rb)
     if (!inTree && !rng.chance(theme.edges.extraOpenChance)) continue
-    const length = e.vertical ? ROOM_SIZE.y : ROOM_SIZE.x
-    const [lo, hi] = e.vertical ? theme.edges.sideOpening : theme.edges.endOpening
-    const width = rng.int(lo, hi)
-    // openings stay off the corner tiles
-    const from = rng.int(1, length - 1 - width)
-    const opening: Opening = { from, to: from + width - 1 }
+    const opening = randomOpening(rng, e.vertical ? ROOM_SIZE.y : ROOM_SIZE.x, e.vertical ? theme.edges.sideOpening : theme.edges.endOpening)
     const [sideA, sideB]: [Edge, Edge] = e.vertical ? ['right', 'left'] : ['bottom', 'top']
     edges[roomKey(e.a)]![sideA] = opening
     edges[roomKey(e.b)]![sideB] = opening
@@ -130,23 +151,20 @@ function decideEdges(rng: GenRandom, theme: FloorTheme): Record<string, RoomEdge
 
 // ---- units ----
 
-/** Steps from the start corner along x and y, and the same as a share of the floor (0..1). */
-function progress(floorSize: Vec, room: Vec): { px: number; py: number; fx: number; fy: number } {
+/** Steps from the start corner along x and y as a share of the floor (0 at the start, 1 at the far side). */
+function progress(floorSize: Vec, room: Vec): { fx: number; fy: number } {
   const start = startRoom(floorSize)
-  const px = Math.abs(room.x - start.x)
-  const py = Math.abs(room.y - start.y)
   const share = (steps: number, rooms: number) => (rooms > 1 ? steps / (rooms - 1) : 0)
-  return { px, py, fx: share(px, floorSize.x), fy: share(py, floorSize.y) }
+  return { fx: share(Math.abs(room.x - start.x), floorSize.x), fy: share(Math.abs(room.y - start.y), floorSize.y) }
 }
 
-function difficultyOf(theme: FloorTheme, room: Vec): number {
-  const { px, py } = progress(theme.floorSize, room)
-  const maxSteps = Math.max(1, theme.floorSize.x - 1 + theme.floorSize.y - 1)
+/** Enemy quality ramps over y (the theme's start value in the start row, its exit value in the far row). */
+function difficultyOf(theme: FloorTheme, fy: number): number {
   const [d0, d1] = theme.units.difficulty
-  return d0 + ((d1 - d0) * (px + py)) / maxSteps
+  return d0 + (d1 - d0) * fy
 }
 
-const sameRoom = (a: Vec, b: Vec): boolean => a.x === b.x && a.y === b.y
+const sameVec = (a: Vec, b: Vec): boolean => a.x === b.x && a.y === b.y
 
 /** Reachable open tiles away from the edges, in random order. */
 function unitTiles(rng: GenRandom, shape: RoomShape): Vec[] {
@@ -184,39 +202,65 @@ function pickUnit(rng: GenRandom, table: readonly EnemyChoice[], draw: RoomDraw,
   return rng.weighted(choices.map((c) => ({ value: c.key, weight: weightIn(c, draw) })))
 }
 
-/** The corner room's fixed group, if it is one. */
+/** The side corner room's fixed group, if it is one. */
 function specialGroup(rng: GenRandom, theme: FloorTheme, room: Vec): UnitGroup | null {
-  const special = theme.units.specialRooms.find((s) => sameRoom(cornerRoom(theme.floorSize, s.corner), room))
+  const special = theme.units.specialRooms.find((s) => sameVec(cornerRoom(theme.floorSize, s.corner), room))
   return special ? rng.pick(special.groups) : null
 }
 
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape): Placement[] {
+/** How a room brings its numbers; the exit room has both. */
+type RoomForm = 'swarm' | 'producers' | 'both'
+
+/** Swarm or producers by the theme's weights; a swarm when no producer fits the room. */
+function pickForm(rng: GenRandom, q: QuantityTuning, canProduce: boolean): RoomForm {
+  const form = rng.weighted<RoomForm>([{ value: 'swarm', weight: q.swarmWeight }, { value: 'producers', weight: q.producerWeight }])
+  return form === 'producers' && !canProduce ? 'swarm' : form
+}
+
+const amountAt = (rng: GenRandom, a: Amount, fx: number): number => Math.floor(a.base + a.farX * fx + rng.next())
+
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, placePlayer: boolean): Placement[] {
   const u = theme.units
-  const tiles = unitTiles(rng, shape)
+  const isExit = sameVec(room, exitRoom(theme.floorSize))
+  const tiles = unitTiles(rng, shape).filter((t) => !(isExit && sameVec(t, BOSS_TILE)))
   const keys: string[] = []
-  if (sameRoom(room, startRoom(theme.floorSize))) {
+  const fixed: Placement[] = []
+  if (sameVec(room, startRoom(theme.floorSize))) {
     const centre = { x: (shape.size.x - 1) / 2, y: (shape.size.y - 1) / 2 }
     tiles.sort((a, b) => Math.hypot(a.x - centre.x, a.y - centre.y) - Math.hypot(b.x - centre.x, b.y - centre.y))
-    keys.push(u.player, u.startMusic)
+    if (placePlayer) keys.push(u.player)
+    keys.push(u.startMusic)
   } else {
     const { fx, fy } = progress(theme.floorSize, room)
-    const draw: RoomDraw = { difficulty: difficultyOf(theme, room), fx, fy, faction: null }
-    const group = specialGroup(rng, theme, room)
+    const draw: RoomDraw = { difficulty: difficultyOf(theme, fy), fx, fy, faction: null }
+    const boss = isExit ? rng.pick(u.bosses) : null
+    const group = boss ?? specialGroup(rng, theme, room)
     draw.faction = group?.faction ?? pickFaction(rng, u.enemies, draw)
     const counts = new Map<string, number>()
+    const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
     const add = (key: string | null) => {
       if (!key) return
       keys.push(key)
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+      count(key)
     }
-    for (const [key, n] of Object.entries(group?.units ?? {})) for (let i = 0; i < n; i++) add(key)
-    const enemies = Math.round(u.enemiesBase + u.enemiesFarX * fx + rng.int(0, u.enemiesRandom))
-    for (let i = 0; i < enemies; i++) add(pickUnit(rng, u.enemies, draw, counts))
-    const dwellings = Math.floor(u.dwellingsFarY * fy + rng.next())
-    for (let i = 0; i < dwellings; i++) add(pickUnit(rng, u.dwellings, draw, counts))
-    if (sameRoom(room, exitRoom(theme.floorSize))) keys.push(u.exitMusic)
+    if (boss) {
+      fixed.push({ key: boss.boss, room, tile: BOSS_TILE })
+      count(boss.boss)
+    }
+    for (const [key, n] of Object.entries(group?.units ?? {})) {
+      for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
+    }
+    const regulars = u.enemies.filter((c) => !c.producer)
+    const producers = [...u.dwellings, ...u.enemies.filter((c) => c.producer)]
+    const q = u.quantity
+    const form: RoomForm = isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
+    const addFrom = (table: readonly EnemyChoice[], n: number) => { for (let i = 0; i < n; i++) add(pickUnit(rng, table, draw, counts)) }
+    if (form !== 'producers') addFrom(regulars, amountAt(rng, q.swarm, fx))
+    if (form !== 'swarm') addFrom(producers, amountAt(rng, q.producers, fx))
+    if (form === 'producers') addFrom(regulars, rng.int(q.escorts[0], q.escorts[1]))
+    if (isExit) keys.push(u.exitMusic)
   }
-  return keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))
+  return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]
 }
 
 // ---- tiles ----
@@ -278,16 +322,20 @@ export function floorCells(floor: GeneratedFloor, isSolid: (active: number) => b
 
 export const worldTile = (p: Placement): Vec => ({ x: (p.room.x - 1) * ROOM_SIZE.x + p.tile.x, y: (p.room.y - 1) * ROOM_SIZE.y + p.tile.y })
 
-/** The player reaches every unit and some tile of the exit room. */
+/**
+ * The start room reaches every unit and some tile of the end room. The flood starts from the start
+ * room's first unit: the player, or on a floor without one its start music (also on a tile the
+ * room's openings reach).
+ */
 export function floorIsConnected(floor: GeneratedFloor, isSolid: (active: number) => boolean): boolean {
   const { cells, size } = floorCells(floor, isSolid)
-  const player = floor.placements.find((p) => sameRoom(p.room, floor.map.startRoom) && p.key === 'player')
-  if (!player) return false
-  const reach = floodOpen(cells, size, [worldTile(player)])
+  const { startRoom: start, endRoom: end = exitRoom(floor.map.mapSize) } = floor.map
+  const anchor = floor.placements.find((p) => sameVec(p.room, start))
+  if (!anchor) return false
+  const reach = floodOpen(cells, size, [worldTile(anchor)])
   const at = (v: Vec) => reach[v.y * size.x + v.x]!
   if (!floor.placements.every((p) => at(worldTile(p)))) return false
-  const exitAt = exitRoom(floor.map.mapSize)
-  const exit = { x: (exitAt.x - 1) * ROOM_SIZE.x, y: (exitAt.y - 1) * ROOM_SIZE.y }
+  const exit = { x: (end.x - 1) * ROOM_SIZE.x, y: (end.y - 1) * ROOM_SIZE.y }
   for (let y = 0; y < ROOM_SIZE.y; y++) for (let x = 0; x < ROOM_SIZE.x; x++) if (at({ x: exit.x + x, y: exit.y + y })) return true
   return false
 }

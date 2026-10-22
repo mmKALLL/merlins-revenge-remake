@@ -1,4 +1,4 @@
-// Generated floors in the real sim, with the page's converted data (pnpm assets:convert): they
+// Generated floors and the tower in the real sim, with the page's converted data (pnpm assets:convert): they
 // start clear in the start room, clearing the exit room completes the map, and every unit a theme
 // can place is a ported actor with sprites.
 import { existsSync, readFileSync } from 'node:fs'
@@ -11,6 +11,8 @@ import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
 import { ROOM_SIZE, exitRoom, generateFloor } from './floor'
 import { THEMES, type FloorTheme } from './themes'
+import { generateTower } from './tower'
+import { TOWER_TILESETS } from './tower-tilesets'
 
 const symbols = (name: string): string[] =>
   (JSON.parse(readFileSync(`public/generated/tilesets/${name}.json`, 'utf8')) as { symbols: string[] }).symbols
@@ -55,6 +57,22 @@ describe.each(THEMES)('random floor in the sim: $name', (theme) => {
       expect(def, key).toBeDefined()
       if (def!.objType === MUSIC_OBJ_TYPE) continue
       expect(existsSync(`public/generated/sprites/${def!.name}.json`), `${key} (${def!.name})`).toBe(true)
+    }
+  })
+})
+
+describe('the tower in the sim', () => {
+  it('starts the player on the bottom floor in a clear room, in both world modes', () => {
+    const tower = generateTower(7)
+    const active = symbols(TOWER_TILESETS.backgroundActive)
+    const objects = symbols(TOWER_TILESETS.objects)
+    const grid = buildWorldGrid(tower.map, (i) => i >= 1 && active[i - 1] === 'solid', objects)
+    for (const mode of ['rooms', 'continuous'] as const) {
+      let s = createSim(grid, pageDefs, pageTeams, anims, 7, findStartPos(grid, objects.indexOf('player') + 1), mode)
+      expect(s.room).toEqual(tower.map.startRoom)
+      if (mode === 'rooms') expect(s.exitsOpen).toBe(true)
+      for (let i = 0; i < 90; i++) s = stepSim(s, NO_INPUT)
+      expect(s.mapComplete).toBe(false)
     }
   })
 })

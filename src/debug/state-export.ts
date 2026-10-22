@@ -10,7 +10,8 @@ import { deserializeSim, hashData, parseSnapshot, serializeSim, type InputLog, t
 
 export interface StateExportHooks {
   mapId: string
-  grid: WorldGrid
+  /** the grid being played (a restart of a generated map can build a new one) */
+  getGrid(): WorldGrid
   defs: Record<string, ActorDef>
   teams: Record<string, TeamDef>
   anims: Record<string, AnimationSet>
@@ -82,7 +83,7 @@ export function installStateExport(h: StateExportHooks): void {
     if (snap.dataHash !== dataHash) {
       console.warn(`mr.loadState: the snapshot was taken with other actor/team data (hash ${snap.dataHash}, this page ${dataHash}); it may play out differently`)
     }
-    h.restore(deserializeSim(snap, h.grid, h.defs, h.teams, h.anims), snap.seed)
+    h.restore(deserializeSim(snap, h.getGrid(), h.defs, h.teams, h.anims), snap.seed)
     console.info(`mr.loadState: loaded tick ${snap.tick} of ${snap.mapId} (${snap.worldMode})`)
   }
 

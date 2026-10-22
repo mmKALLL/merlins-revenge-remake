@@ -1,11 +1,12 @@
-// Renders random floors to PNG for tuning the generator by eye (scratch tool, not part of the build).
-// Run: pnpm tsx tools/render-random-floor.ts <outDir> [themeId|all] [seed...] ; draws the three
-// layers from public/generated/tilesets with a faint line between rooms.
+// Renders generated maps (random floors and the tower) to PNG for tuning the generator by eye
+// (scratch tool, not part of the build). Run: pnpm tsx tools/render-random-floor.ts <outDir>
+// [map|all] [seed...], where map is a generated map's name with or without its number
+// (goblin-forest, 1-goblin-forest, sorcerers-tower); draws the three layers from
+// public/generated/tilesets with a faint line between rooms.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PNG } from 'pngjs'
-import { generateFloor } from '../src/gen/floor'
-import { THEMES } from '../src/gen/themes'
+import { GENERATED_MAPS, generateMap } from '../src/gen/generated-maps'
 import { TILE_PX } from '../src/mr-open/mr-geometry'
 import type { LayerName } from '../src/mr-open/mr-map-format'
 
@@ -13,10 +14,15 @@ import type { LayerName } from '../src/mr-open/mr-map-format'
 const TILESETS = join(import.meta.dirname, '..', 'public', 'generated', 'tilesets')
 const ROOM_LINE = [255, 0, 255, 160] as const
 
-const [outDir = 'dist/floors', themeArg = 'all', ...seedArgs] = process.argv.slice(2)
+const [outDir = 'dist/floors', mapArg = 'all', ...seedArgs] = process.argv.slice(2)
 const seeds = seedArgs.length > 0 ? seedArgs.map(Number) : [1, 2, 3]
-const themes = themeArg === 'all' ? THEMES : THEMES.filter((t) => t.id === themeArg)
-if (themes.length === 0) throw new Error(`no theme "${themeArg}"; themes: ${THEMES.map((t) => t.id).join(', ')}`)
+/** A generated map's name: its id after the folder. */
+const nameOf = (id: string): string => id.slice(id.lastIndexOf('/') + 1)
+/** The name without its listing number ("1-goblin-forest" -> "goblin-forest"). */
+const unnumbered = (name: string): string => name.replace(/^\d+-/, '')
+const ids = GENERATED_MAPS.map((m) => m.id)
+  .filter((id) => mapArg === 'all' || nameOf(id) === mapArg || unnumbered(nameOf(id)) === mapArg)
+if (ids.length === 0) throw new Error(`no generated map "${mapArg}"; maps: ${GENERATED_MAPS.map((m) => nameOf(m.id)).join(', ')}`)
 mkdirSync(outDir, { recursive: true })
 
 const sheets = new Map<string, PNG>()
@@ -46,9 +52,9 @@ function drawTile(img: PNG, s: PNG, index: number, dx: number, dy: number): void
   }
 }
 
-for (const theme of themes) for (const seed of seeds) {
+for (const id of ids) for (const seed of seeds) {
   const started = performance.now()
-  const { map } = generateFloor(theme, seed)
+  const map = generateMap(id, seed)
   const ms = performance.now() - started
   const { mapSize, roomSize } = map
   const img = new PNG({ width: mapSize.x * roomSize.x * TILE_PX, height: mapSize.y * roomSize.y * TILE_PX })
@@ -69,7 +75,7 @@ for (const theme of themes) for (const seed of seeds) {
       for (let c = 0; c < 3; c++) img.data[i + c] = Math.round((ROOM_LINE[c]! * ROOM_LINE[3] + img.data[i + c]! * (255 - ROOM_LINE[3])) / 255)
     }
   }
-  const file = join(outDir, `${theme.id}-${seed}.png`)
+  const file = join(outDir, `${unnumbered(nameOf(id))}-${seed}.png`)
   writeFileSync(file, PNG.sync.write(img))
   console.log(`${file} (generated in ${ms.toFixed(1)} ms)`)
 }

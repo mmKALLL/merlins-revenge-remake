@@ -52,7 +52,7 @@ is the one to play, and otherwise loads the chosen map. The last started map is 
 
 The map list comes from `loadMapList()` (`src/data/map-list.ts`): the converted index plus any
 entries registered with `addMapEntries()`, so generated maps (e.g. a random map generator's
-`random/...` ids) can appear in the Maps menu without a converted file.
+`randomly_generated/...` ids) can appear in the Maps menu without a converted file.
 
 ## Touch
 

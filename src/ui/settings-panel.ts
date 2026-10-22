@@ -1,6 +1,7 @@
-// Settings: pixel size, camera, what Space (and the touch blast button) fires at, music, effects
-// and the master volume. The page owns the values (main.ts); this only shows and changes them.
+// Settings: pixel size, camera, what Space (and the touch blast button) fires at, whether random
+// maps get a new layout each run, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
 import type { AudioEngine } from '../audio/audio'
+import type { RandomMapsMode } from '../data/preferences'
 import type { SpaceMode } from '../input/keyboard'
 import type { CameraMode } from '../render/camera'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
@@ -14,6 +15,8 @@ export interface SettingsHost {
   setCamera(c: CameraMode): void
   spaceMode(): SpaceMode // what Space and the touch blast button fire at (F cycles it)
   setSpaceMode(m: SpaceMode): void
+  randomMaps(): RandomMapsMode
+  setRandomMaps(m: RandomMapsMode): void
   audio: AudioEngine
 }
 
@@ -85,6 +88,10 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'pushBack', label: 'Push-back', title: 'Lands short of the nearest enemy (F)' },
       { value: 'mouse', label: 'Mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy (F)' },
     ], host.spaceMode, host.setSpaceMode),
+    choiceRow(body, 'Random maps', [
+      { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
+      { value: 'sameLayout', label: 'Same layout', title: 'Restarts keep the layout (Play from the title still builds a new one)' },
+    ], host.randomMaps, host.setRandomMaps),
     choiceRow(body, 'Music', ON_OFF, () => audio.current.music, (on) => audio.setMusic(on)),
     choiceRow(body, 'Effects', ON_OFF, () => audio.current.effects, (on) => audio.setEffects(on)),
     volumeRow(body, audio),

@@ -4,14 +4,16 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { resolveActors, type ActorDef, type Plain, needsSprite } from '../src/mr-open/mr-actor-data'
-import { parseMapFile, type MapDefinition } from '../src/mr-open/mr-map-format'
+import { parseMapFile, type LayerName, type MapDefinition } from '../src/mr-open/mr-map-format'
 import { GAME_COMPLETE_SOUND } from '../src/mr-open/mr-map-clear'
 import { ROOM_CLEARED_SOUND } from '../src/mr-open/mr-sound'
 import { parseCutScene } from '../src/cutscene/script'
 import { GENERATED_MAPS } from '../src/gen/generated-maps'
+import { TOWER_TILESETS, TOWER_TILESET_PARTS, TOWER_TILES_PER_ROW } from '../src/gen/tower-tilesets'
 import { parseTeams } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
+import { combineTilesets } from './combined-tileset'
 import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
@@ -105,14 +107,19 @@ function maxTileIndexByTileSet(maps: ConvertedMap[]): Map<string, number> {
   return out
 }
 
+/** A converted tileset with real art: its key symbols and its sheet as read (before transparency). */
+interface ArtTileset { symbols: string[]; tileSize: { x: number; y: number }; sheet: RgbaImage }
+
 /**
  * Tile keys and sheets: real art from assets/tilesets when present, else a placeholder. A map whose
  * tileset has no key is still converted (the page names the missing tileset when it is opened).
+ * Returns the tilesets with real art, by name.
  */
-function convertTileSets(maps: ConvertedMap[]): void {
+function convertTileSets(maps: ConvertedMap[]): Map<string, ArtTileset> {
   const maxIndexByTileSet = maxTileIndexByTileSet(maps)
   const converted = new Set<string>()
   const placeholders = new Set<string>()
+  const withArt = new Map<string, ArtTileset>()
   for (const file of sortedTxt(join(ASSETS, 'tile-keys'))) {
     const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', file), 'utf8'))
     const name = stripTxt(file)
@@ -126,21 +133,37 @@ function convertTileSets(maps: ConvertedMap[]): void {
     const needed = Math.max(maxIndexByTileSet.get(name) ?? 0, capacity)
     const padded = Math.max(0, needed - symbols.length)
     while (symbols.length < needed) symbols.push('none')
-    writeFileSync(
-      join(OUT, 'tilesets', `${name}.json`),
-      JSON.stringify({ tileSize: key.tileSize, tilesPerRow: perRow, symbols }),
-    )
-    const img = sheet
-      ? usesWhiteTransparency(name)
-        ? whiteToAlpha(sheet)
-        : sheet
-      : buildPlaceholderTileset(symbols, key.tileSize)
-    writePng(join(OUT, 'tilesets', `${name}.png`), img)
+    writeTileSet(name, { tileSize: key.tileSize, tilesPerRow: perRow, symbols }, sheet ?? buildPlaceholderTileset(symbols, key.tileSize), !sheet)
+    if (sheet) withArt.set(name, { symbols, tileSize: key.tileSize, sheet })
     const art = sheet ? `real art, ${sheet.width}x${sheet.height}, ${perRow} per row` : 'placeholder art'
     console.log(`tileset ${name}: ${symbols.length} tiles (${art}${padded ? `, ${padded} padded` : ''})`)
   }
   warnMapsUsing(maps, (n) => !converted.has(n), 'tilesets with no key file in assets/tile-keys (the page will not load them)')
   warnMapsUsing(maps, (n) => placeholders.has(n), 'tilesets with no sheet in assets/tilesets (drawn with placeholder art)')
+  return withArt
+}
+
+/** tilesets/<name>.json and .png; real art is see-through where white, except on the Passive base layer. */
+function writeTileSet(name: string, data: { tileSize: { x: number; y: number }; tilesPerRow: number; symbols: string[] }, sheet: RgbaImage, placeholder: boolean): void {
+  writeFileSync(join(OUT, 'tilesets', `${name}.json`), JSON.stringify(data))
+  writePng(join(OUT, 'tilesets', `${name}.png`), !placeholder && usesWhiteTransparency(name) ? whiteToAlpha(sheet) : sheet)
+}
+
+/** The tower's tilesets (src/gen/tower-tilesets.ts): each layer's parts, one after the other. */
+function convertTowerTileSets(art: Map<string, ArtTileset>): void {
+  for (const [layer, name] of Object.entries(TOWER_TILESETS) as [LayerName, string][]) {
+    const parts = TOWER_TILESET_PARTS.map((part) => {
+      const partName = part.tileSets[layer]
+      const tileset = art.get(partName)
+      if (!tileset) throw new Error(`tower tileset ${name}: ${partName} has no real art to combine`)
+      return { name: partName, symbols: tileset.symbols, sheet: tileset.sheet, offset: part.offset, tileSize: tileset.tileSize }
+    })
+    const tileSize = parts[0]!.tileSize
+    if (parts.some((p) => p.tileSize.x !== tileSize.x || p.tileSize.y !== tileSize.y)) throw new Error(`tower tileset ${name}: parts differ in tile size`)
+    const combined = combineTilesets(parts, tileSize, TOWER_TILES_PER_ROW)
+    writeTileSet(name, { tileSize, tilesPerRow: TOWER_TILES_PER_ROW, symbols: combined.symbols }, combined.sheet, false)
+    console.log(`tileset ${name}: ${combined.symbols.length} tiles (${parts.map((p) => `${p.name} from ${p.offset + 1}`).join(', ')})`)
+  }
 }
 
 /** One warning line per map that uses a tileset matching `lacks`. */
@@ -358,7 +381,7 @@ mkdirSync(join(OUT, 'sprites'), { recursive: true })
 
 // maps first, so tilesets can be sized to the highest index any map uses
 const maps = convertMaps()
-convertTileSets(maps)
+convertTowerTileSets(convertTileSets(maps))
 const actors = convertActors()
 convertTeams()
 checkActorAtlases(actors, convertSprites())
