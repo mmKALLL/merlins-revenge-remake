@@ -23,7 +23,8 @@ rooms (the sketch has 4x4).
   `floor.ts` (edges, rooms, units), `room-shape.ts` (patches, retries, carving), `interior-walls.ts`
   (one small strategy per wall style), `themes.ts` (all theme data). A theme is data: floor size,
   tilesets, tiles per role, patch materials, which wall styles it uses and their parameters, enemy
-  weights and tiers, factions, bosses and the room plan.
+  weights and tiers, factions, bosses and the room plan. Besides the theme and the seed, the
+  generator's one input is the units' energies (`EnergyOf`, for HP budgets; see Room plans).
 
 ## Coordinates
 
@@ -290,7 +291,7 @@ The owner's Goblin Forest plan, as on screen (P = producers, R = regulars, count
 |---|---|---|---|
 | top | **midboss**: one group, + R 0-2 weak | many weak generators: P 4-6 weak, R 0-2 weak | **boss** group + P 0-1 weak/mid, R 2-3 weak/mid |
 | middle | few weak generators: P 2-3 weak, R 0-2 weak | P 2-3 weak *or* 1 strong; R 1-3 mostly strong | several strong enemies, no generators: R 4-5 strong/mid |
-| bottom | **start** (a breather) | few weak enemies: R 2-3 weak | numerous weak enemies: one group + R 1-3 weak |
+| bottom | **start** (a breather) | few weak enemies: R 2-3 weak | numerous weak enemies: one group + weak R to an HP budget, 8-16 units in all |
 
 Owner rules: in the bottom-right half (below the start-exit diagonal) generators are almost
 nonexistent (0 or 1 a room; tested); in the top-left half at most 4 regular enemies; the centre
@@ -313,6 +314,37 @@ Groups per special corner (each has at least two; tested). New ones marked *new*
 | Undead Marsh | farX: lone necromancer (alone); haunted crypt (skeleton dwelling, 2 grey ghosts) *new* | farY: critter nest (cocoon, 3 quadranids); skeleton patrol (3 warriors, 1 thrower) *new* |
 | Dragon Canyon | farY: golem quarry (boulder cave, boulder monster); dark cave (dark cave, dark golem) *new* | farX: dojo class (3 karate guys, 2 kung fu chickens) *new*; lizard pack (4 lizards) *new* |
 | Magic Maze | farX: necromancy study (2 necromancers, dark mage); Scarlet chapel (2 Scarlet monks, Scarlet warrior) *new* | farY: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
+
+### HP budget: the numerous weak corner (owner, 2026-10-22)
+
+The "numerous weak enemies" corner holds about 8-16 weak enemies with about 800 + 400 * level
+starting energy in all, where `FloorTheme.level` is the floor's number (Goblin Forest 1, Undead
+Marsh 2, Dragon Canyon 3, Magic Maze 4, as in the map ids; a tower floor keeps its theme's level).
+Its regulars are a budget draw (`NUMEROUS_WEAK` in `themes.ts`: `{ count: [8, 16], tiers: weak,
+hpBudget: { base: 800, perLevel: 400 } }`): instead of drawing a count, units are drawn one by one
+(tier, weight, faction and `maxPerRoom` as for any draw) until the room's group and the drawn units
+together reach the budget, never fewer than 8 nor more than 16 units, group included
+(`drawToBudget` in `floor.ts`; tested). The cell's groups (warrior band, critter nest, dojo class,
+Scarlet patrol, ...) stay on top as before and count towards both.
+
+- **Energies are an input.** The generator stays pure: `generateFloor`, `generateTower` and
+  `generateMap` take an `EnergyOf` lookup (`energyLookup(defs)` over the resolved actor
+  definitions, `actors.json` with `tuning.json` applied; it throws for a key without one), so a seed
+  gives the same floor for a given actor data set, and retuning an enemy's energy can change the
+  corner's units. `main.ts` loads the actors (with the map, and the other data in parallel) before
+  generating; the render tool and the tests read `public/generated/actors.json`.
+- **Observed** (500 seeds each, current tuning): the forest's, marsh's and maze's weak units are
+  light (50-175 energy), so those corners usually stop at the 16-unit cap short of the budget
+  (forest average 15.2 units, 956 HP against 1200; marsh 15.2 units, 1234 against 1600; maze 14.9
+  units, 2137 against 2400); the canyon's (100-200) reach it (11.7 units, 2002 against 2000). Raising
+  the cap or lowering the budget is a data change.
+- **Supply and space.** The weak tiers have no `maxPerRoom` except the factionless bat (2), so
+  every faction a corner group can set supplies 16 (no `maxPerRoom` changes were needed). The
+  corner rooms keep at least 36 open tiles inside the unit margin (all themes, 500 seeds), enough
+  for 16 units and the two corner potions; a shortfall would still be cut to the free tiles.
+- **Wildcards** still apply (10 %): the corner may draw another normal cell's counts instead
+  (keeping its group, so it can hold as few as the group's 4-5), and another room may draw the
+  budget draw (counting its own group, usually none).
 
 Dropped: the canyon's dragon roost (2 dragons) and the maze's portal ward (portal, shrouder,
 thunder monk) no longer fit the "numerous weak enemies" corner; dragons now come as the canyon's

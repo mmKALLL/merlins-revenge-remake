@@ -125,10 +125,21 @@ export interface BossGroup extends UnitGroup {
   boss: string
 }
 
-/** Units of one kind for a room: a count drawn uniformly from `[lo, hi]`, each unit's tier by weight. */
+/** Total starting energy for a draw on a floor: `base + perLevel * level` (FloorTheme.level). */
+export interface HpBudget {
+  base: number
+  perLevel: number
+}
+
+/**
+ * Units of one kind for a room: a count drawn uniformly from `[lo, hi]`, each unit's tier by weight.
+ * With an `hpBudget` the count is not drawn: units are drawn until the room's group and the drawn
+ * units together reach the budget's energy, never fewer than `lo` nor more than `hi` units in all.
+ */
 export interface TierDraw {
   count: readonly [number, number]
   tiers: Partial<Record<Tier, number>>
+  hpBudget?: HpBudget
 }
 
 /** One draw, or alternatives of which the room takes one by weight. */
@@ -189,6 +200,8 @@ export interface StartRewards {
 export interface FloorTheme {
   id: string
   name: string
+  /** the floor's number, as in its map id and its place in the tower (1 = Goblin Forest); scales HP budgets */
+  level: number
   /** rooms across and down */
   floorSize: Vec
   tileSets: Record<LayerName, string>
@@ -228,6 +241,11 @@ const n = (lo: number, hi: number, tiers: TierWeights): TierDraw => ({ count: [l
 const either = (...options: [TierDraw, number][]): Weighted<TierDraw>[] => options.map(([draw, weight]) => w(draw, weight))
 /** The owner's centre room: a few weak producers, or a single strong one. */
 const FEW_WEAK_OR_ONE_STRONG = either([n(2, 3, WEAK), 2], [n(1, 1, MOSTLY_STRONG), 1])
+/**
+ * The owner's "numerous weak" corner (farX in the forest's orientation): 8-16 weak units, group
+ * included, about 800 + 400 * level energy in all.
+ */
+const NUMEROUS_WEAK: TierDraw = { count: [8, 16], tiers: WEAK, hpBudget: { base: 800, perLevel: 400 } }
 
 type CellFill = Omit<RoomPlanCell, 'kind'>
 const START: RoomPlanCell = { kind: 'start' }
@@ -378,7 +396,7 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
         { label: 'goblin warrior band', units: { goblinWarrior: 4 } },
         { label: 'archers and bats', units: { goblinArcher: 3, bat: 2 } },
       ],
-      regulars: n(1, 3, WEAK),
+      regulars: NUMEROUS_WEAK,
     }),
   ],
 ]
@@ -386,6 +404,7 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
 export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'Goblin Forest',
+  level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN4_TILESETS,
   objectTiles: MERLIN4_OBJECTS,
@@ -583,7 +602,7 @@ const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
         { label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' },
         { label: 'skeleton patrol', units: { skeletonWarrior: 3, skeletonThrower: 1 }, faction: 'undead' },
       ],
-      regulars: n(1, 3, WEAK),
+      regulars: NUMEROUS_WEAK,
     }),
   ],
 ])
@@ -591,6 +610,7 @@ const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Undead Marsh',
+  level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
@@ -675,7 +695,7 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
         { label: 'dojo class', units: { karateGuy: 3, kongFuChicken: 2 } },
         { label: 'lizard pack', units: { lizard: 4 } },
       ],
-      regulars: n(1, 3, WEAK),
+      regulars: NUMEROUS_WEAK,
     }),
   ],
 ]
@@ -683,6 +703,7 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
 export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
   name: 'Dragon Canyon',
+  level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
@@ -766,7 +787,7 @@ const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
         { label: 'alliance squad', units: { bombMage: 2, thunderMonk: 2 }, faction: 'alliance' },
         { label: 'Scarlet patrol', units: { scWarrior: 2, scArcher: 2 }, faction: 'scarlet' },
       ],
-      regulars: n(1, 3, WEAK),
+      regulars: NUMEROUS_WEAK,
     }),
   ],
 ])
@@ -774,6 +795,7 @@ const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
   name: 'Magic Maze',
+  level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,

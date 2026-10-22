@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { roomXYToNum } from '../mr-open/mr-map-format'
-import { BOSS_TILE, ROOM_SIZE, floorIsConnected } from './floor'
+import { pageDefs } from '../debug/snapshot-test-data'
+import { BOSS_TILE, ROOM_SIZE, energyLookup, floorIsConnected } from './floor'
 import { edgeMismatches } from './edge-check'
 import { generateTower, TOWER_FLOORS, TOWER_SIZE } from './tower'
 
@@ -13,8 +14,9 @@ const symbols = (name: string): string[] =>
 const active = symbols('towerActive')
 const objects = symbols('towerObjects')
 const isSolid = (i: number) => i >= 1 && active[i - 1] === 'solid'
+const energyOf = energyLookup(pageDefs)
 const SEEDS = Array.from({ length: 40 }, (_, i) => i * 104729 + 3)
-const towers = SEEDS.map((seed) => ({ seed, tower: generateTower(seed) }))
+const towers = SEEDS.map((seed) => ({ seed, tower: generateTower(seed, energyOf) }))
 const FLOOR_ROWS = TOWER_FLOORS[0]!.floorSize.y
 const sameVec = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y
 
@@ -27,7 +29,7 @@ function corners(k: number): { start: Vec; exit: Vec } {
 
 describe("The Sorcerer's Tower", () => {
   it('is the same tower for the same seed', () => {
-    expect(generateTower(77)).toEqual(generateTower(77))
+    expect(generateTower(77, energyOf)).toEqual(generateTower(77, energyOf))
   })
 
   it('connects the player to every unit and the end room, by the converted tile key', () => {

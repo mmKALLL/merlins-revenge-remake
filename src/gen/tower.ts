@@ -6,7 +6,7 @@
 // every other edge between floors stays walled.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { ROOM_SIZE, exitRoom, floorIsConnected, generateFloor, randomOpening, retrySeed, startRoom, themeIsSolid, type BoundaryOpening, type GeneratedFloor } from './floor'
+import { ROOM_SIZE, exitRoom, floorIsConnected, generateFloor, randomOpening, retrySeed, startRoom, themeIsSolid, type BoundaryOpening, type EnergyOf, type GeneratedFloor } from './floor'
 import { mirrorOpeningX, placeFloor } from './floor-transform'
 import { GenRandom } from './random'
 import type { Opening } from './room-shape'
@@ -40,22 +40,22 @@ export const towerIsSolid: (active: number) => boolean = (() => {
   return (active) => checks.every((isSolid) => isSolid(active))
 })()
 
-/** A seeded tower; the same seed always gives the same tower. */
-export function generateTower(seed: number): GeneratedFloor {
+/** A seeded tower; the same seed and actor energies always give the same tower. */
+export function generateTower(seed: number, energyOf: EnergyOf): GeneratedFloor {
   for (let attempt = 0; attempt < TOWER_ATTEMPTS; attempt++) {
-    const tower = buildTower(retrySeed(seed, attempt))
+    const tower = buildTower(retrySeed(seed, attempt), energyOf)
     if (floorIsConnected(tower, towerIsSolid)) return tower
   }
   throw new Error(`${TOWER_ID}: no connected tower for seed ${seed} after ${TOWER_ATTEMPTS} attempts`)
 }
 
-function buildTower(seed: number): GeneratedFloor {
+function buildTower(seed: number, energyOf: EnergyOf): GeneratedFloor {
   const rng = new GenRandom(seed)
   // stairs[k] joins floor k's exit room to floor k + 1's start room, in tower coordinates
   const stairs = TOWER_FLOORS.slice(1).map((_, k) => randomOpening(rng, ROOM_SIZE.x, TOWER_FLOORS[k]!.edges.endOpening))
   const scrolls = drawSpellScrolls(rng)
   const floors = TOWER_FLOORS.map((theme, k) => {
-    const floor = generateFloor(theme, Math.floor(rng.next() * SEED_RANGE), {
+    const floor = generateFloor(theme, Math.floor(rng.next() * SEED_RANGE), energyOf, {
       placePlayer: k === 0,
       boundaryOpenings: stairOpenings(theme, k, stairs),
       spellScroll: scrolls[k]!,

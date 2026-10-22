@@ -8,7 +8,7 @@ import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
-import { TIERS, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type RoomPlan, type RoomPlanCell, type TierDraw, type Weighted } from './themes'
+import { TIERS, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -58,6 +58,21 @@ const reservedTiles = (floorSize: Vec, room: Vec): Vec[] => (sameVec(room, exitR
 const FLOOR_ATTEMPTS = 8
 const RETRY_SEED_STEP = 0x9e3779b9
 
+/**
+ * A unit's starting energy (ActorDef.energy, tuning applied), for HP budgets: the generator's one
+ * input from the actor data, so the same seed and actor data always give the same floor.
+ */
+export type EnergyOf = (key: string) => number
+
+/** The energy lookup over resolved actor definitions; throws for a key without one. */
+export function energyLookup(defs: Readonly<Record<string, { energy: number }>>): EnergyOf {
+  return (key) => {
+    const def = defs[key]
+    if (!def) throw new Error(`random floor: no actor definition for "${key}" (its energy counts towards an HP budget)`)
+    return def.energy
+  }
+}
+
 /** A placed unit: an objects-layer key at a room tile (0-based). */
 export interface Placement { key: string; room: Vec; tile: Vec }
 
@@ -84,17 +99,17 @@ export const roomKey = (r: Vec): string => `${r.x},${r.y}`
 /** A seed for the next attempt after `attempt` failed ones. */
 export const retrySeed = (seed: number, attempt: number): number => (seed + attempt * RETRY_SEED_STEP) >>> 0
 
-/** A seeded floor for a theme; the same theme, seed and options always give the same floor. */
-export function generateFloor(theme: FloorTheme, seed: number, options: FloorOptions = {}): GeneratedFloor {
+/** A seeded floor for a theme; the same theme, seed, actor energies and options always give the same floor. */
+export function generateFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions = {}): GeneratedFloor {
   checkRoomPlan(theme)
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
-    const floor = buildFloor(theme, retrySeed(seed, attempt), options)
+    const floor = buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
     if (floorIsConnected(floor, themeIsSolid(theme))) return floor
   }
   throw new Error(`random floor ${theme.id}: no connected floor for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
 }
 
-function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): GeneratedFloor {
+function buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): GeneratedFloor {
   const rng = new GenRandom(seed)
   const size = theme.floorSize
   const edges = decideEdges(rng, theme)
@@ -107,7 +122,7 @@ function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): Gen
       const keepOpen = reservedTiles(size, room)
       const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
       decorate(rng, shape, theme.shape.decorationChance)
-      const units = placeUnits(rng, theme, room, shape, options)
+      const units = placeUnits(rng, theme, room, shape, energyOf, options)
       placements.push(...units)
       rooms.push(roomDefinition(rng, theme, room, shape, units))
     }
@@ -263,6 +278,40 @@ function pickUnit(rng: GenRandom, d: TableDraw, faction: string | null, counts: 
   return rng.weighted(open.filter((c) => c.tier === tier).map((c) => ({ value: c.key, weight: c.weight })))
 }
 
+/** Energy a budget allows on a floor of this level. */
+export const budgetEnergy = (budget: HpBudget, level: number): number => budget.base + budget.perLevel * level
+
+/** What a room holds before a budget draw: its group's units. */
+export interface BudgetStart { units: number; energy: number }
+
+/**
+ * The units of a budget draw, each taken by `next` (null: nothing left to take), while the room,
+ * `start` included, has fewer than `count[0]` units or less than `energy` in all, never past `count[1]`.
+ */
+export function drawToBudget(count: readonly [number, number], energy: number, start: BudgetStart, next: () => string | null, energyOf: EnergyOf): string[] {
+  const [least, most] = count
+  const out: string[] = []
+  let units = start.units
+  let total = start.energy
+  while (units < most && (units < least || total < energy)) {
+    const key = next()
+    if (!key) break
+    out.push(key)
+    units++
+    total += energyOf(key)
+  }
+  return out
+}
+
+/** A group's units and their energy, for the budget of the room it leads. */
+function groupStart(group: UnitGroup | null, energyOf: EnergyOf): BudgetStart {
+  const units = Object.entries(group?.units ?? {})
+  return {
+    units: units.reduce((sum, [, n]) => sum + n, 0),
+    energy: units.reduce((sum, [key, n]) => sum + n * energyOf(key), 0),
+  }
+}
+
 // ---- the start room ----
 
 /** Start rewards keep at least this many tiles (along x or y) from Merlin's start or arrival tile. */
@@ -319,9 +368,9 @@ function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec
 /**
  * A room's units by its plan cell: the start room's own placements, or the corner potions, the
  * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
- * producers and regulars, all of the room's one faction.
+ * producers and regulars (a budget draw counting the group in), all of the room's one faction.
  */
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, options: FloorOptions): Placement[] {
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
@@ -348,9 +397,19 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
     for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
   }
   for (const d of draws) {
-    if (!d.draw) continue
-    const n = rng.int(d.draw.count[0], d.draw.count[1])
-    for (let i = 0; i < n; i++) add(pickUnit(rng, d, faction, counts))
+    const { draw } = d
+    if (!draw) continue
+    const take = () => {
+      const key = pickUnit(rng, d, faction, counts)
+      add(key)
+      return key
+    }
+    if (draw.hpBudget) {
+      drawToBudget(draw.count, budgetEnergy(draw.hpBudget, theme.level), groupStart(group, energyOf), take, energyOf)
+    } else {
+      const n = rng.int(draw.count[0], draw.count[1])
+      for (let i = 0; i < n; i++) take()
+    }
   }
   if (boss) keys.push(u.exitMusic)
   return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]

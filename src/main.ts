@@ -9,6 +9,7 @@ import {
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
+import { energyLookup, type EnergyOf } from './gen/floor'
 import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
 import { GAME_SCREEN } from './mr-open/mr-hud'
@@ -66,9 +67,9 @@ function rememberParam(name: string, value: string | null): void {
 }
 
 /** A generated map for a seed; the seed goes into the URL (no reload) so the layout can be shared. */
-function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number): MapDefinition {
+function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf): MapDefinition {
   rememberParam('seed', String(layoutSeed))
-  return generateMap(mapId, layoutSeed)
+  return generateMap(mapId, layoutSeed, energyOf)
 }
 
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
@@ -131,8 +132,11 @@ interface Game {
 /** Loads a map and its assets, puts the canvas in #game and starts the frame loop. */
 async function startGame(mapId: string, shell: Shell): Promise<Game> {
   const { audio, input } = shell
-  const loaded = isGeneratedMapId(mapId) ? null : await loadMap(mapId)
-  const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed)
+  // the rest loads while the map does; a generated map needs the actors' energies (HP budgets) first
+  const dataLoading = Promise.all([loadTeams(), loadExitArrows(), loadCutScene(GAME_COMPLETE_SCRIPT), loadHudTextures(), loadWeaponSelectorTextures()])
+  const [loaded, defs] = await Promise.all([isGeneratedMapId(mapId) ? null : loadMap(mapId), loadActors()])
+  const energyOf = energyLookup(defs)
+  const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, energyOf)
   const map = mapFor(seed)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
@@ -143,16 +147,11 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, defs, teams, exitArrows, endScript, hud, weaponTextures] = await Promise.all([
+  const [passive, active, objects, [teams, exitArrows, endScript, hud, weaponTextures]] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
-    loadActors(),
-    loadTeams(),
-    loadExitArrows(),
-    loadCutScene(GAME_COMPLETE_SCRIPT),
-    loadHudTextures(),
-    loadWeaponSelectorTextures(),
+    dataLoading,
   ])
   const { sprites, anims } = await loadSprites(defs)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)

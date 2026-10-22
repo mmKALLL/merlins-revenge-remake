@@ -3,12 +3,15 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
-import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
+import { pageDefs } from '../debug/snapshot-test-data'
+import { BOSS_TILE, ROOM_SIZE, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { THEMES, flippedPlan, type DrawSpec, type FloorTheme, type RoomPlanCell, type TierDraw, type UnitGroup } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
+/** the page's resolved actor data, so a unit without a definition fails here */
+const energyOf = energyLookup(pageDefs)
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 7919 + 1)
 const sameRoom = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y
 
@@ -29,7 +32,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   const objects = key(theme.tileSets.objects)
   const isSolid = (i: number) => active.isSolid(i)
   const size = theme.floorSize
-  const floors = new Map<number, GeneratedFloor>(SEEDS.map((s) => [s, generateFloor(theme, s)]))
+  const floors = new Map<number, GeneratedFloor>(SEEDS.map((s) => [s, generateFloor(theme, s, energyOf)]))
   const roomOf = (f: GeneratedFloor, room: Vec) => f.map.rooms[(room.y - 1) * size.x + room.x - 1]!
   const activeAt = (f: GeneratedFloor, room: Vec, x: number, y: number): number => roomOf(f, room).layers.backgroundActive![y]![x]!
   const rewards = theme.units.startRewards
@@ -37,9 +40,9 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   const rewardKeys = new Set(['medikit', ...rewards.potions.map((p) => p.value), ...rewards.spellScrolls.map((s) => s.value), ...rewards.extras])
 
   it('is the same map for the same seed', () => {
-    expect(generateFloor(theme, 1234)).toEqual(generateFloor(theme, 1234))
-    expect(generateMap(floorMapId(theme), 99)).toEqual(generateMap(floorMapId(theme), 99))
-    expect(generateFloor(theme, 1)).not.toEqual(generateFloor(theme, 2))
+    expect(generateFloor(theme, 1234, energyOf)).toEqual(generateFloor(theme, 1234, energyOf))
+    expect(generateMap(floorMapId(theme), 99, energyOf)).toEqual(generateMap(floorMapId(theme), 99, energyOf))
+    expect(generateFloor(theme, 1, energyOf)).not.toEqual(generateFloor(theme, 2, energyOf))
   })
 
   it('connects the start to the exit and every unit, by the tile key', () => {
@@ -147,7 +150,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   describe('room plan', () => {
     const u = theme.units
     const planned: FloorTheme = { ...theme, units: { ...u, wildcardChance: 0 } }
-    const planFloors = SEEDS.slice(0, 200).map((s) => generateFloor(planned, s))
+    const planFloors = SEEDS.slice(0, 200).map((s) => generateFloor(planned, s, energyOf))
     const tierOf = new Map([...u.enemies, ...u.dwellings].map((c) => [c.key, c.tier]))
     const producerKeys = new Set([...u.dwellings, ...u.enemies.filter((c) => c.producer)].map((c) => c.key))
     const unitsIn = (f: GeneratedFloor, room: Vec) => f.placements.filter((p) => sameRoom(p.room, room) && tierOf.has(p.key)).map((p) => p.key)
@@ -184,6 +187,19 @@ describe.each(THEMES)('random floor: $name', (theme) => {
       const regularHalf = GENERATOR_HALF[theme.id] === 'topLeft' ? 'bottomRight' : 'topLeft'
       for (const { room } of planRooms(theme).filter((r) => r.half === regularHalf)) {
         for (const f of planFloors) expect(unitsIn(f, room).filter((k) => producerKeys.has(k)).length, roomKey(room)).toBeLessThanOrEqual(1)
+      }
+    })
+
+    it('fills a budget room, group included, to its energy budget within its counts', () => {
+      const budgeted = planRooms(theme).flatMap(({ room, cell }) => drawsOf(cell.regulars).filter((d) => d.hpBudget).map((d) => ({ room, draw: d })))
+      for (const { room, draw } of budgeted) {
+        for (const f of planFloors) {
+          const units = unitsIn(f, room)
+          const energy = units.reduce((sum, k) => sum + energyOf(k), 0)
+          expect(units.length, roomKey(room)).toBeGreaterThanOrEqual(draw.count[0])
+          expect(units.length, roomKey(room)).toBeLessThanOrEqual(draw.count[1])
+          if (units.length < draw.count[1]) expect(energy, `${roomKey(room)}: ${units.join(' ')}`).toBeGreaterThanOrEqual(budgetEnergy(draw.hpBudget!, theme.level))
+        }
       }
     })
   })
@@ -233,7 +249,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 
   it('generates a floor well under 100 ms', () => {
     const started = performance.now()
-    for (let s = 0; s < 20; s++) generateFloor(theme, 5000 + s)
+    for (let s = 0; s < 20; s++) generateFloor(theme, 5000 + s, energyOf)
     expect((performance.now() - started) / 20).toBeLessThan(50)
   })
 
@@ -249,6 +265,44 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
       ...[...groupRooms.flatMap(([, groups]) => groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
+  })
+})
+
+describe('HP budget draws', () => {
+  const energies: Record<string, number> = { small: 10, big: 100 }
+  const energyOf = (k: string) => energies[k]!
+  /** a source of units handing out `keys` in turn (then nothing), counting what was taken */
+  const source = (...keys: string[]) => {
+    let taken = 0
+    return { next: () => keys[taken++] ?? null, taken: () => taken }
+  }
+  const none = { units: 0, energy: 0 }
+
+  it('stops once the budget is reached', () => {
+    expect(drawToBudget([1, 10], 250, none, source('big', 'big', 'big', 'big').next, energyOf)).toEqual(['big', 'big', 'big'])
+    expect(drawToBudget([1, 10], 300, none, source('big', 'big', 'big', 'big').next, energyOf)).toHaveLength(3)
+  })
+
+  it('draws at least the least count, however much energy that is, and never more than the most', () => {
+    expect(drawToBudget([4, 10], 50, none, source('big', 'big', 'big', 'big', 'big').next, energyOf)).toHaveLength(4)
+    expect(drawToBudget([1, 5], 1000, none, source(...Array<string>(10).fill('small')).next, energyOf)).toHaveLength(5)
+  })
+
+  it("counts the room's group towards the budget and the counts", () => {
+    expect(drawToBudget([1, 10], 250, { units: 2, energy: 200 }, source('big', 'big').next, energyOf)).toEqual(['big'])
+    expect(drawToBudget([1, 4], 1000, { units: 3, energy: 30 }, source('small', 'small').next, energyOf)).toEqual(['small'])
+    expect(drawToBudget([2, 10], 100, { units: 1, energy: 500 }, source('small', 'small').next, energyOf)).toEqual(['small'])
+  })
+
+  it('stops when nothing is left to draw', () => {
+    const s = source('small')
+    expect(drawToBudget([4, 10], 1000, none, s.next, energyOf)).toEqual(['small'])
+    expect(s.taken()).toBe(2)
+  })
+
+  it('scales the budget with the floor level, and names an actor without data', () => {
+    expect(budgetEnergy({ base: 10, perLevel: 5 }, 3)).toBe(25)
+    expect(() => energyLookup({})('nobody')).toThrow(/nobody/)
   })
 })
 

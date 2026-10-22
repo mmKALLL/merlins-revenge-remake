@@ -4,7 +4,7 @@
 import type { MapEntry } from '../data/map-tree'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { generateFloor } from './floor'
+import { generateFloor, type EnergyOf } from './floor'
 import { THEMES, type FloorTheme } from './themes'
 import { TOWER_ID, TOWER_SIZE, generateTower } from './tower'
 
@@ -14,11 +14,11 @@ const FOLDER = 'randomly_generated/'
 export const floorMapId = (theme: FloorTheme): string => `${FOLDER}${THEMES.indexOf(theme) + 1}-${theme.id}`
 export const TOWER_MAP_ID = `${FOLDER}${TOWER_ID}`
 
-interface GeneratedMapKind { id: string; mapSize: Vec; generate: (seed: number) => MapDefinition }
+interface GeneratedMapKind { id: string; mapSize: Vec; generate: (seed: number, energyOf: EnergyOf) => MapDefinition }
 
 const KINDS: readonly GeneratedMapKind[] = [
-  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, generate: (seed: number) => generateFloor(t, seed).map })),
-  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, generate: (seed: number) => generateTower(seed).map },
+  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, generate: (seed: number, energyOf: EnergyOf) => generateFloor(t, seed, energyOf).map })),
+  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, generate: (seed: number, energyOf: EnergyOf) => generateTower(seed, energyOf).map },
 ]
 
 export const GENERATED_MAPS: readonly MapEntry[] = KINDS.map((k) => ({ id: k.id, mapSize: { ...k.mapSize } }))
@@ -36,9 +36,9 @@ export function currentMapId(id: string): string {
   return KINDS.find((k) => unnumbered(k.id.slice(FOLDER.length)) === name)?.id ?? id
 }
 
-/** The map for a generated map id and seed; the same pair always gives the same map. */
-export function generateMap(id: string, seed: number): MapDefinition {
+/** The map for a generated map id and seed; the same pair (and actor energies) always gives the same map. */
+export function generateMap(id: string, seed: number, energyOf: EnergyOf): MapDefinition {
   const kind = KINDS.find((k) => k.id === id)
   if (!kind) throw new Error(`no generated map "${id}"`)
-  return kind.generate(seed)
+  return kind.generate(seed, energyOf)
 }
