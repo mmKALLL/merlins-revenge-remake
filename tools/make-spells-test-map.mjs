@@ -1,4 +1,4 @@
-// Generates assets/maps/not_fully_tested/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets): Merlin with
+// Generates assets/maps/test_maps/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets): Merlin with
 // every spell scroll in a row above him in room 1, goblins, an orc and a goblin hut in room 2 to try
 // them on (docs/notes/engine-mechanics-spells.md). Run: node tools/make-spells-test-map.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -35,4 +35,4 @@ const text =
   `[#map: [#mapSize: point(2, 1), #roomSize: point(18, 9), #startRoom: point(1, 1), #endRoom: #none, ` +
   `#layerDefinitions: [[#name: #backgroundPassive, #tileSet: #merlinOpenPassive, #displayScale: 1], [#name: #backgroundActive, #tileSet: #merlinOpenActive, #displayScale: 1], [#name: #objects, #tileSet: #merlinOpenObjects, #displayScale: 1]], ` +
   `#rooms: [${rooms.map(roomText).join(', ')}]]]`
-writeFileSync(new URL('../assets/maps/not_fully_tested/spell_test.txt', import.meta.url), text + '\n')
+writeFileSync(new URL('../assets/maps/test_maps/spell_test.txt', import.meta.url), text + '\n')

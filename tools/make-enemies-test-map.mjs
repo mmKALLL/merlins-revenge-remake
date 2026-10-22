@@ -1,4 +1,4 @@
-// Generates assets/maps/enemies_test.txt (4x1 rooms, 18x9 tiles, merlin4 tilesets): one room per
+// Generates assets/maps/test_maps/enemies_test.txt (4x1 rooms, 18x9 tiles, merlin4 tilesets): one room per
 // enemy-slice showcase. Run: node tools/make-enemies-test-map.mjs
 const W = 18, H = 9
 const grid = (f) => Array.from({ length: H }, (_, r) => Array.from({ length: W }, (_, c) => f(c + 1, r + 1)))
@@ -35,4 +35,4 @@ const text =
   `#layerDefinitions: [[#name: #backgroundPassive, #tileSet: #merlin4Passive, #displayScale: 1], [#name: #backgroundActive, #tileSet: #merlin4Active, #displayScale: 1], [#name: #objects, #tileSet: #merlin4Objects, #displayScale: 1]], ` +
   `#rooms: [${rooms.map(roomText).join(', ')}]]]`
 import { writeFileSync } from 'node:fs'
-writeFileSync(new URL('../assets/maps/enemies_test.txt', import.meta.url), text + '\n')
+writeFileSync(new URL('../assets/maps/test_maps/enemies_test.txt', import.meta.url), text + '\n')

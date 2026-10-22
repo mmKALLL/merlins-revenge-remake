@@ -8,7 +8,7 @@ import { simFromSnapshot } from './snapshot-test-data'
 
 const fixture = readFileSync('src/debug/fixtures/combat-test-room2.json', 'utf8')
 
-describe('snapshot fixture: combat_test, mid-fight in room 2', () => {
+describe('snapshot fixture: test_maps/combat_test, mid-fight in room 2', () => {
   it('rebuilds the moment and keeps the goblins inside the room', () => {
     const { sim, snapshot } = simFromSnapshot(fixture)
     expect(sim.tick).toBe(snapshot.tick)

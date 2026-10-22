@@ -376,6 +376,8 @@ describe('generated map ids', () => {
   it('brings ids from before the rename up to date', () => {
     expect(currentMapId('random/goblin-forest')).toBe('randomly_generated/1-goblin-forest')
     expect(currentMapId('random/sorcerers-tower')).toBe('randomly_generated/sorcerers-tower')
+    expect(currentMapId('combat_test')).toBe('test_maps/combat_test')
+    expect(currentMapId('spells_test')).toBe('test_maps/spell_test')
     expect(currentMapId('works/sam')).toBe('works/sam')
   })
 })

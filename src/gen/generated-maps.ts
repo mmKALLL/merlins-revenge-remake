@@ -29,8 +29,18 @@ export const isGeneratedMapId = (id: string): boolean => KINDS.some((k) => k.id 
 const OLD_FOLDER = 'random/'
 const unnumbered = (name: string): string => name.replace(/^\d+-/, '')
 
-/** A generated map id from before the rename as its current id; any other id unchanged. */
+/** The hand-made test maps' ids before they moved into test_maps/ (saved last maps, old links). */
+const MOVED_TEST_MAPS: Record<string, string> = {
+  combat_test: 'test_maps/combat_test',
+  enemies_test: 'test_maps/enemies_test',
+  spells_test: 'test_maps/spell_test',
+  'not_fully_tested/spell_test': 'test_maps/spell_test',
+}
+
+/** A map id from before a rename or move as its current id; any other id unchanged. */
 export function currentMapId(id: string): string {
+  const moved = MOVED_TEST_MAPS[id]
+  if (moved) return moved
   if (!id.startsWith(OLD_FOLDER)) return id
   const name = id.slice(OLD_FOLDER.length)
   return KINDS.find((k) => unnumbered(k.id.slice(FOLDER.length)) === name)?.id ?? id

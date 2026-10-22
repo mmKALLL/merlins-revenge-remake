@@ -1,4 +1,4 @@
-// Generates assets/maps/combat_test.txt (2x1 rooms, 18x9 tiles, merlin4 tilesets). Run: node tools/make-combat-test-map.mjs
+// Generates assets/maps/test_maps/combat_test.txt (2x1 rooms, 18x9 tiles, merlin4 tilesets). Run: node tools/make-combat-test-map.mjs
 const W = 18, H = 9
 const grid = (f) => Array.from({ length: H }, (_, r) => Array.from({ length: W }, (_, c) => f(c + 1, r + 1)))
 const fmt = (g) => '[' + g.map((row) => '[' + row.join(', ') + ']').join(', ') + ']'
@@ -32,4 +32,4 @@ const text =
   `#layerDefinitions: [[#name: #backgroundPassive, #tileSet: #merlin4Passive, #displayScale: 1], [#name: #backgroundActive, #tileSet: #merlin4Active, #displayScale: 1], [#name: #objects, #tileSet: #merlin4Objects, #displayScale: 1]], ` +
   `#rooms: [${rooms.map(roomText).join(', ')}]]]`
 import { writeFileSync } from 'node:fs'
-writeFileSync(new URL('../assets/maps/combat_test.txt', import.meta.url), text + '\n')
+writeFileSync(new URL('../assets/maps/test_maps/combat_test.txt', import.meta.url), text + '\n')

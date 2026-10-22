@@ -5,7 +5,7 @@ import { stepSim } from '../sim/tick'
 import { InputLog, deserializeSim, parseSnapshot, serializeSim, type LoggedInput } from './sim-snapshot'
 import { pageDataHash, pageDefs, pageTeams, startSimOnMap } from './snapshot-test-data'
 
-const MAP = 'combat_test'
+const MAP = 'test_maps/combat_test'
 const SEED = 12345
 const TICKS = 300
 
