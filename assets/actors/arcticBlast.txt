@@ -1,0 +1,109 @@
+[#name: "act_arcticBlast", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(0,255,255),
+#chargeSpeed: .25,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 5,
+#gmgChargeMax:18,
+#gmgChargeSpeed: 1,
+#gmgChargeStart: 6,
+#gmgAutoFire: true,
+#chargeMaxModifier: 0.75,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers, #teamBuildings],
+#glowTeal: true,
+#limitMagic: true,
+#randomSummon: false,
+#name: #arcticBlast,
+#power: 0.75,
+#payloadFunction: [#takeFreeze, #takeHit],
+#reach: 9999,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]]
+],
+#character: #arcticBlast,
+#collectSound: "collect_powerup_01",
+#member: member("arcticBlast_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

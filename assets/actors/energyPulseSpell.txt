@@ -1,0 +1,108 @@
+[#name: "act_energyPulseSpell", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyPulse,
+#chargeColour: rgb(255,255,0),
+#chargeSpeed: 1,
+#chargeStart: 0,
+#chargeMax: 999,
+#gmgChargeMax:0,
+#gmgChargeSpeed: 2,
+#gmgChargeStart: 0,
+#gmgAutoFire: true,
+#chargePerUnit: 2,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 0,
+#fireDelay: 5,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#randomSummon: false,
+#name: #energyPulse,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #fireBullets,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]],
+#throwType: #fullstrength
+],
+#character: #energyPulseSpell,
+#collectSound: "collect_powerup_01",
+#member: member("energyPulseSpell_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

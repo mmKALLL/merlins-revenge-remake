@@ -1,0 +1,93 @@
+[#name: "act_merlinSword", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: 3,
+#animType: #weaponMelee,
+#collisionLoc: point(16,1),
+#cooldown: 0,
+#damageMultiplier:16,
+#hits:[#teamMembers, #teamBuildings],
+#idealAttackLoc: point(16,2),
+#name: #merlinSword,
+#power: point(.5, .5),
+#reach: point(12,5),
+#sound: "skeleton_fire",
+#targetRoles: [[#teamMembers, #teamBuildings]]
+],
+#character: #merlinSword,
+#collectSound: "collect_powerup_01",
+#member: member("merlinSword_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

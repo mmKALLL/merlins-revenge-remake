@@ -1,0 +1,100 @@
+[#name: "act_dwarf", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUBuilder,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 20,
+#animType: #naturalRanged,
+#bullet: #dwarfAxe,
+#collisionLoc: point(16,-1),
+#cooldown: 10,
+#name: #throwAxe,
+#firingType: #fullstrength,
+#reach: 200,
+#sound: #none
+],
+#buildRate: 100,
+#buildRateInc: 50,
+#damageSpeed: 4,
+#leaveWhenFinished: true,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 250,
+#eyestrain: 10,
+#buildOne: true,
+#inertia: 50,
+#minimapStatus: #fre,
+#strength: 15,
+#team: #aldevar,
+#name: "dwarf",
+#unitToBuild: [#dwarfTower],
+#walkSpeed: 4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

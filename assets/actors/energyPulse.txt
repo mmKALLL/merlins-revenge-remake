@@ -1,0 +1,91 @@
+[#name: "act_energyPulse", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 5,
+#explodeCharge: 10,
+#hits: [#teamMembers, #teamBuildings],
+#power: 1,
+#type: #explode
+],
+#character: #bullet,
+#name: "energyPulse",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletCollidedWithTarget,
+#bulletLanded
+],
+#explodeSound: #none,
+#friction: point(6,6),
+#recordInRoomState: false,
+#rotational: true,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

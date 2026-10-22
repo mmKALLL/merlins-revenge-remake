@@ -1,0 +1,92 @@
+[#name: "act_energyBeam", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 10,
+#explodeCharge: 1,
+#hits: [#teamMembers, #teamBuildings],
+#power: .25,
+#type: #explode
+],
+#character: #bullet,
+#name: "energyBeam",
+#explodeEvents: 
+[
+#bulletArrivedAtTargetLoc,
+#bulletLanded
+],
+#explodeSound: "spell_release",
+#friction: point(0,0),
+#member: member("anm_energyBeam_fly_03_01", "gfx"),
+#recordInRoomState: false,
+#beam: true,
+#rotational: false,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

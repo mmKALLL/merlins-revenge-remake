@@ -1,0 +1,107 @@
+[#name: "act_cBlast", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(255,200,0),
+#chargeSpeed: .1,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 999,
+#gmgChargeMax:999,
+#gmgChargeSpeed: 1,
+#gmgChargeStart: 1,
+#gmgAutoFire: true,
+#chargeMaxModifier: 0,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: false,
+#randomSummon: false,
+#name: #energyBlast,
+#power: 0.5,
+#reach: 9999,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]]
+],
+#character: #cBlast,
+#collectSound: "collect_powerup_01",
+#member: member("cBlast_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

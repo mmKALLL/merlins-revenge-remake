@@ -1,0 +1,12 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_mer_magicMelee_3_01	gfx	481	20	16	32	8	8	alpha=255..255
+anm_mer_magicMelee_3_02	gfx	482	20	16	32	8	8	alpha=255..255
+anm_mer_magicMelee_3_03	gfx	483	19	14	32	7	7	alpha=255..255
+anm_mer_magicMelee_3_04	gfx	484	21	15	32	7	8	alpha=0..255
+anm_mer_magicMelee_3_05	gfx	485	23	16	32	7	9	alpha=0..255
+anm_mer_magicMelee_3_06	gfx	486	23	14	32	7	7	alpha=0..255
+anm_mer_magicMelee_3_07	gfx	487	13	14	32	7	7	alpha=255..255
+anm_mer_weaponMelee_3_02	gfx	491	15	19	32	6	12	alpha=255..255
+anm_mer_weaponMelee_3_03	gfx	492	24	15	32	6	8	alpha=255..255
+anm_mer_weaponMelee_3_04	gfx	493	31	14	32	6	7	alpha=255..255
+anm_mer_weaponMelee_3_05	gfx	494	28	14	32	7	7	alpha=255..255

@@ -1,0 +1,110 @@
+[#name: "act_energyBeamSpell", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBeam,
+#chargeColour: rgb(255,255,0),
+#chargeSpeed: 1,
+#chargeStart: 0,
+#chargeMax: 999,
+#gmgChargeMax:0,
+#gmgChargeSpeed: 2,
+#gmgChargeStart: 0,
+#gmgAutoFire: true,
+#chargePerUnit: 5,
+#chargeMaxModifier: 1.5,
+#beam: true,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 0,
+#fireDelay: 6.75,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#randomSummon: false,
+#name: #energyBeam,
+#power: .25,
+#reach: 9999,
+#releaseFunction: #fireBullets,
+#releaseSound: "spell_release",
+#spellSpeed: 20,
+#targetRoles: [[#teamMembers, #teamBuildings]],
+#throwType: #fullstrength
+],
+#character: #energyBeamSpell,
+#collectSound: "collect_powerup_01",
+#member: member("energyBeamSpell_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,125 @@
+[#name: "act_monsterSummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(9,113,255),
+#chargeExplodeFactor: 1,
+#chargeSize: 2,
+#chargeSpeed: 0.6,
+#chargeStart: 8,
+#chargeMax: 37,
+#chargeMaxModifier: 1.2,
+#gmgChargeMax:17,
+#gmgChargeSpeed: 3,
+#gmgChargeStart: 8,
+#gmgAutoFire: false,
+#chargeSpeedMax: 0.4,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 15,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#targetRoles: [[#teamMembers, #teamBuildings]],
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#randomSummon: false,
+#multistage:
+[
+#summonArcher: 12,
+#summonWarrior: 15,
+#summonOrc: 20,
+#summonBoulder: 25,
+#summonGolem: 31
+],
+#name: #monsterSummon,
+#payloadFunction: #takeHit,
+#payloadFunctionNonBlank: #takeHit,
+#chargeStartMax: 14,
+#chargeSpeedMax: 1,
+#power: .75,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #monsterSummon,
+#spellSpeed: 20,
+#targetAllegiance: #enemy,
+#targetTileWhenNotBlank: true
+],
+#character: #monsterSummon,
+#collectSound: "collect_powerup_01",
+#member: member("monsterSummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
