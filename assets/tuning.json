@@ -4,6 +4,7 @@
     "knockbackSpreadDeg": 3,
     "mana_capacity": 13,
     "mana_flow": 3,
+    "passiveEnergyRecovery": false,
     "attack": {
       "damageMultiplier": 2,
       "chargeMaxBasic": 6

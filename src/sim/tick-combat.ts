@@ -342,6 +342,7 @@ export function stepCooldownsAndRegen(t: Tick): void {
     const armed = armedDefOf(t.s, a)
     a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armed))
     if (def.multiAttack) a.otherCooldown = tickCooldown(a.otherCooldown, cooldownIncrement({ ...def, attack: a.useNatural ? def.attack : def.naturalAttack }))
+    if (!def.passiveEnergyRecovery) continue
     const [energy, counter] = regenStep(a.energy, def.maxEnergy, a.regenCounter, def.energyRecoverDelay)
     a.energy = energy
     a.regenCounter = counter
