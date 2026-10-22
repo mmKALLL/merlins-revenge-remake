@@ -110,7 +110,7 @@ disconnected map. Generation takes 1-7 ms per floor.
 Every floor's start room, and in the tower every floor's start room, gives (`units.startRewards`
 in `themes.ts`, `placeStartRoom` in `floor.ts`):
 
-- **4 potions** drawn from the theme's start potion list (the four potions weighted as the corner
+- **3 potions** (4 until Merlin kept his tuned starting charge, owner decision 2026-10-22) drawn from the theme's start potion list (the four potions weighted as the corner
   lists weigh them: Quick Charge 3, Max Blast 3, Burst 2, Walk Speed 1; no kits) and **1 medikit**.
 - **1 spell scroll** drawn from the theme's weighted `spellScrolls` (below). The tower draws the
   four floors' scrolls up front, bottom up, each without the ones drawn below it, so a tower run

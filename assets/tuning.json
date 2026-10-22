@@ -3,6 +3,8 @@
     "weapon": "energyBlast",
     "knockbackSpreadDeg": 3,
     "passiveEnergyRecovery": false,
+    "mana_capacity": 13,
+    "mana_flow": 3,
     "attack": {
       "damageMultiplier": 2,
       "chargeMaxBasic": 6

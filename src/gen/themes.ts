@@ -192,8 +192,8 @@ const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 
 // ---- floor-start rewards ----
 
-/** Owner rule: every floor starts with four potions and a medikit. */
-const START_POTIONS = 4
+/** Owner rule: every floor starts with three potions and a medikit (four before Merlin kept his tuned starting charge). */
+const START_POTIONS = 3
 const START_MEDIKITS = 1
 /** The four potions without the kits, weighted as the corner lists weigh them. */
 const START_POTION_WEIGHTS = [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1)]

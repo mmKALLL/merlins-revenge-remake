@@ -146,7 +146,7 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
   and it shows the medikit's writing (stand-ins from before the cast members were found; open item).
 - HUD (`src/render/pickups.ts`): the potions drunk and the medikit display as above, at their
   marks in the strip above the play view (until 2026-10 both were right-aligned in the strip below).
-- Stand-ins removed: `player.mana_capacity` 13 and `mana_flow` 3 in `assets/tuning.json` mimicked
-  4 Max Blast and 4 Quick Charge potions before potions existed. Merlin now starts at the engine's
-  capacity 10 and flow 1: full charge (13.5 with the tuned `chargeMaxBasic` 6) takes about 13 ticks
-  instead of 5, and the strongest blast is 14 % weaker, until he drinks potions.
+- Starting charge (owner decision, 2026-10-22): `player.mana_capacity` 13 and `mana_flow` 3 in
+  `assets/tuning.json` stay. They began as stand-ins for 4 Max Blast and 4 Quick Charge potions;
+  without them (the engine's capacity 10 and flow 1) a full charge took about 13 ticks instead of
+  5 and felt worse. To compensate, the random floors' start rooms give 3 potions instead of 4.
