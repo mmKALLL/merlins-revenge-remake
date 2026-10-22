@@ -18,7 +18,8 @@ if (!existsSync(ARCHIVE)) {
   process.exit(1)
 }
 
-type Copy = { from: string; to: string; why: string }
+/** `opaque`: drop the image's alpha (white stays the transparent colour, as in the other members). */
+type Copy = { from: string; to: string; why: string; opaque?: boolean }
 
 const copies: Copy[] = [
   // tileset: the archive ships a clean PNG of the MR4 objects sheet. It is pixel-identical to the
@@ -215,6 +216,11 @@ const MERLIN_CAST_STRIPS = ['magicMelee', 'weaponMelee']
  * into cast_bitmaps/ with `dump_bitmaps.py <key>_scroll <key>_writing <key>_ws punch_ws greenBox_ws yellowBox_ws`.
  */
 const SCROLLS = MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN) // the gmg is not ported yet
+/**
+ * Members whose dumped alpha channel is cut short (cBlast_scroll: the scroll's right edge, 42 drawn
+ * pixels, has alpha 0 though its colours are all there); the copy drops the alpha.
+ */
+const BROKEN_ALPHA_MEMBERS = new Set(['cBlast_scroll'])
 /** Weapon selector members: every scroll's icon, the punch's, and the palette's selection boxes. */
 const SELECTOR_MEMBERS = [...SCROLLS.map((k) => `${k}_ws`), 'punch_ws', 'greenBox_ws', 'yellowBox_ws']
 if (existsSync(CAST_BITMAPS)) {
@@ -233,7 +239,8 @@ if (existsSync(CAST_BITMAPS)) {
   for (const key of SCROLLS) {
     const members: [member: string, strip: string][] = [['scroll', 'stand'], ['writing', 'writing']]
     for (const [member, strip] of members) {
-      copies.push({ from: join(CAST_BITMAPS, `${key}_${member}.png`), to: join(ASSETS, `sprites/${key}/anm_${key}_${strip}_1_01.png`), why: `${key}_${member} member` })
+      const name = `${key}_${member}`
+      copies.push({ from: join(CAST_BITMAPS, `${name}.png`), to: join(ASSETS, `sprites/${key}/anm_${key}_${strip}_1_01.png`), why: `${name} member`, opaque: BROKEN_ALPHA_MEMBERS.has(name) })
     }
   }
   for (const member of SELECTOR_MEMBERS) {
@@ -245,8 +252,15 @@ if (existsSync(CAST_BITMAPS)) {
 
 for (const c of copies) {
   mkdirSync(dirname(c.to), { recursive: true })
-  cpSync(c.from, c.to)
+  if (c.opaque) writeFileSync(c.to, PNG.sync.write(withoutAlpha(PNG.sync.read(readFileSync(c.from)))))
+  else cpSync(c.from, c.to)
   console.log(`${c.to.slice(ROOT.length)}  <- ${c.why}`)
+}
+
+/** The image fully opaque. */
+function withoutAlpha(png: PNG): PNG {
+  for (let i = 3; i < png.data.length; i += 4) png.data[i] = 255
+  return png
 }
 
 // The title lettering: one GIF per letter in gfx/title/output (the apostrophe's file is "'.gif"),
