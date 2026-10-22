@@ -98,16 +98,24 @@ describe('army summon', () => {
   })
 
   it('the dwarf builds a dwarf tower beside it, frame by frame from 1 energy, and the tower then stands', () => {
-    let s = stepUntil(world({ dwarf: 9 }), NO_INPUT, (n) => ofDef(n, 'dwarfTower').length > 0)
+    // a goblin in the room keeps the fight going (allies leave once it is over)
+    let s = stepUntil(world({ dwarf: 9, goblinWarrior: 18 }), NO_INPUT, (n) => ofDef(n, 'dwarfTower').length > 0)
     const tower = ofDef(s, 'dwarfTower')[0]!
     const dwarf = ofDef(s, 'dwarf')[0]!
     expect(tower.mode).toBe('beBuilt')
     expect(tower.energy).toBe(1)
     expect(tower.pos.x - dwarf.pos.x).toBe(32)
-    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarfTower')[0]?.mode !== 'beBuilt')
+    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarfTower')[0]?.mode !== 'beBuilt', 2000)
     const built = ofDef(s, 'dwarfTower')[0]!
-    expect(built.mode).toBe('walk')
+    expect(built.mode).not.toBe('beBuilt') // finished: it stands, or already fights the goblin
     expect(built.energy).toBeGreaterThan(defs['dwarfTower']!.energy * 0.9)
+  })
+
+  it('a building dwarf teleports out once the fight is over, leaving its tower unfinished', () => {
+    let s = stepUntil(world({ dwarf: 9 }), NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out' || ofDef(n, 'dwarfTower').length > 0)
+    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out')
+    expect(ofDef(s, 'dwarf')[0]?.teleport).toBe('out')
+    expect(ofDef(s, 'dwarfTower').every((tw) => tw.mode === 'beBuilt')).toBe(true)
   })
 })
 

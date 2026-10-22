@@ -34,7 +34,7 @@ export function leaveIfFinished(t: Tick, a: ActorState, targetsDead: boolean): v
 }
 
 /** The fight is over: the room is clear (its exits are open), or in a continuous world nav mode is on. */
-const fightOver = (t: Tick): boolean => (t.s.worldMode === 'rooms' ? t.s.exitsOpen : t.s.navMode)
+export const fightOver = (t: Tick): boolean => (t.s.worldMode === 'rooms' ? t.s.exitsOpen : t.s.navMode)
 
 /**
  * modTeleport.update: the teleport plays out; teleporting out ends in the reserve

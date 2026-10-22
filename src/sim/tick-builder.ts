@@ -13,6 +13,7 @@ import { defOf, isAlive, spriteRectFor, stripFor, walkSpeedOf } from './actors'
 import { randomInt } from './rng'
 import type { ActorState, AiMode } from './state'
 import { actorIn, spawn, type Tick } from './tick-context'
+import { fightOver, teleportOut } from './tick-army'
 
 /** The builder's own AI modes; objAiCPU takes over in the others. */
 export const BUILDER_AI_MODES: ReadonlySet<AiMode> = new Set<AiMode>(['lookForBuilding', 'walkToBuilding', 'build'])
@@ -27,6 +28,12 @@ export function stepBuilders(t: Tick): void {
     const def = defOf(t.s, a)
     // a hit dazes the AI (applyHit), which then looks for a target as objAiCPU does
     if (def.aiType !== BUILDER_AI || !BUILDER_AI_MODES.has(a.ai.mode)) continue
+    // remake (owner request): an ally builder leaves with the others once the fight is over, its
+    // building unfinished if need be (it stands there for the next builder to continue)
+    if (def.leaveWhenFinished && fightOver(t) && a.teleport === null) {
+      teleportOut(t, a)
+      continue
+    }
     if (a.ai.mode === 'lookForBuilding') {
       // objAiCPUBuilder #lookForBuilding: wait for the teleport in to finish
       if (a.teleport === null) startBuilding(t, a, def)

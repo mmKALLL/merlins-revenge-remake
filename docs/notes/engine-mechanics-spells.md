@@ -278,6 +278,11 @@ Details:
 
 ### Remake decisions
 
+- **The dwarf builds slower and can leave mid-build (owner request, 2026-10-22).** `dwarf.buildRate`
+  is 25 in `assets/tuning.json` (engine 100: one tower frame a tick), so the tower takes four times
+  as long. A building ally (`leaveWhenFinished`) teleports out with the others once the fight is
+  over (`fightOver`), leaving the tower unfinished; a later builder of the team continues it.
+
 - **Frozen units attack slower (owner request, 2026-10-22).** modFreeze only halves walking speed. In
   the remake a frozen unit other than Merlin also plays its attack strips `frozenAttackSlowdown`
   times slower (default 3, every frame's delay multiplied), so its hits land at a third of the rate
