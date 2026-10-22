@@ -138,6 +138,8 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
 - The collection runs right after Merlin's move, with the other AI. Pickups are not units: they
   keep no exits closed, are never targeted or hit, and a room stores its uncollected pickups when
   Merlin leaves (a collected one fading out is dropped, as `setRecordInRoomState(false)`).
+- A collected pickup plays its `writing` strip while it fades (`stripNameFor` maps the `collected`
+  mode to it); until the spells slice (2026-10) it faded out on its stand frame.
 - Temporary invincibility skips `loseEnergy` for Merlin; the renderer pulses his sprite's alpha in
   place of `pulseWhite`. The M cheat now starts it too, as `medikitCollected()` does.
 - Sprites: each pickup's folder under `assets/sprites/<name>/` holds `stand` (the `_potion` member)

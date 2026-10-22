@@ -1,0 +1,89 @@
+[#name: "act_summonOrc", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 1,
+#dexterity: 10,
+#dieSound: #none,
+#energy: 300,
+#experienceImWorth: 30,
+#miniMapStatus: #clr,
+#eyestrain: 50,
+#inertia: 60,
+#startingLevel: 0,
+#strength: 8,
+#team: #monsterSummon,
+#reelProof: true,
+#collisionDetection: false,
+#name: "bowOrc",
+#walkSpeed: 7,
+#weapon: #crossBow,
+#weaponTechnique: -1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

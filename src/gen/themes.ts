@@ -5,6 +5,7 @@
 // against the tile keys.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
+import { GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 
 export interface Weighted<T> { value: T; weight: number }
 
@@ -156,11 +157,7 @@ export interface StartRewards {
   potions: Weighted<string>[]
   potionCount: number
   medikits: number
-  /**
-   * One spell scroll per floor, drawn by weight; the tower draws one per floor without repeats.
-   * The sim does not spawn scrolls yet (PENDING_SCROLLS), so until they are ported they are only
-   * tiles on the map.
-   */
+  /** One spell scroll per floor, drawn by weight; the tower draws one per floor without repeats. */
   spellScrolls: Weighted<string>[]
   /** further pickups, one each */
   extras: string[]
@@ -202,23 +199,22 @@ const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): 
   ({ potions: POTION_WEIGHTS, potionCount: START_POTIONS, medikits: START_MEDIKITS, spellScrolls, extras })
 
 /**
- * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols. The sim
- * skips objScroll tiles until scrolls are ported (src/sim/actors.ts spawnRoomActors). energyBlast
- * is left out: Merlin starts with it.
+ * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols
+ * (docs/notes/engine-mechanics-spells.md). energyBlast is left out: Merlin starts with it.
  */
 export const SPELL_SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon',
   'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword'] as const
 
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
-export const GOLDEN_MACHINE_GUN = 'gmg'
+export { GOLDEN_MACHINE_GUN }
 /**
  * Owner note: the Magic Maze also gives the golden machine gun once act_gmg is ported. Off until
  * then; on, the maze's start rewards include it.
  */
 export const MAZE_GIVES_GOLDEN_MACHINE_GUN = false
 
-/** Reward keys the sim does not spawn yet: the scrolls. */
-export const PENDING_SCROLLS: ReadonlySet<string> = new Set<string>([...SPELL_SCROLLS, GOLDEN_MACHINE_GUN])
+/** Reward keys the sim does not spawn yet: the golden machine gun. */
+export const PENDING_SCROLLS: ReadonlySet<string> = new Set<string>([GOLDEN_MACHINE_GUN])
 
 // ---- Goblin Forest (merlin4 tilesets) ----
 

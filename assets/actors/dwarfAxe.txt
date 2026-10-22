@@ -1,0 +1,81 @@
+[#name: "act_dwarfAxe", #type: #field]
+[
+#inherit: #bullet,
+#attack:
+[
+#damageMultiplier: 4,
+#power: 1,
+#type: #bullet
+],
+#character: #bullet,
+#name: "axe",
+#friction: point(5,5),
+#recordInRoomState: false,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

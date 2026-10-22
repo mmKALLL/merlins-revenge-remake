@@ -6,6 +6,18 @@
 /** objPotion and objMedikit: the pickup object types an objects-layer tile may place. */
 export const POTION_OBJ_TYPE = 'objPotion'
 export const MEDIKIT_OBJ_TYPE = 'objMedikit'
+/** objScroll: a spell scroll (docs/notes/engine-mechanics-spells.md §1). */
+export const SCROLL_OBJ_TYPE = 'objScroll'
+/** act_gmg: the golden machine gun, an objScroll that is not a weapon (gmgCollected; not ported). */
+export const GOLDEN_MACHINE_GUN = 'gmg'
+/**
+ * The scrolls the objects tilesets place (merlinOpenObjects, merlin4Objects, merlinObjects): Merlin's.
+ * Other objScroll files (darkBlast, goblinSummon, ...) only carry an enemy's weapon and have no art.
+ */
+export const MERLIN_SCROLLS: readonly string[] = [
+  'armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'healBlast',
+  'arcticBlast', 'energyBeamSpell', 'merlinSword', 'energyBlast', GOLDEN_MACHINE_GUN,
+]
 
 /** objPlayerMerlinCharacter pBonusEnergy: energy every potion and a medikit restore at once. */
 export const BONUS_ENERGY = 25

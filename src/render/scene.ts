@@ -1,9 +1,11 @@
-import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import type { ExitArrowTextures, HudTextures, LoadedSprite, LoadedTileset } from '../data/loaders'
+import { Application, ColorMatrixFilter, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
+import type { ExitArrowTextures, HudTextures, LoadedSprite, LoadedTileset, WeaponSelectorTextures } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
+import { ARMY_SUMMON, reserveCount, teleportLook } from '../mr-open/mr-army'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import { GAME_SCREEN } from '../mr-open/mr-hud'
 import type { LayerName } from '../mr-open/mr-map-format'
+import { payloadFor, stageNumber } from '../mr-open/mr-spell'
 import { isPickup, isSpell, isStepped, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
@@ -16,6 +18,7 @@ import { HealthBars, type StandBox } from './health-bars'
 import { MiniMapLayer } from './minimap'
 import { PickupHud, pickupAlpha } from './pickups'
 import { PlayerHealthBar } from './player-health-bar'
+import { WeaponSelectorLayer } from './weapon-selector'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -42,6 +45,21 @@ const LAYER_Z: Record<string, number> = { gGameObjectLayer: 0, gPlayerLayer: 1, 
 /** The debug readout's two lines fill the strip below the play view, `gap` px right of the health bar (remake). */
 const DEBUG_TEXT = { gap: 8, fontSize: 8, lineHeight: 8 }
 const NO_TINT = 0xffffff
+/** modColourTransform.glowTeal: the frozen sprite is blended this far toward its target colour rgb(0, 255, 255). */
+const TEAL_GLOW_SHARE = 0.5
+
+/** A colour matrix blending every pixel TEAL_GLOW_SHARE of the way to teal (shared by every frozen sprite). */
+function tealGlowFilter(): ColorMatrixFilter {
+  const f = new ColorMatrixFilter()
+  const keep = 1 - TEAL_GLOW_SHARE
+  // rows R, G, B, A: [r, g, b, a, offset]; teal adds to green and blue
+  f.matrix = [keep, 0, 0, 0, 0, 0, keep, 0, 0, TEAL_GLOW_SHARE, 0, 0, keep, 0, TEAL_GLOW_SHARE, 0, 0, 0, 1, 0]
+  return f
+}
+/** objSpellIcons: the stage icon of a summon whose unit is not available is drawn at blend 50. */
+const UNAVAILABLE_ICON_ALPHA = 0.5
+/** objSpellIcons pSpellStrip: the atlas holding the summon stage icons (one strip per spell name). */
+export const SPELL_ICONS = 'spellIcons'
 /** Cut scene characters drawn with an actor's sprite under another key (#merlin plays as the player). */
 const CUTSCENE_ACTOR: Record<string, string> = { merlin: 'player' }
 
@@ -82,6 +100,8 @@ export class Scene {
   private graveLayer = new Container()
   private actorLayer = new Container()
   private actorSprites = new Map<number, Sprite>()
+  /** objSpellIcons over charging (and exploding) summon spells, by spell id */
+  private spellIcons = new Map<number, Sprite>()
   private healthBars: HealthBars
   private exitArrows: ExitArrowLayer
   private miniMap: MiniMapLayer
@@ -89,8 +109,10 @@ export class Scene {
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
+  private tealGlow = tealGlowFilter()
   private healthBar: PlayerHealthBar
   private pickupHud: PickupHud
+  private weaponSelector: WeaponSelectorLayer
   private cutScene: CutSceneOverlay | null = null
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontFamily: 'monospace', fontSize: DEBUG_TEXT.fontSize, lineHeight: DEBUG_TEXT.lineHeight } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
@@ -104,7 +126,9 @@ export class Scene {
     private defs: Record<string, ActorDef>,
     exitArrows: ExitArrowTextures | null = null,
     hud: HudTextures | null = null,
+    weaponTextures: WeaponSelectorTextures | null = null,
   ) {
+    this.weaponSelector = new WeaponSelectorLayer(weaponTextures)
     this.healthBars = new HealthBars(defs)
     this.healthBar = new PlayerHealthBar(hud)
     this.pickupHud = new PickupHud(sprites, defs)
@@ -152,7 +176,7 @@ export class Scene {
     // the HUD on the stage around the play view, at the original's gameScreen marks
     const { healthSurround } = GAME_SCREEN
     this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, this.cfg.playOffset.y + this.cfg.view.h)
-    this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.debugText)
+    this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.debugText, this.weaponSelector.layer)
     this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
@@ -173,6 +197,16 @@ export class Scene {
   /** Remake: hides or shows the mini-map (the N key). */
   toggleMiniMap(): void {
     this.miniMap.toggle()
+  }
+
+  /** The Q key (displayWeaponSelector): the weapon palettes around `anchor`, in stage px. */
+  openWeaponSelector(anchor: Vec, tick: number): void {
+    this.weaponSelector.show(anchor, tick)
+  }
+
+  /** A click at `point` (stage px): the weapon picked on an open palette, null for none. */
+  pickWeapon(point: Vec): string | null {
+    return this.weaponSelector.pick(point)
   }
 
   /** Shows or hides the debug readout below the play view (Settings, Debug info). */
@@ -200,8 +234,11 @@ export class Scene {
     this.app.canvas.style.height = `${this.cfg.logical.h * z}px`
   }
 
-  /** alpha in [0,1): how far between the previous and current tick the display is; mouseWorld: the pointer, if over the game. */
-  draw(s: SimState, alpha: number, fps: number, mouseWorld: Vec | null = null): void {
+  /**
+   * alpha in [0,1): how far between the previous and current tick the display is; mouseWorld: the
+   * pointer, if over the game; pointerStage: the same in stage px (the weapon palettes).
+   */
+  draw(s: SimState, alpha: number, fps: number, mouseWorld: Vec | null = null, pointerStage: Vec | null = null): void {
     const p = playerOf(s)
     const lerp = (a: ActorState): Vec => ({
       x: a.prevPos.x + (a.pos.x - a.prevPos.x) * alpha,
@@ -223,6 +260,7 @@ export class Scene {
     const def = this.defs[p.def]
     this.healthBar.update(p.energy, def?.maxEnergy || def?.energy || 1)
     this.pickupHud.update(s)
+    this.weaponSelector.update(s.arsenal, s.tick, pointerStage)
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
       this.debugText.text =
@@ -278,8 +316,10 @@ export class Scene {
       const shift = spell || bullet || reg || isPickup(s, a) ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) this.styleSpell(spr, a, def, tex)
+      else if (bullet && a.beamFrom) this.styleBeam(spr, a, pos)
       else if (bullet) this.styleBullet(spr, a)
-      else this.styleCharacter(spr, a, pickupAlpha(s, a))
+      else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg)
+      if (spell) this.syncSpellIcon(s, a, def, spr)
     }
     for (const [id, spr] of this.actorSprites) {
       if (seen.has(id)) continue
@@ -287,6 +327,42 @@ export class Scene {
       this.actorSprites.delete(id)
       this.bulletAngles.delete(id)
     }
+    for (const [id, icon] of this.spellIcons) {
+      if (seen.has(id) && icon.visible) continue
+      icon.destroy()
+      this.spellIcons.delete(id)
+    }
+  }
+
+  /**
+   * objSpellIcons: over a summon spell that has reached a stage, that stage's icon, sized to the
+   * spell; half transparent when the army summon has no such unit in the reserve; it fades with the
+   * explosion. Hidden (and dropped) otherwise.
+   */
+  private syncSpellIcon(s: SimState, a: ActorState, def: ActorDef, spellSprite: Sprite): void {
+    const atk = a.attack ?? def.attack
+    const charge = a.mode === 'explode' ? a.charge / atk.chargeExplodeFactor : a.charge
+    const stage = atk.multistage.length > 0 ? stageNumber(charge, atk) : 0
+    const tex = stage > 0 ? this.sprites[SPELL_ICONS]?.frames[atk.name]?.[stage - 1] : undefined
+    let icon = this.spellIcons.get(a.id)
+    if (!tex) {
+      if (icon) icon.visible = false
+      return
+    }
+    if (!icon) {
+      icon = new Sprite()
+      icon.anchor.set(0.5)
+      this.spellIcons.set(a.id, icon)
+      this.actorLayer.addChild(icon)
+    }
+    const payload = payloadFor(charge, atk)
+    const available = atk.name !== ARMY_SUMMON || (payload !== null && reserveCount(s.army, a.team, payload) > 0)
+    icon.texture = tex
+    icon.visible = true
+    icon.zIndex = spellSprite.zIndex + 1
+    icon.position.copyFrom(spellSprite.position)
+    icon.scale.set(spellSprite.width / tex.width, spellSprite.height / tex.height)
+    icon.alpha = spellSprite.alpha * (available ? 1 : UNAVAILABLE_ICON_ALPHA)
   }
 
   /** The actor's sprite, created on its first draw. */
@@ -327,12 +403,34 @@ export class Scene {
     spr.alpha = 1
   }
 
-  /** Characters mirror to face left. */
-  private styleCharacter(spr: Sprite, a: ActorState, alpha: number): void {
+  /** objBullet.setBeam: the beam stretched from its spell to where it lands (its reg point), turned to that line. */
+  private styleBeam(spr: Sprite, a: ActorState, pos: Vec): void {
+    const from = a.beamFrom!
+    const dx = pos.x - from.x
+    const dy = pos.y - from.y
+    spr.rotation = Math.atan2(dy, dx)
+    spr.scale.set((Math.hypot(dx, dy) + 1) / spr.texture.width, this.cfg.spriteScale)
+    spr.tint = NO_TINT
+    spr.alpha = 1
+  }
+
+  /**
+   * Characters mirror to face left; a frozen one glows teal (modFreeze.glowTeal); a teleporting one
+   * stretches tall from the floor and fades (modTeleport).
+   */
+  private styleCharacter(spr: Sprite, a: ActorState, alpha: number, tex: Texture, reg: Vec | undefined): void {
     spr.rotation = 0
     spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
     spr.tint = NO_TINT
+    spr.filters = a.glowTeal ? [this.tealGlow] : null
     spr.alpha = alpha
+    if (a.teleport === null) return
+    const look = teleportLook(a.teleport, a.teleportAge, tex.height)
+    const below = tex.height - (reg?.y ?? tex.height / 2) // the floor: the frame's bottom below the reg point
+    spr.anchor.set(spr.anchor.x, 1)
+    spr.position.y += below
+    spr.scale.y = (look.height / tex.height) * this.cfg.spriteScale
+    spr.alpha = alpha * look.alpha
   }
 
   /** Width of the sprite's stand frame (or first walk frame); `fallback` if it has neither. */

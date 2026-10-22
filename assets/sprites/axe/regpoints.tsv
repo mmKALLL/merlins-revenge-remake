@@ -1,0 +1,15 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_axe_fly_01_01	gfx	1061	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_02	gfx	1062	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_03	gfx	1063	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_04	gfx	1064	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_05	gfx	1065	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_06	gfx	1066	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_07	gfx	1067	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_08	gfx	1068	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_09	gfx	1069	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_10	gfx	1070	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_11	gfx	1071	16	3	32	8	1	alpha=255..255
+anm_axe_fly_01_12	gfx	1072	16	3	32	8	1	alpha=255..255
+anm_axe_land_03_01	gfx	1073	11	13	32	5	6	alpha=255..255
+anm_axe_land_60_01	gfx	1074	11	13	32	5	6	alpha=255..255

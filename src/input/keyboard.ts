@@ -5,11 +5,14 @@
 // like E; F toggles the first two (the mouse mode is chosen in Settings) (straight ahead while no mouse position is known). C switches between the
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle), N hides or shows the mini-map (takeMiniMapToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
-// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
+// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The weapon keys
+// (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9) once per press; Q
+// opens the weapon palettes (#weaponSelector 12; main.ts takes each press with takeWeaponSelector),
+// and a weapon picked on them (pickWeapon) reaches the next snapshot. The on-screen
 // touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
 // key is held, the blast button counts as Space, except that in mouse mode a press without a known
-// mouse position (a finger-only device) fires at the nearest enemy. While a menu is open (setEnabled(false)) keys and
-// clicks are left to the page.
+// mouse position (a finger-only device) fires at the nearest enemy; the weapon button steps to the
+// next weapon (cycleWeapon). While a menu is open (setEnabled(false)) keys and clicks are left to the page.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -19,6 +22,9 @@ const MOVE_KEYS: Record<string, Vec> = {
   KeyA: { x: -1, y: 0 }, ArrowLeft: { x: -1, y: 0 },
   KeyD: { x: 1, y: 0 }, ArrowRight: { x: 1, y: 0 },
 }
+
+/** Digit1..Digit9: the spell keys #spell1..#spell9 (bnd_wasd's Mac key codes 18-26, meant as 1-9). */
+const SPELL_KEY = /^Digit([1-9])$/
 
 /** What Space (and the touch blast button) fires at. */
 export const SPACE_MODES = ['nearest', 'pushBack', 'mouse'] as const
@@ -46,6 +52,11 @@ export class InputTracker {
   private miniMapToggle = false // an N press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
   private cheatHeal = false // an M press not yet in a snapshot
+  private selectSpell: number | null = null // a 1-9 press not yet in a snapshot
+  private selectWeapon: string | null = null // a palette pick not yet in a snapshot
+  private cycleWeapon = false // a touch weapon button press not yet in a snapshot
+  private weaponSelector = false // a Q press not yet taken
+  private swallowMouse = false // the button press picked a weapon on the palette: no charge until it is let go
   private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
   private touchBlast = false // the touch blast button is held
   private touchBlastHasMouse = false // a mouse position was known when the blast button went down
@@ -70,6 +81,9 @@ export class InputTracker {
     if (code === 'KeyN' && pressed) this.miniMapToggle = !this.miniMapToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
     if (code === 'KeyM' && pressed) this.cheatHeal = true
+    if (code === 'KeyQ' && pressed) this.weaponSelector = true
+    const spell = SPELL_KEY.exec(code)
+    if (spell && pressed) this.selectSpell = Number(spell[1])
     this.held.add(code)
   }
   /** What Space (and the touch blast button) fires at from now on (F steps it, Settings sets it). */
@@ -85,6 +99,22 @@ export class InputTracker {
     this.cameraToggle = false
     return toggle
   }
+  /** Whether Q was pressed since the last call: the weapon palettes should open. */
+  takeWeaponSelector(): boolean {
+    const open = this.weaponSelector
+    this.weaponSelector = false
+    return open
+  }
+  /** A weapon clicked on the palettes: it goes to the next snapshot, and the click charges nothing. */
+  pickWeapon(key: string): void {
+    this.selectWeapon = key
+    this.swallowMouse = true
+    this.mouseDown = false
+  }
+  /** Remake (the touch weapon button): the next weapon in Merlin's list, in the next snapshot. */
+  nextWeapon(): void {
+    if (this.enabled) this.cycleWeapon = true
+  }
   /** Whether N was pressed since the last call: the mini-map should be hidden or shown once. */
   takeMiniMapToggle(): boolean {
     const toggle = this.miniMapToggle
@@ -93,7 +123,10 @@ export class InputTracker {
   }
   keyUp(code: string): void { this.held.delete(code) }
   setMouseWorld(p: Vec | null): void { this.mouseWorld = p }
-  setMouseButton(down: boolean): void { this.mouseDown = down && this.enabled }
+  setMouseButton(down: boolean): void {
+    if (!down) this.swallowMouse = false
+    this.mouseDown = down && this.enabled && !this.swallowMouse
+  }
   /** The touch controls' state: the nub's move (any angle, larger axis 1) and whether the blast button is held (Space). */
   setTouch(move: Vec, blast: boolean): void {
     this.touchMove = move
@@ -127,10 +160,12 @@ export class InputTracker {
     const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootShort: false }
     if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
     if (this.touchBlast) shots[this.touchShot()] = true
-    const cheatKillAll = this.cheatKillAll
-    const cheatHeal = this.cheatHeal
+    const { cheatKillAll, cheatHeal, selectSpell, selectWeapon, cycleWeapon } = this
     this.cheatKillAll = false
     this.cheatHeal = false
+    this.selectSpell = null
+    this.selectWeapon = null
+    this.cycleWeapon = false
     return {
       move,
       mouseWorld: this.mouseWorld,
@@ -139,6 +174,9 @@ export class InputTracker {
       shootShort: shots.shootShort,
       cheatKillAll,
       cheatHeal,
+      selectSpell,
+      selectWeapon,
+      cycleWeapon,
     }
   }
 

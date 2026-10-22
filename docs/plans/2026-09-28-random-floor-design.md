@@ -128,11 +128,10 @@ floors over 500 seeds, the tower over 40), never on the player's tile, distinct 
 
 The scroll pickups are the original's `act_<spell>` files with `objType #objScroll`
 (`objScroll.collected` -> `objPlayerMerlinCharacter.newScrollCollected`: `addWeapon(character,
-attack)`, +25 energy, temporary invincibility; for `#gmg` `gmgCollected` instead). The sim does not
-spawn objScroll yet: `spawnRoomActors` skips the tile with its "not spawnable yet" (or "no actor
-definition", for scrolls whose `act_` file is not copied yet) console note, so until scrolls are
-ported a scroll is only a tile on the map (`PENDING_SCROLLS`; `floor-sim.test.ts` exempts them from
-the ported-actor check). Energy blast is left out (Merlin starts with it).
+attack)`, +25 energy, temporary invincibility; for `#gmg` `gmgCollected` instead), ported with
+Merlin's spells (`docs/notes/engine-mechanics-spells.md`). Only the golden machine gun is still
+pending: its tile is skipped ("no actor definition"; `PENDING_SCROLLS`, which `floor-sim.test.ts`
+exempts from the ported-actor check). Energy blast is left out (Merlin starts with it).
 
 | Key | merlinOpenObjects | merlin4Objects | Spell |
 |---|---|---|---|
@@ -181,9 +180,8 @@ What the original does (archive `casts/`):
 Mapping: the owner's list is a **starting reserve army** filled in when the scroll is collected:
 `pReserveArmy[#aldevar]` gets `warrior` x2, `archer` x2, `monk` x1, `dwarf` x1 (level 0), which the
 spell's charge stages then summon (warrior from 10, archer 15, monk 20, dwarf 25). The king stage
-stays empty. To be done with the spell port, as a remake decision: tunable data on the scroll (an
-`ActorDef` field such as `startingArmy`, empty by default, set for `armySummon` in
-`assets/tuning.json`), recorded in the engine notes.
+stays empty. Done with the spell port as a remake decision: `armySummon.startingArmy` in
+`assets/tuning.json` (an `ActorDef` field, `{}` by default), recorded in the spells notes.
 
 ### Golden machine gun (pending)
 

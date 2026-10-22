@@ -1,65 +1,37 @@
-// The player's spell (combat notes §4, §6): charge / resume / release input (objAiPlayer with
-// objAiAttack.chargeMagic / releaseMagic), spell flight and explosion (objSpell). The victim side
-// of an explosion push is applyHit in tick-combat.ts.
+// Spells in play (combat notes §5, spells notes §4-5): a spell created over its caster
+// (objAiAttack.ensureSpell), the multistage summons' permission and rein-in
+// (modSpellMultistage), the release (objSpell.releaseNormal, or modFireBullets for pulses and
+// beams), the flight, and the explosion with its payload functions, summons and mines. The
+// player's charge input is in tick-player-attack.ts, the AI casters' in tick-caster.ts; the victim
+// side of a hit is in tick-combat.ts.
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
+import { ARMY_SUMMON, takeUnit, topAvailableStage } from '../mr-open/mr-army'
+import { resetCooldown } from '../mr-open/mr-attack'
 import { tileOfPx } from '../mr-open/mr-collision'
-import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
-import { cooldownReady, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
+import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
 import { chargeVolume } from '../mr-open/mr-sound'
-import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFor, releaseVelocity } from '../mr-open/mr-spell'
-import { defOf, isAlive, isSpell, playerStatsOf } from './actors'
-import { spreadVec } from './rng'
-import type { ActorState, ChargeKind, InputSnapshot } from './state'
-import { viewRect, type Size } from './view'
-import { actorIn, hitTargetIn, playerIn, playSound, sleeperIn, spawn, type Tick } from './tick-context'
-import { applyHit, splashVictims } from './tick-combat'
+import {
+  armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, stageNumber,
+} from '../mr-open/mr-spell'
+import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
+import { defOf, isAlive, isSpell } from './actors'
+import { aimPoint } from './player-aim'
+import { randomInt, roughly, spreadVec } from './rng'
+import type { ActorState, InputSnapshot } from './state'
+import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
+import { applyPayload, splashVictims } from './tick-combat'
+import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
+import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
 export const SUMMON_UNIT = 'summonUnit'
+/** attack.explodeFunction of the energy mines spell. */
+const DEPOSIT_MINES = 'depositMines'
 
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
 export const EXPLODE_TICKS = 8
-/** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
-const AHEAD_PX = 100
-/** The push-back shot (Space with the F toggle on) lands this many px short of the nearest hostile, toward the player. */
-const SHORT_PX = 18
-
-/** The input flag that holds each kind of charge; checked in this order when a charge starts. */
-const CHARGE_INPUT: Record<ChargeKind, 'chargeHeld' | 'shootNearest' | 'shootShort'> = {
-  mouse: 'chargeHeld',
-  nearest: 'shootNearest',
-  short: 'shootShort',
-}
-
-const isHeld = (input: InputSnapshot, kind: ChargeKind | null): boolean => kind !== null && input[CHARGE_INPUT[kind]]
-
-function chargeKindFor(input: InputSnapshot): ChargeKind | null {
-  for (const kind of Object.keys(CHARGE_INPUT) as ChargeKind[]) if (input[CHARGE_INPUT[kind]]) return kind
-  return null
-}
-
-/**
- * Where a released spell flies: the mouse (else straight ahead), the nearest hostile, or SHORT_PX
- * short of it. In a continuous world (remake) only hostiles inside the play view count; in rooms
- * the room is the view.
- */
-function releaseTarget(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null, view: Size): Vec {
-  const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
-  const mouse = input.mouseWorld ?? ahead
-  if (kind !== 'nearest' && kind !== 'short') return mouse
-  const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
-  const nearestId = nearestHostileId(t, p, true, onScreen)
-  const nearest = nearestId === null ? undefined : (actorIn(t, nearestId) ?? sleeperIn(t, nearestId))
-  if (!nearest) return mouse
-  if (kind === 'nearest') return { ...nearest.pos }
-  const dx = nearest.pos.x - p.pos.x
-  const dy = nearest.pos.y - p.pos.y
-  const d = Math.hypot(dx, dy)
-  if (d <= SHORT_PX) return { ...p.pos }
-  return { x: nearest.pos.x - (dx / d) * SHORT_PX, y: nearest.pos.y - (dy / d) * SHORT_PX }
-}
 
 /** objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there (grows upward). */
 export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
@@ -69,48 +41,24 @@ export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef)
 }
 
 /**
- * objAiPlayer.playerAttackCharge / playerAttackRelease with objAiAttack.chargeMagic / releaseMagic.
- * The AI's current spell (pCurrentSpell) is the player's spell still in `charge` mode; it belongs to
- * the AI, not to the character mode, so a hit forcing #walk (objPlayerMerlinCharacter.takeHit) keeps
- * it: while its key stays held, attack() -> chargeMagic re-enters #charge and keeps counting, and
- * letting go releases it from any mode. Without a current spell, a held Space/click or E starts
- * a charge whenever the cooldown is ready, even during the release strip (releaseSpell has already
- * cleared pCurrentSpell).
- */
-export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): void {
-  const p = playerIn(t)
-  if (!isAlive(p)) return
-  const def = playerStatsOf(t.s, p) // the potions drunk raise the mana stats
-  const spell = chargingSpellOf(t, p)
-  if (!spell) startCharge(t, p, def, input)
-  else if (isHeld(input, p.ai.chargeKind)) continueCharge(p, def, spell)
-  else releaseSpell(t, p, def, spell, input, view)
-}
-
-function continueCharge(p: ActorState, def: ActorDef, spell: ActorState): void {
-  if (!cooldownReady(p.cooldown)) return // objAiAttack.attack
-  const limits = chargeLimits(def) // magic limit fixed at 100 %
-  p.mode = 'charge' // ensureMode(#charge)
-  spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
-  alignSpell(spell, p, def)
-}
-
-function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
-  releaseMagic(t, p, def, spell, releaseTarget(t, p, input, p.ai.chargeKind, view))
-  p.ai.chargeKind = null
-}
-
-/**
- * objAiAttack.releaseMagic: the spell flies at spellSpeed toward `target`, the caster plays its
- * release strip and the cooldown restarts.
+ * objAiAttack.releaseMagic: the caster plays its release strip and the cooldown restarts. The spell
+ * flies at spellSpeed toward `target` (objSpell.releaseNormal, with its release sound), or with
+ * releaseFunction #fireBullets stays where it is and fires (modFireBullets #spellReleased),
+ * aiming where its caster aims (`kind` for Merlin).
  */
 export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: ActorState, target: Vec): void {
   const atk = spell.attack ?? def.attack
-  spell.mode = 'fly'
-  spell.targetPoint = target
-  spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
-  // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
-  playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
+  if (atk.releaseFunction === 'fireBullets') {
+    spell.mode = 'fireBullets'
+    spell.age = 0
+    spell.ai.chargeKind = caster.ai.chargeKind
+  } else {
+    spell.mode = 'fly'
+    spell.targetPoint = target
+    spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
+    // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
+    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
+  }
   caster.mode = 'release'
   caster.cooldown = resetCooldown(def.attack)
 }
@@ -138,20 +86,39 @@ export function startSpell(t: Tick, caster: ActorState, def: ActorDef): ActorSta
   return created
 }
 
-function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): void {
-  if (p.mode === 'charge') {
-    // the spell went away under the charge
-    p.mode = 'walk'
-    p.ai.chargeKind = null
+/**
+ * modSpellMultistage.chargeMultistage after a charge step of a summon spell: the first stage reached
+ * asks for a team slot (obtainPermissionOrHalt; refused, chargeReinIn drops the charge below the
+ * first stage), and the army summon is held below the stage above the best unit in the reserve
+ * (chargeReinInToAvailable). Returns whether the charge was limited (#chargeLimited).
+ */
+export function stepMultistage(t: Tick, spell: ActorState): boolean {
+  const atk = spell.attack
+  if (!atk || atk.explodeFunction !== SUMMON_UNIT || atk.multistage.length === 0) return false
+  let limited = false
+  if (spell.summonReserved === 0 && stageNumber(spell.charge, atk) >= 1) {
+    if (teamHasRoomFor(t, reservationTeamOf(t.s, spell, atk), 1)) spell.summonReserved = 1
+    else {
+      spell.charge = reinedInCharge(atk)
+      limited = true
+    }
   }
-  const kind = chargeKindFor(input)
-  if (kind === null || !cooldownReady(p.cooldown)) return
-  startSpell(t, p, def)
-  p.ai.chargeKind = kind
+  if (atk.name === ARMY_SUMMON) {
+    const held = armyReinIn(spell.charge, atk, topAvailableStage(t.army, spell.team, atk))
+    if (held !== null) {
+      spell.charge = held
+      limited = true
+    }
+  }
+  return limited
 }
 
-/** objSpell: flight until PointArrivedAtTarget, then goMode(#explode) -> teamMaster.impactAttack, then the fade. */
-export function stepSpells(t: Tick): void {
+/**
+ * objSpell: flight until PointArrivedAtTarget, then goMode(#explode) -> teamMaster.impactAttack, then
+ * the fade; a #fireBullets spell fires until its charge runs out. `input` and `view` aim Merlin's
+ * pulses and beams (objAiPlayer.getTargetLoc at each shot).
+ */
+export function stepSpells(t: Tick, input: InputSnapshot, view: Size): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isSpell(t.s, a)) continue
     if (a.mode === 'charge') {
@@ -160,6 +127,8 @@ export function stepSpells(t: Tick): void {
       if (!owner || !isAlive(owner)) t.removed.add(a.id)
     } else if (a.mode === 'fly') {
       if (a.targetPoint && arrivedAtTarget(a.pos, a.targetPoint, a.vel)) explodeSpell(t, a)
+    } else if (a.mode === 'fireBullets') {
+      stepFireBullets(t, a, input, view)
     } else if (a.mode === 'explode') {
       a.age++
       if (a.age >= EXPLODE_TICKS) t.removed.add(a.id)
@@ -167,27 +136,97 @@ export function stepSpells(t: Tick): void {
   }
 }
 
-const TAKE_HIT = 'takeHit'
-const TAKE_HEAL = 'takeHeal'
-/** modEnergy.takeHeal: energy += (|vx| + |vy|) * this, up to the maximum. */
-const HEAL_PER_PUSH = 2
+/** modFireBullets.updateFireBullets: a bullet every fireBulletsPeriod ticks; the spell is gone after the last. */
+function stepFireBullets(t: Tick, spell: ActorState, input: InputSnapshot, view: Size): void {
+  const atk = spell.attack!
+  spell.age++
+  if (spell.age < fireBulletsPeriod(atk)) return
+  spell.age = 0
+  const next = chargeAfterBullet(spell.charge, atk)
+  spell.charge = next.charge
+  const target = ownerAim(t, spell, input, view)
+  if (target) {
+    if (atk.beam) fireBeam(t, spell, atk, target)
+    else firePulse(t, spell, atk, target)
+  }
+  if (next.last) t.removed.add(spell.id)
+}
 
-/** modEnergy.takeHeal (no push, no reel): the healed unit gains twice the collision vector's Manhattan length. */
-function takeHeal(t: Tick, victim: ActorState, push: Vec): void {
-  const max = defOf(t.s, victim).maxEnergy
-  victim.energy = Math.min(max, victim.energy + (Math.abs(push.x) + Math.abs(push.y)) * HEAL_PER_PUSH)
+/** objSpell.getTargetLoc -> owner.getTargetLoc: where Merlin aims, a CPU caster's target, or none. */
+function ownerAim(t: Tick, spell: ActorState, input: InputSnapshot, view: Size): Vec | null {
+  const owner = spell.ownerId === null ? undefined : actorIn(t, spell.ownerId)
+  if (!owner || !isAlive(owner)) return null
+  if (owner.id === t.s.playerId) return aimPoint(t, owner, input, spell.ai.chargeKind, view)
+  const target = owner.ai.targetId === null ? undefined : actorIn(t, owner.ai.targetId)
+  return target ? { ...target.pos } : null
 }
 
 /**
- * modSpellMultistage.summonPayload -> armyMaster.createUnit: the stage's unit on the spell's
- * position with its own data (a solid tile cancels it), and the reserved slot is given back.
+ * modAttack.performRangedAttack from the spell: the attack says #throwType, not #firingType, so the
+ * bullet flies #proportional (distance / 10). The spell has no target, so the bullet takes
+ * teamMaster.findTarget's nearest hated unit (objBullet pRandomTarget).
+ */
+function firePulse(t: Tick, spell: ActorState, atk: AttackDef, target: Vec): void {
+  if (!atk.bullet || !t.s.defs[atk.bullet]) return
+  const vel = { x: (target.x - spell.pos.x) / 10, y: (target.y - spell.pos.y) / 10 }
+  const bullet = spawn(t, atk.bullet, spell.pos, { mode: 'fly', vel, ownerId: spell.ownerId, targetPoint: target, team: spell.team })
+  bullet.targetId = nearestHostileId(t, bullet)
+}
+
+/**
+ * modAttack.performBeamAttack: a beam bullet at the target loc moved by random(20) - 10 on each axis,
+ * standing still and stretched from the spell (objBullet.setBeam); it lands, and so explodes, at once.
+ */
+function fireBeam(t: Tick, spell: ActorState, atk: AttackDef, target: Vec): void {
+  if (!atk.bullet || !t.s.defs[atk.bullet]) return
+  const at = { x: target.x + jitter(t), y: target.y + jitter(t) }
+  const bullet = spawn(t, atk.bullet, at, { mode: 'fly', ownerId: spell.ownerId, targetPoint: at, team: spell.team, beamFrom: { ...spell.pos } })
+  bullet.targetId = nearestHostileId(t, bullet)
+}
+
+/** random(BEAM_JITTER) - BEAM_JITTER / 2 on the tick's RNG. */
+function jitter(t: Tick): number {
+  const [n, rng] = randomInt(t.rng, BEAM_JITTER)
+  t.rng = rng
+  return n - BEAM_JITTER / 2
+}
+
+/**
+ * modSpellMultistage.summonPayload -> armyMaster.createUnitFromSummonSpell: the stage's unit on the
+ * spell's position with its own data (a solid tile cancels it), and the reserved slot is given
+ * back. The army summon takes the unit from the reserve army (none there: nothing), and it
+ * teleports in (armyTeleportIn).
  */
 function summonPayload(t: Tick, spell: ActorState, atk: AttackDef): void {
   const payload = payloadFor(spell.charge, atk)
   spell.summonReserved = 0
   if (payload === null || !t.s.defs[payload]) return
   if (t.s.grid.solidAt(tileOfPx(spell.pos.x), tileOfPx(spell.pos.y))) return
-  spawn(t, payload, spell.pos, {})
+  if (atk.name !== ARMY_SUMMON) {
+    spawn(t, payload, spell.pos, {})
+    return
+  }
+  const army = takeUnit(t.army, spell.team, payload)
+  if (!army) return
+  t.army = army
+  spawn(t, payload, spell.pos, { teleport: 'in', teleportAge: 0 })
+}
+
+/**
+ * modSpellMultistage.depositMines: charge / chargePerUnit energy mines around the spell, each within
+ * VarRoughly(charge / 2) on each axis, owned by the caster; a solid tile cancels one.
+ */
+function depositMines(t: Tick, spell: ActorState, atk: AttackDef): void {
+  if (!t.s.defs[ENERGY_MINE]) return
+  const spread = mineSpread(spell.charge)
+  for (let i = 0; i < mineCount(spell.charge, atk); i++) {
+    const [dx, r1] = roughly(t.rng, spread)
+    const [dy, r2] = roughly(r1, spread)
+    t.rng = r2
+    const at = { x: spell.pos.x + dx, y: spell.pos.y + dy }
+    if (t.s.grid.solidAt(tileOfPx(at.x), tileOfPx(at.y))) continue
+    spawn(t, ENERGY_MINE, at, { mode: 'stand', ownerId: spell.ownerId })
+  }
 }
 
 /**
@@ -195,7 +234,8 @@ function summonPayload(t: Tick, spell: ActorState, atk: AttackDef): void {
  * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
  * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
  * original explodes centred on the cursor. prevPos is pinned so the renderer does not slide the
- * explosion.
+ * explosion. impactAttack calls the payload functions (the stage's, once a summon stage is
+ * reached); then doExplodeFunction summons or lays mines.
  */
 function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
@@ -207,23 +247,23 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
   const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)
+  const payloadFunctions = payloadFunctionsFor(spell.charge, atk)
   // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
   const caster = t.actors.find((c) => c.id === spell.ownerId)
   const spread = caster ? defOf(t.s, caster).knockbackSpreadDeg : 0
   for (const { id, push } of ex.pushes) {
     const victim = hitTargetIn(t, id)
     if (!victim) continue
-    // CallPayloadFunction: takeHeal heals by the collision vector, takeHit pushes and damages
-    if (atk.payloadFunction.includes(TAKE_HEAL)) takeHeal(t, victim, push)
-    if (!atk.payloadFunction.includes(TAKE_HIT)) continue
     const [turned, rng] = spreadVec(t.rng, push, spread)
     t.rng = rng
-    applyHit(t, victim, turned, atk.damageMultiplier)
+    applyPayload(t, victim, turned, atk, payloadFunctions)
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
   playSound(t, atk.explodeSound, explodeVolume)
+  // the summon is the payload selected while charging; the mines go by the charge after the factor
   if (atk.explodeFunction === SUMMON_UNIT) summonPayload(t, spell, atk)
   spell.charge *= atk.chargeExplodeFactor
+  if (atk.explodeFunction === DEPOSIT_MINES) depositMines(t, spell, atk)
   spell.mode = 'explode'
   spell.vel = { x: 0, y: 0 }
   spell.prevPos = spell.pos

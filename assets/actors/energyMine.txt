@@ -1,0 +1,91 @@
+[#name: "act_energyMine", #type: #field]
+[
+#inherit: #actor,
+#objType: #objMine,
+#attack:
+[
+#damageMultiplier: 5,
+#explodeCharge: 50,
+#hits: [#teamMembers, #teamBuildings],
+#power: 1.5,
+#type: #explode
+],
+#character: #mine,
+#collideWithTarget: false,
+#explodeEvents: [#mineTriggered],
+#explodeSound: "spell_explode",
+#explodeVolume: 50,
+#name: "energyMine",
+#friction: point(9,9),
+#recordInRoomState: false,
+#rotational: false,
+#team: #aldevar,
+#teamRole: #teamMines,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -3,7 +3,7 @@
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
-import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE } from './mr-pickup'
+import { MEDIKIT_OBJ_TYPE, MERLIN_SCROLLS, POTION_OBJ_TYPE, SCROLL_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'explode' | 'none'
@@ -35,13 +35,22 @@ export interface AttackDef {
   explodeCharge: number // an #explode bullet's charge when it goes off (radius explodeCharge / 2)
   chargeColour: { r: number; g: number; b: number } // tint of the charging/flying spell sprite
   spellSpeed: number // spell flight speed in px per tick
-  explodeFunction: string | null // what the spell does on exploding besides the blast: summonUnit (depositMines not ported)
+  explodeFunction: string | null // what the spell does on exploding besides the blast: summonUnit, depositMines
   multistage: { payload: string; chargeRequired: number }[] // summon stages in order: the unit a charge of at least chargeRequired summons
   randomSummon: boolean // an AI caster's charge max is randomised per cast (calcAttackChargeMax), so it summons a random stage
   targetTileWhenNotBlank: boolean // a spell carrying a payload is aimed at the centre of the target's tile
   targetAllegiance: 'enemy' | 'friendly' // teamMaster.calcTargetTeamsByAllegiance: hated teams, or friends plus the own team
   targetCriteria: 'closestDistance' | 'lowestHealth' // findTargetInTeam: nearest, or lowest energy percentage (healers)
-  payloadFunction: string[] // what an impact calls on each unit hit: takeHit (push and damage), takeHeal, takeFreeze
+  payloadFunction: string[] // what an impact calls on each unit hit: takeHit (push and damage), takeHeal, takeFreeze, armyTeleportOut
+  payloadFunctionNonBlank: string[] // modSpellMultistage: the payload functions once a summon stage is reached (#same = payloadFunction, #none = nothing)
+  residentTeamCategory: string | null // summon spells of team aldevar reserve slots on this team (modSpellMultistage.obtainPermissionOrHalt)
+  chargeStartMax: number | null // calcAttackChargeStart: when set, the start is min(chargeStart, this) without mana_burst
+  releaseFunction: 'release' | 'fireBullets' // objSpell: fly to the target and explode, or stay and fire bullets (modFireBullets)
+  chargePerUnit: number // modFireBullets: charge spent per bullet; depositMines: charge per mine
+  fireDelay: number // modFireBullets: ticks between bullets (Counter length)
+  beam: boolean // modFireBullets: performBeamAttack (a bullet at the target loc, stretched from the spell) instead of a fired bullet
+  glowTeal: boolean // modFreeze: the frozen unit glows teal
+  freezeMultiplier: number // modFreeze.takeFreeze: frozen ticks per push unit = 4 * this
   limitMagic: boolean // whether the magic limiter percentage scales the charge max
   sound: string | null // sound played on attack
   releaseSound: string | null // sound on spell release
@@ -124,6 +133,12 @@ export interface ActorDef {
   // --- engine: dwellings (modResidents)
   residentGroups: ResidentGroup[] // groups a dwelling picks from at random; empty for everything else
   totalResidents: number // residents a dwelling releases before it destroys itself
+  // --- engine: allies (objCharacter, modArmyUnit, modBuilder)
+  leaveWhenFinished: boolean // objCharacter: teleport out into the reserve army when the AI finds no target
+  teleportable: boolean // modArmyUnit: an army summon blast can teleport it out (false for Merlin and ghosts)
+  unitToBuild: string[] // modBuilder: building types a builder (objAiCPUBuilder) picks from at random
+  buildRate: number // modBuilder: build progress per tick; 100 advances the building one frame
+  buildOne: boolean // modBuilder: only one building of its type for the team
   // --- remake additions (not in the engine; the defaults keep engine behaviour where noted)
   collisionRectScale: number // scales the collision rect about the reg point (1 = engine size)
   scenicMaxTicks: number // a #scenic detour also ends (back to #beeline) after this many ticks
@@ -151,6 +166,8 @@ export interface ActorDef {
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   vanishOnCollect: boolean // a pickup goes at once when collected; false = engine (its writing fades out first)
+  /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
+  startingArmy: Record<string, number>
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -161,16 +178,18 @@ export interface ActorDef {
 }
 
 /** Object types drawn with an animation atlas. */
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling'])
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine'])
 /** Pickups: their atlas is named after the actor key (assets/sprites/<key>/, from its gfx members). */
-const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE])
+const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_TYPE])
 
 /**
  * Whether an actor is drawn with its own atlas (`anm_<name>_*`). Abstract bases such as `bullet`
  * have a drawable objType but never set `#name`; only concrete actors that name themselves have art.
- * Pickups have no `#name`: a concrete one sets its `#character` (act_powerUp does not).
+ * Pickups have no `#name`: a concrete one sets its `#character` (act_powerUp does not). Of the
+ * scrolls only Merlin's, which the objects tilesets place, have art.
  */
 export function needsSprite(def: ActorDef): boolean {
+  if (def.objType === SCROLL_OBJ_TYPE) return MERLIN_SCROLLS.includes(def.key)
   if (PICKUP_OBJ_TYPES.has(def.objType)) return def.character !== null
   return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
 }
@@ -185,7 +204,13 @@ const ATTACK_DEFAULTS = {
   sound: null, releaseSound: null, explodeSound: null, volume: DEFAULT_VOLUME, chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP,
   explodeFunction: 'none', multistage: 'none', randomSummon: false, targetTileWhenNotBlank: false,
   targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'],
+  payloadFunctionNonBlank: ['same'], residentTeamCategory: 'none', chargeStartMax: 'none', releaseFunction: 'release',
+  chargePerUnit: 5, fireDelay: 2, beam: false, freezeMultiplier: 1,
+  glowTeal: false, // not in structAttack; only the freezing attacks set it
 } as const
+
+/** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
+const SAME_PAYLOAD = 'same'
 
 /** objCharacter #dieVolume default. */
 const DEFAULT_DIE_VOLUME = 100
@@ -226,6 +251,10 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     collectSound: 'none', counterColour: { r: 255, g: 255, b: 255 }, // objPowerUp, objPotion.new
     // engine: dwellings
     residentGroups: [], totalResidents: 10, // modResidents.addModParams
+    // engine: allies
+    leaveWhenFinished: false, // objCharacter.addModParams
+    teleportable: true, // modArmyUnit.addModParams
+    unitToBuild: [], buildRate: 100, buildOne: true, // modBuilder.addModParams ([#none x 4])
     // remake additions
     collisionRectScale: 1, // engine-sized rect
     scenicMaxTicks: 60, // cutoff on #scenic detours (none in the engine)
@@ -239,6 +268,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     vanishOnCollect: false, // collected pickups fade their writing out, as in the engine
+    startingArmy: {}, // a scroll brings no units, as in the engine
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -258,6 +288,7 @@ for (const k of [
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
   'collectSound', 'counterColour', 'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
+  'leaveWhenFinished', 'teleportable', 'ghost', 'unitToBuild', 'buildRate', 'buildOne',
   // engine properties kept in raw only
   'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
   // remake additions
@@ -265,7 +296,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'vanishOnCollect',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'vanishOnCollect', 'startingArmy',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -421,10 +452,23 @@ function residentGroups(obj: Plain, field: string, ctx: string): ResidentGroup[]
     return { typ: str(g, 'typ', c), buildTime: range(g, 'buildTime', c), groupSize: range(g, 'groupSize', c), releaseInterval: range(g, 'releaseInterval', c) }
   })
 }
+/** A [#unit: count, ...] list (remake: startingArmy). */
+function unitCounts(obj: Plain, field: string, ctx: string): Record<string, number> {
+  const v = obj[field]
+  if (!isPlain(v)) return bad(ctx, field, 'a [#unit: count] list', v)
+  const out: Record<string, number> = {}
+  for (const [unit, n] of Object.entries(v)) out[unit] = typeof n === 'number' ? n : bad(ctx, `${field}.${unit}`, 'a number', n)
+  return out
+}
 function chargeVolumeMap(obj: Plain, field: string, ctx: string): ChargeVolumeMap {
   const v = obj[field]
   if (isPlain(v) && pair(v['charge']) && pair(v['vol'])) return { charge: [v['charge'][0], v['charge'][1]], vol: [v['vol'][0], v['vol'][1]] }
   return bad(ctx, field, 'a [#charge: [a,b], #vol: [c,d]] list', v)
+}
+
+/** #payloadFunctionNonBlank: #same takes the blank payload functions (setMultiStageProperties). */
+function nonBlankPayload(nonBlank: string[], blank: string[]): string[] {
+  return nonBlank.length === 1 && nonBlank[0] === SAME_PAYLOAD ? [...blank] : nonBlank
 }
 
 function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
@@ -453,6 +497,12 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     targetAllegiance: a['targetAllegiance'] === 'friendly' ? 'friendly' : 'enemy',
     targetCriteria: a['targetCriteria'] === 'lowestHealth' ? 'lowestHealth' : 'closestDistance',
     payloadFunction: symbolList(a, 'payloadFunction', ctx),
+    payloadFunctionNonBlank: nonBlankPayload(symbolList(a, 'payloadFunctionNonBlank', ctx), symbolList(a, 'payloadFunction', ctx)),
+    residentTeamCategory: strOrNull(a['residentTeamCategory']),
+    chargeStartMax: a['chargeStartMax'] === 'none' ? null : num(a, 'chargeStartMax', ctx),
+    releaseFunction: a['releaseFunction'] === 'fireBullets' ? 'fireBullets' : 'release',
+    chargePerUnit: num(a, 'chargePerUnit', ctx), fireDelay: num(a, 'fireDelay', ctx),
+    beam: a['beam'] === true, glowTeal: a['glowTeal'] === true, freezeMultiplier: num(a, 'freezeMultiplier', ctx),
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
   }
@@ -558,6 +608,10 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: dwellings
       residentGroups: residentGroups(r, 'residentGroups', ctx).map((g) => ({ ...g, typ: actorKey(g.typ) })),
       totalResidents: num(r, 'totalResidents', ctx),
+      // engine: allies (modArmyUnit.init: a ghost is never teleportable)
+      leaveWhenFinished: bool(r, 'leaveWhenFinished', ctx),
+      teleportable: bool(r, 'teleportable', ctx) && r['ghost'] !== true,
+      unitToBuild: symbolList(r, 'unitToBuild', ctx).map(actorKey), buildRate: num(r, 'buildRate', ctx), buildOne: bool(r, 'buildOne', ctx),
       // remake additions
       collisionRectScale: num(r, 'collisionRectScale', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
@@ -574,6 +628,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       vanishOnCollect: bool(r, 'vanishOnCollect', ctx),
+      startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

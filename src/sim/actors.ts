@@ -4,7 +4,11 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
-import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, withPotions } from '../mr-open/mr-pickup'
+import { BUILDER_AI } from '../mr-open/mr-builder'
+import { speedWhileFrozen } from '../mr-open/mr-freeze'
+import { MINE_OBJ_TYPE } from '../mr-open/mr-mine'
+import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLL_OBJ_TYPE, withPotions } from '../mr-open/mr-pickup'
+import { currentAttack, type Arsenal } from '../mr-open/mr-weapons'
 import { roomMusic } from '../mr-open/mr-sound'
 import { dwellingStart } from '../mr-open/mr-residents'
 import { isDead } from '../mr-open/mr-take-hit'
@@ -14,11 +18,11 @@ import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type Sim
 
 /** objDwelling: a building that releases residents (modResidents); hittable, no AI. */
 const DWELLING_OBJ_TYPE = 'objDwelling'
-const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE])
+const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_TYPE])
 /** objTypes an objects-layer symbol may spawn in this slice; others are skipped with a warning. */
 const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
-/** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts). */
-export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster'])
+/** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts; the builder its building, tick-builder.ts). */
+export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster', BUILDER_AI])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
 const CHARACTER_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter'])
 /** objMusic tiles create no actor here; their track is read by roomMusicTrack on room activation. */
@@ -32,12 +36,14 @@ export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OB
 export const isBullet = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objBullet'
 export const isSpell = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objSpell'
 export const isDwelling = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === DWELLING_OBJ_TYPE
+/** Energy mines (objMine): Merlin's, exploding when a hated unit comes near; not team units. */
+export const isMine = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === MINE_OBJ_TYPE
 /**
  * Team units: characters (#teamMembers) and dwellings (#teamBuildings). They have energy, can be
  * targeted and hit, keep exits closed while alive and stay in their room when the player leaves.
  */
 export const isUnit = (s: SimState, a: ActorState): boolean => isCharacter(s, a) || isDwelling(s, a)
-/** Potions and medikits (objPowerUp): Merlin collects them by walking over them; nothing hits them. */
+/** Potions, medikits and spell scrolls (objPowerUp): Merlin collects them by walking over them; nothing hits them. */
 export const isPickup = (s: SimState, a: ActorState): boolean => PICKUP_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
 /**
  * What a room keeps when Merlin leaves it: its units and its uncollected pickups (a collected one
@@ -57,10 +63,18 @@ export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'i
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
 
-/** Merlin's definition with the potions he has drunk added to his stats (engine-mechanics-potions.md §3). */
-export function playerStatsOf(s: SimState, player: ActorState): ActorDef {
-  return withPotions(defOf(s, player), s.pickups.potionsDrunk)
+/**
+ * Merlin's definition with the potions he has drunk added to his stats (engine-mechanics-potions.md
+ * §3) and his current weapon's attack installed (modWeaponManager.setCurrentWeapon -> setAttack).
+ * A tick passes its own working arsenal, which a pickup or a weapon key may have changed.
+ */
+export function playerStatsOf(s: SimState, player: ActorState, arsenal: Arsenal = s.arsenal): ActorDef {
+  const def = withPotions(defOf(s, player), s.pickups.potionsDrunk)
+  return { ...def, attack: currentAttack(arsenal) ?? def.attack }
 }
+
+/** The walk speed a CPU character walks at: halved while frozen (modFreeze.takeFreeze). */
+export const walkSpeedOf = (a: ActorState, def: ActorDef): number => speedWhileFrozen(def.walkSpeed, a.freezeTicks > 0)
 
 /** The definition with the actor's current attack installed (a multiAttack unit may be using its natural one). */
 export function armedDefOf(s: SimState, a: ActorState): ActorDef {
@@ -117,7 +131,7 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     frictionPercent: { ...def.friction },
     knockback: { x: 0, y: 0 },
     ai: {
-      mode: def.aiType !== null && CPU_AI_TYPES.has(def.aiType) ? 'findTarget' : 'none',
+      mode: initialAiMode(def),
       targetId: null,
       retargetCounter: 0,
       pathMode: 'beeline',
@@ -131,6 +145,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
       idleTicks: 0,
       wanderGoal: null,
       chargeKind: null,
+      buildingId: null,
+      buildAmount: 0,
     },
     ownerId: null,
     targetId: null,
@@ -144,8 +160,19 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     dwelling: def.objType === DWELLING_OBJ_TYPE ? dwellingStart(def) : null,
     awake: true,
     wakeHold: 0,
+    freezeTicks: 0,
+    glowTeal: false,
+    beamFrom: null,
+    teleport: null,
+    teleportAge: 0,
   }
   return [actor, { ...s, nextId: s.nextId + 1 }]
+}
+
+/** A CPU AI starts looking for a target; a builder's, on starting, looks for a building first (objAiCPUBuilder #buildingFinished). */
+function initialAiMode(def: ActorDef): ActorState['ai']['mode'] {
+  if (def.aiType === BUILDER_AI) return 'lookForBuilding'
+  return def.aiType !== null && CPU_AI_TYPES.has(def.aiType) ? 'findTarget' : 'none'
 }
 
 // Symbols already reported as skipped, so a map full of unported objects warns once per key.

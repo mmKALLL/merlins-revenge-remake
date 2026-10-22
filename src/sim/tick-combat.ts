@@ -2,12 +2,13 @@
 // and impact, the victim side of a hit (objGameObject.takeHit -> modReel / modEnergy), reel and
 // death progression, cooldown/regeneration counters and the exits-open rule. The player's spell
 // (charge, release, explosion) is in tick-spell.ts.
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import {
   aimWithEyestrain, bulletPush, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown,
 } from '../mr-open/mr-attack'
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
 import { rectAt } from '../mr-open/mr-collision'
+import { freezeTicksAfter } from '../mr-open/mr-freeze'
 import type { Vec } from '../mr-open/mr-geometry'
 import { explodeWithCharge, type SplashVictim } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
@@ -20,6 +21,8 @@ import type { ActorState, SimState } from './state'
 import { actorIn, hitTargetIn, playSound, sleeperIn, spawn, waitingSleepers, type Tick } from './tick-context'
 import { nearestHostileId, rollDetour } from './tick-ai'
 import { isInvincible } from './tick-pickup'
+import { teleportOut } from './tick-army'
+import { stepPlayerCooldowns } from './tick-weapons'
 
 /** Ticks the player's die mode lasts before the map restart is requested. */
 export const PLAYER_DEATH_TICKS = 30
@@ -119,10 +122,46 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
   return hit.push
 }
 
+/** CallPayloadFunction's handlers (general_functions/CallPayloadFunction ().txt). */
+const PAYLOAD = { takeHit: 'takeHit', takeHeal: 'takeHeal', takeFreeze: 'takeFreeze', armyTeleportOut: 'armyTeleportOut' } as const
+/** modEnergy.takeHeal: energy += (|vx| + |vy|) * this, up to the maximum. */
+const HEAL_PER_PUSH = 2
+
+/**
+ * CallPayloadFunction: each of the attack's payload functions on the victim, in order, with the
+ * collision vector (`functions`: a summon spell's stage ones). #takeHit pushes and damages, writing
+ * the inertia-scaled push back for the functions after it (Lingo points are passed by reference);
+ * #takeHeal heals (no push), #takeFreeze freezes, #armyTeleportOut sends an ally to the reserve.
+ */
+export function applyPayload(t: Tick, victim: ActorState, push: Vec, atk: AttackDef, functions: readonly string[] = atk.payloadFunction): void {
+  let vect = push
+  for (const fn of functions) {
+    if (fn === PAYLOAD.takeHit) vect = applyHit(t, victim, vect, atk.damageMultiplier)
+    else if (fn === PAYLOAD.takeHeal) takeHeal(t, victim, vect)
+    else if (fn === PAYLOAD.takeFreeze) takeFreeze(t, victim, vect, atk)
+    else if (fn === PAYLOAD.armyTeleportOut) teleportOut(t, victim)
+  }
+}
+
+/** modEnergy.takeHeal (no push, no reel): the healed unit gains twice the collision vector's Manhattan length. */
+function takeHeal(t: Tick, victim: ActorState, push: Vec): void {
+  if (!isAlive(victim)) return
+  const max = defOf(t.s, victim).maxEnergy
+  victim.energy = Math.min(max, victim.energy + (Math.abs(push.x) + Math.abs(push.y)) * HEAL_PER_PUSH)
+}
+
+/** modFreeze.takeFreeze on a character (Merlin included): frozen for longer the harder the push; glowing teal with a glowTeal attack. */
+function takeFreeze(t: Tick, victim: ActorState, push: Vec, atk: AttackDef): void {
+  if (!isCharacter(t.s, victim) || !isAlive(victim)) return
+  if (victim.freezeTicks === 0) victim.glowTeal = atk.glowTeal
+  victim.freezeTicks = freezeTicksAfter(victim.freezeTicks, push, atk.freezeMultiplier)
+}
+
 /** objAiAttack.updateAttack: perform the attack on its strip frame, finish when the strip has looped. */
 export function stepAttackFrames(t: Tick): void {
   for (const a of t.actors) {
-    if (t.removed.has(a.id) || a.ai.mode !== 'attack') continue
+    // Merlin's swings are stepPlayerSwing's (tick-player-attack.ts)
+    if (t.removed.has(a.id) || a.ai.mode !== 'attack' || a.id === t.s.playerId) continue
     const def = armedDefOf(t.s, a)
     if (onFreshFrame(a, def.attack.animFrame)) {
       const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
@@ -139,7 +178,7 @@ export function stepAttackFrames(t: Tick): void {
 function performAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState): void {
   const atk = def.attack
   if (atk.type === 'melee') {
-    if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyHit(t, target, meleePush(def, a.facingLeft), atk.damageMultiplier)
+    if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyPayload(t, target, meleePush(def, a.facingLeft), atk)
   } else if (atk.type === 'ranged' && atk.bullet) {
     fireBullet(t, a, def, atk.bullet, target)
   } else {
@@ -203,7 +242,10 @@ export function stepBullets(t: Tick): void {
 
 function stepFlyingBullet(t: Tick, a: ActorState): void {
   const def = defOf(t.s, a)
-  if (bulletStalled(a.vel)) {
+  // objBullet.checkStalled: no move vector yet on a bullet's first frame (a beam, created standing, lands on its second)
+  const firstFrame = a.age === 0
+  a.age++
+  if (!firstFrame && bulletStalled(a.vel)) {
     // #bulletLanded: modExploder explodes when it is one of the bullet's explodeEvents, else
     // objBullet.goMode(#land): setVect(point(0,0)) - the landed arrow does not drift
     if (def.explodeEvents.includes('bulletLanded')) return explodeBullet(t, a, def)
@@ -223,7 +265,7 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   // collisionVect is the explosion's (calcCollisionVectSpell with its explodeCharge).
   const push = def.attack.type === 'explode' ? explosionPushOn(t, a, def, target) : bulletPush(a.vel, def)
   const scaled = applyHit(t, target, push, def.attack.damageMultiplier)
-  applyHit(t, target, scaled, def.attack.damageMultiplier)
+  applyPayload(t, target, scaled, def.attack)
   // #bulletCollidedWithTarget: explode (modExploder) or die
   if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
   else t.removed.add(a.id)
@@ -237,16 +279,17 @@ function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: Act
 }
 
 /**
- * modExploder.explode: the explode sound, teamMaster.impactAttack with the bullet's explodeCharge
- * (radius explodeCharge / 2, push (radius + r - dist) * power, as a spell), then the explode strip.
+ * modExploder.explode (an #explode bullet or an energy mine): the explode sound,
+ * teamMaster.impactAttack with the explodeCharge (radius explodeCharge / 2, push
+ * (radius + r - dist) * power, as a spell) through the payload functions, then the explode strip.
  */
-function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
+export function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
   playSound(t, def.exploderSound, def.exploderVolume)
   const atk = def.attack
   const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits))
   for (const { id, push } of ex.pushes) {
     const victim = hitTargetIn(t, id)
-    if (victim) applyHit(t, victim, push, atk.damageMultiplier)
+    if (victim) applyPayload(t, victim, push, atk)
   }
   t.events.push({ kind: 'explode', pos: a.pos, radius: ex.radius })
   a.mode = 'explode'
@@ -276,6 +319,7 @@ export function stepReelAndDeath(t: Tick): void {
     const def = defOf(t.s, a)
     const wasMode = t.prev.get(a.id)?.mode
     if (isOutOfEnergy(t, a, def)) startDeath(t, a)
+    if (!isAlive(a)) a.teleport = null // a unit killed while teleporting dies where it is
     switch (a.mode) {
       case 'reel':
         if (t.hit.has(a.id)) break // modReel.updateReel first runs on the update after the hit
@@ -336,14 +380,22 @@ function reincarnate(t: Tick, a: ActorState, def: ActorDef): void {
   }
 }
 
-/** modWeaponManager.updateCooldowns and modEnergy.recoverEnergy for every awake team unit (a dwelling: +1 per 1000 ticks). */
+/** modFreeze.updateFreeze: the frozen ticks count down; at the end defrost (the teal glow goes). */
+function stepFreeze(a: ActorState): void {
+  if (a.freezeTicks === 0) return
+  a.freezeTicks = Math.max(0, a.freezeTicks - 1)
+  if (a.freezeTicks === 0) a.glowTeal = false
+}
+
+/** modWeaponManager.updateCooldowns, modFreeze.updateFreeze and modEnergy.recoverEnergy for every awake team unit (a dwelling: +1 per 1000 ticks). */
 export function stepCooldownsAndRegen(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isUnit(t.s, a) || !a.awake) continue
     const def = defOf(t.s, a)
+    stepFreeze(a)
     // updateCooldowns runs every weapon's counter, each advanced by its attack type's stat
-    const armed = armedDefOf(t.s, a)
-    a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armed))
+    if (a.id === t.s.playerId) stepPlayerCooldowns(t, a)
+    else a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armedDefOf(t.s, a)))
     if (def.multiAttack) a.otherCooldown = tickCooldown(a.otherCooldown, cooldownIncrement({ ...def, attack: a.useNatural ? def.attack : def.naturalAttack }))
     if (!def.passiveEnergyRecovery) continue
     const [energy, counter] = regenStep(a.energy, def.maxEnergy, a.regenCounter, def.energyRecoverDelay)

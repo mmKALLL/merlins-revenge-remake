@@ -17,6 +17,11 @@ export const GAME_SCREEN = {
   medikit: { x: 32, y: 0 },
   /** prg_potionMaster: potionMaster.calcDisplayRect; the display is right-aligned to its right edge. */
   potions: { x: 470, y: 0, w: 138, h: 16 },
+  /**
+   * prg_wizardMaster: the in-game wizards' display (not ported). Remake: Merlin's current weapon
+   * icon sits there (the original shows the weapon only in the weaponSelector palette).
+   */
+  wizard: { x: 72, y: 0 },
   /** health_grey_locz151: the word "health", drawn as is (ink copy). */
   healthLabel: { x: 32, y: 306 },
   /** health_bar_surround: the bar's frame (ink background transparent: its white inside shows the stage). */

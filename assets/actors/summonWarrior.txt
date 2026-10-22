@@ -1,0 +1,86 @@
+[#name: "act_summonWarrior", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#damageSpeed: 1,
+#dexterity: 3,
+#energy: 100,
+#experienceImWorth: 6,
+#miniMapStatus: #clr,
+#eyestrain: 30,
+#inertia: 60,
+#strength: 12,
+#team: #monsterSummon,
+#reelProof: true,
+#collisionDetection: false,
+#name: "skw",
+#walkSpeed: 6,
+#weapon: #skeletonSword
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

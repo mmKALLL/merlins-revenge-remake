@@ -4,6 +4,9 @@
 // the last frame).
 import type { ActorMode, ActorState, AnimationSet, AnimationStrip } from './state'
 
+/** A collected pickup's strip: its writing (assets/sprites/<pickup>/anm_<pickup>_writing_*). */
+const WRITING_STRIP = 'writing'
+
 /**
  * Strip name for a mode. `moving` picks the walking variants (walk, chargeWalk, releaseWalk);
  * swapping between a still and a walking variant restarts at frame 0 here. The engine does not
@@ -36,6 +39,9 @@ export function stripNameFor(set: AnimationSet | undefined, mode: ActorMode, mov
     case 'fly':
     case 'explode':
       name = isSpell ? 'charge' : mode
+      break
+    case 'collected':
+      name = WRITING_STRIP // objPowerUpWriting.displayWriting: the `<character>_writing` member
       break
     default:
       name = mode

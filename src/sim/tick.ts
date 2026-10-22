@@ -2,15 +2,17 @@
 //  0. debug cheats pressed this tick (tick-cheats.ts): K kills the hostiles on screen, M heals Merlin
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
-//  2. player attack input: charge / resume / release (tick-spell.ts)
-//  3. pickups Merlin touches collected, the medikit heal and invincibility countdown (tick-pickup.ts),
-//     CPU AI decisions (tick-ai.ts), sleepers' idle wander in a continuous world (idle-wander.ts), AI spell casters (tick-caster.ts), dwelling production and
-//     resident releases (tick-dwelling.ts)
+//  2. player weapon keys and attack input: charge / resume / release, or a swing (tick-player-attack.ts)
+//  3. pickups Merlin touches collected (a scroll adds its weapon), the medikit heal and invincibility
+//     countdown (tick-pickup.ts), builders (tick-builder.ts), CPU AI decisions (tick-ai.ts), sleepers'
+//     idle wander in a continuous world (idle-wander.ts), AI spell casters (tick-caster.ts), dwelling
+//     production and resident releases (tick-dwelling.ts)
 //  4. movement of every other actor (every velocity, walkers' included, decays by the actor's
 //     friction first; characters collide with tiles and take wall damage while reeling; bullets
 //     and spells ignore tiles; a CPU caster's charging spell follows it)
 //  5. animation advance for every actor, strip by mode (anim.ts); weapon technique stretches attack frames
-//  6. attack frames: melee strike, bullet spawn; 7. bullets (tick-combat.ts); 8. spells (tick-spell.ts)
+//  6. attack frames: Merlin's swing (tick-player-attack.ts), melee strike, bullet spawn; 7. bullets
+//     (tick-combat.ts) and mines (tick-mine.ts); 8. spells (tick-spell.ts) and army teleports (tick-army.ts)
 //  9. reel and death progression (graves recorded on #finish); 10. cooldowns and regeneration
 // 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
@@ -22,9 +24,12 @@
 // Merlin walks into; there are no exits and no room store/restore. switchWorldMode (world-mode.ts)
 // changes between the two between ticks.
 import type { ActorDef } from '../mr-open/mr-actor-data'
+import { NO_ARMY } from '../mr-open/mr-army'
+import { startingArsenal } from '../mr-open/mr-weapons'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
+import { speedWhileFrozen } from '../mr-open/mr-freeze'
 import { stepVelocity } from '../mr-open/mr-movement'
 import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
@@ -48,7 +53,11 @@ import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { stepDwellings } from './tick-dwelling'
 import { stepPickups } from './tick-pickup'
 import { stepSleeperWanders } from './idle-wander'
-import { stepPlayerAttack, stepSpells } from './tick-spell'
+import { stepPlayerAttack, stepPlayerSwing } from './tick-player-attack'
+import { stepSpells } from './tick-spell'
+import { stepTeleports } from './tick-army'
+import { stepBuilders } from './tick-builder'
+import { stepMines } from './tick-mine'
 import type { WorldGrid } from './world-grid'
 
 export const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }
@@ -81,6 +90,8 @@ export function createSim(
     restartRequested: false,
     mapComplete: false,
     pickups: NO_PICKUPS,
+    arsenal: startingArsenal(defs['player']!),
+    army: NO_ARMY,
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
@@ -143,7 +154,8 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const p = playerIn(t)
   const def = playerStatsOf(s, p)
   const dir = isAlive(p) ? input.move : { x: 0, y: 0 }
-  const accel = s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration
+  // modFreeze halves the acceleration of a character with modNavMode (Merlin)
+  const accel = speedWhileFrozen(s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration, p.freezeTicks > 0)
   const walkVel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
   // hit knockback slides on top of walking and decays by frictionReel (see applyHit)
   const knock = p.knockback
@@ -214,8 +226,9 @@ function stepMovement(t: Tick): void {
  */
 function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: Rect): { loc: Vec; vel: Vec } {
   const cr = collisionRectFor(t.s, a)
-  // collisionDetection false (bats, ghosts): no tiles, only the play area (constrainToPlayArea #auto)
-  if (!defOf(t.s, a).collisionDetection) return { loc: clampToRoom(roomRect, loc, cr), vel }
+  // collisionDetection false (bats, ghosts; a teleporting unit, modArmyUnit.collisionDetectionOff):
+  // no tiles, only the play area (constrainToPlayArea #auto)
+  if (!defOf(t.s, a).collisionDetection || a.teleport !== null) return { loc: clampToRoom(roomRect, loc, cr), vel }
   // A corner push moves both axes but the engine only calls the wall callbacks for it
   // (objCollisionMap.checkCollisions), so it zeroes x and takes wall damage once.
   const hit = sweepTileCollision(t.s.grid.solidAt, a.pos, vel, cr)
@@ -236,7 +249,8 @@ function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: 
 function stepAnimation(t: Tick, input: InputSnapshot): void {
   const s = t.s
   for (const a of t.actors) {
-    if (t.removed.has(a.id)) continue
+    // a building under construction advances only as it is built (tick-builder.ts)
+    if (t.removed.has(a.id) || a.mode === 'beBuilt') continue
     const set = s.anims[defOf(s, a).name]
     const moving = a.id === s.playerId ? isAlive(a) && (input.move.x !== 0 || input.move.y !== 0) : a.vel.x !== 0 || a.vel.y !== 0
     const name = stripNameFor(set, a.mode, moving, isSpell(s, a))
@@ -330,6 +344,8 @@ function afterTick(t: Tick): SimState {
     nextId: t.nextId,
     events: t.events,
     pickups: t.pickups,
+    arsenal: t.arsenal,
+    army: t.army,
     restartRequested: t.restartRequested,
   }
 }
@@ -359,6 +375,7 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them
   if (!s.mapComplete) {
     stepPickups(t)
+    stepBuilders(t)
     stepCpuAi(t)
     if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
     stepSpellCasters(t)
@@ -367,9 +384,12 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   stepMovement(t)
   stepAnimation(t, input)
   stepWeaponTechnique(t)
+  stepPlayerSwing(t)
   stepAttackFrames(t)
   stepBullets(t)
-  stepSpells(t)
+  stepMines(t)
+  stepSpells(t, input, cfg.view)
+  stepTeleports(t)
   stepReelAndDeath(t)
   stepCooldownsAndRegen(t)
   if (s.worldMode === 'continuous') return settleContinuous(t, room)

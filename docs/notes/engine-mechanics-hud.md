@@ -30,7 +30,7 @@ is frame 240).
 | `prg_medikitmaster` | 32, 0 | medikit display, from the top-left of the strip above the room |
 | `prg_potionmaster` | 470, 0, 138 x 16 | potions drunk, right-aligned to x 608 (the room's right edge) above the room |
 | `prg_armyMaster` | 608, 16, 32 x 288 | the right margin (army display, not ported) |
-| `prg_wizardmaster`, `prg_gmgmaster` | 72, 0 / 90, 0 | wizard and GMG displays in the top strip (not ported) |
+| `prg_wizardmaster`, `prg_gmgmaster` | 72, 0 / 90, 0 | wizard and GMG displays in the top strip (not ported; the remake draws Merlin's current weapon icon at the wizard mark, `engine-mechanics-spells.md`) |
 | `health_grey_locz151` | 32, 306, 68 x 13 | the word "health" (8-bit grey, ink copy) |
 | `health_bar_surround` | 104, 305, 100 x 14 | the health bar's frame (ink 36, background transparent) |
 | `help_locz151` | left margin, top | the help button (not ported) |

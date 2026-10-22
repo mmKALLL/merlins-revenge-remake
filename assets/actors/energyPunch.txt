@@ -1,0 +1,91 @@
+[#name: "act_energyPunch", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animFrame: 3,
+#animType: #magicMelee,
+#collisionLoc: point(10,-1),
+#cooldown: 0,
+#damageMultiplier: 1.75,
+#hits: [#teamMembers, #teamBuildings],
+#name: #energyPunch,
+#power: point(3,1),
+#reach: point(7,10),
+#sound: "wizard_punch"
+],
+#character: #energyPunch,
+#collectSound: "collect_powerup_01",
+#member: member("energyPunch_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

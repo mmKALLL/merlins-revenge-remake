@@ -1,0 +1,122 @@
+[#name: "act_armySummon", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #energyBlastBullet,
+#chargeColour: rgb(9,113,255),
+#chargeExplodeFactor: 1,
+#chargeSize: 2,
+#chargeSpeed: 0.4,
+#chargeStart: 0,
+#chargeStartMax: 8,
+#chargeMax: 38,
+#chargeMaxBasic: 35,
+#gmgChargeMax:17,
+#gmgChargeSpeed: 5,
+#gmgChargeStart: 7,
+#gmgAutoFire: false,
+#chargeSpeedMax: 0.4,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 1,
+#explodeFunction: #summonUnit,
+#explodeSound: "spell_explode",
+#hits: [#teamMembers],
+#randomSummon: false,
+#limitMagic: false,
+#multistage:
+[
+#warrior: 10,
+#archer: 15,
+#monk: 20,
+#dwarf: 25,
+#kingInGame: 32
+],
+#name: #armySummon,
+#payloadFunction: #armyTeleportOut,
+#payloadFunctionNonBlank: #none,
+#power: 1,
+#reach: 9999,
+#releaseSound: "spell_release",
+#residentTeamCategory: #aldevar,
+#spellSpeed: 20,
+#targetAllegiance: #friendly
+],
+#character: #armySummon,
+#collectSound: "collect_powerup_01",
+#member: member("armySummon_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

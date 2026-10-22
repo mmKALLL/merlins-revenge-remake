@@ -41,9 +41,10 @@ Each follows the engine's evident intent; the tunable ones go in `assets/tuning.
    which might have made them stand or even walk *toward* the target. Say if bats should not back off.
 10. **Enemy teams fight each other** as their hate lists say (undead vs goblins, karate vs goblins, ...):
     mixed rooms such as `tvsDemo` room 4 turn into brawls. Engine behaviour, just newly visible.
-11. **Not visible in the port yet**: frosty monks' freeze (`#takeFreeze`, `glowTeal`), heal/summon glow
-    effects, spell icons over a charging summon, the dwarf tower's axe splash (`splashDamageOn`), and
-    stretch deaths of CPU characters (grey ghost). Hits and damage from those units work.
+11. **Not visible in the port yet**: heal/summon glow effects, the dwarf tower's axe splash
+    (`splashDamageOn`), and stretch deaths of CPU characters (grey ghost). Hits and damage from those
+    units work. (Frosty monks' freeze and the spell icons over a charging summon came with Merlin's
+    spells, `docs/notes/engine-mechanics-spells.md`.)
 
 ## Done
 
@@ -82,10 +83,11 @@ showcases.
 
 ## Not ported yet
 
-- Builders: goblinBuilder, dwarf (`objAiCPUBuilder`, `#beBuilt` construction).
-- Weapons with new mechanics: techMech (`energyBeam`, a stretched beam), sumo (`cracks` with splash
-  graves), ochre wizard and prestotolin (`energyPulse`), verdanlin (`energyMines`), flaming rock's fire.
+- Builders: goblinBuilder (the dwarf and `#beBuilt` construction came with Merlin's spells).
+- Weapons: techMech (`laserBeam`; beams themselves are ported), sumo (`cracks` with splash graves),
+  ochre wizard and prestotolin (pulses), verdanlin (mines): the mechanics are ported for Merlin's
+  spells, the actors are not copied yet; flaming rock's fire.
 - The in-game wizards (berlin, amotonlin, flaetorlin, foelin, garonlin, ulin, scarlet): `#wizard`,
   `#leaveWhenFinished` allies with special spells.
-- monkGhost (`objAiCPUGhost`), and the `summon*` units, which only the player's army summon creates.
-- Pickups (medikit, spell scrolls, mana upgrades, magic limiters): the next big piece for parity.
+- monkGhost (`objAiCPUGhost`). (The `summon*` units, which the monster summon creates, came with Merlin's spells.)
+- Pickups: magic limiters (medikits, potions and spell scrolls are ported).

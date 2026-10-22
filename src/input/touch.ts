@@ -1,8 +1,9 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
-// nub on the left that appears where a finger first presses, and a blast button on the right. They
-// feed the same InputTracker as the keyboard: the nub moves Merlin at any angle (a keyboard-speed
-// analog of WASD), the button acts as Space (charge while held, release by the Space mode; the mouse
-// mode without a mouse position fires at the nearest enemy).
+// nub on the left that appears where a finger first presses, a blast button on the right and a
+// weapon button beside it. They feed the same InputTracker as the keyboard: the nub moves Merlin at
+// any angle (a keyboard-speed analog of WASD), the blast button acts as Space (charge while held,
+// release by the Space mode; the mouse mode without a mouse position fires at the nearest enemy),
+// and the weapon button shows the current weapon and steps to the next one on a tap.
 // Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 
@@ -33,12 +34,15 @@ export function wantsTouchControls(params: URLSearchParams, win: Window): boolea
 /** What the controls report every change: the nub's direction and whether the blast button is held. */
 export type TouchListener = (move: Vec, blast: boolean) => void
 
+/** The attached controls: `showWeapon` sets the weapon button's picture (an image URL). */
+export interface TouchControls { detach: () => void; showWeapon: (iconUrl: string) => void }
+
 /**
  * Builds the overlay (#touch, styled in index.html: over the game in landscape, a band below it in
- * portrait; hidden while a menu is open) and reports changes to `onChange`. Each control follows one pointer, so moving and
- * charging work at the same time. Returns a detach function.
+ * portrait; hidden while a menu is open) and reports changes to `onChange`, weapon button taps to
+ * `onNextWeapon`. Each control follows one pointer, so moving and charging work at the same time.
  */
-export function attachTouchControls(parent: HTMLElement, onChange: TouchListener): () => void {
+export function attachTouchControls(parent: HTMLElement, onChange: TouchListener, onNextWeapon: () => void): TouchControls {
   const root = el('div', 'touch')
   const zone = el('div', 'touch-nub-zone')
   const base = el('div', 'touch-nub')
@@ -46,9 +50,12 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
   const button = el('div', 'touch-blast')
   button.setAttribute('role', 'button')
   button.setAttribute('aria-label', 'Energy blast: hold to charge, release to fire')
+  const weapon = el('div', 'touch-weapon')
+  weapon.setAttribute('role', 'button')
+  weapon.setAttribute('aria-label', 'Next weapon')
   base.appendChild(knob)
   zone.appendChild(base)
-  root.append(zone, button)
+  root.append(zone, weapon, button)
   parent.appendChild(root)
 
   let move: Vec = { x: 0, y: 0 }
@@ -108,8 +115,16 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
     report()
   }
 
+  const weaponDown = (e: PointerEvent) => {
+    e.preventDefault()
+    weapon.classList.add('active')
+    onNextWeapon()
+  }
+  const weaponUp = () => weapon.classList.remove('active')
+
   // a lost capture ends the press too: the controls are hidden while a menu is open, even under a finger
   const listeners: [HTMLElement, string, (e: PointerEvent) => void][] = [
+    [weapon, 'pointerdown', weaponDown], [weapon, 'pointerup', weaponUp], [weapon, 'pointercancel', weaponUp],
     [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'pointerup', nubUp],
     [zone, 'pointercancel', nubUp], [zone, 'lostpointercapture', nubUp],
     [button, 'pointerdown', blastDown], [button, 'pointerup', blastUp],
@@ -119,10 +134,18 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
   // a long press would open the context menu or select text instead of charging
   const noMenu = (e: Event) => e.preventDefault()
   root.addEventListener('contextmenu', noMenu)
-  return () => {
-    for (const [target, type, fn] of listeners) target.removeEventListener(type, fn as EventListener)
-    root.removeEventListener('contextmenu', noMenu)
-    root.remove()
+  let shown = ''
+  return {
+    detach: () => {
+      for (const [target, type, fn] of listeners) target.removeEventListener(type, fn as EventListener)
+      root.removeEventListener('contextmenu', noMenu)
+      root.remove()
+    },
+    showWeapon: (iconUrl: string) => {
+      if (iconUrl === shown) return
+      shown = iconUrl
+      weapon.style.backgroundImage = `url("${iconUrl}")`
+    },
   }
 }
 

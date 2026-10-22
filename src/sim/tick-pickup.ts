@@ -4,12 +4,13 @@
 // invincibility of a pickup counts down (modInvince.update).
 import { collisionCheck, rectAt } from '../mr-open/mr-collision'
 import {
-  BONUS_ENERGY, POTION_OBJ_TYPE, TEMP_INVINCE_TICKS, WRITING_FADE_TICKS, collectMedikit, drinkPotion, medikitStep,
+  BONUS_ENERGY, POTION_OBJ_TYPE, SCROLL_OBJ_TYPE, TEMP_INVINCE_TICKS, WRITING_FADE_TICKS, collectMedikit, drinkPotion, medikitStep,
 } from '../mr-open/mr-pickup'
 import { DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { collisionRectFor, defOf, isAlive, isPickup } from './actors'
 import type { ActorState } from './state'
 import { playSound, playerIn, type Tick } from './tick-context'
+import { collectScroll } from './tick-weapons'
 
 /** modInvince.startTempInvince: invincible for TEMP_INVINCE_TICKS from now. */
 export function startTempInvince(t: Tick): void {
@@ -42,13 +43,18 @@ function fadeWriting(t: Tick, a: ActorState): void {
 
 /**
  * objPowerUpWriting.collected (writing, fade, collect sound), then objPotion.collected ->
- * potionCollected or objMedikit.collected -> medikitCollected: temporary invincibility and energy.
+ * potionCollected, objMedikit.collected -> medikitCollected (temporary invincibility and energy),
+ * or objScroll.collected -> newScrollCollected (tick-weapons.ts).
  */
 function collect(t: Tick, a: ActorState, p: ActorState): void {
   const def = defOf(t.s, a)
   a.mode = 'collected'
   a.age = 0
   playSound(t, def.collectSound, DEFAULT_VOLUME)
+  if (def.objType === SCROLL_OBJ_TYPE) {
+    collectScroll(t, p, def)
+    return
+  }
   if (def.vanishOnCollect) t.removed.add(a.id)
   startTempInvince(t)
   const maxEnergy = defOf(t.s, p).maxEnergy

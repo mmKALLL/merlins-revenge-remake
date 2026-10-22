@@ -1,0 +1,101 @@
+[#name: "act_summonBoulder", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPU,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animframe: 19,
+#animType: #naturalRanged,
+#bullet: #boulder,
+#collisionLoc: point(0,0),
+#cooldown: 0,
+#firingType: #fullstrength,
+#name: #throwBoulder,
+#reach: 220,
+#sound: "boulder_fire"
+],
+#damageSpeed: 1,
+#miniMapStatus: #clr,
+#dexterity: 10,
+#dieSound: "boulder_die",
+#reelProof: true,
+#collisionDetection: false,
+#energy: 400,
+#experienceImWorth: 50,
+#eyestrain: 25,
+#frictionReel: point(40,40),
+#inertia: 50,
+#startingLevel: 0,
+#strength: 12,
+#team: #monsterSummon,
+#name: "boulderMonster",
+#walkSpeed: 3,
+#weaponTechnique: 4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
