@@ -3,14 +3,26 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
-import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
+import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
-import { THEMES, type UnitGroup } from './themes'
+import { THEMES, flippedPlan, type DrawSpec, type FloorTheme, type RoomPlanCell, type TierDraw, type UnitGroup } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 7919 + 1)
 const sameRoom = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y
+
+/** Every room of a theme's floor with its plan cell, and which half of the floor it is in (across the start-exit diagonal). */
+const planRooms = (theme: FloorTheme) => theme.units.roomPlan.flatMap((row, r) => row.map((cell, c) => ({
+  room: { x: c + 1, y: r + 1 },
+  cell,
+  half: r + c < row.length - 1 ? 'topLeft' : r + c > row.length - 1 ? 'bottomRight' : 'diagonal',
+})))
+/** Where each theme's generators gather (the owner's plan, flipped for the marsh and the maze). */
+const GENERATOR_HALF: Record<string, 'topLeft' | 'bottomRight'> = {
+  'goblin-forest': 'topLeft', 'undead-marsh': 'bottomRight', 'dragon-canyon': 'topLeft', 'magic-maze': 'bottomRight',
+}
+const drawsOf = (spec: DrawSpec | undefined): TierDraw[] => (spec === undefined ? [] : Array.isArray(spec) ? spec.map((o) => o.value) : [spec])
 
 describe.each(THEMES)('random floor: $name', (theme) => {
   const active = key(theme.tileSets.backgroundActive)
@@ -21,6 +33,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   const roomOf = (f: GeneratedFloor, room: Vec) => f.map.rooms[(room.y - 1) * size.x + room.x - 1]!
   const activeAt = (f: GeneratedFloor, room: Vec, x: number, y: number): number => roomOf(f, room).layers.backgroundActive![y]![x]!
   const rewards = theme.units.startRewards
+  const groupRooms = planRooms(theme).filter(({ cell }) => cell.groups).map(({ room, cell }): [Vec, UnitGroup[]] => [room, cell.groups!])
   const rewardKeys = new Set(['medikit', ...rewards.potions.map((p) => p.value), ...rewards.spellScrolls.map((s) => s.value), ...rewards.extras])
 
   it('is the same map for the same seed', () => {
@@ -99,9 +112,9 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   it('puts a corner group into each special corner room, and a boss group into the exit room', () => {
     const f = floors.get(SEEDS[0]!)!
     const keysIn = (room: Vec) => new Set(f.placements.filter((p) => sameRoom(p.room, room)).map((p) => p.key))
-    for (const special of theme.units.specialRooms) {
-      const keys = keysIn(cornerRoom(size, special.corner))
-      expect(special.groups.some((g) => Object.keys(g.units).every((k) => keys.has(k))), special.corner).toBe(true)
+    for (const [room, groups] of groupRooms) {
+      const keys = keysIn(room)
+      expect(groups.some((g) => Object.keys(g.units).every((k) => keys.has(k))), roomKey(room)).toBe(true)
     }
     const exit = exitRoom(size)
     const keys = keysIn(exit)
@@ -113,7 +126,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     const u = theme.units
     const potionKeys = new Set(u.potions.map((p) => p.value))
     const music = new Set([u.startMusic, u.exitMusic])
-    const rooms: [Vec, UnitGroup[]][] = [...u.specialRooms.map((s): [Vec, UnitGroup[]] => [cornerRoom(size, s.corner), s.groups]), [exitRoom(size), u.bosses]]
+    const rooms: [Vec, UnitGroup[]][] = [...groupRooms, [exitRoom(size), u.bosses]]
     const countsOf = (keys: string[]) => {
       const counts = new Map<string, number>()
       for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1)
@@ -129,6 +142,50 @@ describe.each(THEMES)('random floor: $name', (theme) => {
         expect(alone || accompanied, `${roomKey(room)}: ${units.join(' ')}`).toBe(true)
       }
     }
+  })
+
+  describe('room plan', () => {
+    const u = theme.units
+    const planned: FloorTheme = { ...theme, units: { ...u, wildcardChance: 0 } }
+    const planFloors = SEEDS.slice(0, 200).map((s) => generateFloor(planned, s))
+    const tierOf = new Map([...u.enemies, ...u.dwellings].map((c) => [c.key, c.tier]))
+    const producerKeys = new Set([...u.dwellings, ...u.enemies.filter((c) => c.producer)].map((c) => c.key))
+    const unitsIn = (f: GeneratedFloor, room: Vec) => f.placements.filter((p) => sameRoom(p.room, room) && tierOf.has(p.key)).map((p) => p.key)
+
+    it('has one midboss corner, and at least two groups in each side corner', () => {
+      expect(planRooms(theme).filter(({ cell }) => cell.kind === 'midboss')).toHaveLength(1)
+      for (const corner of ['farX', 'farY'] as const) expect(planCell(u.roomPlan, cornerRoom(size, corner)).groups?.length, corner).toBeGreaterThanOrEqual(2)
+    })
+
+    it("draws each room without groups within its cell's counts and tiers", () => {
+      const plain = planRooms(theme).filter(({ cell }) => cell.kind === 'normal' && !cell.groups)
+      const check = (cell: RoomPlanCell, units: string[], spec: DrawSpec | undefined, label: string) => {
+        const draws = drawsOf(spec)
+        const tiers = new Set(draws.flatMap((d) => Object.keys(d.tiers)))
+        expect(units.length, label).toBeLessThanOrEqual(Math.max(0, ...draws.map((d) => d.count[1])))
+        for (const k of units) expect(tiers.has(tierOf.get(k)!), `${label}: ${k}`).toBe(true)
+        const least = draws.length > 0 ? Math.min(...draws.map((d) => d.count[0])) : 0
+        return units.length >= least
+      }
+      for (const { room, cell } of plain) {
+        let filled = 0
+        for (const f of planFloors) {
+          const units = unitsIn(f, room)
+          const producersOk = check(cell, units.filter((k) => producerKeys.has(k)), cell.producers, `${roomKey(room)} producers`)
+          const regularsOk = check(cell, units.filter((k) => !producerKeys.has(k)), cell.regulars, `${roomKey(room)} regulars`)
+          if (producersOk && regularsOk) filled++
+        }
+        // draws can fall short (faction, maxPerRoom, free tiles), but not usually
+        expect(filled, roomKey(room)).toBeGreaterThan(planFloors.length / 2)
+      }
+    })
+
+    it('keeps generators out of the regular-enemy half: at most one per room there', () => {
+      const regularHalf = GENERATOR_HALF[theme.id] === 'topLeft' ? 'bottomRight' : 'topLeft'
+      for (const { room } of planRooms(theme).filter((r) => r.half === regularHalf)) {
+        for (const f of planFloors) expect(unitsIn(f, room).filter((k) => producerKeys.has(k)).length, roomKey(room)).toBeLessThanOrEqual(1)
+      }
+    })
   })
 
   it('puts two potions near the outer corner of each side corner room, and none elsewhere', () => {
@@ -190,8 +247,17 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     for (const [symbol, index] of Object.entries(theme.objectTiles)) expect(objects.symbols[index - 1]).toBe(symbol)
     const u = theme.units
     const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
-      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
+      ...[...groupRooms.flatMap(([, groups]) => groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
+  })
+})
+
+describe('room plans', () => {
+  it('flips across the start-exit diagonal, swapping the far corners and leaving the diagonal', () => {
+    const cell = (label: string): RoomPlanCell => ({ kind: 'normal', groups: [{ label, units: {} }] })
+    const labels = (plan: readonly (readonly RoomPlanCell[])[]) => plan.map((row) => row.map((c) => c.groups![0]!.label).join(''))
+    const plan = ['abc', 'def', 'ghi'].map((row) => [...row].map(cell))
+    expect(labels(flippedPlan(plan))).toEqual(['ifc', 'heb', 'gda'])
   })
 })
 

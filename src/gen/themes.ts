@@ -1,7 +1,7 @@
 // Floor themes for the random floor generator (docs/plans/2026-09-28-random-floor-design.md),
 // after the four floors of docs/design/the-sorcerers-tower.md. A theme is data only: floor size,
-// tiles per role, room shape tuning (including which interior wall styles it uses), and enemy
-// tables. Tile numbers are 1-based indices into the theme's tilesets; floor.test.ts checks them
+// tiles per role, room shape tuning (including which interior wall styles it uses), enemy
+// tables with tiers, and the room plan (what each room of the floor holds). Tile numbers are 1-based indices into the theme's tilesets; floor.test.ts checks them
 // against the tile keys.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
@@ -88,14 +88,14 @@ export interface EdgeTuning {
   openingDepth: number
 }
 
+/** How hard a choice is within its theme: the room plan asks for tiers, not for units. */
+export type Tier = 'weak' | 'mid' | 'strong'
+export const TIERS: readonly Tier[] = ['weak', 'mid', 'strong']
+
 export interface EnemyChoice {
   key: string
   weight: number
-  /** extra weight in the far column (toward the exit along x) and the far row (along y), ramped */
-  weightFarX?: number
-  weightFarY?: number
-  /** only from this difficulty on */
-  minDifficulty?: number
+  tier: Tier
   maxPerRoom?: number
   /** summons units (its weapon is a summon spell), so it counts as a producer like a dwelling */
   producer?: boolean
@@ -120,47 +120,50 @@ export interface UnitGroup {
   alone?: boolean
 }
 
-/** A side corner room with one of its groups (picked at random) on top of the usual enemies (unless `alone`). */
-export interface SpecialRoom {
-  corner: Exclude<Corner, 'exit'>
-  groups: UnitGroup[]
-}
-
 /** An exit room group; its `boss` unit stands two tiles in from the floor's far corner. */
 export interface BossGroup extends UnitGroup {
   boss: string
 }
 
-/** An amount ramping over x progress (0 at the start column, 1 at the far one): floor(base + farX * x + a random 0..1). */
-export interface Amount {
-  base: number
-  farX: number
+/** Units of one kind for a room: a count drawn uniformly from `[lo, hi]`, each unit's tier by weight. */
+export interface TierDraw {
+  count: readonly [number, number]
+  tiers: Partial<Record<Tier, number>>
 }
 
+/** One draw, or alternatives of which the room takes one by weight. */
+export type DrawSpec = TierDraw | Weighted<TierDraw>[]
+
 /**
- * How a room brings its numbers (quantity, over x): a swarm of single regular enemies, or a few
- * producers (dwellings and summoners) with a few regular enemies alongside. The exit room has both.
+ * One room of the plan. `start` is the start room (no enemies), `boss` the exit room (one of the
+ * theme's bosses), `midboss` a side corner led by a powerful group. Any cell but the start can
+ * hold fixed `groups` (one picked at random, on top of the counts unless it is `alone`) and draws
+ * `producers` (dwellings and summoners) and `regulars` (the other enemies) by tier.
  */
-export interface QuantityTuning {
-  swarmWeight: number
-  producerWeight: number
-  swarm: Amount
-  producers: Amount
-  /** regular enemies alongside the producers */
-  escorts: readonly [number, number]
+export interface RoomPlanCell {
+  kind: 'start' | 'boss' | 'midboss' | 'normal'
+  groups?: UnitGroup[]
+  producers?: DrawSpec
+  regulars?: DrawSpec
 }
+
+/** The floor's rooms as on screen: the first row is the far row (engine y 1), the start bottom-left, the exit top-right. */
+export type RoomPlan = readonly (readonly RoomPlanCell[])[]
 
 export interface UnitTuning {
   player: string
   startMusic: string
   exitMusic: string
-  /** quality: the difficulty in the start row and the far row, ramping over y progress in between */
-  difficulty: readonly [number, number]
-  quantity: QuantityTuning
+  /** what each room holds */
+  roomPlan: RoomPlan
+  /**
+   * Chance per normal room of drawing another normal cell's producers and regulars instead of its
+   * own (it keeps its own groups), for variance; never the start, midboss or boss room.
+   */
+  wildcardChance: number
   /** regular enemies and summoners (`producer`) */
   enemies: EnemyChoice[]
   dwellings: EnemyChoice[]
-  specialRooms: SpecialRoom[]
   /** the exit room picks one */
   bosses: BossGroup[]
   /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) */
@@ -206,6 +209,41 @@ export interface FloorTheme {
 export const DEFAULT_FLOOR_SIZE: Vec = { x: 3, y: 3 }
 
 const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
+
+// ---- room plans ----
+
+/** Owner: about one normal room in ten ignores its cell (UnitTuning.wildcardChance). */
+const WILDCARD_CHANCE = 0.1
+
+/** Tier weights for a draw; a tier the room's faction lacks is skipped, so mixes fall back. */
+type TierWeights = Partial<Record<Tier, number>>
+const WEAK: TierWeights = { weak: 1 }
+const WEAK_MID: TierWeights = { weak: 2, mid: 1 }
+const STRONG_MID: TierWeights = { strong: 2, mid: 1 }
+const MOSTLY_STRONG: TierWeights = { strong: 3, mid: 1 }
+
+/** lo..hi units of these tiers. */
+const n = (lo: number, hi: number, tiers: TierWeights): TierDraw => ({ count: [lo, hi], tiers })
+/** One of these draws, by weight. */
+const either = (...options: [TierDraw, number][]): Weighted<TierDraw>[] => options.map(([draw, weight]) => w(draw, weight))
+/** The owner's centre room: a few weak producers, or a single strong one. */
+const FEW_WEAK_OR_ONE_STRONG = either([n(2, 3, WEAK), 2], [n(1, 1, MOSTLY_STRONG), 1])
+
+type CellFill = Omit<RoomPlanCell, 'kind'>
+const START: RoomPlanCell = { kind: 'start' }
+const normal = (fill: CellFill): RoomPlanCell => ({ kind: 'normal', ...fill })
+const midboss = (groups: UnitGroup[], fill: CellFill = {}): RoomPlanCell => ({ kind: 'midboss', groups, ...fill })
+const boss = (fill: CellFill): RoomPlanCell => ({ kind: 'boss', ...fill })
+
+/**
+ * The plan reflected across the start-exit diagonal: the top-left half swaps with the bottom-right
+ * half, so the farY corner's room goes to farX and the other way round.
+ */
+export function flippedPlan(plan: RoomPlan): RoomPlan {
+  const last = plan.length - 1
+  if (plan.some((row) => row.length !== plan.length)) throw new Error('only a square room plan can be flipped')
+  return plan.map((row, r) => row.map((_, c) => plan[last - c]![last - r]!))
+}
 
 // ---- floor-start rewards ----
 
@@ -314,6 +352,37 @@ const BUTTERCUP = 73
 const GRASS = 12
 const GRASS_FLOWERS = 14
 
+/**
+ * The owner's plan: generators toward the top-left (farY), regular enemies toward the bottom-right
+ * (farX), where there are no generators; the centre balances the two with stronger enemies.
+ */
+const GOBLIN_FOREST_PLAN: RoomPlan = [
+  [
+    midboss([
+      { label: 'orc hole', units: { orcHouse: 1, bowOrc: 1 } },
+      { label: 'orc shamans', units: { mageOrc: 2 } },
+    ], { regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
+  ],
+  [
+    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
+    normal({ regulars: n(4, 5, STRONG_MID) }),
+  ],
+  [
+    START,
+    normal({ regulars: n(2, 3, WEAK) }),
+    normal({
+      groups: [
+        { label: 'goblin warrior band', units: { goblinWarrior: 4 } },
+        { label: 'archers and bats', units: { goblinArcher: 3, bat: 2 } },
+      ],
+      regulars: n(1, 3, WEAK),
+    }),
+  ],
+]
+
 export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'Goblin Forest',
@@ -346,29 +415,23 @@ export const GOBLIN_FOREST: FloorTheme = {
     player: 'player',
     startMusic: 'musicWoodsOfEvil',
     exitMusic: 'musicLastStand',
-    difficulty: [0, 3],
-    quantity: {
-      swarmWeight: 2,
-      producerWeight: 1,
-      swarm: { base: 2, farX: 3.6 },
-      producers: { base: 1, farX: 1.5 },
-      escorts: [0, 2],
-    },
+    roomPlan: GOBLIN_FOREST_PLAN,
+    wildcardChance: WILDCARD_CHANCE,
     enemies: [
-      { key: 'goblinArcher', weight: 6 },
-      { key: 'goblinWarrior', weight: 1.5 },
-      { key: 'bat', weight: 1, minDifficulty: 1, maxPerRoom: 2 },
-      { key: 'goblinMage', weight: 1.5, minDifficulty: 1.5, maxPerRoom: 2 },
-      { key: 'swordOrc', weight: 1, minDifficulty: 2.5, maxPerRoom: 1 },
-      { key: 'bowOrc', weight: 0.7, minDifficulty: 2.5, maxPerRoom: 1 },
-      { key: 'mageOrc', weight: 0.5, minDifficulty: 2.9, maxPerRoom: 1, producer: true },
+      { key: 'goblinArcher', weight: 6, tier: 'weak' },
+      { key: 'goblinWarrior', weight: 1.5, tier: 'weak' },
+      { key: 'bat', weight: 1, tier: 'weak', maxPerRoom: 2 },
+      { key: 'goblinMage', weight: 1, tier: 'mid', maxPerRoom: 2 },
+      { key: 'swordOrc', weight: 1, tier: 'strong', maxPerRoom: 2 },
+      { key: 'bowOrc', weight: 0.7, tier: 'strong', maxPerRoom: 2 },
+      { key: 'mageOrc', weight: 1, tier: 'strong', maxPerRoom: 1, producer: true },
     ],
     dwellings: [
-      { key: 'goblinHut', weight: 4 },
-      { key: 'batTree', weight: 0.6, minDifficulty: 1.5, maxPerRoom: 1 },
-      { key: 'goblinMageHut', weight: 1, minDifficulty: 2, maxPerRoom: 1 },
+      { key: 'goblinHut', weight: 1, tier: 'weak' },
+      { key: 'goblinMageHut', weight: 1, tier: 'mid', maxPerRoom: 1 },
+      { key: 'batTree', weight: 0.6, tier: 'mid', maxPerRoom: 1 },
+      { key: 'orcHouse', weight: 1, tier: 'strong', maxPerRoom: 1 },
     ],
-    specialRooms: [{ corner: 'farX', groups: [{ label: 'goblin warrior band', units: { goblinWarrior: 4 } }] }],
     bosses: [
       { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
@@ -493,6 +556,38 @@ const MUD = 2
 const MUD_STONES = 9
 const BLUE_COBBLES = 35
 
+/**
+ * The forest's plan flipped: written in the forest's orientation, so after the flip the generators
+ * and the midboss sit toward the bottom-right (farX) and the regular-enemy rooms toward the top-left.
+ * Owner: necromancers are midboss/boss tier here, so they only come in fixed groups.
+ */
+const UNDEAD_MARSH_PLAN: RoomPlan = flippedPlan([
+  [
+    midboss([
+      { label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true },
+      { label: 'haunted crypt', units: { skeletonDwelling: 1, greyGhost: 2 }, faction: 'undead' },
+    ], { regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
+  ],
+  [
+    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
+    normal({ regulars: n(4, 5, STRONG_MID) }),
+  ],
+  [
+    START,
+    normal({ regulars: n(2, 3, WEAK) }),
+    normal({
+      groups: [
+        { label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' },
+        { label: 'skeleton patrol', units: { skeletonWarrior: 3, skeletonThrower: 1 }, faction: 'undead' },
+      ],
+      regulars: n(1, 3, WEAK),
+    }),
+  ],
+])
+
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Undead Marsh',
@@ -526,34 +621,23 @@ export const UNDEAD_MARSH: FloorTheme = {
     player: 'player',
     startMusic: 'musicBaroqueRock',
     exitMusic: 'musicLastStand',
-    difficulty: [1, 5],
-    quantity: {
-      swarmWeight: 1.2,
-      producerWeight: 1,
-      swarm: { base: 2, farX: 3 },
-      producers: { base: 1, farX: 1.5 },
-      escorts: [0, 2],
-    },
+    roomPlan: UNDEAD_MARSH_PLAN,
+    wildcardChance: WILDCARD_CHANCE,
     enemies: [
-      { key: 'skeletonWarrior', weight: 6, faction: 'undead' },
-      { key: 'skeletonThrower', weight: 2, minDifficulty: 1.5, faction: 'undead' },
-      { key: 'skeletonArcher', weight: 2, minDifficulty: 2, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, minDifficulty: 3, maxPerRoom: 1, faction: 'undead', producer: true },
-      { key: 'skeletonComando', weight: 1, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead' },
-      { key: 'skeletonGiant', weight: 0.8, minDifficulty: 4, maxPerRoom: 1, faction: 'undead' },
+      { key: 'skeletonWarrior', weight: 6, tier: 'weak', faction: 'undead' },
+      { key: 'skeletonThrower', weight: 2, tier: 'weak', faction: 'undead' },
+      { key: 'skeletonArcher', weight: 2, tier: 'mid', faction: 'undead' },
+      { key: 'greyGhost', weight: 1, tier: 'mid', maxPerRoom: 1, faction: 'undead', producer: true },
+      { key: 'skeletonComando', weight: 1, tier: 'mid', maxPerRoom: 2, faction: 'undead' },
+      { key: 'skeletonGiant', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'undead' },
       // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own
-      { key: 'quadranid', weight: 4, faction: 'critters' },
-      { key: 'bat', weight: 1.5, maxPerRoom: 2 },
+      { key: 'quadranid', weight: 4, tier: 'weak', faction: 'critters' },
+      { key: 'bat', weight: 1.5, tier: 'weak', maxPerRoom: 2 },
     ],
     dwellings: [
-      { key: 'skeletonDwelling', weight: 3, faction: 'undead' },
-      { key: 'cocoon', weight: 2, maxPerRoom: 1, faction: 'critters' },
-      { key: 'batTree', weight: 1, minDifficulty: 2, maxPerRoom: 1 },
-    ],
-    specialRooms: [
-      // owner: necromancers are midboss/boss tier here, so they only come in these fixed groups
-      { corner: 'farY', groups: [{ label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true }] },
-      { corner: 'farX', groups: [{ label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' }] },
+      { key: 'skeletonDwelling', weight: 3, tier: 'weak', faction: 'undead' },
+      { key: 'cocoon', weight: 2, tier: 'weak', maxPerRoom: 2, faction: 'critters' },
+      { key: 'batTree', weight: 1, tier: 'mid', maxPerRoom: 1 },
     ],
     bosses: [
       { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
@@ -564,6 +648,37 @@ export const UNDEAD_MARSH: FloorTheme = {
     startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)]),
   },
 }
+
+/**
+ * The forest's orientation: the sketch's golem quarry (a boulder cave, a producer) already led the
+ * farY corner, so it stays the generator midboss there.
+ */
+const DRAGON_CANYON_PLAN: RoomPlan = [
+  [
+    midboss([
+      { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } },
+      { label: 'dark cave', units: { darkCave: 1, darkGolem: 1 } },
+    ], { regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
+  ],
+  [
+    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
+    normal({ regulars: n(4, 5, STRONG_MID) }),
+  ],
+  [
+    START,
+    normal({ regulars: n(2, 3, WEAK) }),
+    normal({
+      groups: [
+        { label: 'dojo class', units: { karateGuy: 3, kongFuChicken: 2 } },
+        { label: 'lizard pack', units: { lizard: 4 } },
+      ],
+      regulars: n(1, 3, WEAK),
+    }),
+  ],
+]
 
 export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
@@ -599,34 +714,24 @@ export const DRAGON_CANYON: FloorTheme = {
     player: 'player',
     startMusic: 'musicBaroqueRockTechno',
     exitMusic: 'musicLastStand',
-    difficulty: [3, 6],
-    quantity: {
-      swarmWeight: 2,
-      producerWeight: 1,
-      swarm: { base: 2, farX: 2.5 },
-      producers: { base: 1, farX: 1.5 },
-      escorts: [1, 2],
-    },
-    // martial artists everywhere, golems more along y, dragons more along x (the sketch)
+    roomPlan: DRAGON_CANYON_PLAN,
+    wildcardChance: WILDCARD_CHANCE,
+    // martial artists as the weak ones; dragons, hydras and dark golems as the strong ones
     enemies: [
-      { key: 'karateGuy', weight: 4 },
-      { key: 'kongFuChicken', weight: 2 },
-      { key: 'lizard', weight: 2 },
-      { key: 'plant', weight: 1.2, maxPerRoom: 2 },
-      { key: 'boulderMonster', weight: 0.5, weightFarY: 3, maxPerRoom: 2 },
-      { key: 'lizardSoldier', weight: 1, minDifficulty: 4 },
-      { key: 'hydra1', weight: 0.8, minDifficulty: 4.5, maxPerRoom: 1 },
-      { key: 'dragon', weight: 0.3, weightFarX: 2.5, minDifficulty: 4, maxPerRoom: 2 },
-      { key: 'darkGolem', weight: 0, weightFarY: 1.2, minDifficulty: 5, maxPerRoom: 1 },
+      { key: 'karateGuy', weight: 4, tier: 'weak' },
+      { key: 'kongFuChicken', weight: 2, tier: 'weak' },
+      { key: 'lizard', weight: 2, tier: 'weak' },
+      { key: 'plant', weight: 1.2, tier: 'mid', maxPerRoom: 2 },
+      { key: 'boulderMonster', weight: 1.5, tier: 'mid', maxPerRoom: 2 },
+      { key: 'lizardSoldier', weight: 1, tier: 'mid' },
+      { key: 'hydra1', weight: 0.8, tier: 'strong', maxPerRoom: 1 },
+      { key: 'dragon', weight: 1.5, tier: 'strong', maxPerRoom: 2 },
+      { key: 'darkGolem', weight: 0.8, tier: 'strong', maxPerRoom: 1 },
     ],
     dwellings: [
-      { key: 'dojo', weight: 3, maxPerRoom: 1 },
-      { key: 'boulderCave', weight: 0.5, weightFarY: 2.5, minDifficulty: 4, maxPerRoom: 1 },
-      { key: 'darkCave', weight: 0, weightFarY: 1, minDifficulty: 5.5, maxPerRoom: 1 },
-    ],
-    specialRooms: [
-      { corner: 'farY', groups: [{ label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } }] },
-      { corner: 'farX', groups: [{ label: 'dragon roost', units: { dragon: 2 } }] },
+      { key: 'dojo', weight: 3, tier: 'weak' },
+      { key: 'boulderCave', weight: 1, tier: 'mid', maxPerRoom: 1 },
+      { key: 'darkCave', weight: 1, tier: 'strong', maxPerRoom: 1 },
     ],
     bosses: [
       { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 }, boss: 'fourArmGolem' },
@@ -637,6 +742,34 @@ export const DRAGON_CANYON: FloorTheme = {
     startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
   },
 }
+
+/** The forest's plan flipped, as the marsh's: generators and the midboss toward the bottom-right (farX). */
+const MAGIC_MAZE_PLAN: RoomPlan = flippedPlan([
+  [
+    midboss([
+      { label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' },
+      { label: 'Scarlet chapel', units: { scMonk: 2, scWarrior: 1 }, faction: 'scarlet' },
+    ], { regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
+  ],
+  [
+    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG) }),
+    normal({ regulars: n(4, 5, STRONG_MID) }),
+  ],
+  [
+    START,
+    normal({ regulars: n(2, 3, WEAK) }),
+    normal({
+      groups: [
+        { label: 'alliance squad', units: { bombMage: 2, thunderMonk: 2 }, faction: 'alliance' },
+        { label: 'Scarlet patrol', units: { scWarrior: 2, scArcher: 2 }, faction: 'scarlet' },
+      ],
+      regulars: n(1, 3, WEAK),
+    }),
+  ],
+])
 
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
@@ -671,37 +804,27 @@ export const MAGIC_MAZE: FloorTheme = {
     player: 'player',
     startMusic: 'musicElectronicMerlin',
     exitMusic: 'musicLastStand',
-    difficulty: [5, 7],
-    quantity: {
-      swarmWeight: 1,
-      producerWeight: 1,
-      swarm: { base: 2, farX: 2 },
-      producers: { base: 1, farX: 1.2 },
-      escorts: [0, 2],
-    },
+    roomPlan: MAGIC_MAZE_PLAN,
+    wildcardChance: WILDCARD_CHANCE,
     // MR3's wizards are not ported: the magical alliance, the undead casters and Scarlet's army
     // (the chromatic sorcerers' troops) stand in, each faction in rooms of its own
     enemies: [
-      { key: 'bombMage', weight: 3, faction: 'alliance' },
-      { key: 'thunderMonk', weight: 3, faction: 'alliance' },
-      { key: 'shrouder', weight: 2, minDifficulty: 5.5, faction: 'alliance' },
-      { key: 'necromancer', weight: 2, maxPerRoom: 2, faction: 'undead', producer: true },
-      { key: 'darkMage', weight: 2, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, maxPerRoom: 1, faction: 'undead', producer: true },
-      { key: 'scWarrior', weight: 2, faction: 'scarlet' },
-      { key: 'scArcher', weight: 2, faction: 'scarlet' },
-      { key: 'scMonk', weight: 1, minDifficulty: 6, maxPerRoom: 1, faction: 'scarlet', producer: true },
+      { key: 'bombMage', weight: 3, tier: 'weak', faction: 'alliance' },
+      { key: 'thunderMonk', weight: 3, tier: 'weak', faction: 'alliance' },
+      { key: 'shrouder', weight: 2, tier: 'mid', faction: 'alliance' },
+      { key: 'necromancer', weight: 2, tier: 'strong', maxPerRoom: 2, faction: 'undead', producer: true },
+      { key: 'darkMage', weight: 2, tier: 'mid', faction: 'undead' },
+      { key: 'greyGhost', weight: 1, tier: 'weak', maxPerRoom: 1, faction: 'undead', producer: true },
+      { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
+      { key: 'scArcher', weight: 2, tier: 'weak', faction: 'scarlet' },
+      { key: 'scMonk', weight: 1, tier: 'mid', maxPerRoom: 1, faction: 'scarlet', producer: true },
       // giant orcs and vultures are monsters, who brawl with all of the above
-      { key: 'blackOrc', weight: 1.5, minDifficulty: 6, maxPerRoom: 2, faction: 'monsters' },
-      { key: 'vultureGuard', weight: 1, minDifficulty: 5.5, maxPerRoom: 1, faction: 'monsters' },
+      { key: 'blackOrc', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },
+      { key: 'vultureGuard', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },
     ],
     dwellings: [
-      { key: 'magicPortal', weight: 2, maxPerRoom: 1, faction: 'alliance' },
-      { key: 'skeletonDwelling', weight: 1, maxPerRoom: 1, faction: 'undead' },
-    ],
-    specialRooms: [
-      { corner: 'farY', groups: [{ label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' }] },
-      { corner: 'farX', groups: [{ label: 'portal ward', units: { magicPortal: 1, shrouder: 1, thunderMonk: 1 }, faction: 'alliance' }] },
+      { key: 'magicPortal', weight: 2, tier: 'weak', faction: 'alliance' },
+      { key: 'skeletonDwelling', weight: 1, tier: 'weak', faction: 'undead' },
     ],
     // the Black Sorcerer is not in the engine's data: his stand-ins hold the exit
     bosses: [

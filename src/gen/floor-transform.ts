@@ -1,6 +1,6 @@
 // Moving a generated floor into a bigger map, optionally mirrored in x, so the tower can be built
 // from ordinary floors (docs/plans/2026-09-28-random-floor-design.md, The tower). Mirroring moves
-// every room, tile, opening and unit, so the floor's corner roles and ramps mirror with it.
+// every room, tile, opening and unit, so the floor's corner roles and room plan mirror with it.
 import type { Vec } from '../mr-open/mr-geometry'
 import { roomNumToXY, roomXYToNum, type LayerName, type RoomDefinition, type TileGrid } from '../mr-open/mr-map-format'
 import { ROOM_SIZE, roomKey, type GeneratedFloor } from './floor'

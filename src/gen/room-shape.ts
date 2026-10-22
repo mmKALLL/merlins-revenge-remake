@@ -176,13 +176,16 @@ function addLongWall(rng: GenRandom, g: Grid, edges: RoomEdges, t: RoomShapeTuni
   }
 }
 
-/** The middle tile of each opening on its edge line. */
+/**
+ * The tile just inside the middle of each opening: a corridor from the edge line itself would run
+ * along that line's walls (which carving keeps) and miss the room.
+ */
 function openingMiddles(edges: RoomEdges, size: Vec): Vec[] {
   return EDGE_LIST.flatMap((edge) => {
     const o = edges[edge]
     if (!o) return []
     const mid = Math.floor((o.from + o.to) / 2)
-    return openingTiles(edge, { from: mid, to: mid }, size, 1)
+    return openingTiles(edge, { from: mid, to: mid }, size, 2).slice(1)
   })
 }
 

@@ -23,16 +23,15 @@ rooms (the sketch has 4x4).
   `floor.ts` (edges, rooms, units), `room-shape.ts` (patches, retries, carving), `interior-walls.ts`
   (one small strategy per wall style), `themes.ts` (all theme data). A theme is data: floor size,
   tilesets, tiles per role, patch materials, which wall styles it uses and their parameters, enemy
-  weights, counts, factions, corner groups and difficulty ramps.
+  weights and tiers, factions, bosses and the room plan.
 
 ## Coordinates
 
 Engine rooms are (x, y) with y down. The sketch counts y up from the start, so the start is the
 bottom-left room and the exit the top-right one (the map's `endRoom`; clearing it completes the
 map). Corner rooms are named as in the sketch: `farX` is its "4,1" (the other bottom corner, engine
-(3,3) on 3x3), `farY` its "1,4" (the other top corner, engine (1,1)). Progress is measured as the
-share of the floor crossed, `fx = px / (width - 1)` and `fy = py / (height - 1)` (0 at the start
-column/row, 1 at the far one), so the sketch's ramps read the same on any floor size.
+(3,3) on 3x3), `farY` its "1,4" (the other top corner, engine (1,1)). Room plans are written as
+on screen, so their first row is engine y 1.
 
 ## Edges (connectivity by construction)
 
@@ -61,7 +60,7 @@ column/row, 1 at the far one), so the sketch's ramps read the same on any floor 
 3. Stumps as single solid tiles; walkable decoration (flowers, pebbles, puddles, coins).
 4. Flood fill from one opening: every other opening must be reached and enough of the room must be
    open, else retry the room (bounded); after the last try, carve straight corridors from every
-   opening (and the exit room's boss tile) to the centre. Unreachable open pockets are filled in, so nothing spawns where the player
+   opening (from its middle tile just inside the room, not along the walled edge line) and the exit room's boss tile to the centre. Unreachable open pockets are filled in, so nothing spawns where the player
    cannot go.
 5. Obstacle patches are labelled; each picks a material, each tile a variant.
 
@@ -72,27 +71,35 @@ disconnected map. Generation takes 1-7 ms per floor.
 ## Units
 
 - Start room: the player (plus the theme's music tile) and the start rewards below, no enemies.
-- **Quality over y, quantity over x** (owner rule). Difficulty ramps over the y share only, from the
-  theme's start value in the start row to its exit value in the far row, and gates the stronger
-  choices (`minDifficulty`, `maxPerRoom`). Choices can also gain weight toward the far column or row
-  (`weightFarX`, `weightFarY`: the canyon's dragons along x, golems along y).
-- **Room forms.** Every other room takes one of two forms by the theme's `quantity` weights: a
-  **swarm** of single regular enemies, `floor(swarm.base + swarm.farX * fx + random 0..1)`, with no
-  producers; or **producers**, `floor(producers.base + producers.farX * fx + random 0..1)` dwellings
-  and summoners (1 near the start column up to 2-3 in the far one) with only `escorts` regular enemies
-  alongside. Summoners are enemy choices tagged `producer` (their weapon is a summon spell in the
+- **Room plans** (owner request, 2026-10-22; replaces the difficulty ramp over y, the quantity
+  forms over x, `minDifficulty` and `weightFarX`/`weightFarY`). Each theme has a `units.roomPlan`:
+  a grid of cells laid out as on screen (first row = engine y 1, start bottom-left, exit top-right).
+  A cell is `start`, `boss` (the exit room: one of the theme's `bosses`), `midboss` (a side corner
+  led by a powerful group) or `normal`. Any cell but the start can carry `groups` (one picked at
+  random; on top of the cell's counts unless the group is `alone`) and two draws: `producers`
+  (dwellings and summoners) and `regulars` (the other enemies), each `{ count: [lo, hi], tiers }`
+  with the count drawn uniformly and each unit's tier by the tier weights (a tier the room cannot
+  take, by faction or `maxPerRoom`, is skipped), then the choice by its weight within the tier. A
+  draw can also be a weighted list of alternatives (the centre's "2-3 weak producers or 1 strong
+  one"). `checkRoomPlan` throws unless the plan matches the floor size with the start, boss and
+  midboss cells where they belong.
+- **Tiers.** Every enemy and dwelling choice is `weak`, `mid` or `strong` within its theme (lists
+  below). Summoners are enemy choices tagged `producer` (their weapon is a summon spell in the
   actor data: necromancer, grey ghost, orc mage, Scarlet monk; the shrouder and dark mage do not
-  summon). A room whose faction has no producer (the maze's monsters, Scarlet below difficulty 6) is
-  a swarm. The side corner groups come on top of the form.
-- **Boss.** The exit room has both forms (swarm and producers) plus one of the theme's `bosses`
-  groups; the group's `boss` unit stands 2 tiles in from the floor's far corner (the exit room's
-  outer corner tile, `BOSS_TILE`), which the room layout keeps open and connected to its openings.
+  summon).
+- **Wildcards** (owner: keep some variance). With `units.wildcardChance` (0.1 on every theme) a
+  normal room draws another normal cell's producers and regulars (picked at random) instead of its
+  own; it keeps its own groups. Never the start, midboss or boss room.
+- **Boss.** The exit room gets one of the theme's `bosses` groups, plus the cell's counts unless the
+  group is `alone`; the group's `boss` unit stands 2 tiles in from the floor's far corner (the exit
+  room's outer corner tile, `BOSS_TILE`), which the room layout keeps open and connected to its
+  openings. The exit room gets the last-stand music.
 - **Factions.** Enemy teams hate each other and brawl (engine behaviour,
   `engine-mechanics-enemies-3.md`, Teams). Where a theme mixes rival teams, each choice names a
-  faction and a room draws one faction (weighted by its eligible choices), taking only choices of
-  that faction or of none. Corner groups set their room's faction.
-- **Corner groups.** `farX` and `farY` each pick one of their groups, the exit room one of its
-  bosses (the sketch's "boss A or boss B"). The exit room gets the last-stand music.
+  faction and a room draws one faction, taking only choices of that faction or of none. A group's
+  faction sets its room's; otherwise the faction is drawn by the weight of its choices the room's
+  draws can take, among the factions that have a choice for every draw asking for at least one
+  unit (so a generator room is never given the maze's producer-less monsters).
 - **Corner potions (owner request).** Each side corner room (`farX`, `farY`; never the start or
   exit room) gets two pickups drawn from the theme's weighted `units.potions` list, side by side 2
   tiles in from the floor's outer corner in that room (`potionTiles`: the corner tile as
@@ -195,12 +202,14 @@ none, and the tower takes merlinOpen's tile).
 Only ported actors with sprites (checked by `floor-sim.test.ts`). Tiles come from the original's
 tilesets; every obstacle is `#solid` and every decoration `#none` in its tile key (`floor.test.ts`).
 
-| Floor | Tilesets | Difficulty | Enemies | Dwellings | farX / farY | Exit (one of) |
-|---|---|---|---|---|---|---|
-| Goblin Forest | merlin4 | 0 -> 3 | goblin archers, warriors, bats; goblin mages from 1.5; orcs from 2.5 | goblin huts, bat trees, mage huts | goblin warrior band / - | orc camp; hydra trainer (hydra1, goblin hero, warrior) |
-| Undead Marsh | merlinOpen | 1 -> 5 | undead: skeleton warriors, throwers, archers, ghosts, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | critter nest (cocoon, quadranids) / lone necromancer | skeleton army (skeleton lord); necromancer pair; necromancer and giant |
-| Dragon Canyon | merlinOpen | 3 -> 6 | karate guys, kung fu chickens, lizards, plants (traps); boulder monsters and dark golems toward far y; dragons toward far x; lizard soldiers, hydra1 later | dojos, boulder caves, dark caves (far y) | dragon roost / golem quarry | dark golems (four-arm + double dark golem); dragon's lair; hydra den (hydra3, plants) |
-| Magic Maze | merlinOpen | 5 -> 7 | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | portal ward / necromancy study | dark sorcerer's court (dark mages); Scarlet's guard |
+| Floor | Tilesets | Enemies | Dwellings | Exit (one of) |
+|---|---|---|---|---|
+| Goblin Forest | merlin4 | goblin archers, warriors, bats, goblin mages; orcs | goblin huts, bat trees, mage huts, orc houses | orc camp; hydra trainer (hydra1, goblin hero, warrior) |
+| Undead Marsh | merlinOpen | undead: skeleton warriors, throwers, archers, ghosts, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | skeleton army (skeleton lord); necromancer pair; necromancer and giant |
+| Dragon Canyon | merlinOpen | karate guys, kung fu chickens, lizards, plants (traps), boulder monsters, lizard soldiers; hydra1, dragons, dark golems | dojos, boulder caves, dark caves | dark golems (four-arm + double dark golem); dragon's lair; hydra den (hydra3, plants) |
+| Magic Maze | merlinOpen | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | dark sorcerer's court (dark mages); Scarlet's guard |
+
+Corner groups and tiers: see Room plans.
 
 Looks: the forest is grass with pine copses and rock clumps; the marsh dark grass and marsh water
 with barren black and dead trees, skulls and puddles; the canyon brown earth with grey boulder walls,
@@ -228,7 +237,9 @@ rock spires and cacti; the maze blue cobbles with grey brick walls, iron bars, p
 For every theme: determinism, start-to-exit connectivity over 500 seeds, matching openings on every
 shared edge, facing edge tiles solid together with entrances at least 3 wide and a closed border,
 units only on open tiles with the right object symbols, start room empty of enemies,
-one faction per room, corner groups and the boss present, tile solidity against the tile keys, object tiles
+one faction per room, corner groups and the boss present, room plans (one midboss, two or more
+groups per side corner, plain rooms within their cell's counts and tiers, at most one generator a
+room in the regular-enemy half, with wildcards off), tile solidity against the tile keys, object tiles
 against the key symbols, generation time; in the sim, a clear start in both world modes, map
 complete when the exit room is cleared, and every placeable unit a ported actor with sprites.
 For the tower (`tower.test.ts`, against the converted tower keys): connectivity over 40 seeds,
@@ -243,11 +254,11 @@ by eye.
 at the bottom and the maze at the top, seeded via `?seed=` like the single floors.
 
 - Each floor is an ordinary `generateFloor` of its theme (its own room shapes, walls, enemies,
-  difficulty, corner groups, bosses and music) with options: `placePlayer` (only the bottom floor
+  room plan, bosses and music) with options: `placePlayer` (only the bottom floor
   places the player; later start rooms only play their start music) and `boundaryOpenings`. The floor
   is then moved into the tower and every second one mirrored in x (`placeFloor`,
   `src/gen/floor-transform.ts`), which mirrors its rooms, tiles, openings and units, so the corner
-  roles (farX, farY) and the ramps mirror with it. The corners snake: the forest starts bottom-left
+  roles (farX, farY) and the room plan mirror with it. The corners snake: the forest starts bottom-left
   and exits top-right, the marsh starts bottom-right and exits top-left, and so on.
 - The stairs: one opening (the lower floor's `endOpening` width) from each floor's exit room up into
   the next floor's start room, decided by the tower in tower coordinates and passed to both floors
@@ -271,11 +282,60 @@ fetch maps as converted JSON, so a snapshot of a generated map cannot be replaye
 the seed passed to `generateMap`). Start rewards are placed; their spell scrolls (and the army
 summon's starting army, and the maze's golden machine gun) wait for the spell port.
 
+## Room plans (owner, 2026-10-22)
+
+The owner's Goblin Forest plan, as on screen (P = producers, R = regulars, counts per room):
+
+| | left | middle | right |
+|---|---|---|---|
+| top | **midboss**: one group, + R 0-2 weak | many weak generators: P 4-6 weak, R 0-2 weak | **boss** group + P 0-1 weak/mid, R 2-3 weak/mid |
+| middle | few weak generators: P 2-3 weak, R 0-2 weak | P 2-3 weak *or* 1 strong; R 1-3 mostly strong | several strong enemies, no generators: R 4-5 strong/mid |
+| bottom | **start** (a breather) | few weak enemies: R 2-3 weak | numerous weak enemies: one group + R 1-3 weak |
+
+Owner rules: in the bottom-right half (below the start-exit diagonal) generators are almost
+nonexistent (0 or 1 a room; tested); in the top-left half at most 4 regular enemies; the centre
+balances, with fewer generators than enemies and stronger enemies. "Few weak" generators = 2-3,
+"many" = 4-6.
+
+- **Goblin Forest and Dragon Canyon** use the plan as is. The canyon keeps the forest's
+  orientation because its sketch already put a producer-led group (the golem quarry: boulder
+  cave + boulder monster) in the farY corner, which is now its midboss.
+- **Undead Marsh and Magic Maze** use it flipped across the start-exit diagonal (`flippedPlan`):
+  their generators and midboss are toward the bottom-right (farX), the regular-enemy rooms toward
+  the top-left, with the "numerous weak enemies" corner at farY.
+- The tower mirrors every second floor after generating it, so the plan mirrors with its rooms.
+
+Groups per special corner (each has at least two; tested). New ones marked *new*:
+
+| Floor | midboss corner | "numerous weak enemies" corner |
+|---|---|---|
+| Goblin Forest | farY: orc hole (orc house, bow orc) *new*; orc shamans (2 orc mages) *new* | farX: goblin warrior band (4 warriors); archers and bats (3 archers, 2 bats) *new* |
+| Undead Marsh | farX: lone necromancer (alone); haunted crypt (skeleton dwelling, 2 grey ghosts) *new* | farY: critter nest (cocoon, 3 quadranids); skeleton patrol (3 warriors, 1 thrower) *new* |
+| Dragon Canyon | farY: golem quarry (boulder cave, boulder monster); dark cave (dark cave, dark golem) *new* | farX: dojo class (3 karate guys, 2 kung fu chickens) *new*; lizard pack (4 lizards) *new* |
+| Magic Maze | farX: necromancy study (2 necromancers, dark mage); Scarlet chapel (2 Scarlet monks, Scarlet warrior) *new* | farY: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
+
+Dropped: the canyon's dragon roost (2 dragons) and the maze's portal ward (portal, shrouder,
+thunder monk) no longer fit the "numerous weak enemies" corner; dragons now come as the canyon's
+strong regulars, the portal as a weak producer.
+
+### Tiers (for the owner to review)
+
+| Floor | weak | mid | strong |
+|---|---|---|---|
+| Goblin Forest | goblin archer, warrior, bat; goblin hut | goblin mage; goblin mage hut, bat tree | sword orc, bow orc; orc mage (producer), orc house |
+| Undead Marsh | skeleton warrior, thrower, quadranid, bat; skeleton dwelling, cocoon | skeleton archer, commando; grey ghost (producer), bat tree | skeleton giant (necromancers only in fixed groups) |
+| Dragon Canyon | karate guy, kung fu chicken, lizard; dojo | plant, boulder monster, lizard soldier; boulder cave | hydra1, dragon, dark golem; dark cave |
+| Magic Maze | bomb mage, thunder monk, Scarlet warrior, archer; grey ghost (producer), magic portal, skeleton dwelling | shrouder, dark mage; Scarlet monk (producer) | black orc, vulture guard; necromancer (producer) |
+
+`maxPerRoom` changes to let the plan's counts through: forest orcs 2 (from 1), marsh commando
+and giant 2, cocoon 2; canyon dojo and maze portals and skeleton dwellings unlimited; maze vulture
+guard 2. The forest's orc house became a dwelling choice (strong), not only a boss unit.
+
 ## Owner tuning: marsh necromancers (2026-10-22)
 
 Necromancers are midboss/boss tier in the Undead Marsh, so they no longer come from the random
 enemy table there (`maxPerRoom` only ever limited the random draws; the rooms with 2 or 3 were the
-fixed groups). The farY midboss room holds one necromancer alone, and the exit room's boss is the
+fixed groups). The midboss room (farY then, farX since the room plans) holds one necromancer alone, and the exit room's boss is the
 skeleton army (with the usual extra enemies), a necromancer pair, or a necromancer with a skeleton
 giant. A group marked `alone` gets no other enemies (`UnitGroup.alone`). The Magic Maze keeps its
 necromancers as before.

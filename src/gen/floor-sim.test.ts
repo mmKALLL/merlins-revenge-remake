@@ -18,6 +18,8 @@ const symbols = (name: string): string[] =>
   (JSON.parse(readFileSync(`public/generated/tilesets/${name}.json`, 'utf8')) as { symbols: string[] }).symbols
 const KILL: InputSnapshot = { ...NO_INPUT, cheatKillAll: true }
 const MUSIC_OBJ_TYPE = 'objMusic'
+/** Often enough that units released by the dead (the double dark golem's halves) do not kill Merlin first. */
+const KILL_EVERY_TICKS = 5
 
 function start(theme: FloorTheme, seed: number, mode: WorldMode, inExitRoom = false): SimState {
   const active = symbols(theme.tileSets.backgroundActive)
@@ -47,7 +49,7 @@ describe.each(THEMES)('random floor in the sim: $name', (theme) => {
     let s = start(theme, 7, 'rooms', true)
     expect(s.room).toEqual(exitRoom(theme.floorSize))
     expect(s.exitsOpen).toBe(false)
-    for (let i = 0; i < 600 && !s.mapComplete; i++) s = stepSim(s, i % 30 === 0 ? KILL : NO_INPUT)
+    for (let i = 0; i < 600 && !s.mapComplete; i++) s = stepSim(s, i % KILL_EVERY_TICKS === 0 ? KILL : NO_INPUT)
     expect(s.mapComplete).toBe(true)
   })
 

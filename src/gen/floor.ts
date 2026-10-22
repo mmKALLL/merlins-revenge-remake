@@ -1,14 +1,14 @@
 // The random floor generator (docs/plans/2026-09-28-random-floor-design.md): a floor of rooms
 // as a plain MapDefinition. Edges between rooms are decided once for both rooms (a random spanning
 // tree is always open), each room is laid out to connect its openings, and units are placed by the
-// theme's tables. The result is checked with a flood fill over the whole floor.
+// theme's room plan, drawing by tier from its tables. The result is checked with a flood fill over the whole floor.
 import type { Vec } from '../mr-open/mr-geometry'
 import { roomXYToNum, type LayerName, type MapDefinition, type RoomDefinition, type TileGrid } from '../mr-open/mr-map-format'
 import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
-import type { Amount, Corner, EnemyChoice, FloorTheme, QuantityTuning, UnitGroup, Weighted } from './themes'
+import { TIERS, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type RoomPlan, type RoomPlanCell, type TierDraw, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -86,6 +86,7 @@ export const retrySeed = (seed: number, attempt: number): number => (seed + atte
 
 /** A seeded floor for a theme; the same theme, seed and options always give the same floor. */
 export function generateFloor(theme: FloorTheme, seed: number, options: FloorOptions = {}): GeneratedFloor {
+  checkRoomPlan(theme)
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
     const floor = buildFloor(theme, retrySeed(seed, attempt), options)
     if (floorIsConnected(floor, themeIsSolid(theme))) return floor
@@ -177,17 +178,27 @@ function decideEdges(rng: GenRandom, theme: FloorTheme): Record<string, RoomEdge
 
 // ---- units ----
 
-/** Steps from the start corner along x and y as a share of the floor (0 at the start, 1 at the far side). */
-function progress(floorSize: Vec, room: Vec): { fx: number; fy: number } {
-  const start = startRoom(floorSize)
-  const share = (steps: number, rooms: number) => (rooms > 1 ? steps / (rooms - 1) : 0)
-  return { fx: share(Math.abs(room.x - start.x), floorSize.x), fy: share(Math.abs(room.y - start.y), floorSize.y) }
+/** The plan's cell for a room: the plan's first row is engine row 1, as on screen. */
+export function planCell(plan: RoomPlan, room: Vec): RoomPlanCell {
+  const cell = plan[room.y - 1]?.[room.x - 1]
+  if (!cell) throw new Error(`room plan: no cell for room ${roomKey(room)}`)
+  return cell
 }
 
-/** Enemy quality ramps over y (the theme's start value in the start row, its exit value in the far row). */
-function difficultyOf(theme: FloorTheme, fy: number): number {
-  const [d0, d1] = theme.units.difficulty
-  return d0 + (d1 - d0) * fy
+/** Throws unless the plan covers the floor with the start, boss and midboss cells where they belong. */
+export function checkRoomPlan(theme: FloorTheme): void {
+  const { roomPlan: plan } = theme.units
+  const size = theme.floorSize
+  const fail = (why: string) => { throw new Error(`theme ${theme.id}: room plan ${why}`) }
+  if (plan.length !== size.y || plan.some((row) => row.length !== size.x)) fail(`is not ${size.x}x${size.y}`)
+  const sideCorners = SIDE_CORNERS.map((c) => cornerRoom(size, c))
+  plan.forEach((row, r) => row.forEach((cell, c) => {
+    const room = { x: c + 1, y: r + 1 }
+    if ((cell.kind === 'start') !== sameVec(room, startRoom(size))) fail(`has its start cell off the start room (${roomKey(room)})`)
+    if ((cell.kind === 'boss') !== sameVec(room, exitRoom(size))) fail(`has its boss cell off the exit room (${roomKey(room)})`)
+    if (cell.kind === 'midboss' && !sideCorners.some((s) => sameVec(s, room))) fail(`has a midboss off the side corners (${roomKey(room)})`)
+    if (cell.kind === 'midboss' && !cell.groups?.length) fail(`has a midboss without groups (${roomKey(room)})`)
+  }))
 }
 
 /** Reachable open tiles away from the edges, in random order. */
@@ -202,46 +213,55 @@ function unitTiles(rng: GenRandom, shape: RoomShape): Vec[] {
   return rng.shuffle(out)
 }
 
-/** What a room draws its enemies from: its difficulty, progress and faction. */
-interface RoomDraw { difficulty: number; fx: number; fy: number; faction: string | null }
+/** One of a room's draws: the table it draws from and what the plan asks of it (null: nothing). */
+interface TableDraw { table: readonly EnemyChoice[]; draw: TierDraw | null }
 
-const weightIn = (c: EnemyChoice, draw: RoomDraw): number => c.weight + (c.weightFarX ?? 0) * draw.fx + (c.weightFarY ?? 0) * draw.fy
+const resolveDraw = (rng: GenRandom, spec: DrawSpec | undefined): TierDraw | null =>
+  spec === undefined ? null : Array.isArray(spec) ? rng.weighted(spec) : spec
 
-function eligible(table: readonly EnemyChoice[], draw: RoomDraw): EnemyChoice[] {
-  return table.filter((c) => (c.minDifficulty ?? 0) <= draw.difficulty && weightIn(c, draw) > 0
-    && (c.faction === undefined || draw.faction === null || c.faction === draw.faction))
+/** The cell's producer and regular draws, or by the wildcard chance another normal cell's. */
+function roomDraws(rng: GenRandom, theme: FloorTheme, cell: RoomPlanCell): TableDraw[] {
+  const u = theme.units
+  let source = cell
+  if (cell.kind === 'normal' && rng.chance(u.wildcardChance)) {
+    const others = u.roomPlan.flat().filter((c) => c.kind === 'normal' && c !== cell)
+    if (others.length > 0) source = rng.pick(others)
+  }
+  return [
+    { table: [...u.dwellings, ...u.enemies.filter((c) => c.producer)], draw: resolveDraw(rng, source.producers) },
+    { table: u.enemies.filter((c) => !c.producer), draw: resolveDraw(rng, source.regulars) },
+  ]
 }
 
-/** One faction for the room, weighted by its eligible enemies; null when the theme has none. */
-function pickFaction(rng: GenRandom, table: readonly EnemyChoice[], draw: RoomDraw): string | null {
-  const totals = new Map<string, number>()
-  for (const c of eligible(table, draw)) if (c.faction) totals.set(c.faction, (totals.get(c.faction) ?? 0) + weightIn(c, draw))
-  if (totals.size === 0) return null
-  return rng.weighted([...totals].map(([value, weight]) => ({ value, weight })))
+const inFaction = (c: EnemyChoice, faction: string | null): boolean => c.faction === undefined || faction === null || c.faction === faction
+
+/** The choices a draw can take in a faction (null: any). */
+const choicesFor = ({ table, draw }: TableDraw, faction: string | null): EnemyChoice[] =>
+  draw ? table.filter((c) => inFaction(c, faction) && (draw.tiers[c.tier] ?? 0) > 0) : []
+
+/**
+ * One faction for the room, weighted by its own choices the room's draws can take, among the
+ * factions with choices for every draw that asks for at least one unit (all factions should none
+ * have). Null when no faction's choice fits the draws, so they only take factionless choices.
+ */
+function pickFaction(rng: GenRandom, draws: readonly TableDraw[]): string | null {
+  const factions = new Set(draws.flatMap((d) => choicesFor(d, null)).flatMap((c) => (c.faction ? [c.faction] : [])))
+  const weightOf = (f: string) => draws.flatMap((d) => choicesFor(d, f)).filter((c) => c.faction === f).reduce((s, c) => s + c.weight, 0)
+  const fills = (f: string) => draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, f).length > 0)
+  const all = [...factions].map((value) => ({ value, weight: weightOf(value) }))
+  const filling = all.filter((o) => fills(o.value))
+  const options = filling.length > 0 ? filling : all
+  return options.length > 0 ? rng.weighted(options) : null
 }
 
-function pickUnit(rng: GenRandom, table: readonly EnemyChoice[], draw: RoomDraw, counts: Map<string, number>): string | null {
-  const choices = eligible(table, draw).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity))
-  if (choices.length === 0) return null
-  return rng.weighted(choices.map((c) => ({ value: c.key, weight: weightIn(c, draw) })))
+/** One unit for a draw: a tier by the draw's weights among those still open, then a choice by weight. */
+function pickUnit(rng: GenRandom, d: TableDraw, faction: string | null, counts: Map<string, number>): string | null {
+  const open = choicesFor(d, faction).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity))
+  if (open.length === 0) return null
+  const tiers = TIERS.filter((t) => open.some((c) => c.tier === t)).map((t) => ({ value: t, weight: d.draw!.tiers[t]! }))
+  const tier = rng.weighted(tiers)
+  return rng.weighted(open.filter((c) => c.tier === tier).map((c) => ({ value: c.key, weight: c.weight })))
 }
-
-/** The side corner room's fixed group, if it is one. */
-function specialGroup(rng: GenRandom, theme: FloorTheme, room: Vec): UnitGroup | null {
-  const special = theme.units.specialRooms.find((s) => sameVec(cornerRoom(theme.floorSize, s.corner), room))
-  return special ? rng.pick(special.groups) : null
-}
-
-/** How a room brings its numbers; the exit room has both. */
-type RoomForm = 'swarm' | 'producers' | 'both'
-
-/** Swarm or producers by the theme's weights; a swarm when no producer fits the room. */
-function pickForm(rng: GenRandom, q: QuantityTuning, canProduce: boolean): RoomForm {
-  const form = rng.weighted<RoomForm>([{ value: 'swarm', weight: q.swarmWeight }, { value: 'producers', weight: q.producerWeight }])
-  return form === 'producers' && !canProduce ? 'swarm' : form
-}
-
-const amountAt = (rng: GenRandom, a: Amount, fx: number): number => Math.floor(a.base + a.farX * fx + rng.next())
 
 // ---- the start room ----
 
@@ -296,19 +316,23 @@ function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec
   return [...(player ? [player] : []), music, ...rewards]
 }
 
+/**
+ * A room's units by its plan cell: the start room's own placements, or the corner potions, the
+ * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
+ * producers and regulars, all of the room's one faction.
+ */
 function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, options: FloorOptions): Placement[] {
   const u = theme.units
-  const isExit = sameVec(room, exitRoom(theme.floorSize))
+  const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)))
-  if (sameVec(room, startRoom(theme.floorSize))) return placeStartRoom(rng, theme, room, tiles, options)
+  if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, options)
   const keys: string[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
-  const { fx, fy } = progress(theme.floorSize, room)
-  const draw: RoomDraw = { difficulty: difficultyOf(theme, fy), fx, fy, faction: null }
-  const boss = isExit ? rng.pick(u.bosses) : null
-  const group = boss ?? specialGroup(rng, theme, room)
-  draw.faction = group?.faction ?? pickFaction(rng, u.enemies, draw)
+  const boss = cell.kind === 'boss' ? rng.pick(u.bosses) : null
+  const group = boss ?? (cell.groups?.length ? rng.pick(cell.groups) : null)
+  const draws = group?.alone ? [] : roomDraws(rng, theme, cell)
+  const faction = group?.faction ?? pickFaction(rng, draws)
   const counts = new Map<string, number>()
   const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
   const add = (key: string | null) => {
@@ -323,15 +347,12 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   for (const [key, n] of Object.entries(group?.units ?? {})) {
     for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
   }
-  const regulars = u.enemies.filter((c) => !c.producer)
-  const producers = [...u.dwellings, ...u.enemies.filter((c) => c.producer)]
-  const q = u.quantity
-  const form: RoomForm | null = group?.alone ? null : isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
-  const addFrom = (table: readonly EnemyChoice[], n: number) => { for (let i = 0; i < n; i++) add(pickUnit(rng, table, draw, counts)) }
-  if (form === 'swarm' || form === 'both') addFrom(regulars, amountAt(rng, q.swarm, fx))
-  if (form === 'producers' || form === 'both') addFrom(producers, amountAt(rng, q.producers, fx))
-  if (form === 'producers') addFrom(regulars, rng.int(q.escorts[0], q.escorts[1]))
-  if (isExit) keys.push(u.exitMusic)
+  for (const d of draws) {
+    if (!d.draw) continue
+    const n = rng.int(d.draw.count[0], d.draw.count[1])
+    for (let i = 0; i < n; i++) add(pickUnit(rng, d, faction, counts))
+  }
+  if (boss) keys.push(u.exitMusic)
   return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]
 }
 
