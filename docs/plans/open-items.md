@@ -5,16 +5,6 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 
 ## To do
 
-- **Merlin's other spells.** The original's player spells beyond the energy blast: energy pulse,
-  energy mines, army summon, cBlast, heal blast, arctic/freeze/thunder blasts, laser/energy beam
-  (`act_*Spell` and scroll data). Needs weapon selection (the original `weaponSelector` palette and
-  the spell1..9 keys), spell scroll pickups, and per-spell mechanics. Many mechanics (summons,
-  heals, exploding bullets, multi-attacks) are already ported for enemies
-  (`docs/notes/engine-mechanics-enemies-3.md`), so much may be data plus player wiring. The random
-  floors already place one spell scroll in each start room (skipped by the sim until `objScroll`
-  spawns; `docs/plans/2026-09-28-random-floor-design.md`, Start rewards). Owner rule for the army
-  summon scroll: it comes with 2 warriors, 2 archers, 1 monk (healer) and 1 dwarf (tower builder),
-  as a starting reserve army (the original's scroll brings none; see the design doc).
 - **Golden machine gun (pending reward).** `act_gmg` (an objScroll: `gmgOn` swaps the spell's
   charge for the `gmg*` fields and auto-fires). Once ported, the Magic Maze (floor 4) also gives it
   at the start: set `MAZE_GIVES_GOLDEN_MACHINE_GUN` in `src/gen/themes.ts` (the `gmg` tile is
@@ -26,7 +16,7 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   (`?map=randomly_generated/1-goblin-forest`, `2-undead-marsh`, `3-dragon-canyon`, `4-magic-maze`), and the
   four stacked into the tower (`randomly_generated/sorcerers-tower`; `src/gen/`,
   `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Two potions wait in each floor's side corner rooms; each start room gives 4 potions, a medikit
-  and a spell scroll (inert until scrolls are ported). Next: MR3 wizards and the
+  and a spell scroll. Next: MR3 wizards and the
   Black Sorcerer once ported, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an
@@ -58,6 +48,17 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   engine's naming.
 
 ## Awaiting the owner's review
+
+- Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
+  `?map=spells_test`): every scroll but the golden machine gun gives its weapon; Q opens the
+  original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
+  weapon. To confirm: the army summon's starting army (2 warriors, 2 archers, a monk, a dwarf; in
+  `assets/tuning.json`), the current weapon icon in the top strip (the original only shows the Q
+  palette), the touch weapon button (steps to the next weapon), a hit ending Merlin's swing, the
+  teal freeze glow's look. Faithful but maybe surprising: energy mines need a full charge (1 mine at
+  the start), the monster summon only reaches its archer stage until Merlin drinks Max Blast
+  potions, summoned allies teleport back into the reserve as soon as the room is clear, and frosty
+  monks now freeze Merlin.
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The

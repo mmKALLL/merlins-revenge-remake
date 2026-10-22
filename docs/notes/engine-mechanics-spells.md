@@ -98,9 +98,10 @@ strip loops, `attackFin(#completed)` -> `#playerControl` and `goMode(#walk)` (`:
 
 - `calcAttackChargeStart` (`:123-157`): `min(chargeStart + mana_burst, chargeMax)`, then
   `if pChargeStart <> #none then chargeStart = min(pChargeStart, attack.chargeStartMax)`: it takes
-  the attack's own `chargeStart`, not the sum. With `chargeStartMax #none` (every spell but the two
-  summons) the comparison with a symbol is what keeps the sum in play; with a number (armySummon 8,
-  monsterSummon 14) the start is `min(chargeStart, chargeStartMax)` and mana_burst does nothing.
+  the attack's own `chargeStart`, not the sum. What `min(number, #none)` gives in Lingo is not
+  certain; the port keeps the sum when `chargeStartMax` is `#none` (every spell but the two summons;
+  so Burst potions raise the energy blast's start, as before), and with a number (armySummon 8,
+  monsterSummon 14) takes `min(chargeStart, chargeStartMax)`: mana_burst does nothing for summons.
 - `chargeSpeedMax` caps `chargeSpeed * mana_flow` (army summon 0.4, monster summon 1).
 
 **Multistage spells** (`modSpellMultistage.txt`), the summons, on every charge step (`#charge` ->
@@ -221,4 +222,71 @@ Details:
 
 ## Port
 
-<!-- filled in by the port slice -->
+- Rules: `src/mr-open/mr-weapons.ts` (modWeaponManager: order, current weapon, selectSpell),
+  `mr-weapon-selector.ts` (the palettes' layout and timer), `mr-spell.ts` (charge start with
+  chargeStartMax, stages, rein-in, stage payload functions), `mr-army.ts` (the reserve, the teleport
+  look), `mr-freeze.ts`, `mr-mine.ts` (mines and modFireBullets timing), `mr-builder.ts`. The
+  scroll and spell fields are on `AttackDef` (`payloadFunctionNonBlank`, `residentTeamCategory`,
+  `chargeStartMax`, `releaseFunction`, `chargePerUnit`, `fireDelay`, `beam`, `glowTeal`,
+  `freezeMultiplier`) and `ActorDef` (`leaveWhenFinished`, `teleportable`, `unitToBuild`,
+  `buildRate`, `buildOne`, and the remake's `startingArmy`).
+- Tick: `tick-weapons.ts` (scroll collected, weapon keys, every cooldown), `tick-player-attack.ts`
+  (charge and release, or a swing while held), `player-aim.ts`, `tick-spell.ts` (spells, fire
+  bullets, payloads, summons, mines laid), `tick-mine.ts`, `tick-army.ts` (teleports, the reserve,
+  `#leaveWhenFinished`), `tick-builder.ts`; the payload functions (`#takeHit`, `#takeHeal`,
+  `#takeFreeze`, `#armyTeleportOut`) are `applyPayload` in `tick-combat.ts`, used by spells, exploding
+  bullets, mines and melee strikes alike. `SimState.arsenal` and `SimState.army` hold Merlin's
+  weapons and the reserve army.
+- Drawing: `src/render/weapon-selector.ts` (the palettes, the current weapon icon), and in
+  `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
+- Every spell in the table is ported but the golden machine gun (an open item; its scroll tile
+  stays unspawned). Test content: `?map=spells_test` (`tools/make-spells-test-map.mjs`).
+- Left out: experience in the army details (not ported anywhere), modAutoSummon (the original's C
+  key summons the whole reserve; C is the camera here), the in-game wizards, the dwarf tower axe's
+  splash damage (`splashDamageOn`; the axe hits its target directly as before), the monk's ghost
+  (`reincarnateAs #monkGhost`, objAiCPUGhost), and the enemies that fire pulses, beams or lay mines
+  (techMech, prestotolin, verdanlin; their actors are not copied yet).
+
+### Remake decisions
+
+- **The army summon's starting army (owner request).** Collecting the army summon scroll puts 2
+  warriors, 2 archers, a monk and a dwarf into the reserve: `armySummon.startingArmy` in
+  `assets/tuning.json` (engine default `{}`, as the original scroll brings none). The spell then
+  works as in the engine: the charge picks the stage, held below the stage above the best unit in
+  the reserve; allies go back to the reserve when they run out of enemies.
+- **The current weapon in the HUD.** The original shows the weapon only in the Q palette; the
+  remake draws the current weapon's `_ws` icon at the `prg_wizardMaster` mark (72, 0), free until
+  the wizards are ported.
+- **Keys.** 1-9 select the n-th spell (`Digit1`-`Digit9`; bnd_wasd's codes 22-26 are 6, 5, =, 9, 7,
+  evidently meant as 5-9). Q opens the palettes at the mouse, or around Merlin without a mouse
+  position; a click on an icon picks it and charges nothing. E, a click and Space work for every
+  weapon: a spell charges while held, a melee weapon swings while held (facing where it aims; Space
+  aims at the nearest enemy), as objAiPlayer does for the mouse. The punch and the melee scrolls are
+  only on the lower palette (selectSpell counts spells only).
+- **Touch.** A weapon button beside the blast button shows the current weapon; a tap steps to the
+  next one in Merlin's list (no such control in the original).
+- **A hit ends Merlin's swing.** objPlayerMerlinCharacter.takeHit forces `#walk`; the port ends the
+  attack there instead of letting the AI watch the walk strip for its strike frame.
+- **The energy blast scroll keeps the tuned blast.** A map's energyBlast scroll re-adds the
+  starting weapon with `player.attack`'s tuning instead of the scroll's untuned attack.
+- **#noTargetFound in a continuous world** (no room to clear): an ally leaves once its AI finds no
+  target and no hated unit is awake near it, or nav mode is on (no awake hostile near Merlin).
+- **The teal glow** is drawn as a 50 % blend toward rgb(0, 255, 255) (modColourTransform.glowTeal
+  transforms the sprite's colour; its exact look is not in the Lingo).
+- **Timing** follows the port's N-tick counters: a pulse or beam every `ceil(fireDelay)` ticks (5
+  and 7), mines primed after 30 ticks and checked every 3.
+- **The freeze reaches Merlin too** (modFreeze is an objCharacter module): frosty monks' freeze
+  blasts and ice boulders halve his acceleration while it lasts.
+- Collected pickups now show their writing strip (`<name>_writing`); before this slice potions and
+  medikits faded out on their stand frame.
+
+### Notes from the port
+
+- A beam is drawn stretched from its spell for its one `fly` frame; its two `explode` frames are
+  2 px wide with the reg point in the middle, so the kept stretch centres them on the target
+  (setAnimKeepSize), as the data says.
+- Energy mines need a full charge at Merlin's starting capacity (charge 10 = 1 mine); Max Blast
+  potions add 0.75 each, so a second mine needs capacity 20.
+- The monster summon reaches only its first stage (the summoned goblin archer) at the start:
+  chargeMax = capacity 10 x 1.2 = 12; the warrior (15) needs capacity 12.5, about four Max Blast
+  potions.

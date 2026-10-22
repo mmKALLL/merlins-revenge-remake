@@ -23,8 +23,9 @@ Controls:
 
 - WASD or the arrow keys move.
 - Hold E or the left mouse button to charge the energy blast; releasing fires it at the mouse.
+- Spell scrolls on the maps (and one in each random floor's start room) give Merlin their spell or weapon, selected at once: the energy pulse, energy mines, cBlast, heal blast, arctic blast, energy beam, army summon, monster summon, the energy punch and Merlin's sword (`?map=spells_test` has them all). Keys 1-9 pick the first to ninth spell collected; Q shows the original's weapon palettes at the mouse for 2 s (spells above, the punch and other melee weapons below; click one to pick it). E, a click and Space charge and fire whichever spell is current, or swing a melee weapon while held. The current weapon's icon sits in the strip above the room. The army summon scroll brings a reserve army (2 warriors, 2 archers, a monk who heals, a dwarf who builds a tower): the longer the charge, the stronger the unit summoned; allies go back to the reserve when no enemy is left. Engine details: `docs/notes/engine-mechanics-spells.md`.
 - Hold Space to charge and fire at the nearest enemy. Press F to switch Space between the nearest enemy and a push-back shot that lands 20 px short of it. Settings shows the current mode and also offers the mouse cursor (like E; straight ahead while the mouse is off the game); the choice is remembered.
-- On phones and tablets: press anywhere on the left half and drag to move (a nub appears where the finger lands; Merlin walks at the finger's angle, at the same speed as with WASD), hold the yellow button on the right to charge and let go to fire, like Space. It follows the Space mode from Settings; the mouse mode fires at the nearest enemy when there is no mouse. ☰ opens the menu. The controls lie over the game in landscape and in a band below it in portrait.
+- On phones and tablets: press anywhere on the left half and drag to move (a nub appears where the finger lands; Merlin walks at the finger's angle, at the same speed as with WASD), hold the yellow button on the right to charge and let go to fire, like Space; the weapon button beside it shows the current weapon and steps to the next one on a tap. It follows the Space mode from Settings; the mouse mode fires at the nearest enemy when there is no mouse. ☰ opens the menu. The controls lie over the game in landscape and in a band below it in portrait.
 - Press C to switch between the room camera and the follow camera (with it, between the room-by-room world and the continuous world) without restarting the map; enemies keep their energy and positions. The `camera` URL parameter follows, so a reload keeps the choice. Settings shows and switches the camera too.
 - The bar at the bottom left is Merlin's health (the original's "health" bar, red to yellow to green); the map restarts when he runs out. Above the room, the medikit display sits at the left and the potions drunk at the right, where the original puts them (`docs/notes/engine-mechanics-hud.md`).
 - The mini-map, as in the original: while the current room is clear (nav mode), the bottom-right corner of the play view shows one cell per room, green when clear, red with enemies, blue with friends (warriors, archers, monks), orange-yellow with something special (scrolls, wizards); the current room is solid yellow. It fades when Merlin or the mouse comes near. In the follow camera the cells show where the units are now, a yellow marker shows the view, and it is on while nav mode is. Press N to hide or show it. Engine details: `docs/notes/engine-mechanics-minimap.md`.
@@ -46,13 +47,14 @@ Controls:
       "goblinArcher": { "attack": { "reach": 160 } }
     }
 
-Run `pnpm assets:convert` and reload. The shipped file only grants Merlin the energy blast.
+Run `pnpm assets:convert` and reload. The shipped file grants Merlin the energy blast, gives the army summon scroll its starting army (`armySummon.startingArmy`) and holds the balance tweaks listed in the engine notes.
 
 ## What's new compared with the original
 
 - Plays in any modern browser; no Shockwave or Director needed.
 - Space charges and fires the energy blast at the nearest enemy on screen; F switches it to a push-back shot (Settings also offers the mouse); E or a click still aims at the mouse.
-- Touch controls on phones and tablets: a movement nub and a blast button; the title screen and the in-game menu work on phones in portrait and landscape.
+- Touch controls on phones and tablets: a movement nub, a blast button and a weapon button; the title screen and the in-game menu work on phones in portrait and landscape.
+- The current weapon's icon is always shown above the room; the army summon scroll brings a starting reserve army.
 - Scalable view: crisp 1x-4x pixel sizes, "fit" or a fractional "scale", and it respects browser zoom.
 - The game keeps the original's 30 ticks per second but draws at the display's refresh rate with interpolated movement.
 - C switches live between the original room-by-room camera and a smooth follow camera across the whole map, where distant enemies sleep, wake as Merlin approaches, and wander idly meanwhile.
