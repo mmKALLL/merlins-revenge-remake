@@ -140,3 +140,25 @@ describe('pulses and mines', () => {
     expect(ofDef(s, 'goblinWarrior')[0]!.energy).toBeLessThan(100)
   })
 })
+
+describe("the dwarf tower's axe with a splash radius (remake)", () => {
+  it('hits every hostile unit whose sprite rect meets the circle around where it lands, and no other', () => {
+    const base = world({})
+    let s: SimState = { ...base, defs: { ...base.defs, towerAxe: { ...base.defs['towerAxe']!, splashRadius: 16 } } }
+    const impact = { x: 300, y: PLAYER.y }
+    const goblinAt = [impact, { x: impact.x + 20, y: impact.y }, { x: impact.x + 60, y: impact.y }]
+    for (const pos of goblinAt) {
+      const [goblin, next] = createActor(s, 'goblinWarrior', pos)
+      s = { ...next, actors: [...next.actors, goblin] }
+    }
+    // an axe standing still where it was thrown: it stalls and lands on this tick
+    const [axe, next] = createActor(s, 'towerAxe', impact)
+    s = { ...next, actors: [...next.actors, { ...axe, mode: 'fly', age: 1, team: playerOf(s).team }] }
+    s = stepSim(s, NO_INPUT)
+    const energyAt = (x: number) => ofDef(s, 'goblinWarrior').find((a) => Math.abs(a.pos.x - x) < 15)?.energy
+    const full = defs['goblinWarrior']!.energy
+    expect(energyAt(goblinAt[0]!.x)).toBeLessThan(full)
+    expect(energyAt(goblinAt[1]!.x)).toBeLessThan(full)
+    expect(energyAt(goblinAt[2]!.x)).toBe(full)
+  })
+})

@@ -16,7 +16,7 @@ const KEYBOARD: Line[] = [
   ['N', 'hide or show the mini-map (bottom right, shown while no enemy is near)'],
   ['Esc', 'menu (pauses the game)'],
   ['Enter', 'play the map again after it is complete'],
-  ['R', 'summon the whole reserve army at the nearest enemy (at the mouse in the mouse cursor Space mode); with the army out, send it all back into the reserve'],
+  ['R', 'summon the whole reserve army at the nearest enemy (at the mouse in the mouse cursor Space mode); with the army out, send it all back into the reserve once no enemy is left near'],
   ['K / M', 'debug cheats: kill the enemies on screen / one more medikit'],
 ]
 
@@ -24,6 +24,7 @@ const TOUCH: Line[] = [
   ['Left half', 'press anywhere and drag to walk in that direction'],
   ['Yellow button', 'hold to charge, let go to fire at the nearest enemy (or the push-back shot, set in Settings; the mouse mode aims at the nearest enemy without a mouse)'],
   ['Weapon button', 'shows the current weapon; tap for the next one'],
+  ['Blue army button', 'as R: summon the whole reserve army at the nearest enemy; with the army out and no enemy left near, send it all back'],
   ['☰', 'menu (pauses the game)'],
 ]
 

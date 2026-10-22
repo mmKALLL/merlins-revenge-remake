@@ -4,7 +4,7 @@
 // (charge, release, explosion) is in tick-spell.ts.
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import {
-  aimWithEyestrain, bulletPush, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown,
+  aimWithEyestrain, bulletPush, circleMeetsRect, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, splashPush, tickCooldown,
 } from '../mr-open/mr-attack'
 import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
 import { rectAt } from '../mr-open/mr-collision'
@@ -252,8 +252,11 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
     a.mode = 'land'
     a.age = 0
     a.vel = { x: 0, y: 0 }
+    if (def.splashRadius !== null) splashOnLanding(t, a, def, def.splashRadius)
     return
   }
+  // a splash bullet does not collide with its target (#collideWithTarget false)
+  if (def.splashRadius !== null) return
   // a target that fell asleep while the bullet flew can still be hit
   const seen = a.targetId === null ? undefined : (actorIn(t, a.targetId) ?? sleeperIn(t, a.targetId))
   if (!seen || !isAlive(seen)) return
@@ -269,6 +272,20 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   // #bulletCollidedWithTarget: explode (modExploder) or die
   if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
   else t.removed.add(a.id)
+}
+
+/**
+ * modSplashDamage.impactSplashDamage (#land -> teamMaster.impactAttack) with the remake's circle:
+ * every living hated unit of a role the bullet hits whose sprite rect meets the circle of `radius`
+ * around the landing point takes splashPush through the payload functions (once; no extra takeHit
+ * as on contact).
+ */
+function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number): void {
+  for (const v of hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits)) {
+    if (!circleMeetsRect(a.pos, radius, spriteRectFor(t.s, v))) continue
+    const victim = hitTargetIn(t, v.id)
+    if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), def.attack)
+  }
 }
 
 /** calcCollisionVectSpell of an #explode bullet on one unit (no push when outside the blast). */
@@ -304,12 +321,16 @@ export function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
  * continuous world are caught too.
  */
 export function splashVictims(t: Tick, teams: string[], hits: string[]): SplashVictim[] {
+  return hatedUnits(t, teams, hits).map((v) => {
+    const r = spriteRectFor(t.s, v)
+    return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
+  })
+}
+
+/** Living units of `teams` whose role is one of `hits`, sleepers of a continuous world included. */
+function hatedUnits(t: Tick, teams: string[], hits: string[]): ActorState[] {
   return [...t.actors, ...waitingSleepers(t)]
     .filter((v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && teams.includes(v.team) && hits.includes(defOf(t.s, v).teamRole))
-    .map((v) => {
-      const r = spriteRectFor(t.s, v)
-      return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
-    })
 }
 
 /** modReel.updateReel, objCharacter #die -> #dead, objCPUCharacter.updateDead -> #finish (grave), the player's release strip and death timer. */

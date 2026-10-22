@@ -172,6 +172,12 @@ export interface ActorDef {
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
   startingArmy: Record<string, number>
   /**
+   * A bullet that hits on landing, every hated unit whose sprite rect meets a circle of this radius
+   * (px) around where it lands, with modSplashDamage's push; null = it hits its target on contact.
+   * The engine's #splashDamageOn bullets (the dwarf tower's axe) reach `power` px instead.
+   */
+  splashRadius: number | null
+  /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
    * case-insensitive). `raw.attack` is the actor's own natural attack (e.g. the player's punch),
@@ -274,6 +280,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     vanishOnCollect: false, // collected pickups fade their writing out, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
+    splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -302,6 +309,7 @@ for (const k of [
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'vanishOnCollect', 'startingArmy',
+  'splashRadius',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -644,6 +652,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       vanishOnCollect: bool(r, 'vanishOnCollect', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
+      splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

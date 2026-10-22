@@ -129,12 +129,20 @@
         background: rgba(255, 255, 255, 0.08) center / 54px 48px no-repeat; border: 2px solid rgba(255, 255, 255, 0.35);
         image-rendering: pixelated;
       }
-      #touch-weapon.active { border-color: rgba(255, 255, 255, 0.8); }
+      /* R: summon the whole reserve army, or send it back; above the weapon button */
+      #touch-army {
+        position: absolute; right: calc(212px + env(safe-area-inset-right)); bottom: calc(104px + 1em + env(safe-area-inset-bottom));
+        width: 72px; height: 64px; border-radius: 8px; pointer-events: auto; touch-action: none;
+        background: rgba(60, 140, 255, 0.12) center / 36px 32px no-repeat; border: 2px solid rgba(60, 140, 255, 0.6);
+        image-rendering: pixelated;
+      }
+      #touch-weapon.active, #touch-army.active { border-color: rgba(255, 255, 255, 0.8); }
       @media (orientation: portrait) {
         html.touch-controls[data-screen='playing'] body { padding-bottom: 40vh; }
         #touch { top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222; }
         #touch-blast { right: calc(32px + env(safe-area-inset-right)); bottom: calc(50% - 88px + 1em); }
-        #touch-weapon { right: calc(224px + env(safe-area-inset-right)); bottom: calc(50% - 32px + 1em); }
+        #touch-weapon { right: calc(224px + env(safe-area-inset-right)); bottom: calc(50% + 8px + 1em); }
+        #touch-army { right: calc(224px + env(safe-area-inset-right)); bottom: calc(50% - 72px + 1em); }
         /* the ☰ button moves off the game into the band's top right corner, above the blast button */
         html.touch-controls #menu-button { top: auto; bottom: calc(40vh - 48px); }
       }

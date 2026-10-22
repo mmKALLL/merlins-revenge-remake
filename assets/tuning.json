@@ -128,5 +128,8 @@
         "radius": 14
       }
     }
+  },
+  "towerAxe": {
+    "splashRadius": 16
   }
 }

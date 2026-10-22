@@ -1,9 +1,11 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
-// nub on the left that appears where a finger first presses, a blast button on the right and a
-// weapon button beside it. They feed the same InputTracker as the keyboard: the nub moves Merlin at
-// any angle (a keyboard-speed analog of WASD), the blast button acts as Space (charge while held,
-// release by the Space mode; the mouse mode without a mouse position fires at the nearest enemy),
-// and the weapon button shows the current weapon and steps to the next one on a tap.
+// nub on the left that appears where a finger first presses, a blast button on the right, and a
+// weapon button and an army button beside it. They feed the same InputTracker as the keyboard: the
+// nub moves Merlin at any angle (a keyboard-speed analog of WASD), the blast button acts as Space
+// (charge while held, release by the Space mode; the mouse mode without a mouse position fires at
+// the nearest enemy), the weapon button shows the current weapon and steps to the next one on a
+// tap, and the army button is R (a tap summons the whole reserve at the nearest enemy, or sends the
+// army back once the fight is over).
 // Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 
@@ -34,15 +36,19 @@ export function wantsTouchControls(params: URLSearchParams, win: Window): boolea
 /** What the controls report every change: the nub's direction and whether the blast button is held. */
 export type TouchListener = (move: Vec, blast: boolean) => void
 
+/** Where the controls report (the nub and blast button's state, weapon and army button taps), and the army button's picture. */
+export interface TouchOptions { onChange: TouchListener; onNextWeapon: () => void; onArmy: () => void; armyIconUrl: string }
+
 /** The attached controls: `showWeapon` sets the weapon button's picture (an image URL). */
 export interface TouchControls { detach: () => void; showWeapon: (iconUrl: string) => void }
 
 /**
  * Builds the overlay (#touch, styled in index.html: over the game in landscape, a band below it in
- * portrait; hidden while a menu is open) and reports changes to `onChange`, weapon button taps to
- * `onNextWeapon`. Each control follows one pointer, so moving and charging work at the same time.
+ * portrait; hidden while a menu is open) and reports to `options`' handlers. Each control follows one
+ * pointer, so moving and charging work at the same time.
  */
-export function attachTouchControls(parent: HTMLElement, onChange: TouchListener, onNextWeapon: () => void): TouchControls {
+export function attachTouchControls(parent: HTMLElement, options: TouchOptions): TouchControls {
+  const { onChange, onNextWeapon, onArmy } = options
   const root = el('div', 'touch')
   const zone = el('div', 'touch-nub-zone')
   const base = el('div', 'touch-nub')
@@ -53,9 +59,13 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
   const weapon = el('div', 'touch-weapon')
   weapon.setAttribute('role', 'button')
   weapon.setAttribute('aria-label', 'Next weapon')
+  const army = el('div', 'touch-army')
+  army.setAttribute('role', 'button')
+  army.setAttribute('aria-label', 'Army: summon the whole reserve, or send the army back')
+  army.style.backgroundImage = `url("${options.armyIconUrl}")`
   base.appendChild(knob)
   zone.appendChild(base)
-  root.append(zone, weapon, button)
+  root.append(zone, army, weapon, button)
   parent.appendChild(root)
 
   let move: Vec = { x: 0, y: 0 }
@@ -115,16 +125,13 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
     report()
   }
 
-  const weaponDown = (e: PointerEvent) => {
-    e.preventDefault()
-    weapon.classList.add('active')
-    onNextWeapon()
-  }
-  const weaponUp = () => weapon.classList.remove('active')
+  const [weaponDown, weaponUp] = tapButton(weapon, onNextWeapon)
+  const [armyDown, armyUp] = tapButton(army, onArmy)
 
   // a lost capture ends the press too: the controls are hidden while a menu is open, even under a finger
   const listeners: [HTMLElement, string, (e: PointerEvent) => void][] = [
     [weapon, 'pointerdown', weaponDown], [weapon, 'pointerup', weaponUp], [weapon, 'pointercancel', weaponUp],
+    [army, 'pointerdown', armyDown], [army, 'pointerup', armyUp], [army, 'pointercancel', armyUp],
     [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'pointerup', nubUp],
     [zone, 'pointercancel', nubUp], [zone, 'lostpointercapture', nubUp],
     [button, 'pointerdown', blastDown], [button, 'pointerup', blastUp],
@@ -147,6 +154,16 @@ export function attachTouchControls(parent: HTMLElement, onChange: TouchListener
       weapon.style.backgroundImage = `url("${iconUrl}")`
     },
   }
+}
+
+/** A button that acts once when pressed and lights up while the finger stays on it: its down and up handlers. */
+function tapButton(button: HTMLElement, onTap: () => void): [(e: PointerEvent) => void, () => void] {
+  const down = (e: PointerEvent) => {
+    e.preventDefault()
+    button.classList.add('active')
+    onTap()
+  }
+  return [down, () => button.classList.remove('active')]
 }
 
 function el(tag: string, id: string): HTMLElement {

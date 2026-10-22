@@ -2,18 +2,19 @@
 // armyTeleportOut: hit by a blank army summon blast, or a #leaveWhenFinished unit whose AI finds no
 // target), and the army summon brings them back teleporting in (tick-spell.ts summonPayload). A
 // teleport plays for TELEPORT_TICKS (modTeleport) while the unit goes on acting. The #army key (R)
-// summons the whole reserve at once (modAutoSummon), or sends the army back into it.
+// summons the whole reserve at once (modAutoSummon), or once the fight is over sends the army back
+// into it (remake).
 import { AUTO_SUMMON_JITTER, autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/mr-army'
 import { tileOfPx } from '../mr-open/mr-collision'
-import type { Vec } from '../mr-open/mr-geometry'
+import { distance, type Vec } from '../mr-open/mr-geometry'
 import { defOf, isAlive } from './actors'
 import { nearestHostileOnScreen } from './player-aim'
 import { randomInt } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { playerIn, spawn, type Tick } from './tick-context'
 import { teamSlotsFree } from './tick-dwelling'
-import type { Size } from './view'
+import { insideRect, viewRect, type Size } from './view'
 
 /** modArmyUnit.armyTeleportOut: a teleportable living unit starts teleporting out (once). */
 export function teleportOut(t: Tick, a: ActorState): void {
@@ -29,9 +30,11 @@ export function teleportOut(t: Tick, a: ActorState): void {
  */
 export function leaveIfFinished(t: Tick, a: ActorState, targetsDead: boolean): void {
   if (!defOf(t.s, a).leaveWhenFinished) return
-  const fightOver = t.s.worldMode === 'rooms' ? t.s.exitsOpen : t.s.navMode
-  if (targetsDead || fightOver) teleportOut(t, a)
+  if (targetsDead || fightOver(t)) teleportOut(t, a)
 }
+
+/** The fight is over: the room is clear (its exits are open), or in a continuous world nav mode is on. */
+const fightOver = (t: Tick): boolean => (t.s.worldMode === 'rooms' ? t.s.exitsOpen : t.s.navMode)
 
 /**
  * modTeleport.update: the teleport plays out; teleporting out ends in the reserve
@@ -55,21 +58,34 @@ export function stepTeleports(t: Tick): void {
  * The #army key (R; objAiPlayer.interpretGameKeys -> modAutoSummon.summonArmy) while Merlin is
  * alive: the whole reserve summoned around the mouse (Merlin without a mouse position). Remake
  * (owner requests): while army members of Merlin's are in play, the key teleports them all out
- * into the reserve instead (armyTeleportOut each, as a blank army summon blast does); unless Space
- * is in mouse mode the army is summoned at the nearest hostile on screen (the mouse without one).
+ * into the reserve instead (armyTeleportOut each, as a blank army summon blast does), but only once
+ * the fight is over; mid-fight it does nothing. Unless Space is in mouse mode the army is summoned
+ * at the nearest hostile on screen (the mouse without one).
  */
 export function stepArmyKey(t: Tick, input: InputSnapshot, view: Size): void {
   if (!input.armyKey) return
   const p = playerIn(t)
   if (!isAlive(p)) return
   const inPlay = armyMembersInPlay(t, p)
-  if (inPlay.length > 0) for (const a of inPlay) teleportOut(t, a)
-  else summonWholeReserve(t, p, summonPoint(t, p, input, view))
+  if (inPlay.length === 0) summonWholeReserve(t, p, summonPoint(t, p, input, view))
+  else if (fightOver(t)) for (const a of inPlay) teleportOut(t, a)
 }
 
 function summonPoint(t: Tick, p: ActorState, input: InputSnapshot, view: Size): Vec {
   const nearest = input.armyAtNearest ? nearestHostileOnScreen(t, p, view) : undefined
   return nearest?.pos ?? input.mouseWorld ?? p.pos
+}
+
+/**
+ * Remake: Merlin's army member nearest to him that he can see (in the room, or inside the play view
+ * in a continuous world), the aim of a blank army summon that sends one ally home; undefined for none.
+ */
+export function nearestAllyOnScreen(t: Tick, p: ActorState, view: Size): ActorState | undefined {
+  const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
+  const seen = armyMembersInPlay(t, p).filter((a) => !onScreen || insideRect(a.pos, onScreen))
+  let nearest: ActorState | undefined
+  for (const a of seen) if (!nearest || distance(a.pos, p.pos) < distance(nearest.pos, p.pos)) nearest = a
+  return nearest
 }
 
 /** Merlin's living army members (his armyMembers types on his team) in the tick that can still teleport out. */

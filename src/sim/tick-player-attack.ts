@@ -5,7 +5,7 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { cooldownReady, meleeHits, meleePush, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
-import { chargeLimits, chargeStep } from '../mr-open/mr-spell'
+import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isUnit, playerStatsOf, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
@@ -13,6 +13,7 @@ import { aimPoint, chargeKindFor, isHeld } from './player-aim'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip, type InputSnapshot } from './state'
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { applyPayload } from './tick-combat'
+import { nearestAllyOnScreen } from './tick-army'
 import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage } from './tick-spell'
 import { stepWeaponChoice } from './tick-weapons'
 import type { Size } from './view'
@@ -53,8 +54,18 @@ function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState
 }
 
 function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
-  releaseMagic(t, p, def, spell, aimPoint(t, p, input, p.ai.chargeKind, view))
+  releaseMagic(t, p, def, spell, releaseAim(t, p, def, spell, input, view))
   p.ai.chargeKind = null
+}
+
+/**
+ * Where the released spell flies (aimPoint). Remake: an army summon charged short of its first
+ * stage, a blank that sends the allies it hits home, flies at Merlin's nearest ally in sight
+ * instead, so a weak tap sends one ally back into the reserve.
+ */
+function releaseAim(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): Vec {
+  const ally = sendsAlliesHome(spell.charge, spell.attack ?? def.attack) ? nearestAllyOnScreen(t, p, view) : undefined
+  return ally ? { ...ally.pos } : aimPoint(t, p, input, p.ai.chargeKind, view)
 }
 
 function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): void {

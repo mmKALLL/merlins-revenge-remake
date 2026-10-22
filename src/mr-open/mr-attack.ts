@@ -1,7 +1,7 @@
 // Port of modWeaponManager cooldown counters (addCooldownCounter / updateCooldowns / resetCooldown /
 // getCooldownFin), modAttack.calcAttackPowerMelee / calcCollisionVectMelee / calcAttackHitMelee /
-// calcAttackLoc, objAiAttack.modifyLocWithEyestrain, the performRangedAttack firing vector and
-// calcAttackPowerBullet.
+// calcAttackLoc, objAiAttack.modifyLocWithEyestrain, the performRangedAttack firing vector,
+// calcAttackPowerBullet and modSplashDamage.calcCollisionVectSplash.
 import type { Rect, Vec } from './mr-geometry'
 import type { ActorDef, AttackDef } from './mr-actor-data'
 import { roughly, type Rng } from '../sim/rng'
@@ -58,8 +58,8 @@ export function meleeHits(attackerPos: Vec, def: ActorDef, facingLeft: boolean, 
 /** A point offset from the reg point, x mirrored by facing (as calcAttackLoc mirrors collisionLoc). */
 const offsetFrom = (pos: Vec, offset: Vec, facingLeft: boolean): Vec => ({ x: pos.x + offset.x * faceDir(facingLeft), y: pos.y + offset.y })
 
-/** Remake strike circle: the rect's closest point to the centre lies within the radius. */
-function circleMeetsRect(centre: Vec, radius: number, r: Rect): boolean {
+/** Remake strike circle (the sword's swing, a splash bullet's landing): the rect's closest point to the centre lies within the radius. */
+export function circleMeetsRect(centre: Vec, radius: number, r: Rect): boolean {
   const dx = centre.x - Math.max(r.left, Math.min(centre.x, r.right))
   const dy = centre.y - Math.max(r.top, Math.min(centre.y, r.bottom))
   return dx * dx + dy * dy <= radius * radius
@@ -99,4 +99,21 @@ export function bulletPush(vel: Vec, bulletDef: ActorDef): Vec {
   const p = bulletDef.attack.power
   if (typeof p !== 'number') throw new Error(`${bulletDef.key}: bullet power must be a number`)
   return { x: vel.x * p, y: vel.y * p }
+}
+
+/**
+ * modSplashDamage.calcCollisionVectSplash: CollisionCalcVect(targetLoc, attackLoc, power) with the
+ * locs swapped against its parameters (attackLoc, targetLoc), so the push points from the victim
+ * toward the impact, of length power - dist (SineDist: the plain distance); none at power or
+ * farther. A victim on the impact gets dist 1 and direction (0, 1), as CollisionCalcVect does.
+ */
+export function splashPush(victim: Vec, impact: Vec, bulletDef: ActorDef): Vec {
+  const power = bulletDef.attack.power
+  if (typeof power !== 'number') throw new Error(`${bulletDef.key}: bullet power must be a number`)
+  const on = victim.x === impact.x && victim.y === impact.y
+  const dir = on ? { x: 0, y: 1 } : { x: impact.x - victim.x, y: impact.y - victim.y }
+  const dist = on ? 1 : Math.hypot(dir.x, dir.y)
+  const speed = power - dist
+  if (speed <= 0) return { x: 0, y: 0 }
+  return { x: (dir.x / dist) * speed, y: (dir.y / dist) * speed }
 }

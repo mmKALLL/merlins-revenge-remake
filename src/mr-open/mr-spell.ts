@@ -56,6 +56,9 @@ export function payloadFor(charge: number, a: AttackDef): string | null {
 /** The payload functions an impact calls: payloadFunctionNonBlank once a summon stage is reached (selectPayload). */
 export const payloadFunctionsFor = (charge: number, a: AttackDef): string[] => (payloadFor(charge, a) === null ? a.payloadFunction : a.payloadFunctionNonBlank)
 
+/** Whether a spell released at `charge` sends the allies it hits into the reserve (the army summon's blank payload #armyTeleportOut). */
+export const sendsAlliesHome = (charge: number, a: AttackDef): boolean => payloadFunctionsFor(charge, a).includes('armyTeleportOut')
+
 /** modSpellMultistage.chargeReinIn: the charge a refused summon drops to, just below the first stage. */
 export const reinedInCharge = (a: AttackDef): number => a.multistage[0]!.chargeRequired - 1
 

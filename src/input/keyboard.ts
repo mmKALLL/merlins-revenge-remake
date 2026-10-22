@@ -13,7 +13,7 @@
 // touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
 // key is held, the blast button counts as Space, except that in mouse mode a press without a known
 // mouse position (a finger-only device) fires at the nearest enemy; the weapon button steps to the
-// next weapon (cycleWeapon). While a menu is open (setEnabled(false)) keys and clicks are left to the page.
+// next weapon (cycleWeapon); the army button is R, always aimed at the nearest enemy (touchArmy). While a menu is open (setEnabled(false)) keys and clicks are left to the page.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -53,7 +53,8 @@ export class InputTracker {
   private miniMapToggle = false // an N press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
   private cheatMedikit = false // an M press not yet in a snapshot
-  private armyKey = false // an R press not yet in a snapshot
+  private armyKey = false // an R press (or army button tap) not yet in a snapshot
+  private armyFromTouch = false // that press came from the army button: no mouse to summon at
   private selectSpell: number | null = null // a 1-9 press not yet in a snapshot
   private selectWeapon: string | null = null // a palette pick not yet in a snapshot
   private cycleWeapon = false // a touch weapon button press not yet in a snapshot
@@ -83,7 +84,10 @@ export class InputTracker {
     if (code === 'KeyN' && pressed) this.miniMapToggle = !this.miniMapToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
     if (code === 'KeyM' && pressed) this.cheatMedikit = true
-    if (code === 'KeyR' && pressed) this.armyKey = true
+    if (code === 'KeyR' && pressed) {
+      this.armyKey = true
+      this.armyFromTouch = false
+    }
     if (code === 'KeyQ' && pressed) this.weaponSelector = true
     const spell = SPELL_KEY.exec(code)
     if (spell && pressed) this.selectSpell = Number(spell[1])
@@ -117,6 +121,12 @@ export class InputTracker {
   /** Remake (the touch weapon button): the next weapon in Merlin's list, in the next snapshot. */
   nextWeapon(): void {
     if (this.enabled) this.cycleWeapon = true
+  }
+  /** Remake (the touch army button): R, summoning at the nearest enemy whatever the Space mode (a finger is no mouse). */
+  touchArmy(): void {
+    if (!this.enabled) return
+    this.armyKey = true
+    this.armyFromTouch = true
   }
   /** Whether N was pressed since the last call: the mini-map should be hidden or shown once. */
   takeMiniMapToggle(): boolean {
@@ -163,10 +173,11 @@ export class InputTracker {
     const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootShort: false }
     if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
     if (this.touchBlast) shots[this.touchShot()] = true
-    const { cheatKillAll, cheatMedikit, armyKey, selectSpell, selectWeapon, cycleWeapon } = this
+    const { cheatKillAll, cheatMedikit, armyKey, armyFromTouch, selectSpell, selectWeapon, cycleWeapon } = this
     this.cheatKillAll = false
     this.cheatMedikit = false
     this.armyKey = false
+    this.armyFromTouch = false
     this.selectSpell = null
     this.selectWeapon = null
     this.cycleWeapon = false
@@ -179,7 +190,7 @@ export class InputTracker {
       cheatKillAll,
       cheatMedikit,
       armyKey,
-      armyAtNearest: armyKey && this.mode !== 'mouse',
+      armyAtNearest: armyKey && (armyFromTouch || this.mode !== 'mouse'),
       selectSpell,
       selectWeapon,
       cycleWeapon,

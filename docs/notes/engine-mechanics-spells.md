@@ -234,6 +234,21 @@ Details:
   (`updateBuild`, `objAICPUBuilder.txt:259-282`, `advanceBuildFrame`); on the strip's loop the tower
   is finished (`#buildingFinished`) and fires axes, and the dwarf turns to fighting (throwing its
   own axes). Map-placed towers and every other unit are `preBuilt`.
+- **The tower's axe** (`act_towerAxe.txt`: `power 50`, `damageMultiplier 10`, `hits [#teamMembers,
+  #teamBuildings]`, `collideWithTarget false`, `splashDamageOn true`, `splashGraveOn true`,
+  friction (9,9)) is thrown `#proportional` (velocity = distance / 10), so with 9 % friction it
+  comes to rest about 1.1 times the distance out. It never hits on contact
+  (`objBullet.checkCollisionWithTarget` returns false). When it stalls, `goMode(#land)` ->
+  `modSplashDamage.internalEvent(#land)` -> `impactSplashDamage` -> `teamMaster.impactAttack`
+  (`modSplashDamage.txt:129-153`): every unit of a hated team in the hit roles with
+  `GeomDistSqr(unit loc, axe loc) < power^2` (`calcAttackHitSplash`, `:65-83`; a #bullet's search
+  radius is `power / tileSize`, `modAttack.calcAttackDist`), i.e. within 50 px reg point to reg
+  point. The push is `calcCollisionVectSplash` (`:87-105`): `CollisionCalcVect(targetLoc,
+  attackLoc, power)`, which is declared `(attackLoc, targetLoc, attackPower)`: the locs are passed
+  the other way round, so the vector points from the unit toward the axe, of length
+  `power - dist` (linear falloff to 0 at 50 px). It goes through the payload functions once
+  (`#takeHit`, times `damageMultiplier` 10), with no second takeHit as a contact hit has.
+  `splashGraveOn` stamps the axe's grave image where it landed (`drawSplashGrave`).
 
 ## Port
 
@@ -256,8 +271,8 @@ Details:
   `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
 - Every spell in the table is ported but the golden machine gun (an open item; its scroll tile
   stays unspawned). Test content: `?map=spells_test` (`tools/make-spells-test-map.mjs`).
-- Left out: experience in the army details (not ported anywhere), the in-game wizards, the dwarf tower axe's
-  splash damage (`splashDamageOn`; the axe hits its target directly as before), the monk's ghost
+- Left out: experience in the army details (not ported anywhere), the in-game wizards, the axe's
+  `splashGraveOn` stamp, the engine's 50 px splash test (see the remake decision), the monk's ghost
   (`reincarnateAs #monkGhost`, objAiCPUGhost), and the enemies that fire pulses, beams or lay mines
   (techMech, prestotolin, verdanlin; their actors are not copied yet).
 
@@ -303,7 +318,27 @@ Details:
   `armyMembers` types on his team, living, teleportable, not already leaving) are in play, R
   teleports them all out into the reserve instead (`armyTeleportOut` each, as a blank army summon
   blast does); only units in the tick count, so an ally left asleep far away in the continuous
-  world stays where it is. R has no touch control (the original has none either).
+  world stays where it is. **Only once the fight is over** (owner request, 2026-10-22): the room
+  clear (`exitsOpen`, as #noTargetFound's room test) or, in a continuous world, nav mode on (no
+  awake hostile near Merlin); with army members out mid-fight R does nothing (it does not fall
+  through to summoning). The same `fightOver` test sends allies home by themselves.
+- **The touch army button** (owner request, 2026-10-22; no such control in the original): a blue
+  button with the army summon's `_ws` icon above the weapon button (below it in portrait) is R,
+  once per tap; with no mouse on a touch screen it always summons at the nearest enemy on screen,
+  else at Merlin (`InputTracker.touchArmy`).
+- **A blank army summon flies at the nearest ally** (owner request, 2026-10-22). A spell whose
+  release charge leaves it blank with the payload `#armyTeleportOut` (the army summon below its
+  first stage, `sendsAlliesHome`) flies at Merlin's army member nearest to him (in the room, or
+  inside the play view in a continuous world) instead of the mouse or the nearest enemy, so a weak
+  tap sends one ally home. At or above the first stage, or with no ally in sight, it aims as before.
+- **The dwarf tower's axe splashes in a circle** (owner request, 2026-10-22). A bullet field
+  `splashRadius` (engine default `null`: the port's old contact hit on the target) makes a bullet
+  ignore its target in flight and, when it lands, hit every living hated unit of its hit roles
+  whose sprite rect meets the circle of that radius around the landing point (the sword's
+  `circleMeetsRect`), with the original's splash push (`splashPush`: toward the axe, length
+  `power - dist`, through the payload functions once). `towerAxe.splashRadius` is 16 in
+  `assets/tuning.json`, the owner's figure; the original's test reaches 50 px reg point to reg
+  point (`power`), a much wider blast.
 - **Touch.** A weapon button beside the blast button shows the current weapon; a tap steps to the
   next one in Merlin's list (no such control in the original).
 - **A hit ends Merlin's swing.** objPlayerMerlinCharacter.takeHit forces `#walk`; the port ends the
