@@ -1,6 +1,7 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
+import { NO_MEDIKITS, type MedikitState, type PotionCount } from '../mr-open/mr-pickup'
 import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
@@ -54,6 +55,7 @@ export const ATTACK_STRIPS: ReadonlySet<string> = new Set<AttackStrip>(['weaponM
 export type ActorMode =
   | 'stand' | 'walk' | AttackStrip | 'charge' | 'release' | 'reel'
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
+  | 'collected' // a pickup showing its writing as it fades (objPowerUpWriting #writing)
 
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
@@ -144,6 +146,15 @@ export type SimEvent =
   /** the whole map cleared or the end room cleared (gameMaster.gameComplete); emitted once */
   | { kind: 'mapComplete' }
 
+/** What potionMaster, modMedikit and modInvince keep for Merlin (engine-mechanics-potions.md). */
+export interface PlayerPickups {
+  potionsDrunk: PotionCount[] // potionMaster.pPotionsCollected, in order of the first drink
+  medikits: MedikitState
+  invinceTicks: number // modInvince temporary invincibility: ticks left, 0 = off
+}
+
+export const NO_PICKUPS: PlayerPickups = { potionsDrunk: [], medikits: NO_MEDIKITS, invinceTicks: 0 }
+
 /**
  * rooms: the original room-by-room play (store/restore, exits, room-cleared jingle). continuous
  * (remake feature, ?camera=follow): the whole map is one room with every unit spawned at the start
@@ -169,6 +180,7 @@ export interface SimState {
   restartRequested: boolean
   /** gameMaster.gameComplete has run (map-complete.ts): units no longer act; the presentation takes over */
   mapComplete: boolean
+  pickups: PlayerPickups
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)
 }
 

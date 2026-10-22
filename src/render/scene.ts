@@ -3,7 +3,7 @@ import type { ExitArrowTextures, LoadedSprite, LoadedTileset } from '../data/loa
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
-import { isSpell, isStepped, playerOf } from '../sim/actors'
+import { isPickup, isSpell, isStepped, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
@@ -12,6 +12,7 @@ import type { EndSequenceView } from '../cutscene/end-sequence'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
 import { barColour, HealthBars, type StandBox } from './health-bars'
+import { PickupHud, pickupAlpha } from './pickups'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -40,6 +41,8 @@ const BAR = { x: 32, w: 200, h: 8, background: 0x202020 }
 /** The debug readout sits right of the bar: gap to the bar, offset from the HUD strip's top. */
 const DEBUG_TEXT = { gap: 8, top: 4 }
 const NO_TINT = 0xffffff
+/** Height of the HUD's potion and medikit icons (their 16x16 members), for centring them in the strip. */
+const PICKUP_ICON_PX = 16
 /** Cut scene characters drawn with an actor's sprite under another key (#merlin plays as the player). */
 const CUTSCENE_ACTOR: Record<string, string> = { merlin: 'player' }
 
@@ -87,6 +90,7 @@ export class Scene {
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
   private bar = new Graphics()
+  private pickupHud: PickupHud | null = null
   private barFill = -1
   private cutScene: CutSceneOverlay | null = null
   private debugText = new Text({ text: '', style: { fill: '#0f0', fontSize: 10, fontFamily: 'monospace', lineHeight: 11 } })
@@ -146,6 +150,8 @@ export class Scene {
     this.app.stage.addChild(this.bar)
     this.debugText.position.set(BAR.x + BAR.w + DEBUG_TEXT.gap, hudY + DEBUG_TEXT.top)
     this.app.stage.addChild(this.debugText)
+    this.pickupHud = new PickupHud(this.sprites, this.defs, this.cfg.playOffset.x + this.cfg.view.w, hudY + Math.floor((this.cfg.logical.h - hudY - PICKUP_ICON_PX) / 2))
+    this.app.stage.addChild(this.pickupHud.layer)
     this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
@@ -203,6 +209,7 @@ export class Scene {
     this.syncActors(s, lerp)
     this.healthBars.update(s, lerp, (name) => this.standBox(name))
     this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
+    this.pickupHud?.update(s)
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
       this.debugText.text =
@@ -249,11 +256,12 @@ export class Scene {
       // keeps a wide attack frame's body in place; frames without one are centred.
       const reg = spell ? undefined : this.regFor(def.name, a.anim, frame)
       spr.anchor.set(reg ? reg.x / tex.width : 0.5, reg ? reg.y / tex.height : 0.5)
-      const shift = spell || bullet || reg ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
+      // a pickup's writing is centred on it like its potion (bitmap members default to a centred reg point)
+      const shift = spell || bullet || reg || isPickup(s, a) ? 0 : ((tex.width - this.standWidth(def.name, tex.width)) / 2) * (a.facingLeft ? -1 : 1)
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) this.styleSpell(spr, a, def, tex)
       else if (bullet) this.styleBullet(spr, a)
-      else this.styleCharacter(spr, a)
+      else this.styleCharacter(spr, a, pickupAlpha(s, a))
     }
     for (const [id, spr] of this.actorSprites) {
       if (seen.has(id)) continue
@@ -302,11 +310,11 @@ export class Scene {
   }
 
   /** Characters mirror to face left. */
-  private styleCharacter(spr: Sprite, a: ActorState): void {
+  private styleCharacter(spr: Sprite, a: ActorState, alpha: number): void {
     spr.rotation = 0
     spr.scale.set((a.facingLeft ? -1 : 1) * this.cfg.spriteScale, this.cfg.spriteScale)
     spr.tint = NO_TINT
-    spr.alpha = 1
+    spr.alpha = alpha
   }
 
   /** Width of the sprite's stand frame (or first walk frame); `fallback` if it has neither. */

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
-import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, roomKey, startRoom, type GeneratedFloor } from './floor'
+import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { THEMES } from './themes'
@@ -107,6 +107,23 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     expect(theme.units.bosses.some((g) => g.boss === boss?.key && Object.keys(g.units).every((k) => keys.has(k)))).toBe(true)
   })
 
+  it('puts two potions near the outer corner of each side corner room, and none elsewhere', () => {
+    const outerCorner = { farX: { x: ROOM_SIZE.x - 1, y: ROOM_SIZE.y - 1 }, farY: { x: 0, y: 0 } }
+    const potionKeys = new Set(theme.units.potions.map((p) => p.value))
+    for (const f of floors.values()) {
+      for (const corner of ['farX', 'farY'] as const) {
+        const room = cornerRoom(size, corner)
+        const potions = f.placements.filter((p) => sameRoom(p.room, room) && potionKeys.has(p.key))
+        expect(potions.map((p) => p.tile)).toEqual(potionTiles(size, room))
+        for (const p of potions) {
+          const fromCorner = Math.max(Math.abs(p.tile.x - outerCorner[corner].x), Math.abs(p.tile.y - outerCorner[corner].y))
+          expect(fromCorner).toBeLessThanOrEqual(3)
+        }
+      }
+      expect(f.placements.filter((p) => potionKeys.has(p.key))).toHaveLength(4)
+    }
+  })
+
   it('sets the start and exit corners on the map', () => {
     const map = floors.get(SEEDS[0]!)!.map
     expect(map.mapSize).toEqual(size)
@@ -133,7 +150,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     for (const [symbol, index] of Object.entries(theme.objectTiles)) expect(objects.symbols[index - 1]).toBe(symbol)
     const u = theme.units
     const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
-      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units))]
+      ...[...u.specialRooms.flatMap((s) => s.groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value)]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
   })
 })

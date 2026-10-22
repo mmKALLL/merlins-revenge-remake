@@ -1,0 +1,74 @@
+[#name: "act_medikit", #type: #field]
+[
+#objType: #objMedikit,
+#inherit: #powerUp,
+#character: #medikit,
+#collectSound: "collect_powerup_01",
+#member: member("medikit_potion", "gfx")
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

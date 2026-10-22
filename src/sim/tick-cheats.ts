@@ -6,18 +6,21 @@
 //    every room's units are in play, only the hostiles within the player's killAllCheatRadius of
 //    Merlin (plain distance) die.
 //  - M, #medikit: objPlayerMerlinCharacter.medikitCollected without a medikit type restores
-//    getMaxEnergy() - getEnergy(), i.e. full energy. Its temporary invincibility is not ported
-//    (the remake has no invincibility yet).
+//    getMaxEnergy() - getEnergy(), i.e. full energy, and starts the temporary invincibility.
 import { defOf, isAlive, isUnit } from './actors'
 import type { ActorState, InputSnapshot } from './state'
 import { killUnit } from './tick-combat'
 import { bringIn, playerIn, waitingSleepers, type Tick } from './tick-context'
+import { startTempInvince } from './tick-pickup'
 
 export function stepCheats(t: Tick, input: InputSnapshot): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   if (input.cheatKillAll) killEnemiesOnScreen(t, p)
-  if (input.cheatHeal) p.energy = defOf(t.s, p).maxEnergy
+  if (input.cheatHeal) {
+    startTempInvince(t)
+    p.energy = defOf(t.s, p).maxEnergy
+  }
 }
 
 /** Every priority group of `team`'s hates (teamMaster.killEnemyTeams walks them all). */

@@ -19,15 +19,18 @@ import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
 import { actorIn, hitTargetIn, playSound, sleeperIn, spawn, waitingSleepers, type Tick } from './tick-context'
 import { nearestHostileId, rollDetour } from './tick-ai'
+import { isInvincible } from './tick-pickup'
 
 /** Ticks the player's die mode lasts before the map restart is requested. */
 export const PLAYER_DEATH_TICKS = 30
 
 /**
  * modEnergy.loseEnergy: energy falls; at <= 0 the character dies (outOfEnergy -> #die). A CPU
- * character's energy becomes -100 in the engine; only the sign matters here.
+ * character's energy becomes -100 in the engine; only the sign matters here. Nothing happens to
+ * Merlin while a pickup's temporary invincibility lasts (getInvinceActive).
  */
 function loseEnergy(t: Tick, victim: ActorState, amount: number): void {
+  if (victim.id === t.s.playerId && isInvincible(t)) return
   const def = defOf(t.s, victim)
   victim.energy -= amount
   t.events.push({ kind: 'hit', id: victim.id })

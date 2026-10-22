@@ -6,7 +6,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { Rng } from '../sim/rng'
-import type { ActorState, AnimationSet, InputSnapshot, RoomState, SimState, WorldMode } from '../sim/state'
+import { NO_PICKUPS, type ActorState, type AnimationSet, type InputSnapshot, type PlayerPickups, type RoomState, type SimState, type WorldMode } from '../sim/state'
 import type { WorldGrid } from '../sim/world-grid'
 
 /** Bump when the snapshot shape or the meaning of a field changes. */
@@ -35,6 +35,7 @@ export interface SimSnapshot {
   playerId: number
   restartRequested: boolean
   mapComplete?: boolean // absent in snapshots made before map completion existed
+  pickups?: PlayerPickups // absent in snapshots made before potions existed
   actors: ActorState[]
   rooms: Record<string, RoomState>
   /** the inputs of the ticks leading up to this moment, oldest first (context; not replayed on load) */
@@ -104,6 +105,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     playerId: s.playerId,
     restartRequested: s.restartRequested,
     mapComplete: s.mapComplete,
+    pickups: s.pickups,
     actors: s.actors,
     rooms: s.rooms,
     inputs: [...(extras.inputs ?? [])],
@@ -156,6 +158,7 @@ export function deserializeSim(
     playerId: snap.playerId,
     restartRequested: snap.restartRequested,
     mapComplete: snap.mapComplete ?? false,
+    pickups: snap.pickups ?? NO_PICKUPS,
     events: [],
   }
 }

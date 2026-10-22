@@ -70,6 +70,22 @@ describe("The Sorcerer's Tower", () => {
     }
   })
 
+  it("keeps each floor's potions at its side corners' outer corners, mirrored floors included", () => {
+    for (const { tower } of towers) {
+      TOWER_FLOORS.forEach((theme, k) => {
+        const { start, exit } = corners(k)
+        const potionKeys = new Set(theme.units.potions.map((p) => p.value))
+        // the side corners: the start's column with the exit's row, and the exit's column with the start's row
+        for (const room of [{ x: start.x, y: exit.y }, { x: exit.x, y: start.y }]) {
+          const potions = tower.placements.filter((p) => sameVec(p.room, room) && potionKeys.has(p.key))
+          expect(potions).toHaveLength(2)
+          const outer = { x: room.x === 1 ? 0 : ROOM_SIZE.x - 1, y: room.y === exit.y ? 0 : ROOM_SIZE.y - 1 }
+          for (const p of potions) expect(Math.max(Math.abs(p.tile.x - outer.x), Math.abs(p.tile.y - outer.y))).toBeLessThanOrEqual(3)
+        }
+      })
+    }
+  })
+
   it('names every unit by its symbol in the combined objects key', () => {
     const { tower } = towers[0]!
     for (const p of tower.placements) {

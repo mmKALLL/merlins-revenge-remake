@@ -1,0 +1,78 @@
+[#name: "act_powerUp", #type: #field]
+[
+#objType: #objPotion,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#collectSound: "collect_powerup_02",
+#counterColour: rgb(255,255,255),
+#frictionReel: point(20,20),
+#minimapStatus: #clr,
+#team: #collectables,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

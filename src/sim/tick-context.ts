@@ -11,7 +11,7 @@
 import type { Vec } from '../mr-open/mr-geometry'
 import { createActor, isStepped } from './actors'
 import type { Rng } from './rng'
-import type { ActorState, SimEvent, SimState } from './state'
+import type { ActorState, PlayerPickups, SimEvent, SimState } from './state'
 
 export interface Tick {
   s: SimState // the state being stepped (read-only)
@@ -22,6 +22,7 @@ export interface Tick {
   removed: Set<number> // ids removed this tick (finished, landed, hit)
   hit: Set<number> // ids that took a hit this tick (their reel stall counting starts next tick)
   graves: { def: string; pos: Vec }[] // graves recorded this tick in the current room
+  pickups: PlayerPickups // Merlin's potions, medikits and invincibility, updated in place of s.pickups
   events: SimEvent[]
   rng: Rng
   nextId: number
@@ -41,6 +42,7 @@ export function beginTick(s: SimState): Tick {
     removed: new Set(),
     hit: new Set(),
     graves: [],
+    pickups: s.pickups,
     events: [],
     rng: s.rng,
     nextId: s.nextId,

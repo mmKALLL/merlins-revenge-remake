@@ -3,7 +3,8 @@
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
 //  2. player attack input: charge / resume / release (tick-spell.ts)
-//  3. CPU AI decisions (tick-ai.ts), sleepers' idle wander in a continuous world (idle-wander.ts), AI spell casters (tick-caster.ts), dwelling production and
+//  3. pickups Merlin touches collected, the medikit heal and invincibility countdown (tick-pickup.ts),
+//     CPU AI decisions (tick-ai.ts), sleepers' idle wander in a continuous world (idle-wander.ts), AI spell casters (tick-caster.ts), dwelling production and
 //     resident releases (tick-dwelling.ts)
 //  4. movement of every other actor (every velocity, walkers' included, decays by the actor's
 //     friction first; characters collide with tiles and take wall damage while reeling; bullets
@@ -31,11 +32,12 @@ import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { activateAtStart, navModeClear, stepActivation } from './activation'
 import { checkMapCleared, completeMap, isEndRoom, isWholeMapClear } from './map-complete'
 import {
-  collisionRectFor, createActor, defOf, faceAlong, isAlive, isSpell, isStepped, isUnit, playerOf, roomMusicTrack, spawnAllRooms, spawnRoomActors, stripFor,
+  collisionRectFor, createActor, defOf, faceAlong, isAlive, isKeptWithRoom, isSpell, isStepped, isUnit, playerOf, playerStatsOf, roomMusicTrack, spawnAllRooms,
+  spawnRoomActors, stripFor,
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
-  DEFAULT_SIM_CONFIG, roomKey,
+  DEFAULT_SIM_CONFIG, NO_PICKUPS, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
@@ -44,6 +46,7 @@ import { alignCasterSpell, stepSpellCasters } from './tick-caster'
 import { exitsOpenFor, stepAttackFrames, stepBullets, stepCooldownsAndRegen, stepReelAndDeath, takeWallDamage } from './tick-combat'
 import { beginTick, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { stepDwellings } from './tick-dwelling'
+import { stepPickups } from './tick-pickup'
 import { stepSleeperWanders } from './idle-wander'
 import { stepPlayerAttack, stepSpells } from './tick-spell'
 import type { WorldGrid } from './world-grid'
@@ -77,6 +80,7 @@ export function createSim(
     playerId: 0,
     restartRequested: false,
     mapComplete: false,
+    pickups: NO_PICKUPS,
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
@@ -137,7 +141,7 @@ export function withExitsEvaluated(s: SimState): SimState {
 function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const s = t.s
   const p = playerIn(t)
-  const def = defOf(s, p)
+  const def = playerStatsOf(s, p)
   const dir = isAlive(p) ? input.move : { x: 0, y: 0 }
   const accel = s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration
   const walkVel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
@@ -266,7 +270,7 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   // the spell stays with the player (modSpellMultistage #enteringNewRoom), so the charge goes on.
   const player = playerOf(s)
   const charging = s.actors.filter((a) => isSpell(s, a) && a.ownerId === s.playerId && a.mode === 'charge')
-  const survivors = s.actors.filter((a) => a.id !== s.playerId && isUnit(s, a))
+  const survivors = s.actors.filter((a) => a.id !== s.playerId && isKeptWithRoom(s, a))
   const stored = s.rooms[fromKey] ?? EMPTY_ROOM
   const carried = [player, ...charging]
   const next: SimState = {
@@ -325,6 +329,7 @@ function afterTick(t: Tick): SimState {
     rng: t.rng,
     nextId: t.nextId,
     events: t.events,
+    pickups: t.pickups,
     restartRequested: t.restartRequested,
   }
 }
@@ -353,6 +358,7 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
   stepPlayerAttack(t, input, cfg.view)
   // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them
   if (!s.mapComplete) {
+    stepPickups(t)
     stepCpuAi(t)
     if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
     stepSpellCasters(t)

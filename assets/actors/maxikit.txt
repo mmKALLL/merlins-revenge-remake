@@ -1,0 +1,74 @@
+[#name: "act_maxikit", #type: #field]
+[
+#objType: #objMedikit,
+#inherit: #powerUp,
+#character: #maxikit,
+#collectSound: "collect_powerup_01",
+#member: member("maxikit_potion", "gfx")
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

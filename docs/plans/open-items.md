@@ -17,14 +17,15 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 - **Roguelite floors.** Four random 3x3 floors exist, one per sketch floor
   (`?map=randomly_generated/1-goblin-forest`, `2-undead-marsh`, `3-dragon-canyon`, `4-magic-maze`), and the
   four stacked into the tower (`randomly_generated/sorcerers-tower`; `src/gen/`,
-  `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Next: floor-start rewards, potion corner rooms (needs potions), MR3 wizards and the
+  `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Two potions wait in each floor's side corner rooms. Next: floor-start rewards, MR3 wizards and the
   Black Sorcerer once ported, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an
   experience bar.
-- **Potions.** `potionMaster`, `objPotion`, the manaBurst / manaCapacity / manaFlow / walkSpeed
-  potions, medikits (`medikitMaster`). When done, remove the stand-in `player.mana_capacity` /
-  `mana_flow` values in `assets/tuning.json` (they mimic 4 Max Blast + 4 Quick Charge potions).
+- **Potions: what is left.** Ported (`docs/notes/engine-mechanics-potions.md`): the four potions,
+  medikit, maxikit, pickup, writing fade, temporary invincibility and the HUD. Open: the real
+  `maxikit_potion` / `maxikit_writing` members (stand-ins from the objects tile and the medikit's
+  writing), `pulseWhite` (Merlin's alpha pulses instead), save/load of the pickups.
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in

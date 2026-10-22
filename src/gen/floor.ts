@@ -15,6 +15,8 @@ export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 export const startRoom = (floorSize: Vec): Vec => ({ x: 1, y: floorSize.y })
 export const exitRoom = (floorSize: Vec): Vec => ({ x: floorSize.x, y: 1 })
 
+const sameVec = (a: Vec, b: Vec): boolean => a.x === b.x && a.y === b.y
+
 /** The sketch's corner names (it counts y up from the start) as engine rooms. */
 export function cornerRoom(floorSize: Vec, corner: Corner): Vec {
   switch (corner) {
@@ -29,6 +31,29 @@ const UNIT_EDGE_MARGIN = 2
 const BOSS_CORNER_INSET = 2
 /** The exit room tile for the boss, kept open and reachable when the room is laid out. */
 export const BOSS_TILE: Vec = { x: ROOM_SIZE.x - 1 - BOSS_CORNER_INSET, y: BOSS_CORNER_INSET }
+/** The side corner rooms' potions stand this many tiles in from the floor's outer corner, out of reach on entering. */
+const POTION_CORNER_INSET = 2
+/** Potions per side corner room, side by side along the floor's outer edge. */
+const POTIONS_PER_CORNER = 2
+const SIDE_CORNERS = ['farX', 'farY'] as const
+
+/**
+ * The potion tiles of a side corner room (none elsewhere): next to the floor's outer corner in
+ * that room, POTION_CORNER_INSET tiles in, the next ones stepping along x away from the corner.
+ */
+export function potionTiles(floorSize: Vec, room: Vec): Vec[] {
+  const isSideCorner = SIDE_CORNERS.some((c) => sameVec(cornerRoom(floorSize, c), room))
+  if (!isSideCorner || sameVec(room, startRoom(floorSize)) || sameVec(room, exitRoom(floorSize))) return []
+  const atRight = room.x === floorSize.x
+  const atBottom = room.y === floorSize.y
+  const x = atRight ? ROOM_SIZE.x - 1 - POTION_CORNER_INSET : POTION_CORNER_INSET
+  const y = atBottom ? ROOM_SIZE.y - 1 - POTION_CORNER_INSET : POTION_CORNER_INSET
+  const away = atRight ? -1 : 1
+  return Array.from({ length: POTIONS_PER_CORNER }, (_, i) => ({ x: x + away * i, y }))
+}
+
+/** Tiles a room keeps open and reachable for its fixed placements: the boss's, or the corner potions'. */
+const reservedTiles = (floorSize: Vec, room: Vec): Vec[] => (sameVec(room, exitRoom(floorSize)) ? [BOSS_TILE] : potionTiles(floorSize, room))
 /** Whole-floor attempts (each from a derived seed) before giving up. */
 const FLOOR_ATTEMPTS = 8
 const RETRY_SEED_STEP = 0x9e3779b9
@@ -77,7 +102,7 @@ function buildFloor(theme: FloorTheme, seed: number, options: FloorOptions): Gen
   for (let y = 1; y <= size.y; y++) {
     for (let x = 1; x <= size.x; x++) {
       const room = { x, y }
-      const keepOpen = sameVec(room, exitRoom(size)) ? [BOSS_TILE] : []
+      const keepOpen = reservedTiles(size, room)
       const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
       decorate(rng, shape, theme.shape.decorationChance)
       const units = placeUnits(rng, theme, room, shape, placePlayer)
@@ -164,8 +189,6 @@ function difficultyOf(theme: FloorTheme, fy: number): number {
   return d0 + (d1 - d0) * fy
 }
 
-const sameVec = (a: Vec, b: Vec): boolean => a.x === b.x && a.y === b.y
-
 /** Reachable open tiles away from the edges, in random order. */
 function unitTiles(rng: GenRandom, shape: RoomShape): Vec[] {
   const out: Vec[] = []
@@ -222,9 +245,10 @@ const amountAt = (rng: GenRandom, a: Amount, fx: number): number => Math.floor(a
 function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, placePlayer: boolean): Placement[] {
   const u = theme.units
   const isExit = sameVec(room, exitRoom(theme.floorSize))
-  const tiles = unitTiles(rng, shape).filter((t) => !(isExit && sameVec(t, BOSS_TILE)))
+  const reserved = reservedTiles(theme.floorSize, room)
+  const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)))
   const keys: string[] = []
-  const fixed: Placement[] = []
+  const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
   if (sameVec(room, startRoom(theme.floorSize))) {
     const centre = { x: (shape.size.x - 1) / 2, y: (shape.size.y - 1) / 2 }
     tiles.sort((a, b) => Math.hypot(a.x - centre.x, a.y - centre.y) - Math.hypot(b.x - centre.x, b.y - centre.y))

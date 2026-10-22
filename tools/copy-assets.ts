@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PNG } from 'pngjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const ARCHIVE = join(ROOT, 'assets-mr-original/merlin_open_30_speedy_and _tvs')
@@ -142,6 +143,29 @@ const moreActors = [
 for (const name of moreActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: more enemies' })
 }
+
+// Potions and medikits (objPotion, objMedikit; docs/notes/engine-mechanics-potions.md). Each
+// pickup's gfx members become a sprite folder named after it: `<name>_potion` (the pickup, also
+// its HUD icon) as the stand strip and `<name>_writing` (shown fading once collected) as the
+// writing strip. The maxikit has no members in gfx/; convert-assets cuts it from its objects tile.
+const pickups: [name: string, gfxFolder: string][] = [
+  ['manaBurst', 'potions'], ['manaCapacity', 'potions'], ['manaFlow', 'potions'], ['walkSpeed', 'potions'], ['medikit', 'medikit'],
+]
+for (const name of ['powerUp', ...pickups.map(([n]) => n), 'maxikit']) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: potion or medikit' })
+}
+for (const [name, folder] of pickups) {
+  for (const [member, strip] of [['potion', 'stand'], ['writing', 'writing']]) {
+    copies.push({ from: join(GFX, folder, `${name}_${member}.bmp`), to: join(ASSETS, `sprites/${name}/anm_${name}_${strip}_1_01.bmp`), why: `${name}_${member} member` })
+  }
+}
+// the maxikit shows the medikit's writing: no maxikit_writing member is available
+copies.push({ from: join(GFX, 'medikit', 'medikit_writing.bmp'), to: join(ASSETS, 'sprites/maxikit/anm_maxikit_writing_1_01.bmp'), why: 'maxikit writing (the medikit\'s)' })
+// medikitMaster's HUD icons (medikit_on while a kit heals, medikit_off otherwise) as medikit strips
+for (const state of ['on', 'off']) {
+  const strip = state === 'on' ? 'hudOn' : 'hudOff'
+  copies.push({ from: join(GFX, 'medikit', `medikit_${state}.bmp`), to: join(ASSETS, `sprites/medikit/anm_medikit_${strip}_1_01.bmp`), why: `medikit_${state} HUD icon` })
+}
 // every team file (enemy teams also fight each other through their hate lists)
 for (const file of readdirSync(CASTS).sort()) {
   const m = /^tem_(.+)\.txt$/.exec(file)
@@ -198,4 +222,38 @@ for (const [file, name] of titleLetters) {
   const to = join(ASSETS, 'title', `${name}.png`)
   execFileSync('sips', ['-s', 'format', 'png', join(GFX, 'title', 'output', `${file}.gif`), '--out', to], { stdio: 'ignore' })
   console.log(`${to.slice(ROOT.length)}  <- title letter`)
+}
+
+// The maxikit's stand frame: its merlinOpenObjects tile (46, the editor's picture of the item),
+// cut to the 16x16 of the other pickup members around the drawn pixels (white is the sheet's
+// background), as maxikit_potion is not in gfx/.
+const MAXIKIT_TILE = { sheet: join(ASSETS, 'tilesets/merlinOpenObjects.png'), index: 46, tilesPerRow: 10, size: 32 }
+const PICKUP_MEMBER_PX = 16
+{
+  const sheet = PNG.sync.read(readFileSync(MAXIKIT_TILE.sheet))
+  const i = MAXIKIT_TILE.index - 1
+  const x0 = (i % MAXIKIT_TILE.tilesPerRow) * MAXIKIT_TILE.size
+  const y0 = Math.floor(i / MAXIKIT_TILE.tilesPerRow) * MAXIKIT_TILE.size
+  const drawn = (x: number, y: number): boolean => {
+    const o = ((y0 + y) * sheet.width + x0 + x) * 4
+    const white = sheet.data[o] === 255 && sheet.data[o + 1] === 255 && sheet.data[o + 2] === 255
+    return sheet.data[o + 3]! > 0 && !white
+  }
+  const box = { left: MAXIKIT_TILE.size, top: MAXIKIT_TILE.size, right: 0, bottom: 0 }
+  for (let y = 0; y < MAXIKIT_TILE.size; y++) {
+    for (let x = 0; x < MAXIKIT_TILE.size; x++) {
+      if (!drawn(x, y)) continue
+      box.left = Math.min(box.left, x)
+      box.top = Math.min(box.top, y)
+      box.right = Math.max(box.right, x + 1)
+      box.bottom = Math.max(box.bottom, y + 1)
+    }
+  }
+  const left = Math.round((box.left + box.right - PICKUP_MEMBER_PX) / 2)
+  const top = Math.round((box.top + box.bottom - PICKUP_MEMBER_PX) / 2)
+  const frame = new PNG({ width: PICKUP_MEMBER_PX, height: PICKUP_MEMBER_PX })
+  PNG.bitblt(sheet, frame, x0 + left, y0 + top, PICKUP_MEMBER_PX, PICKUP_MEMBER_PX, 0, 0)
+  const to = join(ASSETS, 'sprites/maxikit/anm_maxikit_stand_1_01.png')
+  writeFileSync(to, PNG.sync.write(frame))
+  console.log(`${to.slice(ROOT.length)}  <- maxikit frame from its objects tile`)
 }

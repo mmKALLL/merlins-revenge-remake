@@ -4,6 +4,7 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collision'
 import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
+import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, withPotions } from '../mr-open/mr-pickup'
 import { roomMusic } from '../mr-open/mr-sound'
 import { dwellingStart } from '../mr-open/mr-residents'
 import { isDead } from '../mr-open/mr-take-hit'
@@ -13,8 +14,9 @@ import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type Sim
 
 /** objDwelling: a building that releases residents (modResidents); hittable, no AI. */
 const DWELLING_OBJ_TYPE = 'objDwelling'
+const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE])
 /** objTypes an objects-layer symbol may spawn in this slice; others are skipped with a warning. */
-const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE])
+const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
 /** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts). */
 export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster'])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
@@ -35,6 +37,13 @@ export const isDwelling = (s: SimState, a: ActorState): boolean => s.defs[a.def]
  * targeted and hit, keep exits closed while alive and stay in their room when the player leaves.
  */
 export const isUnit = (s: SimState, a: ActorState): boolean => isCharacter(s, a) || isDwelling(s, a)
+/** Potions and medikits (objPowerUp): Merlin collects them by walking over them; nothing hits them. */
+export const isPickup = (s: SimState, a: ActorState): boolean => PICKUP_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
+/**
+ * What a room keeps when Merlin leaves it: its units and its uncollected pickups (a collected one
+ * fading out is not recorded, objPowerUpWriting.collected -> setRecordInRoomState(false)).
+ */
+export const isKeptWithRoom = (s: SimState, a: ActorState): boolean => isUnit(s, a) || (isPickup(s, a) && a.mode !== 'collected')
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
 export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
 
@@ -47,6 +56,11 @@ export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'i
 
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
+
+/** Merlin's definition with the potions he has drunk added to his stats (engine-mechanics-potions.md §3). */
+export function playerStatsOf(s: SimState, player: ActorState): ActorDef {
+  return withPotions(defOf(s, player), s.pickups.potionsDrunk)
+}
 
 /** The definition with the actor's current attack installed (a multiAttack unit may be using its natural one). */
 export function armedDefOf(s: SimState, a: ActorState): ActorDef {
@@ -67,7 +81,7 @@ export function playerOf(s: SimState): ActorState {
   return p
 }
 
-const initialMode = (def: ActorDef): ActorMode => (FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : 'walk')
+const initialMode = (def: ActorDef): ActorMode => (FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : PICKUP_OBJ_TYPES.has(def.objType) ? 'stand' : 'walk')
 /** The strip an actor starts on: characters stand still (objGameObject initMode #stand), bullets and spells fly. */
 const initialAnim = (s: SimState, def: ActorDef): string =>
   stripNameFor(s.anims[def.name], initialMode(def), false, def.objType === 'objSpell')

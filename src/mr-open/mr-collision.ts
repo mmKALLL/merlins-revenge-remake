@@ -24,6 +24,20 @@ export const PLAYER_COLLISION_RECT: CollisionRect = collisionRectForFrame(16, 16
 
 export type SolidAt = (tx: number, ty: number) => boolean
 
+/**
+ * CollisionCheck(obj1, obj2): obj2's reg point inside obj1's collision rect in world px (`objRect`)
+ * grown by obj2's collision rect offsets (`targetCr`, relative to its reg point).
+ */
+export function collisionCheck(objRect: Rect, targetPos: Vec, targetCr: CollisionRect): boolean {
+  const grown = {
+    left: objRect.left + targetCr.left,
+    top: objRect.top + targetCr.top,
+    right: objRect.right + targetCr.right,
+    bottom: objRect.bottom + targetCr.bottom,
+  }
+  return targetPos.x >= grown.left && targetPos.x < grown.right && targetPos.y >= grown.top && targetPos.y < grown.bottom
+}
+
 /** collisionRect + rect(loc, loc) */
 export function rectAt(loc: Vec, r: CollisionRect): CollisionRect {
   return { left: loc.x + r.left, top: loc.y + r.top, right: loc.x + r.right, bottom: loc.y + r.bottom }
