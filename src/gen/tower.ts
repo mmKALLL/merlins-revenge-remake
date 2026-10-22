@@ -53,10 +53,12 @@ function buildTower(seed: number): GeneratedFloor {
   const rng = new GenRandom(seed)
   // stairs[k] joins floor k's exit room to floor k + 1's start room, in tower coordinates
   const stairs = TOWER_FLOORS.slice(1).map((_, k) => randomOpening(rng, ROOM_SIZE.x, TOWER_FLOORS[k]!.edges.endOpening))
+  const scrolls = drawSpellScrolls(rng)
   const floors = TOWER_FLOORS.map((theme, k) => {
     const floor = generateFloor(theme, Math.floor(rng.next() * SEED_RANGE), {
       placePlayer: k === 0,
       boundaryOpenings: stairOpenings(theme, k, stairs),
+      spellScroll: scrolls[k]!,
     })
     return placeFloor(floor, { mapSize: TOWER_SIZE, offset: { x: 0, y: rowsAbove(k) }, mirrorX: isMirrored(k) })
   })
@@ -73,6 +75,20 @@ function buildTower(seed: number): GeneratedFloor {
     edges: Object.assign({}, ...floors.map((f) => f.edges)),
     placements: floors.flatMap((f) => f.placements),
   }
+}
+
+/**
+ * One start-room spell scroll per floor, from the bottom up, each drawn from its floor's list
+ * without the ones drawn below it (from the whole list again should none be left).
+ */
+function drawSpellScrolls(rng: GenRandom): string[] {
+  const drawn: string[] = []
+  for (const theme of TOWER_FLOORS) {
+    const list = theme.units.startRewards.spellScrolls
+    const fresh = list.filter((s) => !drawn.includes(s.value))
+    drawn.push(rng.weighted(fresh.length > 0 ? fresh : list))
+  }
+  return drawn
 }
 
 /** Floor k's openings to the floors below and above, in its own (unmirrored) coordinates. */
