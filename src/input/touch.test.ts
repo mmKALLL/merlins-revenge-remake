@@ -23,7 +23,7 @@ describe('nubDirection', () => {
 })
 
 describe('InputTracker touch input', () => {
-  it('moves like the direction keys and blasts like Space, following the F toggle', () => {
+  it('moves like the direction keys and blasts like Space, following the Space mode', () => {
     const t = new InputTracker()
     t.setTouch({ x: -1, y: 1 }, true)
     expect(t.snapshot()).toMatchObject({ move: { x: -1, y: 1 }, shootNearest: true, shootShort: false })
@@ -37,5 +37,17 @@ describe('InputTracker touch input', () => {
     t.keyUp('KeyW')
     t.setTouch({ x: 0, y: 0 }, false)
     expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, shootNearest: false, shootShort: false })
+  })
+
+  it('in mouse mode blasts at the mouse when one is known, else at the nearest enemy', () => {
+    const t = new InputTracker('mouse')
+    t.setTouch({ x: 0, y: 0 }, true)
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true })
+    // a mouse appearing mid-charge does not switch the shot (that would release it)
+    t.setMouseWorld({ x: 10, y: 20 })
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true })
+    t.setTouch({ x: 0, y: 0 }, false)
+    t.setTouch({ x: 0, y: 0 }, true)
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
   })
 })

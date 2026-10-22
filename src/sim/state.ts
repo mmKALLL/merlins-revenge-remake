@@ -14,9 +14,9 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND
 export interface InputSnapshot {
   move: Vec // keys: components -1, 0, 1 (opposite keys cancel); the touch nub: any angle, larger component +-1
   mouseWorld: Vec | null
-  chargeHeld: boolean // E or left mouse button: charge, release at the mouse
-  shootNearest: boolean // Space (F toggle off): charge, release at the nearest hostile
-  shootShort: boolean // Space (F toggle on): charge, release a little short of the nearest hostile (push-back shot)
+  chargeHeld: boolean // E, left mouse button or Space in mouse mode: charge, release at the mouse
+  shootNearest: boolean // Space (nearest mode): charge, release at the nearest hostile
+  shootShort: boolean // Space (push-back mode): charge, release a little short of the nearest hostile (push-back shot)
   cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
   cheatHeal: boolean // M pressed (once per press): Merlin back to full energy (tick-cheats.ts)
 }

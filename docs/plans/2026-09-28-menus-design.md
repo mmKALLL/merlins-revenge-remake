@@ -24,7 +24,7 @@ handles its options: `#resumeGame`, `#instructions`, `#chooseKeys`, `#saveGame` 
 - **Maps**: the existing folder browser and favourites. Picking a map reloads the page with
   `?map=<id>`, which starts it straight away (a `?map=` link skips the title screen, so deep links
   and the dev workflow keep working).
-- **Settings**: pixel size, camera (room / follow), Space mode (nearest enemy / push-back shot),
+- **Settings**: pixel size, camera (room / follow), Space mode (nearest enemy / push-back shot / mouse, stored as `mr-remake.spaceMode`),
   music, effects, volume. Same storage as before: `mr-remake.zoom`, `mr-remake.audio`,
   `mr-remake.favourites`, and the camera in the `camera` URL parameter.
 - **How to play**: keyboard and touch controls.

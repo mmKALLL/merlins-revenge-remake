@@ -1,6 +1,7 @@
 // Settings: pixel size, camera, what Space (and the touch blast button) fires at, music, effects
 // and the master volume. The page owns the values (main.ts); this only shows and changes them.
 import type { AudioEngine } from '../audio/audio'
+import type { SpaceMode } from '../input/keyboard'
 import type { CameraMode } from '../render/camera'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
 import { button, el, panel } from './dom'
@@ -11,8 +12,8 @@ export interface SettingsHost {
   setZoom(z: ZoomSetting): void
   camera(): CameraMode
   setCamera(c: CameraMode): void
-  spaceShort(): boolean // Space fires the push-back shot instead of at the nearest enemy
-  setSpaceShort(on: boolean): void
+  spaceMode(): SpaceMode // what Space and the touch blast button fire at (F cycles it)
+  setSpaceMode(m: SpaceMode): void
   audio: AudioEngine
 }
 
@@ -80,9 +81,10 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'follow', label: 'follow', title: 'Follows Merlin through the whole map as one world (C)' },
     ], host.camera, host.setCamera),
     choiceRow(body, 'Space / blast', [
-      { value: false, label: 'nearest enemy' },
-      { value: true, label: 'push-back shot', title: 'Lands short of the nearest enemy (F)' },
-    ], host.spaceShort, host.setSpaceShort),
+      { value: 'nearest', label: 'nearest enemy', title: 'The nearest enemy on screen (F cycles the modes)' },
+      { value: 'pushBack', label: 'push-back shot', title: 'Lands short of the nearest enemy (F)' },
+      { value: 'mouse', label: 'mouse', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy (F)' },
+    ], host.spaceMode, host.setSpaceMode),
     choiceRow(body, 'Music', ON_OFF, () => audio.current.music, (on) => audio.setMusic(on)),
     choiceRow(body, 'Effects', ON_OFF, () => audio.current.effects, (on) => audio.setEffects(on)),
     volumeRow(body, audio),
