@@ -23,7 +23,7 @@ const SPEECH_STYLE = { fill: '#ffffff', fontFamily: 'Verdana, sans-serif', fontS
 /** objCutSceneTitle's text member (its font is not known; assumed bold). */
 const TITLE_Y = 40
 const TITLE_STYLE = { fontFamily: 'Verdana, sans-serif', fontSize: 20, fontWeight: 'bold' } as const
-const PROMPT_TEXT = 'Map complete. Press Enter or click to play it again,\nor pick another map below.'
+const PROMPT_TEXT = 'Map complete. Press Enter or click to play it again,\nor open the menu (Esc or ☰) to pick another map.'
 const PROMPT_STYLE = { fill: '#aaaaaa', fontFamily: 'monospace', fontSize: 12, align: 'center' } as const
 
 /** A character's stand frame and registration point (the frame centre when unknown). */
