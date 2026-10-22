@@ -371,7 +371,7 @@ function settleContinuous(t: Tick, room: Vec): SimState {
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
   const t = beginTick(s)
   stepCheats(t, input)
-  stepArmyKey(t, input)
+  stepArmyKey(t, input, cfg.view)
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input, cfg.view)
   // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them

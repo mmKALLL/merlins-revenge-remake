@@ -179,6 +179,7 @@ export class InputTracker {
       cheatKillAll,
       cheatMedikit,
       armyKey,
+      armyAtNearest: armyKey && this.mode !== 'mouse',
       selectSpell,
       selectWeapon,
       cycleWeapon,

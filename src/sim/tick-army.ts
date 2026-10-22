@@ -8,10 +8,12 @@ import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/
 import { tileOfPx } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import { defOf, isAlive } from './actors'
+import { nearestHostileOnScreen } from './player-aim'
 import { randomInt } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { playerIn, spawn, type Tick } from './tick-context'
 import { teamSlotsFree } from './tick-dwelling'
+import type { Size } from './view'
 
 /** modArmyUnit.armyTeleportOut: a teleportable living unit starts teleporting out (once). */
 export function teleportOut(t: Tick, a: ActorState): void {
@@ -52,16 +54,22 @@ export function stepTeleports(t: Tick): void {
 /**
  * The #army key (R; objAiPlayer.interpretGameKeys -> modAutoSummon.summonArmy) while Merlin is
  * alive: the whole reserve summoned around the mouse (Merlin without a mouse position). Remake
- * (owner request): while army members of Merlin's are in play, the key teleports them all out
- * into the reserve instead (armyTeleportOut each, as a blank army summon blast does).
+ * (owner requests): while army members of Merlin's are in play, the key teleports them all out
+ * into the reserve instead (armyTeleportOut each, as a blank army summon blast does); unless Space
+ * is in mouse mode the army is summoned at the nearest hostile on screen (the mouse without one).
  */
-export function stepArmyKey(t: Tick, input: InputSnapshot): void {
+export function stepArmyKey(t: Tick, input: InputSnapshot, view: Size): void {
   if (!input.armyKey) return
   const p = playerIn(t)
   if (!isAlive(p)) return
   const inPlay = armyMembersInPlay(t, p)
   if (inPlay.length > 0) for (const a of inPlay) teleportOut(t, a)
-  else summonWholeReserve(t, p, input.mouseWorld ?? p.pos)
+  else summonWholeReserve(t, p, summonPoint(t, p, input, view))
+}
+
+function summonPoint(t: Tick, p: ActorState, input: InputSnapshot, view: Size): Vec {
+  const nearest = input.armyAtNearest ? nearestHostileOnScreen(t, p, view) : undefined
+  return nearest?.pos ?? input.mouseWorld ?? p.pos
 }
 
 /** Merlin's living army members (his armyMembers types on his team) in the tick that can still teleport out. */

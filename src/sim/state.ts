@@ -23,6 +23,7 @@ export interface InputSnapshot {
   cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
   cheatMedikit: boolean // M pressed (once per press): one more medikit for Merlin (tick-cheats.ts)
   armyKey: boolean // R pressed (once per press): summon the whole reserve army, or send the army out into it (tick-army.ts)
+  armyAtNearest: boolean // remake: with R, summon at the nearest hostile on screen (Space not in mouse mode) instead of the mouse
   selectSpell: number | null // 1-9 pressed (once per press): the n-th spell (objAiPlayer #spell1..9 -> selectSpell)
   selectWeapon: string | null // a weapon clicked on the weaponSelector palette (commandIssued -> setCurrentWeapon)
   cycleWeapon: boolean // remake (the touch weapon button): the next weapon in Merlin's list
@@ -37,6 +38,7 @@ export const NO_INPUT: InputSnapshot = {
   cheatKillAll: false,
   cheatMedikit: false,
   armyKey: false,
+  armyAtNearest: false,
   selectSpell: null,
   selectWeapon: null,
   cycleWeapon: false,

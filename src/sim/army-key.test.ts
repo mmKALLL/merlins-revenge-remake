@@ -76,6 +76,17 @@ describe('R: the army key', () => {
     })
   }
 
+  it('summons at the nearest hostile on screen instead of the mouse when Space is not in mouse mode', () => {
+    const s0 = world('rooms', { warrior: 2 })
+    const goblin = s0.actors.find((a) => a.def === 'goblinWarrior' && Math.abs(a.pos.x - PLAYER.x) < 300)!
+    const s = stepSim(s0, { ...R, armyAtNearest: true })
+    for (const a of allies(s)) {
+      expect(Math.abs(a.pos.x - goblin.pos.x)).toBeLessThan(Math.abs(a.pos.x - MOUSE.x))
+      expect(Math.abs(a.pos.y - goblin.pos.y)).toBeLessThanOrEqual(20)
+    }
+    expect(allies(s)).toHaveLength(2)
+  })
+
   it('summons no more than the team cap leaves room for, shared over the army types', () => {
     const s0 = world('rooms', { warrior: 20, archer: 20, monk: 20, dwarf: 20, kingInGame: 20 })
     const freeSlots = teams[playerOf(s0).team]!.maxMembers! - 1 // Merlin takes a slot

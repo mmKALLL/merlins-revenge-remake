@@ -83,7 +83,7 @@ describe('InputTracker', () => {
     t.keyDown('KeyM')
     t.keyDown('KeyR')
     t.keyDown('KeyR')
-    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatMedikit: true, armyKey: true })
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatMedikit: true, armyKey: true, armyAtNearest: true })
     expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatMedikit: false, armyKey: false })
     t.keyUp('KeyK')
     t.keyDown('KeyK')

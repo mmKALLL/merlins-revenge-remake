@@ -263,6 +263,11 @@ Details:
 
 ### Remake decisions
 
+- **R summons at the nearest enemy (owner request, 2026-10-22).** The original's army key summons
+  around the mouse. Unless Space is in the mouse cursor mode, R now summons around the nearest
+  hostile on screen (the same choice Space's nearest mode makes), falling back to the mouse and then
+  Merlin when no hostile is in sight (`InputSnapshot.armyAtNearest`, `stepArmyKey`).
+
 - **Merlin's sword hits in a circle (owner request, 2026-10-22).** The engine's melee hit is a single
   strike point (`collisionLoc`, the sword's (16,1) from the reg point) that must lie inside the
   victim's sprite rect (`teamMaster.impactMeleeAttack`). A new attack field `strikeCircle`

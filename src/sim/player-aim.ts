@@ -34,9 +34,7 @@ export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: Cha
   const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
   const mouse = input.mouseWorld ?? ahead
   if (kind !== 'nearest' && kind !== 'short') return mouse
-  const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
-  const nearestId = nearestHostileId(t, p, true, onScreen)
-  const nearest = nearestId === null ? undefined : (actorIn(t, nearestId) ?? sleeperIn(t, nearestId))
+  const nearest = nearestHostileOnScreen(t, p, view)
   if (!nearest) return mouse
   if (kind === 'nearest') return { ...nearest.pos }
   const dx = nearest.pos.x - p.pos.x
@@ -44,4 +42,11 @@ export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: Cha
   const d = Math.hypot(dx, dy)
   if (d <= SHORT_PX) return { ...p.pos }
   return { x: nearest.pos.x - (dx / d) * SHORT_PX, y: nearest.pos.y - (dy / d) * SHORT_PX }
+}
+
+/** The nearest hostile Merlin can see: in the room, or (continuous world) inside the play view; undefined for none. */
+export function nearestHostileOnScreen(t: Tick, p: ActorState, view: Size): ActorState | undefined {
+  const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
+  const id = nearestHostileId(t, p, true, onScreen)
+  return id === null ? undefined : (actorIn(t, id) ?? sleeperIn(t, id))
 }
