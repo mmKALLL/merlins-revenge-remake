@@ -9,13 +9,13 @@ rooms (the sketch has 4x4).
 
 - Output is a plain `MapDefinition` (18x9 rooms, the theme's floor size, 3x3 by default), so the
   rest of the engine (tiles, enemies, exits, arrows, map complete, both camera modes) needs no changes.
-- `?map=random/<theme>&seed=N` builds the floor instead of fetching JSON. Without `seed`, `main.ts`
+- `?map=randomly_generated/<theme>&seed=N` builds the floor instead of fetching JSON. Without `seed`, `main.ts`
   picks one and writes it into the URL (`history.replaceState`) so a floor can be shared; picking a
   map from the menu drops the seed, so it is a new floor each time. The seed also seeds the sim. Every
   theme is listed in the converted maps index (`GENERATED_MAPS` in `src/gen/generated-maps.ts`), so
-  the Maps menu offers `random/1-goblin-forest`, `random/2-undead-marsh`, `random/3-dragon-canyon`
-  and `random/4-magic-maze` (numbered by difficulty, so the browser lists them in that order), then
-  the tower, `random/sorcerers-tower`.
+  the Maps menu offers `randomly_generated/1-goblin-forest`, `randomly_generated/2-undead-marsh`, `randomly_generated/3-dragon-canyon`
+  and `randomly_generated/4-magic-maze` (numbered by difficulty, so the browser lists them in that order), then
+  the tower, `randomly_generated/sorcerers-tower`.
 - Code lives in `src/gen/`: `random.ts` (seeded mutable RNG), `grid.ts` (cells, flood fill),
   `floor.ts` (edges, rooms, units), `room-shape.ts` (patches, retries, carving), `interior-walls.ts`
   (one small strategy per wall style), `themes.ts` (all theme data). A theme is data: floor size,
@@ -142,7 +142,7 @@ by eye.
 
 ## The tower
 
-`random/sorcerers-tower` (`src/gen/tower.ts`) stacks the four floors into one 3x12 map, the forest
+`randomly_generated/sorcerers-tower` (`src/gen/tower.ts`) stacks the four floors into one 3x12 map, the forest
 at the bottom and the maze at the top, seeded via `?seed=` like the single floors.
 
 - Each floor is an ordinary `generateFloor` of its theme (its own room shapes, walls, enemies,

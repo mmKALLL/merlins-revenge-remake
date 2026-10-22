@@ -5,7 +5,7 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
 import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
-import { GENERATED_MAPS, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
+import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { THEMES } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
@@ -139,10 +139,16 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 })
 
 describe('generated map ids', () => {
-  it('lists one map per theme under random/, numbered by difficulty, then the tower', () => {
+  it('lists one map per theme under randomly_generated/, numbered by difficulty, then the tower', () => {
     expect(GENERATED_MAPS.map((m) => m.id)).toEqual([
-      'random/1-goblin-forest', 'random/2-undead-marsh', 'random/3-dragon-canyon', 'random/4-magic-maze', 'random/sorcerers-tower',
+      'randomly_generated/1-goblin-forest', 'randomly_generated/2-undead-marsh', 'randomly_generated/3-dragon-canyon', 'randomly_generated/4-magic-maze', 'randomly_generated/sorcerers-tower',
     ])
-    expect(isGeneratedMapId('random/nowhere')).toBe(false)
+    expect(isGeneratedMapId('randomly_generated/nowhere')).toBe(false)
+  })
+
+  it('brings ids from before the rename up to date', () => {
+    expect(currentMapId('random/goblin-forest')).toBe('randomly_generated/1-goblin-forest')
+    expect(currentMapId('random/sorcerers-tower')).toBe('randomly_generated/sorcerers-tower')
+    expect(currentMapId('works/sam')).toBe('works/sam')
   })
 })

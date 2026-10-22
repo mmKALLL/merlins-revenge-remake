@@ -7,7 +7,7 @@ import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeam
 import { loadLastMap, loadSpaceMode, loadZoom, saveLastMap, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
-import { generateMap, isGeneratedMapId } from './gen/generated-maps'
+import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
 import type { Vec } from './mr-open/mr-geometry'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
@@ -32,11 +32,14 @@ import { titleScreen } from './ui/title-screen'
 const params = new URLSearchParams(location.search)
 /** The map Play starts when none has been played yet. */
 const DEFAULT_MAP = 'works/mriiidemoiv'
+/** A map id from the URL or storage, with an id from before a rename brought up to date. */
+const upToDate = (id: string | null): string | null => (id === null ? null : currentMapId(id))
 /**
  * A map id is its path under assets/maps without .txt; URLSearchParams decodes %2F. A page opened
  * with ?map= starts that map at once (map links, the Maps menu); without it the title screen shows.
  */
-const linkedMap = params.get('map')
+const linkedMap = upToDate(params.get('map'))
+const lastPlayedMap = (): string | null => upToDate(loadLastMap())
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
 const cfg: RenderConfig = {
@@ -247,7 +250,7 @@ function main(): void {
   let state: AppState = linkedMap ? PLAYING : TITLE
   let game: Game | null = null
   let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
-  const mapToPlay = () => linkedMap ?? loadLastMap() ?? DEFAULT_MAP
+  const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const shell: Shell = { audio, input, running: () => game !== null && simRuns(state) }
 
   const back = () => dispatch({ kind: 'back' })

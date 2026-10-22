@@ -15,8 +15,8 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 ## Backlog
 
 - **Roguelite floors.** Four random 3x3 floors exist, one per sketch floor
-  (`?map=random/1-goblin-forest`, `2-undead-marsh`, `3-dragon-canyon`, `4-magic-maze`), and the
-  four stacked into the tower (`random/sorcerers-tower`; `src/gen/`,
+  (`?map=randomly_generated/1-goblin-forest`, `2-undead-marsh`, `3-dragon-canyon`, `4-magic-maze`), and the
+  four stacked into the tower (`randomly_generated/sorcerers-tower`; `src/gen/`,
   `docs/plans/2026-09-28-random-floor-design.md`, with the enemy substitutions). Next: floor-start rewards, potion corner rooms (needs potions), MR3 wizards and the
   Black Sorcerer once ported, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
