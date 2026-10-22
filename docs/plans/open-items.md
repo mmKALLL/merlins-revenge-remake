@@ -47,6 +47,11 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   dying unit could be dropped or left unstepped (now always stepped and stored with its room).
   Fuzzing goblin maps in the continuous world with K and blasts timed at sleep transitions found no
   goblin freeze; if it recurs, ask for an `mr.exportState()` paste.
+- **Wizard allies and the army list.** Ulin, Prestotolin and Verdanlin (`act_*InGame`,
+  `wizardMaster`, `modSummonWizard`) and the original's Show army menu (`showArmyMaster`); see the
+  2026-10-22 notes in the session (not started).
+- **Morph (MR2 spell).** Only its art is in the archive (scroll, writing, `gfx/morph` forms); no data or
+  Lingo, so it would be a remake design; waiting for the owner's description of how it worked.
 - **Low priority:** call "energy" "health" in the UI and code, if not too entangled with the
   engine's naming.
 
@@ -62,17 +67,18 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   the start), the monster summon only reaches its archer stage until Merlin drinks Max Blast
   potions, summoned allies teleport back into the reserve as soon as the room is clear, and frosty
   monks now freeze Merlin.
-- R and M (2026-10, owner request): R summons the whole reserve army at the mouse
-  (modAutoSummon, the original's C key; at most 2 of each type with Merlin's 12-member team cap),
+- R and M (2026-10, owner request): R summons the whole reserve army at the nearest enemy on
+  screen, or the mouse in the mouse cursor Space mode (modAutoSummon, the original's C key; at most 2 of each type with Merlin's 12-member team cap),
   and sends the whole army back into the reserve while any of it is out once the fight is over
   (room clear / nav mode; mid-fight R does nothing); M gives one medikit (as collecting one: +25
   energy and invincibility too) instead of the full heal. Touch: a blue army button above the
   weapon button (below it in portrait) acts as R, at the nearest enemy. A blank army summon (below
   its first stage) flies at Merlin's nearest ally, sending one home.
-- The dwarf tower's axe splashes (2026-10-22, owner request): on landing it hits every hostile
-  whose sprite rect meets a 16 px circle (`towerAxe.splashRadius` in `assets/tuning.json`). The
-  original's splashDamageOn reaches `power` = 50 px from the axe to each unit's reg point; to
-  confirm the radius (16 vs 50) and that the Lingo's push pulls toward the axe.
+- The dwarf tower (2026-10-22, owner requests): its axe hits every hostile whose sprite rect meets a
+  24 px circle where it lands and leaves a crack (`towerAxe.splashRadius`; the original's
+  splashDamageOn reaches 50 px from the axe to each unit's reg point and its push pulls toward the
+  axe), it throws at a dead target's last spot, the dwarf builds 4x slower and leaves mid-build once
+  the fight is over, and in the open world continues the nearest unfinished tower in range.
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The
