@@ -7,10 +7,17 @@ import type { Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 
-export interface Weighted<T> { value: T; weight: number }
+export interface Weighted<T> {
+  value: T
+  weight: number
+}
 
 /** A kind of obstacle patch; each patch picks one material, each tile a variant. */
-export interface Material { name: string; weight: number; tiles: Weighted<number>[] }
+export interface Material {
+  name: string
+  weight: number
+  tiles: Weighted<number>[]
+}
 
 /** Tree lines cutting through a room from an edge, some turning once (L and T shaped rooms). */
 export interface CutTuning {
@@ -105,17 +112,30 @@ export interface EnemyChoice {
  */
 export type Corner = 'exit' | 'farX' | 'farY'
 
-/** A fixed group of units; `faction` sets the room's faction for its other enemies. */
-export interface UnitGroup { label: string; units: Record<string, number>; faction?: string }
+/** A fixed group of units; `faction` sets the room's faction for its other enemies, `alone` leaves the room to the group. */
+export interface UnitGroup {
+  label: string
+  units: Record<string, number>
+  faction?: string
+  alone?: boolean
+}
 
-/** A side corner room with one of its groups (picked at random) on top of the usual enemies. */
-export interface SpecialRoom { corner: Exclude<Corner, 'exit'>; groups: UnitGroup[] }
+/** A side corner room with one of its groups (picked at random) on top of the usual enemies (unless `alone`). */
+export interface SpecialRoom {
+  corner: Exclude<Corner, 'exit'>
+  groups: UnitGroup[]
+}
 
 /** An exit room group; its `boss` unit stands two tiles in from the floor's far corner. */
-export interface BossGroup extends UnitGroup { boss: string }
+export interface BossGroup extends UnitGroup {
+  boss: string
+}
 
 /** An amount ramping over x progress (0 at the start column, 1 at the far one): floor(base + farX * x + a random 0..1). */
-export interface Amount { base: number; farX: number }
+export interface Amount {
+  base: number
+  farX: number
+}
 
 /**
  * How a room brings its numbers (quantity, over x): a swarm of single regular enemies, or a few
@@ -195,15 +215,30 @@ const START_MEDIKITS = 1
 /** The four potions, Quick Charge and Max Blast first; the start rooms and most corner rooms draw from it. */
 const POTION_WEIGHTS = [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1)]
 
-const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): StartRewards =>
-  ({ potions: POTION_WEIGHTS, potionCount: START_POTIONS, medikits: START_MEDIKITS, spellScrolls, extras })
+const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): StartRewards => ({
+  potions: POTION_WEIGHTS,
+  potionCount: START_POTIONS,
+  medikits: START_MEDIKITS,
+  spellScrolls,
+  extras,
+})
 
 /**
  * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols
  * (docs/notes/engine-mechanics-spells.md). energyBlast is left out: Merlin starts with it.
  */
-export const SPELL_SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon',
-  'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword'] as const
+export const SPELL_SCROLLS = [
+  'armySummon',
+  'energyMines',
+  'energyPulseSpell',
+  'cBlast',
+  'energyPunch',
+  'monsterSummon',
+  'healBlast',
+  'arcticBlast',
+  'energyBeamSpell',
+  'merlinSword',
+] as const
 
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
@@ -333,9 +368,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { key: 'batTree', weight: 0.6, minDifficulty: 1.5, maxPerRoom: 1 },
       { key: 'goblinMageHut', weight: 1, minDifficulty: 2, maxPerRoom: 1 },
     ],
-    specialRooms: [
-      { corner: 'farX', groups: [{ label: 'goblin warrior band', units: { goblinWarrior: 4 } }] },
-    ],
+    specialRooms: [{ corner: 'farX', groups: [{ label: 'goblin warrior band', units: { goblinWarrior: 4 } }] }],
     bosses: [
       { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
@@ -506,7 +539,6 @@ export const UNDEAD_MARSH: FloorTheme = {
       { key: 'skeletonThrower', weight: 2, minDifficulty: 1.5, faction: 'undead' },
       { key: 'skeletonArcher', weight: 2, minDifficulty: 2, faction: 'undead' },
       { key: 'greyGhost', weight: 1, minDifficulty: 3, maxPerRoom: 1, faction: 'undead', producer: true },
-      { key: 'necromancer', weight: 0.6, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead', producer: true },
       { key: 'skeletonComando', weight: 1, minDifficulty: 3.5, maxPerRoom: 1, faction: 'undead' },
       { key: 'skeletonGiant', weight: 0.8, minDifficulty: 4, maxPerRoom: 1, faction: 'undead' },
       // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own
@@ -519,16 +551,17 @@ export const UNDEAD_MARSH: FloorTheme = {
       { key: 'batTree', weight: 1, minDifficulty: 2, maxPerRoom: 1 },
     ],
     specialRooms: [
-      { corner: 'farY', groups: [{ label: 'necromancer guard', units: { necromancer: 2, skeletonWarrior: 2 }, faction: 'undead' }] },
+      // owner: necromancers are midboss/boss tier here, so they only come in these fixed groups
+      { corner: 'farY', groups: [{ label: 'lone necromancer', units: { necromancer: 1 }, faction: 'undead', alone: true }] },
       { corner: 'farX', groups: [{ label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' }] },
     ],
     bosses: [
       { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
-      { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead', boss: 'necromancer' },
+      { label: 'necromancer pair', units: { necromancer: 2 }, faction: 'undead', boss: 'necromancer', alone: true },
+      { label: 'necromancer and giant', units: { necromancer: 1, skeletonGiant: 1 }, faction: 'undead', boss: 'necromancer', alone: true },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1),
-      w('healBlast', 1), w('monsterSummon', 1)]),
+    startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)]),
   },
 }
 
@@ -598,7 +631,7 @@ export const DRAGON_CANYON: FloorTheme = {
     bosses: [
       { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 }, boss: 'fourArmGolem' },
       { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, boss: 'dragon' },
-      { label: 'hydra den', units: { hydra3: 1, plant: 2 }, boss: 'hydra3' },
+      { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
@@ -676,8 +709,10 @@ export const MAGIC_MAZE: FloorTheme = {
       { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
-    startRewards: startRewards([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
-      MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []),
+    startRewards: startRewards(
+      [w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
+      MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
+    ),
   },
 }
 

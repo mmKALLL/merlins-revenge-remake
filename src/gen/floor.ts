@@ -326,10 +326,10 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   const regulars = u.enemies.filter((c) => !c.producer)
   const producers = [...u.dwellings, ...u.enemies.filter((c) => c.producer)]
   const q = u.quantity
-  const form: RoomForm = isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
+  const form: RoomForm | null = group?.alone ? null : isExit ? 'both' : pickForm(rng, q, eligible(producers, draw).length > 0)
   const addFrom = (table: readonly EnemyChoice[], n: number) => { for (let i = 0; i < n; i++) add(pickUnit(rng, table, draw, counts)) }
-  if (form !== 'producers') addFrom(regulars, amountAt(rng, q.swarm, fx))
-  if (form !== 'swarm') addFrom(producers, amountAt(rng, q.producers, fx))
+  if (form === 'swarm' || form === 'both') addFrom(regulars, amountAt(rng, q.swarm, fx))
+  if (form === 'producers' || form === 'both') addFrom(producers, amountAt(rng, q.producers, fx))
   if (form === 'producers') addFrom(regulars, rng.int(q.escorts[0], q.escorts[1]))
   if (isExit) keys.push(u.exitMusic)
   return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]

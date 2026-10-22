@@ -198,7 +198,7 @@ tilesets; every obstacle is `#solid` and every decoration `#none` in its tile ke
 | Floor | Tilesets | Difficulty | Enemies | Dwellings | farX / farY | Exit (one of) |
 |---|---|---|---|---|---|---|
 | Goblin Forest | merlin4 | 0 -> 3 | goblin archers, warriors, bats; goblin mages from 1.5; orcs from 2.5 | goblin huts, bat trees, mage huts | goblin warrior band / - | orc camp; hydra trainer (hydra1, goblin hero, warrior) |
-| Undead Marsh | merlinOpen | 1 -> 5 | undead: skeleton warriors, throwers, archers, ghosts, necromancers, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | critter nest (cocoon, quadranids) / necromancer guard | skeleton army (skeleton lord); necromancy club |
+| Undead Marsh | merlinOpen | 1 -> 5 | undead: skeleton warriors, throwers, archers, ghosts, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | critter nest (cocoon, quadranids) / lone necromancer | skeleton army (skeleton lord); necromancer pair; necromancer and giant |
 | Dragon Canyon | merlinOpen | 3 -> 6 | karate guys, kung fu chickens, lizards, plants (traps); boulder monsters and dark golems toward far y; dragons toward far x; lizard soldiers, hydra1 later | dojos, boulder caves, dark caves (far y) | dragon roost / golem quarry | dark golems (four-arm + double dark golem); dragon's lair; hydra den (hydra3, plants) |
 | Magic Maze | merlinOpen | 5 -> 7 | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | portal ward / necromancy study | dark sorcerer's court (dark mages); Scarlet's guard |
 
@@ -270,3 +270,13 @@ Four themes on 3x3 floors and the tower. Known gaps: `mr.loadState` and the snap
 fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
 the seed passed to `generateMap`). Start rewards are placed; their spell scrolls (and the army
 summon's starting army, and the maze's golden machine gun) wait for the spell port.
+
+## Owner tuning: marsh necromancers (2026-10-22)
+
+Necromancers are midboss/boss tier in the Undead Marsh, so they no longer come from the random
+enemy table there (`maxPerRoom` only ever limited the random draws; the rooms with 2 or 3 were the
+fixed groups). The farY midboss room holds one necromancer alone, and the exit room's boss is the
+skeleton army (with the usual extra enemies), a necromancer pair, or a necromancer with a skeleton
+giant. A group marked `alone` gets no other enemies (`UnitGroup.alone`). The Magic Maze keeps its
+necromancers as before.
+

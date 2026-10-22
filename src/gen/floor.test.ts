@@ -6,7 +6,7 @@ import { parseTileKey } from '../mr-open/mr-tile-key'
 import { BOSS_TILE, ROOM_SIZE, cornerRoom, exitRoom, floorIsConnected, generateFloor, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
-import { THEMES } from './themes'
+import { THEMES, type UnitGroup } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 7919 + 1)
@@ -107,6 +107,28 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     const keys = keysIn(exit)
     const boss = f.placements.find((p) => sameRoom(p.room, exit) && sameRoom(p.tile, BOSS_TILE))
     expect(theme.units.bosses.some((g) => g.boss === boss?.key && Object.keys(g.units).every((k) => keys.has(k)))).toBe(true)
+  })
+
+  it('leaves a room with an `alone` group to that group (and its potions)', () => {
+    const u = theme.units
+    const potionKeys = new Set(u.potions.map((p) => p.value))
+    const music = new Set([u.startMusic, u.exitMusic])
+    const rooms: [Vec, UnitGroup[]][] = [...u.specialRooms.map((s): [Vec, UnitGroup[]] => [cornerRoom(size, s.corner), s.groups]), [exitRoom(size), u.bosses]]
+    const countsOf = (keys: string[]) => {
+      const counts = new Map<string, number>()
+      for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1)
+      return JSON.stringify([...counts].sort())
+    }
+    const groupCounts = (g: UnitGroup) => JSON.stringify(Object.entries(g.units).sort())
+    for (const f of floors.values()) {
+      for (const [room, groups] of rooms) {
+        const units = f.placements.filter((p) => sameRoom(p.room, room) && !potionKeys.has(p.key) && !music.has(p.key)).map((p) => p.key)
+        // either exactly an alone group, or a group with company
+        const alone = groups.some((g) => g.alone && groupCounts(g) === countsOf(units))
+        const accompanied = groups.some((g) => !g.alone && Object.keys(g.units).every((k) => units.includes(k)))
+        expect(alone || accompanied, `${roomKey(room)}: ${units.join(' ')}`).toBe(true)
+      }
+    }
   })
 
   it('puts two potions near the outer corner of each side corner room, and none elsewhere', () => {
