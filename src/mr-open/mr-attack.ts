@@ -31,11 +31,20 @@ export function attackLoc(pos: Vec, a: AttackDef, facingLeft: boolean): Vec {
   return { x: pos.x + a.collisionLoc.x * faceDir(facingLeft), y: pos.y + a.collisionLoc.y }
 }
 
-/** calcAttackPowerMelee * strength: the push vector applied to the victim, x mirrored by facing. */
+/** calcCollisionVectMelee's #magicMelee scale: (strength + MAGIC_MELEE_CAPACITY_WEIGHT * mana_capacity) / MAGIC_MELEE_CAPACITY_WEIGHT. */
+const MAGIC_MELEE_CAPACITY_WEIGHT = 1.5
+
+/**
+ * calcCollisionVectMelee: calcAttackPowerMelee (x mirrored by facing) times strength, or for a
+ * #magicMelee attack (the energy punch) times (strength + 1.5 * mana_capacity) / 1.5.
+ */
 export function meleePush(def: ActorDef, facingLeft: boolean): Vec {
   const p = def.attack.power
   if (typeof p === 'number') throw new Error(`${def.key}: melee power must be a point`)
-  return { x: p.x * faceDir(facingLeft) * def.strength, y: p.y * def.strength }
+  const scale = def.attack.animType === 'magicMelee'
+    ? (def.strength + MAGIC_MELEE_CAPACITY_WEIGHT * def.mana_capacity) / MAGIC_MELEE_CAPACITY_WEIGHT
+    : def.strength
+  return { x: p.x * faceDir(facingLeft) * scale, y: p.y * scale }
 }
 
 /** calcAttackHitMelee: hit iff the strike point is inside the target's sprite rect. */

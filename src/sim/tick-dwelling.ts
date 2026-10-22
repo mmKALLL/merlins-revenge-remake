@@ -2,12 +2,12 @@
 // prebuilt, so production starts at once: build a random group, wait for room under the team cap,
 // release one resident per interval on its reg point, and after totalResidents releases destroy
 // itself. Hits, reel and death go through the shared combat code (applyHit, stepReelAndDeath).
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { tileOfPx } from '../mr-open/mr-collision'
 import { afterRelease, permissionToRelease, releaseCountdown, startProduction, type DwellingState } from '../mr-open/mr-residents'
 import { DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { defOf, isAlive, isDwelling, isUnit } from './actors'
-import type { ActorState } from './state'
+import type { ActorState, SimState } from './state'
 import { playSound, spawn, type Tick } from './tick-context'
 import { startDeath } from './tick-combat'
 
@@ -60,12 +60,26 @@ function teamMembers(t: Tick, team: string): number {
 
 /**
  * reservationsMaster reservedSlots: slots the team's living dwellings reserved and have not released
- * yet, plus those held by its summon spells still in play (awake dwellings only, as for teamMembers).
+ * yet, plus those held for it by summon spells still in play (awake dwellings only, as for teamMembers).
  */
 function reservedSlots(t: Tick, team: string): number {
-  return t.actors
-    .filter((o) => !t.removed.has(o.id) && o.awake && o.team === team && ((isDwelling(t.s, o) && isAlive(o)) || o.summonReserved > 0))
-    .reduce((n, o) => n + (o.dwelling?.reserved ?? 0) + o.summonReserved, 0)
+  let n = 0
+  for (const o of t.actors) {
+    if (t.removed.has(o.id) || !o.awake) continue
+    if (o.team === team && isDwelling(t.s, o) && isAlive(o)) n += o.dwelling?.reserved ?? 0
+    if (o.summonReserved > 0 && o.attack && reservationTeamOf(t.s, o, o.attack) === team) n += o.summonReserved
+  }
+  return n
+}
+
+/**
+ * The team a summon spell reserves its slot on (modSpellMultistage.obtainPermissionOrHalt): a spell
+ * of Merlin's team asks on its #residentTeamCategory team (the monster summon on #monsterSummon),
+ * every other on its own.
+ */
+export function reservationTeamOf(s: SimState, spell: ActorState, atk: AttackDef): string {
+  const playerTeam = s.defs['player']?.team
+  return spell.team === playerTeam && atk.residentTeamCategory !== null ? atk.residentTeamCategory : spell.team
 }
 
 /**

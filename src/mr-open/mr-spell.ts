@@ -11,13 +11,18 @@ export interface ChargeLimits {
   speed: number
 }
 
-/** Charge counter parameters for a caster. `magicLimitPercent` is magicLimitMaster.getMagicLimit (only with limitMagic). */
+/**
+ * Charge counter parameters for a caster. `magicLimitPercent` is magicLimitMaster.getMagicLimit (only
+ * with limitMagic). calcAttackChargeStart ends with `chargeStart = min(pChargeStart, chargeStartMax)`:
+ * with a chargeStartMax (the summons) the start is the attack's own, mana_burst left out.
+ */
 export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeLimits {
   const a = caster.attack
   let max = Math.min(a.chargeMax, caster.mana_capacity * a.chargeMaxModifier + a.chargeMaxBasic)
   if (a.limitMagic) max = (max * magicLimitPercent) / 100
   const speed = a.chargeSpeed * caster.mana_flow
-  return { start: Math.min(a.chargeStart + caster.mana_burst, max), max, speed: a.chargeSpeedMax === null ? speed : Math.min(speed, a.chargeSpeedMax) }
+  const start = a.chargeStartMax === null ? Math.min(a.chargeStart + caster.mana_burst, max) : Math.min(a.chargeStart, a.chargeStartMax)
+  return { start, max, speed: a.chargeSpeedMax === null ? speed : Math.min(speed, a.chargeSpeedMax) }
 }
 
 /**
@@ -32,14 +37,41 @@ export function randomSummonMax(max: number, a: AttackDef, randomInt: (n: number
   return Math.min(max, temp) + randomInt(2) - 1
 }
 
-/** modSpellMultistage.selectPayload: the last stage whose chargeRequired the charge has reached; null = blank. */
-export function payloadFor(charge: number, a: AttackDef): string | null {
-  let payload: string | null = null
+/** modSpellMultistage.selectPayload's pCurrentPayloadNum: the 1-based number of the last stage the charge has reached; 0 = blank. */
+export function stageNumber(charge: number, a: AttackDef): number {
+  let num = 0
   for (const stage of a.multistage) {
     if (stage.chargeRequired > charge) break
-    payload = stage.payload
+    num++
   }
-  return payload
+  return num
+}
+
+/** modSpellMultistage.selectPayload: the last stage whose chargeRequired the charge has reached; null = blank. */
+export function payloadFor(charge: number, a: AttackDef): string | null {
+  const num = stageNumber(charge, a)
+  return num === 0 ? null : a.multistage[num - 1]!.payload
+}
+
+/** The payload functions an impact calls: payloadFunctionNonBlank once a summon stage is reached (selectPayload). */
+export const payloadFunctionsFor = (charge: number, a: AttackDef): string[] => (payloadFor(charge, a) === null ? a.payloadFunction : a.payloadFunctionNonBlank)
+
+/** modSpellMultistage.chargeReinIn: the charge a refused summon drops to, just below the first stage. */
+export const reinedInCharge = (a: AttackDef): number => a.multistage[0]!.chargeRequired - 1
+
+/** chargeReinInToAvailable holds the charge this far below the stage above the best available unit. */
+const AVAILABLE_REIN_IN = 0.1
+
+/**
+ * The army summon's part of obtainPermissionOrHalt: once the charge reaches the stage of the best
+ * unit in the reserve (`topAvailable`, 1-based; 0 = none), or any stage when there is none,
+ * chargeReinInToAvailable holds it at the next stage's charge - 0.1. Null when it may charge on.
+ */
+export function armyReinIn(charge: number, a: AttackDef, topAvailable: number): number | null {
+  if (topAvailable >= a.multistage.length) return null
+  const num = stageNumber(charge, a)
+  if (num === 0 || num < topAvailable) return null
+  return a.multistage[topAvailable]!.chargeRequired - AVAILABLE_REIN_IN
 }
 
 /** CounterOnce on the charge counter: pinned at max. */

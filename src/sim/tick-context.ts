@@ -8,7 +8,9 @@
 // (idle-wander.ts) are copied and stepped with the awake ones. The steps only see them where a sleeper can still
 // take part: hits (splash victims, a bullet's target) and Merlin's aim at the nearest hostile. A
 // sleeper about to be hit is brought into the tick first (hitTargetIn).
+import type { ArmyReserve } from '../mr-open/mr-army'
 import type { Vec } from '../mr-open/mr-geometry'
+import type { Arsenal } from '../mr-open/mr-weapons'
 import { createActor, isStepped } from './actors'
 import type { Rng } from './rng'
 import type { ActorState, PlayerPickups, SimEvent, SimState } from './state'
@@ -23,6 +25,8 @@ export interface Tick {
   hit: Set<number> // ids that took a hit this tick (their reel stall counting starts next tick)
   graves: { def: string; pos: Vec }[] // graves recorded this tick in the current room
   pickups: PlayerPickups // Merlin's potions, medikits and invincibility, updated in place of s.pickups
+  arsenal: Arsenal // Merlin's weapons, updated in place of s.arsenal
+  army: ArmyReserve // the reserve army, updated in place of s.army
   events: SimEvent[]
   rng: Rng
   nextId: number
@@ -43,6 +47,8 @@ export function beginTick(s: SimState): Tick {
     hit: new Set(),
     graves: [],
     pickups: s.pickups,
+    arsenal: s.arsenal,
+    army: s.army,
     events: [],
     rng: s.rng,
     nextId: s.nextId,

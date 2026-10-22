@@ -6,19 +6,25 @@
 // detour (detourPause / detourMove) can start after a melee attack or a stretch of walking; see
 // rollDetour and stepDetour.
 import type { ActorDef } from '../mr-open/mr-actor-data'
+import { BUILDER_AI } from '../mr-open/mr-builder'
 import { rectAt } from '../mr-open/mr-collision'
 import { decide, type AiDecision, type AiView, type TargetView } from '../mr-open/mr-ai-cpu'
 import { cooldownReady } from '../mr-open/mr-attack'
 import { distance, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathfinding'
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
-import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit } from './actors'
+import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit, walkSpeedOf } from './actors'
+import { leaveIfFinished } from './tick-army'
+import { BUILDER_AI_MODES } from './tick-builder'
 import { nextRandom } from './rng'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
 import { actorIn, waitingSleepers, type Tick } from './tick-context'
 import { insideRect } from './view'
 
 const asTargetable = (a: ActorState): Targetable => ({ id: a.id, team: a.team, pos: a.pos, alive: true })
+
+/** AI classes stepped here; the spell caster has its own step (tick-caster.ts). */
+const CPU_WALKER_AI: ReadonlySet<string> = new Set(['objAiCPU', BUILDER_AI])
 
 /**
  * Living team units as targeting candidates: targetRoles [[#teamMembers, #teamBuildings]] covers
@@ -114,7 +120,7 @@ function stepDetourMove(a: ActorState, def: ActorDef): boolean {
     a.ai = { ...a.ai, mode: 'findTarget', detourTicks: 0, detourGoal: null, pathStall: 0, walkTicks: 0 }
     return false
   }
-  a.vel = frameMove(a.pos, goal, def.walkSpeed)
+  a.vel = frameMove(a.pos, goal, walkSpeedOf(a, def))
   a.mode = 'walk'
   a.ai = { ...a.ai, detourTicks: a.ai.detourTicks + 1, pathStall }
   faceAlong(a, a.vel.x)
@@ -134,6 +140,7 @@ function retarget(t: Tick, a: ActorState): AiDecision | null {
     a.ai.targetId = null
     a.ai.walkTicks = 0
     a.vel = { x: 0, y: 0 }
+    leaveIfFinished(t, a, true) // no hated unit left: an ally goes back to the reserve
     return null
   }
   a.ai.targetId = targetId
@@ -168,7 +175,7 @@ const MULTI_ATTACK_MELEE_DIST_SQR = 20
 function walkToward(t: Tick, a: ActorState, def: ActorDef, goal: Vec): void {
   const moved = movedOnScreen(a.pos, a.prevPos)
   const path = { pathMode: a.ai.pathMode, waypoint: a.ai.waypoint, pathStall: a.ai.pathStall, scenicTicks: a.ai.scenicTicks }
-  const r = pathStep(path, a.pos, goal, def.walkSpeed, moved, t.rng, def.pathFindingStallTime, def.scenicMaxTicks)
+  const r = pathStep(path, a.pos, goal, walkSpeedOf(a, def), moved, t.rng, def.pathFindingStallTime, def.scenicMaxTicks)
   t.rng = r.rng
   a.ai = { ...a.ai, ...r.path, moveTarget: goal }
   a.vel = r.vel
@@ -220,7 +227,7 @@ function stepRunReload(t: Tick, a: ActorState, def: ActorDef): void {
   if (!target) return
   const away = { x: a.pos.x - target.pos.x, y: a.pos.y - target.pos.y }
   const d = Math.hypot(away.x, away.y) || 1
-  a.vel = frameMove(a.pos, { x: a.pos.x + (away.x / d) * RUN_AWAY_PX, y: a.pos.y + (away.y / d) * RUN_AWAY_PX }, def.walkSpeed)
+  a.vel = frameMove(a.pos, { x: a.pos.x + (away.x / d) * RUN_AWAY_PX, y: a.pos.y + (away.y / d) * RUN_AWAY_PX }, walkSpeedOf(a, def))
   a.mode = 'walk'
   faceAlong(a, a.vel.x)
 }
@@ -229,7 +236,8 @@ export function stepCpuAi(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !a.awake) continue
     const def = defOf(t.s, a)
-    if (def.aiType !== 'objAiCPU' || (a.mode !== 'walk' && a.mode !== 'stand')) continue
+    // a builder runs objAiCPU between its building modes (tick-builder.ts)
+    if (!CPU_WALKER_AI.has(def.aiType ?? '') || BUILDER_AI_MODES.has(a.ai.mode) || (a.mode !== 'walk' && a.mode !== 'stand')) continue
     if (a.ai.mode === 'runReload') {
       stepRunReload(t, a, def)
       if (a.ai.mode === 'runReload') continue

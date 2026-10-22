@@ -86,5 +86,13 @@
   },
   "scArcher": {
     "energy": 120
+  },
+  "armySummon": {
+    "startingArmy": {
+      "warrior": 2,
+      "archer": 2,
+      "monk": 1,
+      "dwarf": 1
+    }
   }
 }

@@ -1,10 +1,12 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
+import type { ArmyReserve } from '../mr-open/mr-army'
 import { PLAYER_COLLISION_RECT, type CollisionRect } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import { NO_MEDIKITS, type MedikitState, type PotionCount } from '../mr-open/mr-pickup'
 import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
+import type { Arsenal } from '../mr-open/mr-weapons'
 import type { Rng } from './rng'
 import { PLAY_VIEW, type Size } from './view'
 import type { WorldGrid } from './world-grid'
@@ -20,6 +22,9 @@ export interface InputSnapshot {
   shootShort: boolean // Space (push-back mode): charge, release a little short of the nearest hostile (push-back shot)
   cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
   cheatHeal: boolean // M pressed (once per press): Merlin back to full energy (tick-cheats.ts)
+  selectSpell: number | null // 1-9 pressed (once per press): the n-th spell (objAiPlayer #spell1..9 -> selectSpell)
+  selectWeapon: string | null // a weapon clicked on the weaponSelector palette (commandIssued -> setCurrentWeapon)
+  cycleWeapon: boolean // remake (the touch weapon button): the next weapon in Merlin's list
 }
 
 export const NO_INPUT: InputSnapshot = {
@@ -30,6 +35,9 @@ export const NO_INPUT: InputSnapshot = {
   shootShort: false,
   cheatKillAll: false,
   cheatHeal: false,
+  selectSpell: null,
+  selectWeapon: null,
+  cycleWeapon: false,
 }
 
 export interface AnimationStrip {
@@ -56,6 +64,10 @@ export type ActorMode =
   | 'stand' | 'walk' | AttackStrip | 'charge' | 'release' | 'reel'
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
   | 'collected' // a pickup showing its writing as it fades (objPowerUpWriting #writing)
+  | 'fireBullets' // a released pulse or beam spell firing its bullets where it stands (modFireBullets)
+  | 'primed' // an energy mine ready to go off (objMine)
+  | 'beBuilt' // a building under construction (modConstruction): its strip only advances as it is built
+  | 'build' // a builder at work (objAiCPUBuilder #build)
 
 /**
  * detourPause / detourMove: the remake's random spreading detour (tick-ai.ts stepDetour), not in
@@ -63,7 +75,9 @@ export type ActorMode =
  * idleWander: the remake's idle wander of a sleeping unit near the view in a continuous world
  * (idle-wander.ts): walk to a random point near home, still asleep.
  */
-export type AiMode = 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload' | 'idleWander'
+export type AiMode =
+  | 'findTarget' | 'moveToAttack' | 'attack' | 'dazed' | 'none' | 'detourPause' | 'detourMove' | 'runReload' | 'idleWander'
+  | 'lookForBuilding' | 'walkToBuilding' | 'build' // objAiCPUBuilder
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
 export type ChargeKind = 'mouse' | 'nearest' | 'short'
@@ -82,7 +96,9 @@ export interface AiState {
   detourGoal: Vec | null // remake detour: where detourMove walks to
   idleTicks: number // remake idle wander: ticks walked in idleWander
   wanderGoal: Vec | null // remake idle wander: where idleWander walks to
-  chargeKind: ChargeKind | null // player only
+  chargeKind: ChargeKind | null // player only; a firing pulse or beam spell keeps its caster's for its aim
+  buildingId: number | null // builder: the building it works on (the #building relation)
+  buildAmount: number // builder: build progress carried to the next tick (updateBuild)
 }
 
 export interface ActorState {
@@ -125,6 +141,12 @@ export interface ActorState {
   /** continuous world (activation.ts): a sleeping unit has no AI, movement, attacks, production or regeneration (bar an idle wander); always true in rooms mode */
   awake: boolean
   wakeHold: number // continuous world: ticks a unit hit from far away stays awake regardless of distance
+  freezeTicks: number // modFreeze: frozen ticks left (walk speed halved); 0 = not frozen
+  glowTeal: boolean // modFreeze: frozen by a glowTeal attack (drawn teal)
+  beamFrom: Vec | null // a beam bullet: the spell it is stretched from (objBullet.setBeam)
+  /** modTeleport: an army unit arriving from the reserve or leaving for it; it acts as usual meanwhile, without tile collisions */
+  teleport: 'in' | 'out' | null
+  teleportAge: number // ticks into the teleport (TELEPORT_TICKS)
 }
 
 export interface RoomState {
@@ -155,6 +177,7 @@ export interface PlayerPickups {
 
 export const NO_PICKUPS: PlayerPickups = { potionsDrunk: [], medikits: NO_MEDIKITS, invinceTicks: 0 }
 
+
 /**
  * rooms: the original room-by-room play (store/restore, exits, room-cleared jingle). continuous
  * (remake feature, ?camera=follow): the whole map is one room with every unit spawned at the start
@@ -181,6 +204,8 @@ export interface SimState {
   /** gameMaster.gameComplete has run (map-complete.ts): units no longer act; the presentation takes over */
   mapComplete: boolean
   pickups: PlayerPickups
+  arsenal: Arsenal // Merlin's weapons (modWeaponManager)
+  army: ArmyReserve // armyMaster.pReserveArmy
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)
 }
 

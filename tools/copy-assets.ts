@@ -5,6 +5,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
+import { GOLDEN_MACHINE_GUN, MERLIN_SCROLLS } from '../src/mr-open/mr-pickup'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const ARCHIVE = join(ROOT, 'assets-mr-original/merlin_open_30_speedy_and _tvs')
@@ -166,6 +167,16 @@ for (const state of ['on', 'off']) {
   const strip = state === 'on' ? 'hudOn' : 'hudOff'
   copies.push({ from: join(GFX, 'medikit', `medikit_${state}.bmp`), to: join(ASSETS, `sprites/medikit/anm_medikit_${strip}_1_01.bmp`), why: `medikit_${state} HUD icon` })
 }
+// Merlin's spells (docs/notes/engine-mechanics-spells.md): the scrolls (objScroll), the bullets and
+// mines they fire, the units the summons bring and the dwarf's axe.
+const spellActors = [
+  'armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'arcticBlast',
+  'energyBeamSpell', 'merlinSword', 'energyPulse', 'energyBeam', 'energyMine', 'summonArcher', 'summonWarrior',
+  'summonOrc', 'summonBoulder', 'summonGolem', 'dwarf', 'dwarfAxe',
+]
+for (const name of spellActors) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: Merlin\'s spells' })
+}
 // every team file (enemy teams also fight each other through their hate lists)
 for (const file of readdirSync(CASTS).sort()) {
   const m = /^tem_(.+)\.txt$/.exec(file)
@@ -192,16 +203,41 @@ const castSprites = [
   'skelitonSword', 'skelitonTorsoTank', 'skelitonUpper', 'skw', 'smoke', 'smokePin', 'spark', 'speedyGuy',
   'swordOrc', 'thunderBlast', 'thunderMonk', 'towerAxe', 'townWatch', 'tvBox', 'undeadDragon',
   'undeadInvasion', 'vultureGuard', 'warrior',
+  // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
+  'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]
+/** Merlin's strips that only the cast has (his other frames come from gfx/merlin as BMPs): energy punch and sword. */
+const MERLIN_CAST_STRIPS = ['magicMelee', 'weaponMelee']
+/**
+ * Spell scrolls by key: `<key>_scroll` (the pickup) and `<key>_writing` (shown once collected) become
+ * the stand and writing strips of sprites/<key>/, as for the potions; `<key>_ws` is the weapon
+ * selector icon (modWeaponSelector.getWeaponIcon). These members are not anm_* strips: dump them
+ * into cast_bitmaps/ with `dump_bitmaps.py <key>_scroll <key>_writing <key>_ws punch_ws greenBox_ws yellowBox_ws`.
+ */
+const SCROLLS = MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN) // the gmg is not ported yet
+/** Weapon selector members: every scroll's icon, the punch's, and the palette's selection boxes. */
+const SELECTOR_MEMBERS = [...SCROLLS.map((k) => `${k}_ws`), 'punch_ws', 'greenBox_ws', 'yellowBox_ws']
 if (existsSync(CAST_BITMAPS)) {
   const [header, ...rows] = readFileSync(join(CAST_BITMAPS, 'regpoints.tsv'), 'utf8').split('\n')
-  for (const sprite of castSprites) {
-    const frame = new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`)
-    const names = new Set<string>()
-    copyGlob(CAST_BITMAPS, frame, join(ASSETS, `sprites/${sprite}`), `${sprite} frames (Director cast dump)`)
-    for (const f of readdirSync(CAST_BITMAPS)) if (frame.test(f)) names.add(f.slice(0, -4))
+  // the frames matching `frame` into sprites/<sprite>/, with their regpoints.tsv rows
+  const copyCastFrames = (frame: RegExp, sprite: string, why: string): void => {
+    copyGlob(CAST_BITMAPS, frame, join(ASSETS, `sprites/${sprite}`), why)
+    const names = new Set(readdirSync(CAST_BITMAPS).filter((f) => frame.test(f)).map((f) => f.slice(0, -4)))
     mkdirSync(join(ASSETS, `sprites/${sprite}`), { recursive: true })
     writeFileSync(join(ASSETS, `sprites/${sprite}/regpoints.tsv`), [header, ...rows.filter((r) => names.has(r.split('\t')[0]!))].join('\n') + '\n')
+  }
+  for (const sprite of castSprites) {
+    copyCastFrames(new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`), sprite, `${sprite} frames (Director cast dump)`)
+  }
+  copyCastFrames(new RegExp(`^anm_mer_(${MERLIN_CAST_STRIPS.join('|')})_\\d+_\\d+\\.png$`), 'mer', 'merlin melee frames (Director cast dump)')
+  for (const key of SCROLLS) {
+    const members: [member: string, strip: string][] = [['scroll', 'stand'], ['writing', 'writing']]
+    for (const [member, strip] of members) {
+      copies.push({ from: join(CAST_BITMAPS, `${key}_${member}.png`), to: join(ASSETS, `sprites/${key}/anm_${key}_${strip}_1_01.png`), why: `${key}_${member} member` })
+    }
+  }
+  for (const member of SELECTOR_MEMBERS) {
+    copies.push({ from: join(CAST_BITMAPS, `${member}.png`), to: join(ASSETS, `hud/weapon-selector/${member}.png`), why: 'weapon selector member' })
   }
 } else {
   console.log(`no Director cast dump at ${CAST_BITMAPS}: cast sprites not refreshed`)

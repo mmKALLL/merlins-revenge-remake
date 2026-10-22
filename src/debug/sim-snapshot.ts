@@ -6,6 +6,8 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { Rng } from '../sim/rng'
+import { NO_ARMY, type ArmyReserve } from '../mr-open/mr-army'
+import { startingArsenal, type Arsenal } from '../mr-open/mr-weapons'
 import { NO_PICKUPS, type ActorState, type AnimationSet, type InputSnapshot, type PlayerPickups, type RoomState, type SimState, type WorldMode } from '../sim/state'
 import type { WorldGrid } from '../sim/world-grid'
 
@@ -36,6 +38,8 @@ export interface SimSnapshot {
   restartRequested: boolean
   mapComplete?: boolean // absent in snapshots made before map completion existed
   pickups?: PlayerPickups // absent in snapshots made before potions existed
+  arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
+  army?: ArmyReserve // likewise
   actors: ActorState[]
   rooms: Record<string, RoomState>
   /** the inputs of the ticks leading up to this moment, oldest first (context; not replayed on load) */
@@ -106,6 +110,8 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     restartRequested: s.restartRequested,
     mapComplete: s.mapComplete,
     pickups: s.pickups,
+    arsenal: s.arsenal,
+    army: s.army,
     actors: s.actors,
     rooms: s.rooms,
     inputs: [...(extras.inputs ?? [])],
@@ -141,6 +147,8 @@ export function deserializeSim(
   const stored = Object.values(snap.rooms).flatMap((r) => r.actors)
   const unknown = [...new Set([...snap.actors, ...stored].map((a) => a.def).filter((d) => !defs[d]))]
   if (unknown.length) throw new Error(`state snapshot: no actor definition for ${unknown.join(', ')}`)
+  // the fields came together, so one present means all are; a current snapshot is taken as it is
+  const withFields = (a: ActorState): ActorState => (a.freezeTicks !== undefined ? a : { ...a, ...ACTOR_FIELDS_SINCE_V1, ai: { ...a.ai, ...AI_FIELDS_SINCE_V1 } })
   return {
     tick: snap.tick,
     worldMode: snap.worldMode,
@@ -149,19 +157,27 @@ export function deserializeSim(
     teams,
     anims,
     room: snap.room,
-    rooms: snap.rooms,
+    rooms: Object.fromEntries(Object.entries(snap.rooms).map(([k, r]) => [k, r.actors.every((a) => a.freezeTicks !== undefined) ? r : { ...r, actors: r.actors.map(withFields) }])),
     exitsOpen: snap.exitsOpen,
     navMode: snap.navMode,
-    actors: snap.actors,
+    actors: snap.actors.map(withFields),
     nextId: snap.nextId,
     rng: snap.rng,
     playerId: snap.playerId,
     restartRequested: snap.restartRequested,
     mapComplete: snap.mapComplete ?? false,
     pickups: snap.pickups ?? NO_PICKUPS,
+    arsenal: snap.arsenal ?? startingArsenal(defs['player']!),
+    army: snap.army ?? NO_ARMY,
     events: [],
   }
 }
+
+/** Actor fields added after snapshot version 1 was fixed, with their defaults (createActor's). */
+const ACTOR_FIELDS_SINCE_V1: Pick<ActorState, 'freezeTicks' | 'glowTeal' | 'beamFrom' | 'teleport' | 'teleportAge'> = {
+  freezeTicks: 0, glowTeal: false, beamFrom: null, teleport: null, teleportAge: 0,
+}
+const AI_FIELDS_SINCE_V1: Pick<ActorState['ai'], 'buildingId' | 'buildAmount'> = { buildingId: null, buildAmount: 0 }
 
 /** The last `capacity` inputs, kept in a fixed array (one write per tick). */
 export class InputLog {

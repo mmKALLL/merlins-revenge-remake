@@ -21,6 +21,9 @@ function scriptedInput(tick: number): InputSnapshot {
     shootShort: false,
     cheatKillAll: false,
     cheatHeal: false,
+    selectSpell: null,
+    selectWeapon: null,
+    cycleWeapon: false,
   }
 }
 

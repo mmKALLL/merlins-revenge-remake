@@ -139,6 +139,9 @@ export class InputTracker {
       shootShort: shots.shootShort,
       cheatKillAll,
       cheatHeal,
+      selectSpell: null,
+      selectWeapon: null,
+      cycleWeapon: false,
     }
   }
 
