@@ -52,6 +52,9 @@ they do to Merlin, and what the HUD shows. Lingo paths are under the archive's `
 - `objPotion.collected` (`objPotion.txt:26-29`): the above, then
   `collector.potionCollected(character, me)`. `objMedikit.collected` (`objMedikit.txt:10-13`):
   the above, then `collector.medikitCollected(character)`.
+- **Remake decision (owner request, 2026-10-22):** potions and kits disappear the moment they are
+  collected, with no fading writing: `vanishOnCollect: true` on each potion and kit in
+  `assets/tuning.json` (the engine default `false` keeps the fade).
 
 ## 3. Potions on Merlin
 

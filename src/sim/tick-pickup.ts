@@ -49,6 +49,7 @@ function collect(t: Tick, a: ActorState, p: ActorState): void {
   a.mode = 'collected'
   a.age = 0
   playSound(t, def.collectSound, DEFAULT_VOLUME)
+  if (def.vanishOnCollect) t.removed.add(a.id)
   startTempInvince(t)
   const maxEnergy = defOf(t.s, p).maxEnergy
   if (def.objType === POTION_OBJ_TYPE) {

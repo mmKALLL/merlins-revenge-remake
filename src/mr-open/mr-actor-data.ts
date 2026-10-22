@@ -150,6 +150,7 @@ export interface ActorDef {
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
+  vanishOnCollect: boolean // a pickup goes at once when collected; false = engine (its writing fades out first)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -237,6 +238,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
+    vanishOnCollect: false, // collected pickups fade their writing out, as in the engine
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -263,7 +265,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'vanishOnCollect',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -571,6 +573,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
+      vanishOnCollect: bool(r, 'vanishOnCollect', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
