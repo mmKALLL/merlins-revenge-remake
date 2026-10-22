@@ -80,10 +80,10 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'room', label: 'room', title: 'Room by room, as in the original' },
       { value: 'follow', label: 'follow', title: 'Follows Merlin through the whole map as one world (C)' },
     ], host.camera, host.setCamera),
-    choiceRow(body, 'Space / blast', [
+    choiceRow(body, 'Hotkey targeting', [
       { value: 'nearest', label: 'nearest enemy', title: 'The nearest enemy on screen (F cycles the modes)' },
       { value: 'pushBack', label: 'push-back shot', title: 'Lands short of the nearest enemy (F)' },
-      { value: 'mouse', label: 'mouse', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy (F)' },
+      { value: 'mouse', label: 'mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy (F)' },
     ], host.spaceMode, host.setSpaceMode),
     choiceRow(body, 'Music', ON_OFF, () => audio.current.music, (on) => audio.setMusic(on)),
     choiceRow(body, 'Effects', ON_OFF, () => audio.current.effects, (on) => audio.setEffects(on)),
