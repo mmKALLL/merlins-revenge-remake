@@ -59,6 +59,11 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   the start), the monster summon only reaches its archer stage until Merlin drinks Max Blast
   potions, summoned allies teleport back into the reserve as soon as the room is clear, and frosty
   monks now freeze Merlin.
+- R and M (2026-10, owner request): R summons the whole reserve army at the mouse
+  (modAutoSummon, the original's C key; at most 2 of each type with Merlin's 12-member team cap),
+  and sends the whole army back into the reserve while any of it is out; M gives one medikit (as
+  collecting one: +25 energy and invincibility too) instead of the full heal. R has no touch
+  control yet (would need a third button).
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The

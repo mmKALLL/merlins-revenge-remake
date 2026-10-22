@@ -203,6 +203,21 @@ Details:
   no target (`objAiCPU.txt:232-237`: the room is clear or no hated team is left). Every ally has
   `leaveWhenFinished: true` (`act_warrior`, `act_archer`, `act_monk`, `act_dwarf`,
   `act_kingInGame`), so a summoned army fights and then teleports back into the reserve.
+- **The army key** (`modAutoSummon.summonArmy`, `modAutoSummon.txt:34-104`, from the `#army` key in
+  `objAiPlayer.interpretGameKeys`, `objAiPlayer.txt:153-155`; C in the original): summons the whole
+  reserve at once, with no spell, mana or charge. `availableSlots` = `reservationsMaster.
+  getAvailableSlots(team)` (`maxMembers - currentMembers - reservedSlots`, no team override
+  halving; `#aldevar` has 12, Merlin among the members); 0, or no reserve list for the team: nothing.
+  The types are Merlin's `#armyMembers` (`act_player.txt:21`: warrior, archer, monk, dwarf,
+  kingInGame). `slotsPerUnit` = `availableSlots / 5` (integer division), or `/ 3` when the slots
+  do not cover every type ("drop the higher units"), at least 1. For each type in order: as many
+  as `min(slotsPerUnit, units of the type in the reserve, slots left)`, each by
+  `armyMaster.createUnitNum` (`armyMaster.txt:110-136`): a new actor at the mouse loc with
+  `locv + random(30) - 15` (the code sets `locv` twice and never `loch`), the saved details,
+  `armyTeleportIn`, off the reserve. A refused actor (solid tile) or no free slot left `exit`s the
+  handler; so does a type with no reserve list at all (`reserveTeam[typ] = void`). So with 11 free
+  slots every type gets at most 2 units, however many warriors wait. No sound of its own (the
+  teleports have none); `displayNextSummons` redraws the army display.
   The original scroll brings no units: the army comes from allies on the map.
 - **Teleports** (`modTeleport.txt`): 15 frames; in: the sprite starts 1000 px tall and shrinks to
   its member height with its bottom on the floor while fading in; out: it stretches to 1000 px while
@@ -241,8 +256,7 @@ Details:
   `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
 - Every spell in the table is ported but the golden machine gun (an open item; its scroll tile
   stays unspawned). Test content: `?map=spells_test` (`tools/make-spells-test-map.mjs`).
-- Left out: experience in the army details (not ported anywhere), modAutoSummon (the original's C
-  key summons the whole reserve; C is the camera here), the in-game wizards, the dwarf tower axe's
+- Left out: experience in the army details (not ported anywhere), the in-game wizards, the dwarf tower axe's
   splash damage (`splashDamageOn`; the axe hits its target directly as before), the monk's ghost
   (`reincarnateAs #monkGhost`, objAiCPUGhost), and the enemies that fire pulses, beams or lay mines
   (techMech, prestotolin, verdanlin; their actors are not copied yet).
@@ -263,6 +277,18 @@ Details:
   weapon: a spell charges while held, a melee weapon swings while held (facing where it aims; Space
   aims at the nearest enemy), as objAiPlayer does for the mouse. The punch and the melee scrolls are
   only on the lower palette (selectSpell counts spells only).
+- **The army key is R** (owner request, 2026-10): C is the camera here. The port
+  (`src/mr-open/mr-auto-summon.ts`, `stepArmyKey` in `src/sim/tick-army.ts`, the snapshot's
+  `armyKey`, once per press, while Merlin is alive, in both world modes) follows summonArmy, with
+  the mouse position (Merlin's without one). Differences: every unit's offset is taken from the
+  mouse (the Lingo writes into `summonLoc`, which may alias `startLoc` and so drift from unit to
+  unit: points are not certainly copied on assignment); a type with no units is skipped rather than
+  ending the summon, as the port's reserve keeps counts and does not tell an emptied type from one
+  never seen. **Remake addition, unsummon all:** while any of Merlin's army members (his
+  `armyMembers` types on his team, living, teleportable, not already leaving) are in play, R
+  teleports them all out into the reserve instead (`armyTeleportOut` each, as a blank army summon
+  blast does); only units in the tick count, so an ally left asleep far away in the continuous
+  world stays where it is. R has no touch control (the original has none either).
 - **Touch.** A weapon button beside the blast button shows the current weapon; a tap steps to the
   next one in Merlin's list (no such control in the original).
 - **A hit ends Merlin's swing.** objPlayerMerlinCharacter.takeHit forces `#walk`; the port ends the

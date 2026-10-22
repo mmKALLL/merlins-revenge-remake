@@ -4,8 +4,9 @@
 // (SpaceMode): at the nearest enemy, short of it (a push-back shot), or at the mouse
 // like E; F toggles the first two (the mouse mode is chosen in Settings) (straight ahead while no mouse position is known). C switches between the
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle), N hides or shows the mini-map (takeMiniMapToggle). The debug
-// cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
-// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The weapon keys
+// cheats K (kill the enemies on screen) and M (one more medikit) reach the sim once per press, in the next
+// snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M), and so does R, the
+// #army key (summon the whole reserve army, or send the army back; the original's C). The weapon keys
 // (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9) once per press; Q
 // opens the weapon palettes (#weaponSelector 12; main.ts takes each press with takeWeaponSelector),
 // and a weapon picked on them (pickWeapon) reaches the next snapshot. The on-screen
@@ -51,7 +52,8 @@ export class InputTracker {
   private cameraToggle = false // a C press not yet taken (two presses cancel out)
   private miniMapToggle = false // an N press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
-  private cheatHeal = false // an M press not yet in a snapshot
+  private cheatMedikit = false // an M press not yet in a snapshot
+  private armyKey = false // an R press not yet in a snapshot
   private selectSpell: number | null = null // a 1-9 press not yet in a snapshot
   private selectWeapon: string | null = null // a palette pick not yet in a snapshot
   private cycleWeapon = false // a touch weapon button press not yet in a snapshot
@@ -80,7 +82,8 @@ export class InputTracker {
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
     if (code === 'KeyN' && pressed) this.miniMapToggle = !this.miniMapToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
-    if (code === 'KeyM' && pressed) this.cheatHeal = true
+    if (code === 'KeyM' && pressed) this.cheatMedikit = true
+    if (code === 'KeyR' && pressed) this.armyKey = true
     if (code === 'KeyQ' && pressed) this.weaponSelector = true
     const spell = SPELL_KEY.exec(code)
     if (spell && pressed) this.selectSpell = Number(spell[1])
@@ -160,9 +163,10 @@ export class InputTracker {
     const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootShort: false }
     if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
     if (this.touchBlast) shots[this.touchShot()] = true
-    const { cheatKillAll, cheatHeal, selectSpell, selectWeapon, cycleWeapon } = this
+    const { cheatKillAll, cheatMedikit, armyKey, selectSpell, selectWeapon, cycleWeapon } = this
     this.cheatKillAll = false
-    this.cheatHeal = false
+    this.cheatMedikit = false
+    this.armyKey = false
     this.selectSpell = null
     this.selectWeapon = null
     this.cycleWeapon = false
@@ -173,7 +177,8 @@ export class InputTracker {
       shootNearest: shots.shootNearest,
       shootShort: shots.shootShort,
       cheatKillAll,
-      cheatHeal,
+      cheatMedikit,
+      armyKey,
       selectSpell,
       selectWeapon,
       cycleWeapon,

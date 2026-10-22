@@ -16,7 +16,8 @@ const KEYBOARD: Line[] = [
   ['N', 'hide or show the mini-map (bottom right, shown while no enemy is near)'],
   ['Esc', 'menu (pauses the game)'],
   ['Enter', 'play the map again after it is complete'],
-  ['K / M', 'debug cheats: kill the enemies on screen / heal Merlin'],
+  ['R', 'summon the whole reserve army at the mouse; with the army out, send it all back into the reserve'],
+  ['K / M', 'debug cheats: kill the enemies on screen / one more medikit'],
 ]
 
 const TOUCH: Line[] = [

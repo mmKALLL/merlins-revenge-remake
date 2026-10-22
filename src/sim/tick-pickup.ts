@@ -56,14 +56,19 @@ function collect(t: Tick, a: ActorState, p: ActorState): void {
     return
   }
   if (def.vanishOnCollect) t.removed.add(a.id)
-  startTempInvince(t)
-  const maxEnergy = defOf(t.s, p).maxEnergy
   if (def.objType === POTION_OBJ_TYPE) {
+    startTempInvince(t)
     t.pickups = { ...t.pickups, potionsDrunk: drinkPotion(t.pickups.potionsDrunk, def.character ?? def.key) }
-    p.energy = Math.min(p.energy + BONUS_ENERGY, maxEnergy)
+    p.energy = Math.min(p.energy + BONUS_ENERGY, defOf(t.s, p).maxEnergy)
     return
   }
-  const healed = collectMedikit(t.pickups.medikits, def.character, p.energy, maxEnergy)
+  medikitCollected(t, p, def.character)
+}
+
+/** objPlayerMerlinCharacter.medikitCollected(medType): the temporary invincibility, then the kit (collectMedikit). */
+export function medikitCollected(t: Tick, p: ActorState, character: string | null): void {
+  startTempInvince(t)
+  const healed = collectMedikit(t.pickups.medikits, character, p.energy, defOf(t.s, p).maxEnergy)
   t.pickups = { ...t.pickups, medikits: healed.medikits }
   p.energy = healed.energy
 }

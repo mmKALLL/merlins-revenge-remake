@@ -1,11 +1,17 @@
 // The reserve army in the tick (spells notes §5): allies teleport out into it (modArmyUnit.
 // armyTeleportOut: hit by a blank army summon blast, or a #leaveWhenFinished unit whose AI finds no
 // target), and the army summon brings them back teleporting in (tick-spell.ts summonPayload). A
-// teleport plays for TELEPORT_TICKS (modTeleport) while the unit goes on acting.
-import { TELEPORT_TICKS, recordUnits } from '../mr-open/mr-army'
+// teleport plays for TELEPORT_TICKS (modTeleport) while the unit goes on acting. The #army key (R)
+// summons the whole reserve at once (modAutoSummon), or sends the army back into it.
+import { AUTO_SUMMON_JITTER, autoSummonTypes } from '../mr-open/mr-auto-summon'
+import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/mr-army'
+import { tileOfPx } from '../mr-open/mr-collision'
+import type { Vec } from '../mr-open/mr-geometry'
 import { defOf, isAlive } from './actors'
-import type { ActorState } from './state'
-import type { Tick } from './tick-context'
+import { randomInt } from './rng'
+import type { ActorState, InputSnapshot } from './state'
+import { playerIn, spawn, type Tick } from './tick-context'
+import { teamSlotsFree } from './tick-dwelling'
 
 /** modArmyUnit.armyTeleportOut: a teleportable living unit starts teleporting out (once). */
 export function teleportOut(t: Tick, a: ActorState): void {
@@ -40,5 +46,46 @@ export function stepTeleports(t: Tick): void {
     }
     a.teleport = null
     a.teleportAge = 0
+  }
+}
+
+/**
+ * The #army key (R; objAiPlayer.interpretGameKeys -> modAutoSummon.summonArmy) while Merlin is
+ * alive: the whole reserve summoned around the mouse (Merlin without a mouse position). Remake
+ * (owner request): while army members of Merlin's are in play, the key teleports them all out
+ * into the reserve instead (armyTeleportOut each, as a blank army summon blast does).
+ */
+export function stepArmyKey(t: Tick, input: InputSnapshot): void {
+  if (!input.armyKey) return
+  const p = playerIn(t)
+  if (!isAlive(p)) return
+  const inPlay = armyMembersInPlay(t, p)
+  if (inPlay.length > 0) for (const a of inPlay) teleportOut(t, a)
+  else summonWholeReserve(t, p, input.mouseWorld ?? p.pos)
+}
+
+/** Merlin's living army members (his armyMembers types on his team) in the tick that can still teleport out. */
+function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
+  const types = defOf(t.s, p).armyMembers
+  const canGo = (a: ActorState) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out' && defOf(t.s, a).teleportable
+  return t.actors.filter((a) => !t.removed.has(a.id) && canGo(a))
+}
+
+/**
+ * modAutoSummon.summonArmy: autoSummonTypes picks the units under the team cap; each comes out of
+ * the reserve teleporting in (armyMaster.createUnitNum) at `at` moved up or down by random(30) - 15
+ * (summonArmy sets locv twice and never loch). A solid tile refuses the unit (actorMaster.newActor
+ * returns #none) and summonArmy stops there (`exit`).
+ */
+function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
+  const types = autoSummonTypes(teamSlotsFree(t, p.team), defOf(t.s, p).armyMembers, (typ) => reserveCount(t.army, p.team, typ))
+  for (const typ of types) {
+    const [r, rng] = randomInt(t.rng, AUTO_SUMMON_JITTER)
+    t.rng = rng
+    const pos = { x: at.x, y: at.y + r - AUTO_SUMMON_JITTER / 2 }
+    const army = takeUnit(t.army, p.team, typ)
+    if (!army || !t.s.defs[typ] || t.s.grid.solidAt(tileOfPx(pos.x), tileOfPx(pos.y))) return
+    t.army = army
+    spawn(t, typ, pos, { teleport: 'in', teleportAge: 0 })
   }
 }

@@ -4,7 +4,7 @@
 // itself. Hits, reel and death go through the shared combat code (applyHit, stepReelAndDeath).
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { tileOfPx } from '../mr-open/mr-collision'
-import { afterRelease, permissionToRelease, releaseCountdown, startProduction, type DwellingState } from '../mr-open/mr-residents'
+import { afterRelease, availableSlots, permissionToRelease, releaseCountdown, startProduction, type DwellingState } from '../mr-open/mr-residents'
 import { DEFAULT_VOLUME } from '../mr-open/mr-sound'
 import { defOf, isAlive, isDwelling, isUnit } from './actors'
 import type { ActorState, SimState } from './state'
@@ -47,6 +47,11 @@ const withRng = (t: Tick, [d, rng]: [DwellingState, Tick['rng']]): DwellingState
 /** reservationsMaster.getPermissionToRelease for `n` more members of `team`. */
 export function teamHasRoomFor(t: Tick, team: string, n: number): boolean {
   return permissionToRelease(teamMembers(t, team), reservedSlots(t, team), n, t.s.teams[team]?.maxMembers ?? null)
+}
+
+/** reservationsMaster.getAvailableSlots for `team`. */
+export function teamSlotsFree(t: Tick, team: string): number {
+  return availableSlots(teamMembers(t, team), reservedSlots(t, team), t.s.teams[team]?.maxMembers ?? null)
 }
 
 /**

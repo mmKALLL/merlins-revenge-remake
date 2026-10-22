@@ -121,7 +121,7 @@ describe('deaths of reel-proof units mid-attack', () => {
     let s = world('garTower', columnAt(120))
     const t0 = enemyOf(s)!
     // wait for the attack strip, then weaken it so the blast kills it mid-attack
-    for (let i = 0; i < 200 && enemyOf(s)!.ai.mode !== 'attack'; i++) s = stepSim(s, { ...NO_INPUT, cheatHeal: true })
+    for (let i = 0; i < 200 && enemyOf(s)!.ai.mode !== 'attack'; i++) s = stepSim(s, { ...NO_INPUT, cheatMedikit: true })
     expect(enemyOf(s)!.ai.mode).toBe('attack')
     s = withActor(s, t0.id, { energy: 1 })
     const aim = enemyOf(s)!.pos
@@ -135,7 +135,7 @@ describe('deaths of reel-proof units mid-attack', () => {
       if (tower.ai.mode !== 'attack' && isAlive(tower)) s = withActor(s, t0.id, { ai: { ...tower.ai, mode: 'attack' }, mode: 'weaponRanged' })
     }
     expect(isAlive(enemyOf(s)!)).toBe(false)
-    expectDeathFinished(untilGone(s, 120, { ...NO_INPUT, cheatHeal: true }))
+    expectDeathFinished(untilGone(s, 120, { ...NO_INPUT, cheatMedikit: true }))
   })
 })
 
