@@ -49,8 +49,20 @@ export function meleePush(def: ActorDef, facingLeft: boolean): Vec {
 
 /** calcAttackHitMelee: hit iff the strike point is inside the target's sprite rect. */
 export function meleeHits(attackerPos: Vec, def: ActorDef, facingLeft: boolean, targetRect: Rect): boolean {
+  const circle = def.attack.strikeCircle
+  if (circle) return circleMeetsRect(offsetFrom(attackerPos, circle.centre, facingLeft), circle.radius, targetRect)
   const s = attackLoc(attackerPos, def.attack, facingLeft)
   return s.x >= targetRect.left && s.x < targetRect.right && s.y >= targetRect.top && s.y < targetRect.bottom
+}
+
+/** A point offset from the reg point, x mirrored by facing (as calcAttackLoc mirrors collisionLoc). */
+const offsetFrom = (pos: Vec, offset: Vec, facingLeft: boolean): Vec => ({ x: pos.x + offset.x * faceDir(facingLeft), y: pos.y + offset.y })
+
+/** Remake strike circle: the rect's closest point to the centre lies within the radius. */
+function circleMeetsRect(centre: Vec, radius: number, r: Rect): boolean {
+  const dx = centre.x - Math.max(r.left, Math.min(centre.x, r.right))
+  const dy = centre.y - Math.max(r.top, Math.min(centre.y, r.bottom))
+  return dx * dx + dy * dy <= radius * radius
 }
 
 /** Reach as a radius; a point reach (the player's punch) is not a radius, so fall back to the struct default 25. */

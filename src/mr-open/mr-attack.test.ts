@@ -3,7 +3,7 @@ import type { ActorDef, AttackDef } from './mr-actor-data'
 import { aimWithEyestrain, attackLoc, bulletPush, cooldownIncrement, cooldownReady, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown } from './mr-attack'
 
 const attack = (o: Partial<AttackDef>): AttackDef => ({
-  name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 },
+  name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 }, strikeCircle: null,
   reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
@@ -74,6 +74,16 @@ describe('melee', () => {
     expect(meleeHits(pos, warrior, true, rect)).toBe(false)
     expect(meleeHits(pos, warrior, false, { ...rect, left: 116 })).toBe(false)
     expect(meleeHits(pos, warrior, true, { left: 70, top: 84, right: 86, bottom: 116 })).toBe(true)
+  })
+  it('with a strike circle, hits any target rect the mirrored circle meets', () => {
+    const sword = { ...warrior, attack: { ...warrior.attack, strikeCircle: { centre: { x: 6, y: 0 }, radius: 14 } } }
+    const pos = { x: 100, y: 100 }
+    const ahead = { left: 119, top: 90, right: 130, bottom: 110 } // 13 px from the centre at x 106
+    expect(meleeHits(pos, sword, false, ahead)).toBe(true)
+    expect(meleeHits(pos, sword, false, { ...ahead, left: 121 })).toBe(false)
+    const behind = { left: 80, top: 90, right: 93, bottom: 110 } // 13 px behind the centre, past Merlin's back
+    expect(meleeHits(pos, sword, false, behind)).toBe(true)
+    expect(meleeHits(pos, sword, true, ahead)).toBe(false) // facing left the circle sits at x 94
   })
 })
 

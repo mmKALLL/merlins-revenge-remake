@@ -263,6 +263,16 @@ Details:
 
 ### Remake decisions
 
+- **Merlin's sword hits in a circle (owner request, 2026-10-22).** The engine's melee hit is a single
+  strike point (`collisionLoc`, the sword's (16,1) from the reg point) that must lie inside the
+  victim's sprite rect (`teamMaster.impactMeleeAttack`). A new attack field `strikeCircle`
+  (`{ centre, radius }`, x mirrored by facing; engine default `null` keeps the point) makes a melee
+  hit land on every target whose sprite rect meets the circle. `merlinSword.attack.strikeCircle` in
+  `assets/tuning.json` is centre (6,1), radius 14: from 8 px behind the reg point (covering Merlin's
+  16 px wide sprite) to 20 px ahead (the strike point's 16 plus about 20 %), 14 px up and down. The
+  damage is unchanged: push (4, 4) from `power (.5,.5)` x strength 8, times `damageMultiplier` 16
+  = 128 before the victim's inertia (a goblin warrior, inertia 30, takes about 90 of its 100).
+
 - **The army summon's starting army (owner request).** Collecting the army summon scroll puts 2
   warriors, 2 archers, a monk and a dwarf into the reserve: `armySummon.startingArmy` in
   `assets/tuning.json` (engine default `{}`, as the original scroll brings none). The spell then

@@ -117,5 +117,16 @@
       "monk": 1,
       "dwarf": 1
     }
+  },
+  "merlinSword": {
+    "attack": {
+      "strikeCircle": {
+        "centre": {
+          "x": 6,
+          "y": 1
+        },
+        "radius": 14
+      }
+    }
   }
 }

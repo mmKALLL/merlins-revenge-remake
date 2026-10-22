@@ -16,6 +16,8 @@ export interface AttackDef {
   animFrame: number[] | null
   collisionLoc: Vec // offset from the reg point (x mirrored by facing): melee strike point or bullet spawn point
   idealAttackLoc: Vec // where an AI wants to stand relative to its target (melee: beside it)
+  /** remake: a melee hit lands on every target whose sprite rect meets this circle (centre from the reg point, x mirrored); null = the engine's strike point */
+  strikeCircle: { centre: Vec; radius: number } | null
   /** a point for the player's natural punch (act_player); a number everywhere else */
   reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
   cooldown: number // counter length between attacks; advanced per tick by agility/dexterity/mana_regeneration
@@ -208,6 +210,7 @@ const ATTACK_DEFAULTS = {
   payloadFunctionNonBlank: ['same'], residentTeamCategory: 'none', chargeStartMax: 'none', releaseFunction: 'release',
   chargePerUnit: 5, fireDelay: 2, beam: false, freezeMultiplier: 1,
   glowTeal: false, // not in structAttack; only the freezing attacks set it
+  strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
 } as const
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
@@ -473,6 +476,14 @@ function nonBlankPayload(nonBlank: string[], blank: string[]): string[] {
   return nonBlank.length === 1 && nonBlank[0] === SAME_PAYLOAD ? [...blank] : nonBlank
 }
 
+/** The optional melee strike circle: { centre: {x, y}, radius } (tuning only). */
+function strikeCircleOf(a: Plain, ctx: string): AttackDef['strikeCircle'] {
+  const c = a['strikeCircle']
+  if (c === null || c === undefined) return null
+  if (!isPlain(c)) bad(ctx, 'attack.strikeCircle', '{ centre, radius }', c)
+  return { centre: vec(c, 'centre', ctx), radius: num(c, 'radius', ctx) }
+}
+
 function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
   const a: Plain = { ...ATTACK_DEFAULTS, ...(rawAttack ?? {}) }
   if (a['idealAttackLoc'] === 'collisionLoc') a['idealAttackLoc'] = a['collisionLoc']
@@ -483,6 +494,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     type: attackTypeFromAnim(animType, a['type'], ctx),
     animFrame: frameList(a, 'animFrame', ctx),
     collisionLoc: vec(a, 'collisionLoc', ctx), idealAttackLoc: vec(a, 'idealAttackLoc', ctx),
+    strikeCircle: strikeCircleOf(a, ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),
     damageMultiplier: num(a, 'damageMultiplier', ctx),
