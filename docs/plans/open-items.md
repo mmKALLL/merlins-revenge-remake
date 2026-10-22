@@ -49,6 +49,11 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The
   original menu's choose keys, save/load and show army are left out until those features exist.
 
+- Mini-map (`modMiniMap`, `docs/notes/engine-mechanics-minimap.md`): ported as in the original
+  (all rooms shown from the start, only in nav mode, fading near Merlin or the mouse). Remake
+  decisions to confirm: the follow camera's sliding view marker over live room statuses, the N key
+  to hide it, shrinking to scale 1 for maps too tall for the view (none so far).
+
 ## Reference material for sessions without the original archive
 
 The owner can attach `mr-open-reference.zip` (Lingo source, maps, and every `anm_*` cast bitmap,

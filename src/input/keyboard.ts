@@ -3,7 +3,7 @@
 // E or the left button charges and fires at the mouse position. Space charges and fires by its mode
 // (SpaceMode): at the nearest enemy, short of it (a push-back shot), or at the mouse
 // like E; F toggles the first two (the mouse mode is chosen in Settings) (straight ahead while no mouse position is known). C switches between the
-// room camera and the follow camera (main.ts takes each press with takeCameraToggle). The debug
+// room camera and the follow camera (main.ts takes each press with takeCameraToggle), N hides or shows the mini-map (takeMiniMapToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
 // snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
 // touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
@@ -43,6 +43,7 @@ export class InputTracker {
   private mouseDown = false
   private mode: SpaceMode
   private cameraToggle = false // a C press not yet taken (two presses cancel out)
+  private miniMapToggle = false // an N press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
   private cheatHeal = false // an M press not yet in a snapshot
   private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
@@ -66,6 +67,7 @@ export class InputTracker {
     const pressed = !this.held.has(code) // key repeat sends more keydowns while held
     if (code === 'KeyF' && pressed) this.setSpaceMode(nextSpaceMode(this.mode))
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
+    if (code === 'KeyN' && pressed) this.miniMapToggle = !this.miniMapToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
     if (code === 'KeyM' && pressed) this.cheatHeal = true
     this.held.add(code)
@@ -81,6 +83,12 @@ export class InputTracker {
   takeCameraToggle(): boolean {
     const toggle = this.cameraToggle
     this.cameraToggle = false
+    return toggle
+  }
+  /** Whether N was pressed since the last call: the mini-map should be hidden or shown once. */
+  takeMiniMapToggle(): boolean {
+    const toggle = this.miniMapToggle
+    this.miniMapToggle = false
     return toggle
   }
   keyUp(code: string): void { this.held.delete(code) }
