@@ -405,3 +405,14 @@ Owner tuning (2026-10-22): more weak enemies, more variety.
   averages about 7 units of 4-5 kinds (2-3 in the maze, whose factions are narrow), the centre
   5-6 units of about 4 kinds, and the numerous weak corner about 3 kinds.
 
+Owner tuning (2026-10-22): necromancers should be a regular sight in the Magic Maze. Its two
+generator rooms (top middle, middle left) draw their producers as `{ weak: 2, strong: 1 }`
+(`WEAK_SOME_STRONG`) instead of weak only, and the necromancer (the maze's one strong producer,
+undead, at most 2 a room) weighs 5 instead of 2, which also makes undead generator rooms likelier
+(a room's faction is drawn by the weight of its choices). The other factions have no strong
+producer and fall back to weak ones. Over 200 seeds: floors with at least one necromancer
+158 -> 184, with two or more 108 -> 151, necromancers in all 319 -> 530; floors with one outside
+the midboss and boss rooms 11 -> 115 (tested loosely: over a third). Ninjas were checked for the
+undead faction: they are on the `ninja` team, which hates the undead and is hated by them, so
+they stay out of it.
+

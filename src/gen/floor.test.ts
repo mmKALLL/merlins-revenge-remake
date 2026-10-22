@@ -7,7 +7,7 @@ import { pageDefs } from '../debug/snapshot-test-data'
 import { BOSS_TILE, ROOM_SIZE, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
-import { THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
+import { MAGIC_MAZE, THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
 /** the page's resolved actor data, so a unit without a definition fails here */
@@ -321,5 +321,14 @@ describe('generated map ids', () => {
     expect(currentMapId('random/goblin-forest')).toBe('randomly_generated/1-goblin-forest')
     expect(currentMapId('random/sorcerers-tower')).toBe('randomly_generated/sorcerers-tower')
     expect(currentMapId('works/sam')).toBe('works/sam')
+  })
+})
+
+describe('Magic Maze necromancers (owner: a regular sight)', () => {
+  it('puts necromancers outside the midboss and boss rooms on many floors', () => {
+    const fixed = [cornerRoom(MAGIC_MAZE.floorSize, 'farY'), exitRoom(MAGIC_MAZE.floorSize)]
+    const floors = SEEDS.slice(0, 200).map((s) => generateFloor(MAGIC_MAZE, s, energyOf))
+    const featuring = floors.filter((f) => f.placements.some((p) => p.key === 'necromancer' && !fixed.some((r) => sameRoom(r, p.room))))
+    expect(featuring.length).toBeGreaterThan(floors.length / 3)
   })
 })
