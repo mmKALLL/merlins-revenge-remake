@@ -43,7 +43,7 @@ import {
 } from './actors'
 import { advanceAnim, extendFrame, stripNameFor } from './anim'
 import {
-  DEFAULT_SIM_CONFIG, NO_PICKUPS, roomKey,
+  ATTACK_STRIPS, DEFAULT_SIM_CONFIG, NO_PICKUPS, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
 import { stepCpuAi } from './tick-ai'
@@ -246,6 +246,10 @@ function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: 
   return { loc: clamped, vel: v }
 }
 
+/** Remake (owner request): a frozen unit other than Merlin plays its attack strips `frozenAttackSlowdown` times slower. */
+const attackSlowdown = (s: SimState, a: ActorState): number =>
+  a.id !== s.playerId && a.freezeTicks > 0 && ATTACK_STRIPS.has(a.mode) ? defOf(s, a).frozenAttackSlowdown : 1
+
 /** 5. Animation advance for every actor; the player is "moving" while a move key is held, others while their velocity is non-zero. */
 function stepAnimation(t: Tick, input: InputSnapshot): void {
   const s = t.s
@@ -255,7 +259,7 @@ function stepAnimation(t: Tick, input: InputSnapshot): void {
     const set = s.anims[defOf(s, a).name]
     const moving = a.id === s.playerId ? isAlive(a) && (input.move.x !== 0 || input.move.y !== 0) : a.vel.x !== 0 || a.vel.y !== 0
     const name = stripNameFor(set, a.mode, moving, isSpell(s, a))
-    Object.assign(a, advanceAnim(a, name, stripFor(s, { ...a, anim: name })))
+    Object.assign(a, advanceAnim(a, name, stripFor(s, { ...a, anim: name }), attackSlowdown(s, a)))
   }
 }
 

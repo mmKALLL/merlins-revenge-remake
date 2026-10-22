@@ -65,9 +65,10 @@ export type AnimFields = Pick<ActorState, 'anim' | 'animFrame' | 'animCounter' |
  * Advances one strip by a tick: frame 0 on a strip change. `animLooped` is set on the last tick of
  * the last frame, while that frame is still shown (objAnimStrip.getLooped = the member list has
  * wrapped and the delay counter has finished; the next member is only fetched on the following
- * update), so a mode that ends on the loop never shows the strip's first frame again.
+ * update), so a mode that ends on the loop never shows the strip's first frame again. `slow`
+ * (remake) multiplies every frame's delay, as for a frozen unit's attack.
  */
-export function advanceAnim(a: ActorState, animName: string, strip: AnimationStrip | undefined): AnimFields {
+export function advanceAnim(a: ActorState, animName: string, strip: AnimationStrip | undefined, slow = 1): AnimFields {
   let animFrame = 0
   let animCounter = 0
   let animExtend = 0
@@ -78,21 +79,21 @@ export function advanceAnim(a: ActorState, animName: string, strip: AnimationStr
     animCounter = a.animCounter + 1
     animExtend = a.animExtend
     animExtendCount = a.animExtendCount
-    if (animCounter >= frameDelay(strip, a.animFrame) + a.animExtend) {
+    if (animCounter >= frameDelay(strip, a.animFrame) * slow + a.animExtend) {
       animCounter = 0
       animExtend = 0
       animExtendCount = 0
       animFrame = a.animFrame + 1 >= strip.frames ? 0 : a.animFrame + 1
     }
   }
-  return { anim: animName, animFrame, animCounter, animExtend, animExtendCount, animLooped: loopedOn(strip, animFrame, animCounter, animExtend) }
+  return { anim: animName, animFrame, animCounter, animExtend, animExtendCount, animLooped: loopedOn(strip, animFrame, animCounter, animExtend, slow) }
 }
 
 /** Ticks the 0-based `frame` of a strip is shown (objAnimStrip: each member keeps its own delay). */
 export const frameDelay = (strip: AnimationStrip, frame: number): number => strip.delays?.[frame] ?? strip.delay
 
-const loopedOn = (strip: AnimationStrip | undefined, frame: number, counter: number, extend: number): boolean =>
-  !!strip && frame === strip.frames - 1 && counter === frameDelay(strip, frame) + extend - 1
+const loopedOn = (strip: AnimationStrip | undefined, frame: number, counter: number, extend: number, slow = 1): boolean =>
+  !!strip && frame === strip.frames - 1 && counter === frameDelay(strip, frame) * slow + extend - 1
 
 /**
  * objAnimStrip.extendDelay(1), `times` times: the current frame's delay (tim[2]) grows by one and its
