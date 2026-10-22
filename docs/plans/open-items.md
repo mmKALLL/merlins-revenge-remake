@@ -30,6 +30,9 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
+- **Scoring mode.** Each room counts down from 9999 points to 0 over 200 seconds. The map's total is
+  shown bottom right, with the current room's points as a green `+1234` about 8 px to its right.
+  The map selector shows the top score for each map.
 - **Save and load the state of a map.** Original: `saveMaster` (save/load menu options,
   `addSaveData`/`restoreFromSave` on every object). Builds on the snapshot code in `src/debug/`.
 
