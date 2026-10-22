@@ -1,9 +1,11 @@
-// Small player preferences kept in localStorage: the pixel size and the last map started. Storage
+// Small player preferences kept in localStorage: the pixel size, the Space mode and the last map started. Storage
 // may be blocked; then a choice lasts for this page only.
+import { SPACE_MODES, type SpaceMode } from '../input/keyboard'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
 
 const ZOOM_KEY = 'mr-remake.zoom'
 const LAST_MAP_KEY = 'mr-remake.lastMap'
+const SPACE_MODE_KEY = 'mr-remake.spaceMode'
 
 function read(key: string): string | null {
   try {
@@ -27,6 +29,15 @@ export function loadZoom(fallback: ZoomSetting): ZoomSetting {
 }
 
 export const saveZoom = (z: ZoomSetting): void => write(ZOOM_KEY, String(z))
+
+/** A stored Space mode, or null for a missing or unknown value. */
+export function parseSpaceMode(v: string | null): SpaceMode | null {
+  return SPACE_MODES.find((m) => m === v) ?? null
+}
+
+export const loadSpaceMode = (fallback: SpaceMode): SpaceMode => parseSpaceMode(read(SPACE_MODE_KEY)) ?? fallback
+
+export const saveSpaceMode = (m: SpaceMode): void => write(SPACE_MODE_KEY, m)
 
 /** The map id started last (Play on the title screen starts it again), or null. */
 export const loadLastMap = (): string | null => read(LAST_MAP_KEY) || null

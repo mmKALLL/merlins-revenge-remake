@@ -1,12 +1,14 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
-// E or the left button charges and fires at the mouse position. Space charges and fires at the
-// nearest enemy, or short of it (a push-back shot) while the F toggle is on. C switches between the
+// E or the left button charges and fires at the mouse position. Space charges and fires by its mode
+// (SpaceMode, cycled with F): at the nearest enemy, short of it (a push-back shot), or at the mouse
+// like E (straight ahead while no mouse position is known). C switches between the
 // room camera and the follow camera (main.ts takes each press with takeCameraToggle). The debug
 // cheats K (kill the enemies on screen) and M (full heal) reach the sim once per press, in the next
 // snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M). The on-screen
 // touch controls (touch.ts) report through setTouch: the nub moves at any angle while no direction
-// key is held, the blast button counts as Space. While a menu is open (setEnabled(false)) keys and
+// key is held, the blast button counts as Space, except that in mouse mode a press without a known
+// mouse position (a finger-only device) fires at the nearest enemy. While a menu is open (setEnabled(false)) keys and
 // clicks are left to the page.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
@@ -18,17 +20,40 @@ const MOVE_KEYS: Record<string, Vec> = {
   KeyD: { x: 1, y: 0 }, ArrowRight: { x: 1, y: 0 },
 }
 
+/** What Space (and the touch blast button) fires at; F steps through them in this order. */
+export const SPACE_MODES = ['nearest', 'pushBack', 'mouse'] as const
+export type SpaceMode = typeof SPACE_MODES[number]
+
+/** The Space mode after one F press: nearest -> pushBack -> mouse -> nearest. */
+export function nextSpaceMode(mode: SpaceMode): SpaceMode {
+  return SPACE_MODES[(SPACE_MODES.indexOf(mode) + 1) % SPACE_MODES.length]!
+}
+
+type SpaceShot = 'chargeHeld' | 'shootNearest' | 'shootShort'
+
+const SPACE_SHOT: Record<SpaceMode, SpaceShot> = {
+  nearest: 'shootNearest',
+  pushBack: 'shootShort',
+  mouse: 'chargeHeld',
+}
+
 export class InputTracker {
   private held = new Set<string>()
   private mouseWorld: Vec | null = null
   private mouseDown = false
-  private spaceShort = false // F toggles Space between the nearest enemy and the push-back shot
+  private mode: SpaceMode
   private cameraToggle = false // a C press not yet taken (two presses cancel out)
   private cheatKillAll = false // a K press not yet in a snapshot
   private cheatHeal = false // an M press not yet in a snapshot
   private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
   private touchBlast = false // the touch blast button is held
+  private touchBlastHasMouse = false // a mouse position was known when the blast button went down
   private enabled = true // off while a menu is open: keys and clicks belong to the menu
+
+  /** `onSpaceMode` hears every change of the Space mode (F or setSpaceMode), e.g. to save it. */
+  constructor(mode: SpaceMode = 'nearest', private readonly onSpaceMode: (m: SpaceMode) => void = () => {}) {
+    this.mode = mode
+  }
 
   /** Turns the game's keyboard and mouse input on or off; off forgets everything held. */
   setEnabled(on: boolean): void {
@@ -39,16 +64,19 @@ export class InputTracker {
   keyDown(code: string): void {
     if (!this.enabled) return
     const pressed = !this.held.has(code) // key repeat sends more keydowns while held
-    if (code === 'KeyF' && pressed) this.toggleSpaceShort()
+    if (code === 'KeyF' && pressed) this.setSpaceMode(nextSpaceMode(this.mode))
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
     if (code === 'KeyM' && pressed) this.cheatHeal = true
     this.held.add(code)
   }
-  /** F: switch Space (and the touch blast button) between the nearest enemy and the push-back shot. */
-  toggleSpaceShort(): void { this.spaceShort = !this.spaceShort }
-  /** Whether Space currently fires the push-back shot (toggled with F). */
-  get spaceAimsShort(): boolean { return this.spaceShort }
+  /** What Space (and the touch blast button) fires at from now on (F steps it, Settings sets it). */
+  setSpaceMode(mode: SpaceMode): void {
+    if (mode === this.mode) return
+    this.mode = mode
+    this.onSpaceMode(mode)
+  }
+  get spaceMode(): SpaceMode { return this.mode }
   /** Whether C was pressed since the last call: the camera (and world mode) should switch once. */
   takeCameraToggle(): boolean {
     const toggle = this.cameraToggle
@@ -61,7 +89,13 @@ export class InputTracker {
   /** The touch controls' state: the nub's move (any angle, larger axis 1) and whether the blast button is held (Space). */
   setTouch(move: Vec, blast: boolean): void {
     this.touchMove = move
+    // decided at the press: a mouse showing up mid-charge must not switch (and so release) the shot
+    if (blast && !this.touchBlast) this.touchBlastHasMouse = this.mouseWorld !== null
     this.touchBlast = blast
+  }
+  /** The blast button follows the Space mode; mouse mode without a mouse position aims at the nearest enemy. */
+  private touchShot(): SpaceShot {
+    return this.mode === 'mouse' && !this.touchBlastHasMouse ? 'shootNearest' : SPACE_SHOT[this.mode]
   }
 
   /** The input for the next tick; takes the cheat presses, so each reaches exactly one tick. */
@@ -82,7 +116,9 @@ export class InputTracker {
     // the keys win; without them the touch nub's analog move passes through unrounded
     const keyed = x !== 0 || y !== 0
     const move = keyed ? { x: Math.sign(x), y: Math.sign(y) } : { ...this.touchMove }
-    const blast = this.held.has('Space') || this.touchBlast
+    const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootShort: false }
+    if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
+    if (this.touchBlast) shots[this.touchShot()] = true
     const cheatKillAll = this.cheatKillAll
     const cheatHeal = this.cheatHeal
     this.cheatKillAll = false
@@ -90,9 +126,9 @@ export class InputTracker {
     return {
       move,
       mouseWorld: this.mouseWorld,
-      chargeHeld: this.held.has('KeyE') || this.mouseDown,
-      shootNearest: blast && !this.spaceShort,
-      shootShort: blast && this.spaceShort,
+      chargeHeld: this.held.has('KeyE') || this.mouseDown || shots.chargeHeld,
+      shootNearest: shots.shootNearest,
+      shootShort: shots.shootShort,
       cheatKillAll,
       cheatHeal,
     }

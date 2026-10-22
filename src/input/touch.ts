@@ -1,8 +1,8 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
 // nub on the left that appears where a finger first presses, and a blast button on the right. They
 // feed the same InputTracker as the keyboard: the nub moves Merlin at any angle (a keyboard-speed
-// analog of WASD), the button acts as Space (charge while held, release at the nearest enemy, or the
-// push-back shot with the F toggle).
+// analog of WASD), the button acts as Space (charge while held, release by the Space mode; the mouse
+// mode without a mouse position fires at the nearest enemy).
 // Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 

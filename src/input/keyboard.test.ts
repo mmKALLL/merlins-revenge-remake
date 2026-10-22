@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InputTracker } from './keyboard'
+import { InputTracker, nextSpaceMode, SPACE_MODES, type SpaceMode } from './keyboard'
 
 describe('InputTracker', () => {
   it('sums held direction keys into a move vector, opposite keys cancel', () => {
@@ -13,7 +13,7 @@ describe('InputTracker', () => {
     expect(t.snapshot().move).toEqual({ x: 0, y: 0 })
   })
 
-  it('maps E and left click to mouse aim, Space to nearest enemy; F toggles Space to the push-back shot', () => {
+  it('maps E and left click to mouse aim, and Space by its mode', () => {
     const t = new InputTracker()
     t.setMouseButton(true)
     expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
@@ -21,21 +21,34 @@ describe('InputTracker', () => {
     t.keyDown('KeyE')
     expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
     t.keyUp('KeyE')
-    t.keyDown('Space')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true, shootShort: false })
-    t.keyUp('Space')
-    // F alone fires nothing; it flips Space's mode once per press (key repeat does not re-toggle)
+    const space = (mode: SpaceMode) => {
+      t.setSpaceMode(mode)
+      t.keyDown('Space')
+      const { chargeHeld, shootNearest, shootShort } = t.snapshot()
+      t.keyUp('Space')
+      return { chargeHeld, shootNearest, shootShort }
+    }
+    expect(space('nearest')).toEqual({ chargeHeld: false, shootNearest: true, shootShort: false })
+    expect(space('pushBack')).toEqual({ chargeHeld: false, shootNearest: false, shootShort: true })
+    expect(space('mouse')).toEqual({ chargeHeld: true, shootNearest: false, shootShort: false })
+  })
+
+  it('F steps the Space mode once per press: nearest, push-back, mouse, nearest; and reports each change', () => {
+    expect(SPACE_MODES.map(nextSpaceMode)).toEqual(['pushBack', 'mouse', 'nearest'])
+    const heard: SpaceMode[] = []
+    const t = new InputTracker('nearest', (m) => heard.push(m))
     t.keyDown('KeyF')
-    t.keyDown('KeyF')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: false })
+    t.keyDown('KeyF') // key repeat does not step again
+    expect(t.spaceMode).toBe('pushBack')
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: false }) // F alone fires nothing
     t.keyUp('KeyF')
-    t.keyDown('Space')
-    expect(t.snapshot()).toMatchObject({ shootNearest: false, shootShort: true })
-    t.keyUp('Space')
     t.keyDown('KeyF')
     t.keyUp('KeyF')
-    t.keyDown('Space')
-    expect(t.snapshot()).toMatchObject({ shootNearest: true, shootShort: false })
+    t.keyDown('KeyF')
+    expect(t.spaceMode).toBe('nearest')
+    expect(heard).toEqual(['pushBack', 'mouse', 'nearest'])
+    t.setSpaceMode('nearest') // no change, nothing to report
+    expect(heard).toHaveLength(3)
   })
 
   it('releaseAll drops held keys and the mouse button', () => {

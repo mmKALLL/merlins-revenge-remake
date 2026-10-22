@@ -4,7 +4,7 @@ import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { loadActors, loadCutScene, loadExitArrows, loadMap, loadSprite, loadTeams, loadTileset, type LoadedSprite } from './data/loaders'
-import { loadLastMap, loadZoom, saveLastMap, saveZoom } from './data/preferences'
+import { loadLastMap, loadSpaceMode, loadZoom, saveLastMap, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls } from './input/touch'
 import { generateMap, isGeneratedMapId } from './gen/generated-maps'
@@ -169,7 +169,8 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
   // Pointer position on the canvas in CSS pixels; converted to world pixels each frame.
   let pointer: Vec | null = null
   const canvas = scene.app.canvas
-  canvas.addEventListener('pointermove', (e) => { pointer = { x: e.clientX, y: e.clientY } })
+  // a finger is no mouse: on a touch screen Space's mouse mode has no position (the blast button aims at the nearest enemy)
+  canvas.addEventListener('pointermove', (e) => { pointer = e.pointerType === 'touch' ? null : { x: e.clientX, y: e.clientY } })
   canvas.addEventListener('pointerleave', () => { pointer = null })
   canvas.addEventListener('pointerdown', restartAfterEnding)
   const mouseWorld = (): Vec | null => {
@@ -239,7 +240,7 @@ function main(): void {
   const touch = wantsTouchControls(params, window)
   // before any canvas exists: its first (desktop-sized) draw must not widen a phone's layout viewport
   if (touch) document.documentElement.classList.add('touch-controls')
-  const input = new InputTracker()
+  const input = new InputTracker(loadSpaceMode('nearest'), saveSpaceMode)
   input.attach(window)
   if (touch) attachTouchControls(document.body, (move, blast) => input.setTouch(move, blast))
 
@@ -284,8 +285,8 @@ function main(): void {
           rememberParam('camera', c)
         }
       },
-      spaceShort: () => input.spaceAimsShort,
-      setSpaceShort: (on) => { if (on !== input.spaceAimsShort) input.toggleSpaceShort() },
+      spaceMode: () => input.spaceMode,
+      setSpaceMode: (m) => input.setSpaceMode(m),
       audio,
     }, back),
     help: helpPanel(touch, back),
