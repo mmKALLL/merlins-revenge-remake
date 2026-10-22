@@ -168,6 +168,7 @@ export interface ActorDef {
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
+  keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
@@ -178,6 +179,7 @@ export interface ActorDef {
    * The engine's #splashDamageOn bullets (the dwarf tower's axe) reach `power` px instead.
    */
   splashRadius: number | null
+  splashGraveOn: boolean // modSplashDamage: a splash bullet stamps its #grave image where it lands (the dwarf tower's axe: a crack)
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -281,8 +283,10 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
+    keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
+    splashGraveOn: false, // modSplashDamage.addModParams
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -310,8 +314,8 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'startingArmy',
-  'splashRadius',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'keepAttackOnTargetLoss', 'startingArmy',
+  'splashRadius', 'splashGraveOn',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -654,8 +658,10 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
+      keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),
+      splashGraveOn: bool(r, 'splashGraveOn', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

@@ -278,6 +278,15 @@ Details:
 
 ### Remake decisions
 
+- **The dwarf tower's attack (owner requests, 2026-10-22).** Its axe now lands with a 24 px circle
+  (`towerAxe.splashRadius` 24 in `assets/tuning.json`; the engine's own reach is 50 px centre to
+  centre) and leaves a crack where it lands: `splashGraveOn` (act_towerAxe) stamps the bullet's
+  grave image, and the axe's grave frame is cut from the middle of the cracks actor's grave
+  (`tools/copy-assets.ts`, 40x36 around its reg point). The tower also no longer drops an attack
+  whose target dies during its long wind-up (strike frame 31): `keepAttackOnTargetLoss` (remake,
+  engine default off; on for `dwarfTower`) remembers where the target last stood (`ai.attackAt`)
+  and throws the axe there.
+
 - **The dwarf builds slower and can leave mid-build (owner request, 2026-10-22).** `dwarf.buildRate`
   is 25 in `assets/tuning.json` (engine 100: one tower frame a tick), so the tower takes four times
   as long. A building ally (`leaveWhenFinished`) teleports out with the others once the fight is

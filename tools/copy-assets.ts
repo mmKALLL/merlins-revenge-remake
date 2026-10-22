@@ -263,6 +263,19 @@ function withoutAlpha(png: PNG): PNG {
   return png
 }
 
+// Remake (owner request): the dwarf tower's axe leaves a crack where it lands (modSplashDamage
+// splashGraveOn draws the bullet's #grave image; the axe has none). Its grave frame is the middle of
+// the cracks actor's grave, cut to an axe-sized crack around its reg point (48,42).
+const AXE_CRACK = { from: join(CAST_BITMAPS, 'anm_cracks_grave_01_01.png'), reg: { x: 48, y: 42 }, w: 40, h: 36 }
+if (existsSync(AXE_CRACK.from)) {
+  const to = join(ASSETS, 'sprites/axe/anm_axe_grave_01_01.png')
+  const cracks = PNG.sync.read(readFileSync(AXE_CRACK.from))
+  const crack = new PNG({ width: AXE_CRACK.w, height: AXE_CRACK.h })
+  PNG.bitblt(cracks, crack, AXE_CRACK.reg.x - AXE_CRACK.w / 2, AXE_CRACK.reg.y - AXE_CRACK.h / 2, AXE_CRACK.w, AXE_CRACK.h, 0, 0)
+  writeFileSync(to, PNG.sync.write(crack))
+  console.log(`${to.slice(ROOT.length)}  <- axe crack (middle of the cracks grave)`)
+}
+
 // The title lettering: one GIF per letter in gfx/title/output (the apostrophe's file is "'.gif"),
 // converted to PNG because the converter reads PNG and BMP only (sips ships with macOS).
 const titleLetters: [file: string, name: string][] = [...'EGILMNRSV'].map((l) => [l, l])

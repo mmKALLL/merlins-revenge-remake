@@ -177,7 +177,7 @@ export function deserializeSim(
 const ACTOR_FIELDS_SINCE_V1: Pick<ActorState, 'freezeTicks' | 'glowTeal' | 'beamFrom' | 'teleport' | 'teleportAge'> = {
   freezeTicks: 0, glowTeal: false, beamFrom: null, teleport: null, teleportAge: 0,
 }
-const AI_FIELDS_SINCE_V1: Pick<ActorState['ai'], 'buildingId' | 'buildAmount'> = { buildingId: null, buildAmount: 0 }
+const AI_FIELDS_SINCE_V1: Pick<ActorState['ai'], 'buildingId' | 'buildAmount' | 'attackAt'> = { buildingId: null, buildAmount: 0, attackAt: null }
 
 /** The last `capacity` inputs, kept in a fixed array (one write per tick). */
 export class InputLog {

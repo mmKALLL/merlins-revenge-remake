@@ -109,9 +109,12 @@
     }
   },
   "towerAxe": {
-    "splashRadius": 16
+    "splashRadius": 24
   },
   "dwarf": {
     "buildRate": 25
+  },
+  "dwarfTower": {
+    "keepAttackOnTargetLoss": true
   }
 }

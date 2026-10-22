@@ -8,12 +8,12 @@ import type { MapDefinition } from '../mr-open/mr-map-format'
 import { MINE } from '../mr-open/mr-mine'
 import { addWeapon } from '../mr-open/mr-weapons'
 import { createActor, playerOf } from './actors'
-import { NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
+import { NO_INPUT, roomKey, type ActorState, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
 
-const SYMBOLS = ['none', 'cBlast', 'merlinSword', 'armySummon', 'dwarf', 'goblinWarrior']
+const SYMBOLS = ['none', 'cBlast', 'merlinSword', 'armySummon', 'dwarf', 'goblinWarrior', 'dwarfTower']
 const ROW = 4 // objects on the fifth row, where Merlin starts
 const PLAYER = { x: 100, y: ROW * 32 + 16 }
 const RIGHT: InputSnapshot = { ...NO_INPUT, move: { x: 1, y: 0 } }
@@ -111,6 +111,19 @@ describe('army summon', () => {
     expect(built.energy).toBeGreaterThan(defs['dwarfTower']!.energy * 0.9)
   })
 
+  it('the dwarf tower still throws its axe where its target stood when the target dies mid-attack', () => {
+    const w = world({ dwarfTower: 6, goblinWarrior: 14 })
+    const tuned = { ...w, defs: { ...w.defs, dwarfTower: { ...w.defs['dwarfTower']!, keepAttackOnTargetLoss: true } } }
+    let s = stepUntil(tuned, NO_INPUT, (n) => ofDef(n, 'dwarfTower')[0]?.ai.mode === 'attack')
+    expect(ofDef(s, 'dwarfTower')[0]!.ai.mode).toBe('attack')
+    const goblinAt = { ...ofDef(s, 'goblinWarrior')[0]!.pos }
+    s = stepSim(s, { ...NO_INPUT, cheatKillAll: true })
+    s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'towerAxe').length > 0 || ofDef(n, 'dwarfTower')[0]?.ai.mode !== 'attack')
+    const axe = ofDef(s, 'towerAxe')[0]
+    expect(axe).toBeDefined()
+    expect(Math.abs(axe!.targetPoint!.x - goblinAt.x)).toBeLessThan(40)
+  })
+
   it('a building dwarf teleports out once the fight is over, leaving its tower unfinished', () => {
     let s = stepUntil(world({ dwarf: 9 }), NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out' || ofDef(n, 'dwarfTower').length > 0)
     s = stepUntil(s, NO_INPUT, (n) => ofDef(n, 'dwarf')[0]?.teleport === 'out')
@@ -168,5 +181,7 @@ describe("the dwarf tower's axe with a splash radius (remake)", () => {
     expect(energyAt(goblinAt[0]!.x)).toBeLessThan(full)
     expect(energyAt(goblinAt[1]!.x)).toBeLessThan(full)
     expect(energyAt(goblinAt[2]!.x)).toBe(full)
+    // splashGraveOn (act_towerAxe): the axe's crack stays where it landed
+    expect(s.rooms[roomKey(s.room)]!.graves).toContainEqual({ def: 'towerAxe', pos: impact })
   })
 })

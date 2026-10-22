@@ -103,6 +103,7 @@ export interface AiState {
   chargeKind: ChargeKind | null // player only; a firing pulse or beam spell keeps its caster's for its aim
   buildingId: number | null // builder: the building it works on (the #building relation)
   buildAmount: number // builder: build progress carried to the next tick (updateBuild)
+  attackAt: Vec | null // remake: where the attack's target last stood, for a strike after it died (keepAttackOnTargetLoss)
 }
 
 export interface ActorState {

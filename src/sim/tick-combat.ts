@@ -174,9 +174,12 @@ export function stepAttackFrames(t: Tick): void {
     // Merlin's swings are stepPlayerSwing's (tick-player-attack.ts)
     if (t.removed.has(a.id) || a.ai.mode !== 'attack' || a.id === t.s.playerId) continue
     const def = armedDefOf(t.s, a)
+    const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
+    const alive = target && isAlive(target) ? target : undefined
+    if (alive) a.ai.attackAt = { ...alive.pos }
     if (onFreshFrame(a, def.attack.animFrame)) {
-      const target = a.ai.targetId === null ? undefined : actorIn(t, a.ai.targetId)
-      if (target && isAlive(target)) performAttack(t, a, def, target)
+      if (alive) performAttack(t, a, def, alive)
+      else if (def.keepAttackOnTargetLoss && a.ai.attackAt) strikeWhereTargetWas(t, a, def, a.ai.attackAt)
     }
     if (a.animLooped) finishAttack(t, a, def)
   }
@@ -191,7 +194,7 @@ function performAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState
   if (atk.type === 'melee') {
     if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyPayload(t, target, meleePush(def, a.facingLeft), atk)
   } else if (atk.type === 'ranged' && atk.bullet) {
-    fireBullet(t, a, def, atk.bullet, target)
+    fireBullet(t, a, def, atk.bullet, target.pos, target.id)
   } else {
     return
   }
@@ -199,15 +202,27 @@ function performAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState
   a.cooldown = resetCooldown(atk)
 }
 
-/** A ranged attack's bullet, aimed with eyestrain at `target`. */
-function fireBullet(t: Tick, a: ActorState, def: ActorDef, bullet: string, target: ActorState): void {
-  const [aim, rng] = aimWithEyestrain(a.pos, target.pos, def, t.rng)
+/**
+ * Remake (owner request): a `keepAttackOnTargetLoss` unit (the dwarf tower) finishes its attack at
+ * where its target last stood when the target died during the wind-up: a ranged attack still fires.
+ */
+function strikeWhereTargetWas(t: Tick, a: ActorState, def: ActorDef, at: Vec): void {
+  const atk = def.attack
+  if (atk.type !== 'ranged' || !atk.bullet) return
+  fireBullet(t, a, def, atk.bullet, at, null)
+  playSound(t, atk.sound, atk.volume)
+  a.cooldown = resetCooldown(atk)
+}
+
+/** A ranged attack's bullet, aimed with eyestrain at `targetPos` (the target's, when it has one). */
+function fireBullet(t: Tick, a: ActorState, def: ActorDef, bullet: string, targetPos: Vec, targetId: number | null): void {
+  const [aim, rng] = aimWithEyestrain(a.pos, targetPos, def, t.rng)
   t.rng = rng
   const shot = rangedShot(a.pos, aim, def, a.facingLeft)
   // remake: projectileSpreadDeg turns the shot by a small random angle
   const [vel, rng2] = spreadVec(t.rng, shot.vel, def.projectileSpreadDeg)
   t.rng = rng2
-  spawn(t, bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId: target.id, targetPoint: aim, team: a.team })
+  spawn(t, bullet, shot.spawn, { mode: 'fly', vel, ownerId: a.id, targetId, targetPoint: aim, team: a.team })
 }
 
 /**
@@ -298,6 +313,8 @@ function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number):
     const victim = hitTargetIn(t, v.id)
     if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), withOwnerDamage(t, a, def.attack))
   }
+  // modSplashDamage.drawSplashGrave: the landing mark stays on the ground (the axe's crack)
+  if (def.splashGraveOn) t.graves.push({ def: a.def, pos: { ...a.pos } })
 }
 
 /** calcCollisionVectSpell of an #explode bullet on one unit (no push when outside the blast). */
