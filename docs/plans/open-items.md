@@ -73,7 +73,8 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   and sends the whole army back into the reserve while any of it is out once the fight is over
   (room clear / nav mode; mid-fight R does nothing); M gives one medikit (as collecting one: +25
   energy and invincibility too) instead of the full heal. Touch: a blue army button above the
-  weapon button (below it in portrait) acts as R, at the nearest enemy. A blank army summon (below
+  weapon button (below it in portrait) acts as R, at the nearest enemy, shown only while R would act
+  (`armyKeyAction`). A blank army summon (below
   its first stage) flies at Merlin's nearest ally, sending one home.
 - The dwarf tower (2026-10-22, owner requests): its axe hits every hostile within 50 px (reg point to
   reg point) of where it lands, as the original's splashDamageOn does, and leaves a crack (to

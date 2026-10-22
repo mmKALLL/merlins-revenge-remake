@@ -19,6 +19,7 @@ import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
+import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
 import { PLAY_VIEW } from './sim/view'
@@ -275,6 +276,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     }
     scene.draw(sim, alpha, fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
+    shell.touch?.showArmy(armyKeyAction(sim) !== null)
     scene.drawEndSequence(ending && endSequenceView(ending))
     scene.present()
   }

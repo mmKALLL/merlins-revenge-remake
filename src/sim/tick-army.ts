@@ -8,10 +8,10 @@ import { AUTO_SUMMON_JITTER, autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/mr-army'
 import { tileOfPx } from '../mr-open/mr-collision'
 import { distance, type Vec } from '../mr-open/mr-geometry'
-import { defOf, isAlive } from './actors'
+import { defOf, isAlive, playerOf } from './actors'
 import { nearestHostileOnScreen } from './player-aim'
 import { randomInt } from './rng'
-import type { ActorState, InputSnapshot } from './state'
+import type { ActorState, InputSnapshot, SimState } from './state'
 import { playerIn, spawn, type Tick } from './tick-context'
 import { teamSlotsFree } from './tick-dwelling'
 import { insideRect, viewRect, type Size } from './view'
@@ -113,3 +113,16 @@ function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
     spawn(t, typ, pos, { teleport: 'in', teleportAge: 0 })
   }
 }
+
+/**
+ * What R would do now (the touch army button shows only then): send the army back (members in play
+ * and the fight over), summon the reserve (no members in play and units waiting), or nothing.
+ */
+export function armyKeyAction(s: SimState): 'summon' | 'sendBack' | null {
+  const p = playerOf(s)
+  const types = s.defs[p.def]?.armyMembers ?? []
+  const inPlay = s.actors.some((a) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out')
+  if (inPlay) return (s.worldMode === 'rooms' ? s.exitsOpen : s.navMode) ? 'sendBack' : null
+  return types.some((typ) => reserveCount(s.army, p.team, typ) > 0) ? 'summon' : null
+}
+

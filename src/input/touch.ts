@@ -39,8 +39,8 @@ export type TouchListener = (move: Vec, blast: boolean) => void
 /** Where the controls report (the nub and blast button's state, weapon and army button taps), and the army button's picture. */
 export interface TouchOptions { onChange: TouchListener; onNextWeapon: () => void; onArmy: () => void; armyIconUrl: string }
 
-/** The attached controls: `showWeapon` sets the weapon button's picture (an image URL). */
-export interface TouchControls { detach: () => void; showWeapon: (iconUrl: string) => void }
+/** The attached controls: `showWeapon` sets the weapon button's picture (an image URL), `showArmy` shows or hides the army button. */
+export interface TouchControls { detach: () => void; showWeapon: (iconUrl: string) => void; showArmy: (visible: boolean) => void }
 
 /**
  * Builds the overlay (#touch, styled in index.html: over the game in landscape, a band below it in
@@ -63,6 +63,7 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
   army.setAttribute('role', 'button')
   army.setAttribute('aria-label', 'Army: summon the whole reserve, or send the army back')
   army.style.backgroundImage = `url("${options.armyIconUrl}")`
+  army.hidden = true // shown only while R would act (showArmy: main.ts asks armyKeyAction)
   base.appendChild(knob)
   zone.appendChild(base)
   root.append(zone, army, weapon, button)
@@ -152,6 +153,10 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
       if (iconUrl === shown) return
       shown = iconUrl
       weapon.style.backgroundImage = `url("${iconUrl}")`
+    },
+    showArmy: (visible: boolean) => {
+      if (army.hidden === !visible) return
+      army.hidden = !visible
     },
   }
 }

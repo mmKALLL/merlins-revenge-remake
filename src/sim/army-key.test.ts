@@ -11,6 +11,7 @@ import { createActor, playerOf } from './actors'
 import { NO_INPUT, type ActorState, type InputSnapshot, type SimState, type WorldMode } from './state'
 import { anims, defs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
+import { armyKeyAction } from './tick-army'
 import { buildWorldGrid } from './world-grid'
 
 const SYMBOLS = ['none', 'goblinWarrior']
@@ -142,3 +143,15 @@ describe('the army summon spell released blank (remake)', () => {
     expect(release(withAllies({ warrior: 1 }), 30).at).toEqual(MOUSE)
   })
 })
+
+describe('armyKeyAction: when R (and the touch army button) would act', () => {
+  it('summons with units in reserve, does nothing with the army out mid-fight or an empty reserve, sends back after the fight', () => {
+    expect(armyKeyAction(world('rooms', {}))).toBeNull()
+    const s0 = world('rooms', { warrior: 2 })
+    expect(armyKeyAction(s0)).toBe('summon')
+    const out = stepSim(s0, R)
+    expect(armyKeyAction(out)).toBeNull() // a goblin is still in the room
+    expect(armyKeyAction({ ...out, exitsOpen: true })).toBe('sendBack')
+  })
+})
+
