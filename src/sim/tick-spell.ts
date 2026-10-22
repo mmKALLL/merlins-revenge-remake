@@ -8,7 +8,7 @@ import { cooldownReady, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
 import { chargeVolume } from '../mr-open/mr-sound'
 import { arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFor, releaseVelocity } from '../mr-open/mr-spell'
-import { defOf, isAlive, isSpell } from './actors'
+import { defOf, isAlive, isSpell, playerStatsOf } from './actors'
 import { spreadVec } from './rng'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
 import { viewRect, type Size } from './view'
@@ -80,7 +80,7 @@ export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef)
 export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
-  const def = defOf(t.s, p)
+  const def = playerStatsOf(t.s, p) // the potions drunk raise the mana stats
   const spell = chargingSpellOf(t, p)
   if (!spell) startCharge(t, p, def, input)
   else if (isHeld(input, p.ai.chargeKind)) continueCharge(p, def, spell)

@@ -142,6 +142,8 @@ export interface UnitTuning {
   specialRooms: SpecialRoom[]
   /** the exit room picks one */
   bosses: BossGroup[]
+  /** pickups for the two side corner rooms, each potion drawn by weight (floor.ts potionTiles) */
+  potions: Weighted<string>[]
 }
 
 export interface FloorTheme {
@@ -188,6 +190,11 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   orcHouse: 69,
   musicLastStand: 77,
   musicWoodsOfEvil: 78,
+  manaCapacity: 13,
+  manaBurst: 14,
+  manaFlow: 15,
+  walkSpeed: 16,
+  medikit: 17,
 }
 
 export const MERLIN4_TILESETS: Record<LayerName, string> = {
@@ -279,6 +286,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
+    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2)],
   },
 }
 
@@ -329,6 +337,12 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   musicBaroqueRock: 178,
   musicBaroqueRockTechno: 179,
   musicElectronicMerlin: 180,
+  manaCapacity: 41,
+  manaBurst: 42,
+  manaFlow: 43,
+  walkSpeed: 44,
+  medikit: 45,
+  maxikit: 46,
 }
 
 export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
@@ -446,6 +460,7 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
       { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead', boss: 'necromancer' },
     ],
+    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
   },
 }
 
@@ -517,6 +532,7 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, boss: 'dragon' },
       { label: 'hydra den', units: { hydra3: 1, plant: 2 }, boss: 'hydra3' },
     ],
+    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
   },
 }
 
@@ -590,6 +606,7 @@ export const MAGIC_MAZE: FloorTheme = {
       { label: "dark sorcerer's court", units: { darkMage: 3, necromancer: 1, greyGhost: 1 }, faction: 'undead', boss: 'darkMage' },
       { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
     ],
+    potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1), w('medikit', 1), w('maxikit', 2)],
   },
 }
 

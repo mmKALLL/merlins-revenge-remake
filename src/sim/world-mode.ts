@@ -2,7 +2,7 @@
 // "Continuous world"). Runs between ticks and draws no random numbers.
 import type { Vec } from '../mr-open/mr-geometry'
 import { asleep, canSleep, navModeClear, withinWakeDistance } from './activation'
-import { isUnit, playerOf, spawnAllRooms } from './actors'
+import { isKeptWithRoom, isUnit, playerOf, spawnAllRooms } from './actors'
 import { roomKey, type ActorState, type SimState, type WorldMode } from './state'
 import { EMPTY_ROOM, withExitsEvaluated } from './tick'
 
@@ -58,7 +58,7 @@ function toRooms(s: SimState): SimState {
       live.push(awake)
       continue
     }
-    if (!isUnit(s, a)) continue
+    if (!isKeptWithRoom(s, a)) continue
     const stored = rooms[key] ?? EMPTY_ROOM
     rooms = { ...rooms, [key]: { ...stored, spawned: true, actors: [...stored.actors, awake] } }
   }

@@ -3,6 +3,7 @@
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
+import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'explode' | 'none'
@@ -116,6 +117,10 @@ export interface ActorDef {
   exploderVolume: number // modExploder #explodeVolume, default 50
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
+  // --- engine: pickups (objPowerUp, objPotion)
+  character: string | null // #character: which pickup (manaBurst, medikit, maxikit, ...); the actor's kind elsewhere
+  collectSound: string | null // objPowerUp #collectSound, played when Merlin collects it
+  counterColour: { r: number; g: number; b: number } // objPotion: colour of the potion's count in the HUD
   // --- engine: dwellings (modResidents)
   residentGroups: ResidentGroup[] // groups a dwelling picks from at random; empty for everything else
   totalResidents: number // residents a dwelling releases before it destroys itself
@@ -156,12 +161,16 @@ export interface ActorDef {
 
 /** Object types drawn with an animation atlas. */
 const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling'])
+/** Pickups: their atlas is named after the actor key (assets/sprites/<key>/, from its gfx members). */
+const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE])
 
 /**
  * Whether an actor is drawn with its own atlas (`anm_<name>_*`). Abstract bases such as `bullet`
  * have a drawable objType but never set `#name`; only concrete actors that name themselves have art.
+ * Pickups have no `#name`: a concrete one sets its `#character` (act_powerUp does not).
  */
 export function needsSprite(def: ActorDef): boolean {
+  if (PICKUP_OBJ_TYPES.has(def.objType)) return def.character !== null
   return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
 }
 
@@ -212,6 +221,8 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     // engine: sound
     takeHitSound: 'none', takeHitVolume: 'none', // modEnergy.addModParams
     dieSound: 'none', dieVolume: DEFAULT_DIE_VOLUME, // objCharacter.addModParams (objDwelling reads the same fields)
+    // engine: pickups
+    collectSound: 'none', counterColour: { r: 255, g: 255, b: 255 }, // objPowerUp, objPotion.new
     // engine: dwellings
     residentGroups: [], totalResidents: 10, // modResidents.addModParams
     // remake additions
@@ -244,7 +255,7 @@ for (const k of [
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
-  'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
+  'collectSound', 'counterColour', 'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
   // engine properties kept in raw only
   'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
   // remake additions
@@ -540,6 +551,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       explodeEvents: symbolList(r, 'explodeEvents', ctx), exploderSound: strOrNull(r['explodeSound']),
       exploderVolume: volumeOf(r, r['explodeVolume'] !== undefined ? 'explodeVolume' : 'exploderVolume', ctx),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
+      // engine: pickups
+      character: strOrNull(r['character']), collectSound: strOrNull(r['collectSound']), counterColour: rgb(r, 'counterColour', ctx),
       // engine: dwellings
       residentGroups: residentGroups(r, 'residentGroups', ctx).map((g) => ({ ...g, typ: actorKey(g.typ) })),
       totalResidents: num(r, 'totalResidents', ctx),

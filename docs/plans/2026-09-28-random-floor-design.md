@@ -92,8 +92,17 @@ disconnected map. Generation takes 1-7 ms per floor.
   faction and a room draws one faction (weighted by its eligible choices), taking only choices of
   that faction or of none. Corner groups set their room's faction.
 - **Corner groups.** `farX` and `farY` each pick one of their groups, the exit room one of its
-  bosses (the sketch's "boss A or boss B"). The sketch's potion pickups in the side corners
-  wait for potions to be ported. The exit room gets the last-stand music.
+  bosses (the sketch's "boss A or boss B"). The exit room gets the last-stand music.
+- **Corner potions (owner request).** Each side corner room (`farX`, `farY`; never the start or
+  exit room) gets two pickups drawn from the theme's weighted `units.potions` list, side by side 2
+  tiles in from the floor's outer corner in that room (`potionTiles`: the corner tile as
+  `BOSS_TILE` is for the boss, the second one step along x away from the corner), so Merlin has to
+  cross the room for them. The room layout keeps those tiles open and connected (like the boss
+  tile), no unit is placed on them, and as placements they are covered by the connectivity check;
+  a mirrored tower floor mirrors them with the room. The lists favour Quick Charge (manaFlow) and
+  Max Blast (manaCapacity), then Burst, with an occasional Walk Speed; medikits are in every list
+  (the original maps place them as rewards alongside potions), maxikits only on the merlinOpen
+  floors (merlin4Objects has no maxikit tile), most of them in the maze.
 - Units go on reachable open tiles at least two tiles from every room edge, one per tile.
 
 ## Themes
@@ -174,5 +183,4 @@ at the bottom and the maze at the top, seeded via `?seed=` like the single floor
 
 Four themes on 3x3 floors and the tower. Known gaps: `mr.loadState` and the snapshot test helpers
 fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
-the seed passed to `generateMap`). Not yet: the floor-start rewards (spell or allies), potion corner
-rooms.
+the seed passed to `generateMap`). Not yet: the floor-start rewards (spell or allies).
