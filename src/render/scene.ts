@@ -19,7 +19,7 @@ import { MiniMapLayer } from './minimap'
 import { PickupHud, pickupAlpha } from './pickups'
 import { PlayerHealthBar } from './player-health-bar'
 import { WeaponSelectorLayer } from './weapon-selector'
-import { TEXT_RESOLUTION } from './text-resolution'
+import { PIXEL_TEXT } from './text-options'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -91,7 +91,7 @@ function whiteDisc(tex: Texture): Texture {
   return out
 }
 
-/** Canvas pixels per game pixel: sprites stay sharp at 2x; text has its own TEXT_RESOLUTION. */
+/** Canvas pixels per game pixel: sprites stay sharp at 2x (text: PIXEL_TEXT). */
 const RENDER_RESOLUTION = 2
 
 export class Scene {
@@ -118,7 +118,7 @@ export class Scene {
   private pickupHud: PickupHud
   private weaponSelector: WeaponSelectorLayer
   private cutScene: CutSceneOverlay | null = null
-  private debugText = new Text({ text: '', resolution: TEXT_RESOLUTION, style: { fill: '#0f0', fontFamily: 'monospace', fontSize: DEBUG_TEXT.fontSize, lineHeight: DEBUG_TEXT.lineHeight } })
+  private debugText = new Text({ text: '', ...PIXEL_TEXT, style: { fill: '#0f0', fontFamily: 'monospace', fontSize: DEBUG_TEXT.fontSize, lineHeight: DEBUG_TEXT.lineHeight } })
   private lastOrigin: Vec = { x: NaN, y: NaN }
   private onResize = () => this.applyZoom()
   private zoom: ZoomSetting = DEFAULT_ZOOM

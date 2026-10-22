@@ -8,7 +8,7 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { GAME_SCREEN } from '../mr-open/mr-hud'
 import { WRITING_FADE_TICKS, medikitsHeld } from '../mr-open/mr-pickup'
 import type { ActorState, SimState } from '../sim/state'
-import { TEXT_RESOLUTION } from './text-resolution'
+import { PIXEL_TEXT } from './text-options'
 
 /** Ticks per alpha pulse of the invincible Merlin (modInvince.pulseWhite; the remake fades instead of whitening). */
 const INVINCE_PULSE_TICKS = 10
@@ -80,7 +80,7 @@ export class PickupHud {
     const barX = left + icon.width + LAYOUT.spacer
     const maxEnergy = this.defs['player']?.maxEnergy ?? 1
     this.layer.addChild(this.medikitBar(barX, top, icon.height, medikits.remaining / maxEnergy))
-    const counter = new Text({ text: String(medikitsHeld(medikits)), resolution: TEXT_RESOLUTION, style: { ...FONT, fill: COUNTER_COLOUR } })
+    const counter = new Text({ text: String(medikitsHeld(medikits)), ...PIXEL_TEXT, style: { ...FONT, fill: COUNTER_COLOUR } })
     counter.position.set(barX + LAYOUT.medikitBarWidth + LAYOUT.spacer, top + LAYOUT.counterDrop)
     this.layer.addChild(counter)
   }
@@ -98,7 +98,7 @@ export class PickupHud {
 
   /** Places a text with its right edge at `right`; returns its left edge. */
   private addText(text: string, right: number, top: number, colour: number): number {
-    const t = new Text({ text, resolution: TEXT_RESOLUTION, style: { ...FONT, fill: colour } })
+    const t = new Text({ text, ...PIXEL_TEXT, style: { ...FONT, fill: colour } })
     t.position.set(Math.round(right - t.width), top)
     this.layer.addChild(t)
     return right - t.width
