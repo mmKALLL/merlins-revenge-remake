@@ -8,6 +8,7 @@ import type { EndSequenceView } from '../cutscene/end-sequence'
 import type { StageRect } from '../cutscene/performer'
 import type { Rgb } from '../cutscene/script'
 import type { Size } from './camera'
+import { TEXT_RESOLUTION } from './text-resolution'
 
 /** The stage rect (assumed): the play view's width, below room for the title and speech. */
 export const CUTSCENE_STAGE = { left: 32, top: 112, right: 608, bottom: 288 }
@@ -34,9 +35,9 @@ export class CutSceneOverlay {
   readonly layer = new Container()
   private cover = new Graphics()
   private stage = new Graphics()
-  private title = new Text({ text: '', style: TITLE_STYLE })
-  private speech = new Text({ text: '', style: SPEECH_STYLE })
-  private prompt = new Text({ text: PROMPT_TEXT, style: PROMPT_STYLE })
+  private title = new Text({ text: '', resolution: TEXT_RESOLUTION, style: TITLE_STYLE })
+  private speech = new Text({ text: '', resolution: TEXT_RESOLUTION, style: SPEECH_STYLE })
+  private prompt = new Text({ text: PROMPT_TEXT, resolution: TEXT_RESOLUTION, style: PROMPT_STYLE })
   private players = new Map<string, Sprite>()
 
   constructor(private screen: Size, private frameFor: (character: string) => CharacterFrame | undefined) {
