@@ -142,7 +142,7 @@ export interface UnitTuning {
   specialRooms: SpecialRoom[]
   /** the exit room picks one */
   bosses: BossGroup[]
-  /** pickups for the two side corner rooms, each potion drawn by weight (floor.ts potionTiles) */
+  /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) */
   potions: Weighted<string>[]
   startRewards: StartRewards
 }
@@ -195,11 +195,11 @@ const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 /** Owner rule: every floor starts with three potions and a medikit (four before Merlin kept his tuned starting charge). */
 const START_POTIONS = 3
 const START_MEDIKITS = 1
-/** The four potions without the kits, weighted as the corner lists weigh them. */
-const START_POTION_WEIGHTS = [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1)]
+/** The four potions, Quick Charge and Max Blast first; the start rooms and most corner rooms draw from it. */
+const POTION_WEIGHTS = [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1)]
 
 const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): StartRewards =>
-  ({ potions: START_POTION_WEIGHTS, potionCount: START_POTIONS, medikits: START_MEDIKITS, spellScrolls, extras })
+  ({ potions: POTION_WEIGHTS, potionCount: START_POTIONS, medikits: START_MEDIKITS, spellScrolls, extras })
 
 /**
  * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols. The sim
@@ -344,7 +344,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
-    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2)],
+    potions: POTION_WEIGHTS,
     startRewards: startRewards([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)]),
   },
 }
@@ -530,7 +530,7 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
       { label: 'necromancy club', units: { necromancer: 3, skeletonDwelling: 1 }, faction: 'undead', boss: 'necromancer' },
     ],
-    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
+    potions: POTION_WEIGHTS,
     startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1),
       w('healBlast', 1), w('monsterSummon', 1)]),
   },
@@ -604,7 +604,7 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, boss: 'dragon' },
       { label: 'hydra den', units: { hydra3: 1, plant: 2 }, boss: 'hydra3' },
     ],
-    potions: [w('manaFlow', 3), w('manaCapacity', 3), w('manaBurst', 2), w('walkSpeed', 1), w('medikit', 2), w('maxikit', 1)],
+    potions: POTION_WEIGHTS,
     startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
   },
 }
@@ -679,7 +679,7 @@ export const MAGIC_MAZE: FloorTheme = {
       { label: "dark sorcerer's court", units: { darkMage: 3, necromancer: 1, greyGhost: 1 }, faction: 'undead', boss: 'darkMage' },
       { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
     ],
-    potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1), w('medikit', 1), w('maxikit', 2)],
+    potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []),
   },

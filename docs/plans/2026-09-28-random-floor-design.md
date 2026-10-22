@@ -100,9 +100,8 @@ disconnected map. Generation takes 1-7 ms per floor.
   cross the room for them. The room layout keeps those tiles open and connected (like the boss
   tile), no unit is placed on them, and as placements they are covered by the connectivity check;
   a mirrored tower floor mirrors them with the room. The lists favour Quick Charge (manaFlow) and
-  Max Blast (manaCapacity), then Burst, with an occasional Walk Speed; medikits are in every list
-  (the original maps place them as rewards alongside potions), maxikits only on the merlinOpen
-  floors (merlin4Objects has no maxikit tile), most of them in the maze.
+  Max Blast (manaCapacity), then Burst, with an occasional Walk Speed. Potions only, no medikits or
+  maxikits (owner rule, 2026-10-22: the start room's medikit is the floor's one kit).
 - Units go on reachable open tiles at least two tiles from every room edge, one per tile.
 
 ## Start rewards (owner request)
