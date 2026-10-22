@@ -372,3 +372,7 @@ skeleton army (with the usual extra enemies), a necromancer pair, or a necromanc
 giant. A group marked `alone` gets no other enemies (`UnitGroup.alone`). The Magic Maze keeps its
 necromancers as before.
 
+Owner decision (2026-10-22): the numerous weak corner has no unit limit, only the HP budget (the
+room's free tiles still cap it). Over 300 seeds the corner averages about 18 units / 1140 HP in the
+forest, 19 / 1540 in the marsh, 12 / 2000 in the canyon and 16 / 2260 in the maze; the few rooms
+far under budget are wildcard rooms.

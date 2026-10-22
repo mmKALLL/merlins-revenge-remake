@@ -242,10 +242,10 @@ const either = (...options: [TierDraw, number][]): Weighted<TierDraw>[] => optio
 /** The owner's centre room: a few weak producers, or a single strong one. */
 const FEW_WEAK_OR_ONE_STRONG = either([n(2, 3, WEAK), 2], [n(1, 1, MOSTLY_STRONG), 1])
 /**
- * The owner's "numerous weak" corner (farX in the forest's orientation): 8-16 weak units, group
- * included, about 800 + 400 * level energy in all.
+ * The owner's "numerous weak" corner (farX in the forest's orientation): weak units, group included,
+ * until about 800 + 400 * level energy in all. No unit limit (owner decision); the room's free tiles still cap it.
  */
-const NUMEROUS_WEAK: TierDraw = { count: [8, 16], tiers: WEAK, hpBudget: { base: 800, perLevel: 400 } }
+const NUMEROUS_WEAK: TierDraw = { count: [0, Infinity], tiers: WEAK, hpBudget: { base: 800, perLevel: 400 } }
 
 type CellFill = Omit<RoomPlanCell, 'kind'>
 const START: RoomPlanCell = { kind: 'start' }
