@@ -304,6 +304,22 @@ export const SPELL_SCROLLS = [
   'merlinSword',
 ] as const
 
+/** Owner: any spell can come up on any floor at this weight; the floor's own spells weigh more. */
+const ANY_SPELL_WEIGHT = 1
+/** Added to a floor's own spell weights (its lists' 1 / 2 / 3 become 4 / 5 / 6). */
+const THEMED_SPELL_BONUS = 3
+
+/**
+ * A floor's start scroll list: every spell its objects tileset has a tile for (merlin4Objects has
+ * no arctic blast or energy beam), the floor's themed spells weighted up by THEMED_SPELL_BONUS.
+ */
+function spellWeights(themed: Weighted<string>[], objectTiles: Record<string, number>): Weighted<string>[] {
+  return SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined).map((spell) => {
+    const own = themed.find((t) => t.value === spell)
+    return w(spell, own ? own.weight + THEMED_SPELL_BONUS : ANY_SPELL_WEIGHT)
+  })
+}
+
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
 /**
@@ -467,7 +483,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)]),
+    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)], MERLIN4_OBJECTS)),
   },
 }
 
@@ -681,7 +697,7 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'necromancer and giant', units: { necromancer: 1, skeletonGiant: 1 }, faction: 'undead', boss: 'necromancer', alone: true },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)]),
+    startRewards: startRewards(spellWeights([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
   },
 }
 
@@ -779,7 +795,7 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)]),
+    startRewards: startRewards(spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
   },
 }
 
@@ -897,7 +913,7 @@ export const MAGIC_MAZE: FloorTheme = {
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      [w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)],
+      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)], MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },

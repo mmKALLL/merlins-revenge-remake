@@ -169,11 +169,16 @@ exempts from the ported-actor check). Energy blast is left out (Merlin starts wi
 | merlinSword | 39 | 40 | `animType #weaponMelee` (a sword, not a spell) |
 | gmg | 38 | - | golden machine gun |
 
-Theme lists (weights): Goblin Forest armySummon 3, energyMines 2, energyPulseSpell 2, merlinSword 2,
-healBlast 1 (allies early, merlin4 has no arctic or beam tile); Undead Marsh energyPulseSpell 2,
+Owner rule (2026-10-22): every spell can come up on every floor. Each list (`spellWeights` in
+`themes.ts`) holds every spell of `SPELL_SCROLLS` its objects tileset has a tile for at weight 1,
+and the floor's themed spells weighted 3 more (their old weights 1 / 2 / 3 become 4 / 5 / 6). The
+forest draws from merlin4Objects, which has no arctic blast or energy beam tile, so it never gives
+those two. Themed spells (weights before the bonus): Goblin Forest armySummon 3, energyMines 2,
+energyPulseSpell 2, merlinSword 2, healBlast 1 (allies early); Undead Marsh energyPulseSpell 2,
 energyMines 2, arcticBlast 2, cBlast 2, armySummon 1, healBlast 1, monsterSummon 1; Dragon Canyon
 arcticBlast 2, energyBeamSpell 2, cBlast 2, energyPunch 2, armySummon 1, monsterSummon 1; Magic Maze
-energyBeamSpell 3, cBlast 2, energyPunch 2, monsterSummon 2, arcticBlast 1.
+energyBeamSpell 3, cBlast 2, energyPunch 2, monsterSummon 2, arcticBlast 1. The tower's no-repeat
+rule is unchanged.
 
 ### Army summon and the owner's army
 
