@@ -75,17 +75,19 @@ describe('InputTracker', () => {
     expect(t.snapshot().mouseWorld).toEqual({ x: 12, y: 34 })
   })
 
-  it('reports each K and M press in one snapshot (key repeat does not re-trigger)', () => {
+  it('reports each K, M and R press in one snapshot (key repeat does not re-trigger)', () => {
     const t = new InputTracker()
-    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatHeal: false })
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatMedikit: false })
     t.keyDown('KeyK')
     t.keyDown('KeyK')
     t.keyDown('KeyM')
-    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: true })
-    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatHeal: false })
+    t.keyDown('KeyR')
+    t.keyDown('KeyR')
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatMedikit: true, armyKey: true })
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: false, cheatMedikit: false, armyKey: false })
     t.keyUp('KeyK')
     t.keyDown('KeyK')
-    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatHeal: false })
+    expect(t.snapshot()).toMatchObject({ cheatKillAll: true, cheatMedikit: false })
   })
 
   it('reports each spell key 1-9 once per press, and a palette pick without charging on that click', () => {

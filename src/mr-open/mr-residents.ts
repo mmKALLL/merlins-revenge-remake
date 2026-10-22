@@ -45,6 +45,11 @@ export function permissionToRelease(currentMembers: number, reservedSlots: numbe
   return maxMembers === null || currentMembers + reservedSlots + numToRelease <= maxMembers
 }
 
+/** reservationsMaster.getAvailableSlots: the team's free slots under its cap (Infinity without one). */
+export function availableSlots(currentMembers: number, reservedSlots: number, maxMembers: number | null): number {
+  return maxMembers === null ? Infinity : maxMembers - currentMembers - reservedSlots
+}
+
 /** #releaseCountdown entry: a fresh random interval from the current group (modResidents.txt:98-107, 173-176). */
 export function releaseCountdown(def: ActorDef, d: DwellingState, rng: Rng): [DwellingState, Rng] {
   const group = def.residentGroups[d.group]!

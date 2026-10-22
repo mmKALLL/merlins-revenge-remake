@@ -1,7 +1,9 @@
 // Debug cheat keys (gameMaster.cheat): K kills the enemies on screen (killAll ->
-// teamMaster.killEnemyTeams), M fully heals Merlin (#medikit -> medikitCollected without a type).
+// teamMaster.killEnemyTeams), M gives Merlin one
+// more medikit (remake; the original's #medikit, medikitCollected without a type, healed fully).
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import { BONUS_ENERGY, medikitsHeld } from '../mr-open/mr-pickup'
 import { defOf, playerOf } from './actors'
 import { NO_INPUT, type ActorState, type InputSnapshot, type SimState, type WorldMode } from './state'
 import { anims, defs, teams } from './test-data'
@@ -12,7 +14,7 @@ const SYMBOLS = ['none', 'goblinWarrior', 'goblinMageHut']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 const PLAYER = { x: 100, y: 144 }
 const KILL: InputSnapshot = { ...NO_INPUT, cheatKillAll: true }
-const HEAL: InputSnapshot = { ...NO_INPUT, cheatHeal: true }
+const MEDIKIT: InputSnapshot = { ...NO_INPUT, cheatMedikit: true }
 
 type Placed = { room: 1 | 2; x: number; symbol: string }
 
@@ -91,12 +93,16 @@ describe('K: kill all cheat', () => {
 })
 
 describe('M: medikit cheat', () => {
-  it('restores Merlin to full energy', () => {
+  it('gives Merlin one more medikit as collecting one does (+25 energy, invincibility), without a sound', () => {
     const s0 = world('rooms', [])
     const p = playerOf(s0)
-    const max = defOf(s0, p).maxEnergy
     const hurt: SimState = { ...s0, actors: s0.actors.map((a) => (a.id === p.id ? { ...a, energy: 3 } : a)) }
-    expect(playerOf(stepSim(hurt, HEAL)).energy).toBe(max)
-    expect(playerOf(stepSim(hurt, NO_INPUT)).energy).toBeLessThan(max)
+    const s = stepSim(hurt, MEDIKIT)
+    expect(medikitsHeld(s.pickups.medikits)).toBe(1)
+    expect(playerOf(s).energy).toBeGreaterThanOrEqual(3 + BONUS_ENERGY)
+    expect(playerOf(s).energy).toBeLessThan(defOf(s, p).maxEnergy)
+    expect(s.pickups.invinceTicks).toBeGreaterThan(0)
+    expect(s.events.some((e) => e.kind === 'sound')).toBe(false)
+    expect(medikitsHeld(stepSim(hurt, NO_INPUT).pickups.medikits)).toBe(0)
   })
 })

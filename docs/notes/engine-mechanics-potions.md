@@ -141,7 +141,12 @@ no take-hit sound, no flick; the hit's push still applies (`objGameObject.takeHi
 - A collected pickup plays its `writing` strip while it fades (`stripNameFor` maps the `collected`
   mode to it); until the spells slice (2026-10) it faded out on its stand frame.
 - Temporary invincibility skips `loseEnergy` for Merlin; the renderer pulses his sprite's alpha in
-  place of `pulseWhite`. The M cheat now starts it too, as `medikitCollected()` does.
+  place of `pulseWhite`.
+- **Remake decision (owner request, 2026-10): the M cheat gives one medikit.** The original's
+  `#medikit` cheat calls `medikitCollected()` without a type: invincibility and full energy. The
+  remake's M calls it with `#medikit`, as collecting a medikit does (`medikitCollected` in
+  `src/sim/tick-pickup.ts`): the temporary invincibility, one more kit in stock and +25 energy at
+  once, without the pickup's collect sound or writing.
 - Sprites: each pickup's folder under `assets/sprites/<name>/` holds `stand` (the `_potion` member)
   and `writing` strips; the medikit's also `hudOn` / `hudOff`. **Remake decisions:** the maxikit's
   stand frame is cut from its merlinOpenObjects tile (46), the editor's picture of the same item,

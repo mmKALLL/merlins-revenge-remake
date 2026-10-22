@@ -89,11 +89,14 @@ export function medikitStep(m: MedikitState, energy: number, maxEnergy: number):
   return { medikits: { ...counted, stock: m.stock - 1, remaining: maxEnergy, active: true }, energy }
 }
 
+/** objMedikit #character of the pickup that goes into Merlin's stock (the #maxikit does not). */
+export const MEDIKIT_CHARACTER = 'medikit'
+
 /**
  * objPlayerMerlinCharacter.medikitCollected: a #medikit goes into stock and restores
- * BONUS_ENERGY; anything else (the #maxikit, the M cheat) restores full energy.
+ * BONUS_ENERGY; anything else (the #maxikit, the original's M cheat) restores full energy.
  */
 export function collectMedikit(m: MedikitState, character: string | null, energy: number, maxEnergy: number): { medikits: MedikitState; energy: number } {
-  if (character === 'medikit') return { medikits: { ...m, stock: m.stock + 1 }, energy: Math.min(energy + BONUS_ENERGY, maxEnergy) }
+  if (character === MEDIKIT_CHARACTER) return { medikits: { ...m, stock: m.stock + 1 }, energy: Math.min(energy + BONUS_ENERGY, maxEnergy) }
   return { medikits: m, energy: maxEnergy }
 }

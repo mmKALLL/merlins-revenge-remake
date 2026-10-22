@@ -1,5 +1,6 @@
 // Fixed-step simulation orchestrator. Per tick, in order:
-//  0. debug cheats pressed this tick (tick-cheats.ts): K kills the hostiles on screen, M heals Merlin
+//  0. debug cheats pressed this tick (tick-cheats.ts): K kills the hostiles on screen, M gives Merlin
+//     a medikit; the army key R summons the reserve or sends the army back (tick-army.ts)
 //  1. player movement (walking notes §5-7: velocity with walk or nav-mode acceleration, tile
 //     collision, closed-exit clamp, exit test; a dying player never changes rooms)
 //  2. player weapon keys and attack input: charge / resume / release, or a swing (tick-player-attack.ts)
@@ -55,7 +56,7 @@ import { stepPickups } from './tick-pickup'
 import { stepSleeperWanders } from './idle-wander'
 import { stepPlayerAttack, stepPlayerSwing } from './tick-player-attack'
 import { stepSpells } from './tick-spell'
-import { stepTeleports } from './tick-army'
+import { stepArmyKey, stepTeleports } from './tick-army'
 import { stepBuilders } from './tick-builder'
 import { stepMines } from './tick-mine'
 import type { WorldGrid } from './world-grid'
@@ -370,6 +371,7 @@ function settleContinuous(t: Tick, room: Vec): SimState {
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
   const t = beginTick(s)
   stepCheats(t, input)
+  stepArmyKey(t, input)
   const room = stepPlayerMove(t, input, cfg)
   stepPlayerAttack(t, input, cfg.view)
   // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them

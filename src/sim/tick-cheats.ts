@@ -7,20 +7,21 @@
 //    Merlin (plain distance) die.
 //  - M, #medikit: objPlayerMerlinCharacter.medikitCollected without a medikit type restores
 //    getMaxEnergy() - getEnergy(), i.e. full energy, and starts the temporary invincibility.
+//    Remake (owner request): M gives Merlin one medikit instead, as collecting one does
+//    (medikitCollected(#medikit): one more in stock, +25 energy, the temporary invincibility),
+//    without the pickup's sound or writing.
+import { MEDIKIT_CHARACTER } from '../mr-open/mr-pickup'
 import { defOf, isAlive, isUnit } from './actors'
 import type { ActorState, InputSnapshot } from './state'
 import { killUnit } from './tick-combat'
 import { bringIn, playerIn, waitingSleepers, type Tick } from './tick-context'
-import { startTempInvince } from './tick-pickup'
+import { medikitCollected } from './tick-pickup'
 
 export function stepCheats(t: Tick, input: InputSnapshot): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   if (input.cheatKillAll) killEnemiesOnScreen(t, p)
-  if (input.cheatHeal) {
-    startTempInvince(t)
-    p.energy = defOf(t.s, p).maxEnergy
-  }
+  if (input.cheatMedikit) medikitCollected(t, p, MEDIKIT_CHARACTER)
 }
 
 /** Every priority group of `team`'s hates (teamMaster.killEnemyTeams walks them all). */
