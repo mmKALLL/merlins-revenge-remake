@@ -12,6 +12,7 @@ import type { EndSequenceView } from '../cutscene/end-sequence'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
 import { barColour, HealthBars, type StandBox } from './health-bars'
+import { MiniMapLayer } from './minimap'
 
 export interface RenderConfig {
   logical: Size // e.g. 640x320
@@ -82,6 +83,7 @@ export class Scene {
   private actorSprites = new Map<number, Sprite>()
   private healthBars: HealthBars
   private exitArrows: ExitArrowLayer
+  private miniMap: MiniMapLayer
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
@@ -103,6 +105,7 @@ export class Scene {
   ) {
     this.healthBars = new HealthBars(defs)
     this.exitArrows = new ExitArrowLayer(exitArrows)
+    this.miniMap = new MiniMapLayer(cfg.view)
   }
 
   /** Redraws the tiles on the next draw, for a new grid (a generated map's new layout). */
@@ -138,7 +141,7 @@ export class Scene {
     // exit arrows (painted on the room image) and graves above tiles, below every actor
     this.actorLayer.sortableChildren = true
     this.scrolled.addChild(this.exitArrows.layer, this.graveLayer, this.actorLayer, this.healthBars.layer)
-    this.world.addChild(this.scrolled)
+    this.world.addChild(this.scrolled, this.miniMap.layer) // modMiniMap draws on gGameTextLayer, above the game
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
     const hudY = this.cfg.playOffset.y + this.cfg.view.h // top of the HUD strip below the play view
@@ -163,6 +166,11 @@ export class Scene {
     this.cfg = { ...this.cfg, cameraMode: mode }
   }
 
+  /** Remake: hides or shows the mini-map (the N key). */
+  toggleMiniMap(): void {
+    this.miniMap.toggle()
+  }
+
   setZoom(zoom: ZoomSetting): void {
     this.zoom = zoom
     this.applyZoom()
@@ -183,8 +191,8 @@ export class Scene {
     this.app.canvas.style.height = `${this.cfg.logical.h * z}px`
   }
 
-  /** alpha in [0,1): how far between the previous and current tick the display is. */
-  draw(s: SimState, alpha: number, fps: number): void {
+  /** alpha in [0,1): how far between the previous and current tick the display is; mouseWorld: the pointer, if over the game. */
+  draw(s: SimState, alpha: number, fps: number, mouseWorld: Vec | null = null): void {
     const p = playerOf(s)
     const lerp = (a: ActorState): Vec => ({
       x: a.prevPos.x + (a.pos.x - a.prevPos.x) * alpha,
@@ -202,6 +210,7 @@ export class Scene {
     this.syncGraves(s)
     this.syncActors(s, lerp)
     this.healthBars.update(s, lerp, (name) => this.standBox(name))
+    this.drawMiniMap(s, origin, ipos, mouseWorld)
     this.drawBar(p.energy / (this.defs[p.def]?.energy || 1))
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
@@ -359,6 +368,17 @@ export class Scene {
       spr.position.set(Math.round(g.pos.x), Math.round(g.pos.y))
       this.graveLayer.addChild(spr)
     }
+  }
+
+  private drawMiniMap(s: SimState, origin: Vec, player: Vec, mouseWorld: Vec | null): void {
+    const room = s.grid.roomRectPx(s.room)
+    const inView = (p: Vec): Vec => ({ x: p.x - origin.x, y: p.y - origin.y })
+    this.miniMap.update(s, {
+      player: inView(player),
+      mouse: mouseWorld && inView(mouseWorld),
+      origin,
+      roomPx: { w: room.right - room.left, h: room.bottom - room.top },
+    })
   }
 
   private drawBar(fraction: number): void {

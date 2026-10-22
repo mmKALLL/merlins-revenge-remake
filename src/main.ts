@@ -218,8 +218,10 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     const { ticks, alpha, dt } = clock.frame(now, running)
     if (!running) return
     fps = fps * (1 - FPS_NEW_WEIGHT) + (1000 / Math.max(1, dt)) * FPS_NEW_WEIGHT
-    input.setMouseWorld(mouseWorld())
+    const mouse = mouseWorld()
+    input.setMouseWorld(mouse)
     if (input.takeCameraToggle()) setCamera(scene.cameraMode === 'room' ? 'follow' : 'room')
+    if (input.takeMiniMapToggle()) scene.toggleMiniMap()
     for (let i = 0; i < ticks; i++) {
       if (ending) {
         const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
@@ -235,7 +237,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
     }
-    scene.draw(sim, alpha, fps)
+    scene.draw(sim, alpha, fps, mouse)
     scene.drawEndSequence(ending && endSequenceView(ending))
   }
   requestAnimationFrame(frame)

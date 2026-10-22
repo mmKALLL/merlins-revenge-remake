@@ -32,14 +32,17 @@ function isRoomCleared(s: SimState, room: Vec): boolean {
   const stored = s.rooms[roomKey(room)]
   if (room.x === s.room.x && room.y === s.room.y) return stored?.clear ?? false
   if (stored?.spawned) return stored.clear || exitsOpenFor(s, stored.actors)
-  return isClearOnMiniMap(roomObjectKeys(s, room).map((key) => {
-    const status = s.defs[key]?.raw['miniMapStatus']
-    return typeof status === 'string' ? status : undefined
-  }))
+  return isClearOnMiniMap(roomObjectKeys(s, room).map((key) => miniMapStatusOf(s, key)))
+}
+
+/** actorMaster.getMiniMapStatusForSymbol: the actor data's #miniMapStatus (undefined when unset). */
+export function miniMapStatusOf(s: SimState, def: string): string | undefined {
+  const status = s.defs[def]?.raw['miniMapStatus']
+  return typeof status === 'string' ? status : undefined
 }
 
 /** objTileMap.getKeyList: every actor key on the room's objects layer that has actor data. */
-function roomObjectKeys(s: SimState, room: Vec): string[] {
+export function roomObjectKeys(s: SimState, room: Vec): string[] {
   const { roomSize } = s.grid.map
   const keys: string[] = []
   for (let ty = 1; ty <= roomSize.y; ty++) {
