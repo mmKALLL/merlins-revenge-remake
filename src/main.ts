@@ -8,10 +8,12 @@ import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
+import { LoadQueue } from './data/load-queue'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { energyLookup, type EnergyOf } from './gen/floor'
-import { currentMapId, generateMap, isGeneratedMapId } from './gen/generated-maps'
+import { currentMapId, generateMap, generateMapSteps, isGeneratedMapId } from './gen/generated-maps'
+import { runStepsAsync } from './gen/steps'
 import type { Vec } from './mr-open/mr-geometry'
 import { GAME_SCREEN } from './mr-open/mr-hud'
 import type { MapDefinition } from './mr-open/mr-map-format'
@@ -27,6 +29,7 @@ import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
 import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
 import { helpPanel } from './ui/help-panel'
+import { loadingScreen } from './ui/loading-screen'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
 import { mapsPanel } from './ui/maps-panel'
 import { menuButton } from './ui/menu-button'
@@ -74,6 +77,27 @@ function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: 
   return generateMap(mapId, layoutSeed, energyOf)
 }
 
+/** Work (ms) between the loading screen's repaints while a generated map is built. */
+const BUILD_SLICE_MS = 25
+const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+
+/** generatedMapWithSeedInUrl, pausing now and then so the loading screen shows the progress (0..1); the same map. */
+function buildGeneratedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf, onProgress: (fraction: number) => void): Promise<MapDefinition> {
+  rememberParam('seed', String(layoutSeed))
+  return runStepsAsync(generateMapSteps(mapId, layoutSeed, energyOf), { onProgress, pause: nextFrame, sliceMs: BUILD_SLICE_MS })
+}
+
+/** Reports the step under way and how far the whole load has got (0..1), for the loading screen. */
+type LoadProgress = (step: string, fraction: number) => void
+/** The loading bar: building a generated map fills it up to MAP_SHARE, the asset files up to FILES_END; starting the game is the rest. */
+const MAP_SHARE = 0.3
+const FILES_END = 0.95
+
+/** Queues a file load so the loading bar counts it as it arrives. */
+type TrackLoad = <T>(load: () => Promise<T>) => Promise<T>
+/** File loads running at once (a browser opens about six connections to a host anyway). */
+const LOADS_AT_ONCE = 6
+
 /** Longest frame the tick loop catches up on (ms); a longer pause (background tab) is dropped. */
 const MAX_FRAME_MS = 250
 /** Weight of the latest frame in the smoothed fps readout. */
@@ -86,11 +110,11 @@ const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0
 const EFFECT_SPRITES = [SPELL_ICONS]
 
 /** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist), and the effects'. */
-async function loadSprites(defs: Record<string, ActorDef>): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
+async function loadSprites(defs: Record<string, ActorDef>, track: TrackLoad): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
   const spriteNames = [...new Set([...Object.values(defs).filter(needsSprite).map((d) => d.name), ...EFFECT_SPRITES])]
   const sprites: Record<string, LoadedSprite> = {}
   const anims: Record<string, AnimationSet> = {}
-  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await loadSprite(n)] as const))) {
+  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await track(() => loadSprite(n))] as const))) {
     sprites[name] = sprite
     anims[name] = sprite.anims
   }
@@ -131,20 +155,39 @@ interface Game {
   setCamera(camera: CameraMode): void
 }
 
-/** Loads a map and its assets, puts the canvas in #game and starts the frame loop. */
-async function startGame(mapId: string, shell: Shell): Promise<Game> {
+/**
+ * Loads a map and its assets (reporting the progress), puts the canvas in #game and starts the
+ * frame loop. Every file starts loading as soon as it is known; a generated map is built meanwhile.
+ */
+async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress): Promise<Game> {
   const { audio, input } = shell
+  const generated = isGeneratedMapId(mapId)
+  let building = generated // the bar shows the build first, then the files
+  const filesFrom = generated ? MAP_SHARE : 0
+  let filesShown = filesFrom // files found later add to the count: the bar never goes back
+  const showFiles = () => {
+    if (building) return
+    filesShown = Math.max(filesShown, filesFrom + (FILES_END - filesFrom) * (files.done / files.total))
+    onProgress('Loading graphics', filesShown)
+  }
+  const files = new LoadQueue(LOADS_AT_ONCE, showFiles)
+  const track: TrackLoad = (load) => files.add(load)
+  onProgress('Loading', 0)
   // the rest loads while the map does; a generated map needs the actors' energies (HP budgets) first
-  const dataLoading = Promise.all([loadTeams(), loadExitArrows(), loadCutScene(GAME_COMPLETE_SCRIPT), loadHudTextures(), loadWeaponSelectorTextures()])
-  const [loaded, defs] = await Promise.all([isGeneratedMapId(mapId) ? null : loadMap(mapId), loadActors()])
+  const dataLoading = track(() => Promise.all([loadTeams(), loadExitArrows(), loadCutScene(GAME_COMPLETE_SCRIPT), loadHudTextures(), loadWeaponSelectorTextures()]))
+  const [loaded, defs] = await Promise.all([generated ? null : track(() => loadMap(mapId)), track(loadActors)])
+  const spritesLoading = loadSprites(defs, track)
+  spritesLoading.catch(() => {}) // a failure surfaces at its await below, unless an earlier step fails first
   const energyOf = energyLookup(defs)
   const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, energyOf)
-  const map = mapFor(seed)
+  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, seed, energyOf, (f) => onProgress('Building the map', f * MAP_SHARE))
+  building = false
+  showFiles()
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
     try {
-      return await loadTileset(name)
+      return await track(() => loadTileset(name))
     } catch (e) {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -155,7 +198,8 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     layerTileset('objects'),
     dataLoading,
   ])
-  const { sprites, anims } = await loadSprites(defs)
+  const { sprites, anims } = await spritesLoading
+  onProgress('Starting', FILES_END)
   if (!sprites[defs['player']!.name]) throw new Error(`no sprite atlas for the player ("${defs['player']!.name}")`)
   // Duplicates TileKey.isSolid on purpose: the browser gets the converted JSON symbols, not the text key.
   const isSolid = (i: number) => i >= 1 && active.data.symbols[i - 1] === 'solid'
@@ -320,6 +364,9 @@ function main(): void {
     weaponIconUrls: WEAPON_ICON_KEYS.map(weaponIconUrl),
   }) : null
 
+  // shown from the first paint (index.html); the title screen needs it only once a map loads
+  const loading = loadingScreen(document)
+  if (!linkedMap) loading.hide()
   let state: AppState = linkedMap ? PLAYING : TITLE
   let game: Game | null = null
   let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
@@ -438,11 +485,12 @@ function main(): void {
   /** Starts a map; false (with the error on the page) when it failed to load. */
   async function load(mapId: string): Promise<boolean> {
     try {
-      game = await startGame(mapId, shell)
+      game = await startGame(mapId, shell, loading.update)
     } catch (e) {
       showError(e, mapId)
       return false
     }
+    loading.hide()
     game.scene.setZoom(zoom)
     saveLastMap(mapId)
     return true

@@ -4,9 +4,10 @@
 import type { MapEntry } from '../data/map-tree'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { generateFloor, type EnergyOf } from './floor'
+import { floorSteps, type EnergyOf } from './floor'
+import { runSteps, type Steps } from './steps'
 import { THEMES, type FloorTheme } from './themes'
-import { TOWER_ID, TOWER_SIZE, generateTower } from './tower'
+import { TOWER_ID, TOWER_SIZE, towerSteps } from './tower'
 
 const FOLDER = 'randomly_generated/'
 
@@ -14,11 +15,16 @@ const FOLDER = 'randomly_generated/'
 export const floorMapId = (theme: FloorTheme): string => `${FOLDER}${THEMES.indexOf(theme) + 1}-${theme.id}`
 export const TOWER_MAP_ID = `${FOLDER}${TOWER_ID}`
 
-interface GeneratedMapKind { id: string; mapSize: Vec; generate: (seed: number, energyOf: EnergyOf) => MapDefinition }
+interface GeneratedMapKind { id: string; mapSize: Vec; steps: (seed: number, energyOf: EnergyOf) => Steps<MapDefinition> }
+
+/** The steps' map, without the edges and placements kept for the tests. */
+function* mapOf(steps: Steps<{ map: MapDefinition }>): Steps<MapDefinition> {
+  return (yield* steps).map
+}
 
 const KINDS: readonly GeneratedMapKind[] = [
-  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, generate: (seed: number, energyOf: EnergyOf) => generateFloor(t, seed, energyOf).map })),
-  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, generate: (seed: number, energyOf: EnergyOf) => generateTower(seed, energyOf).map },
+  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, steps: (seed: number, energyOf: EnergyOf) => mapOf(floorSteps(t, seed, energyOf)) })),
+  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, steps: (seed: number, energyOf: EnergyOf) => mapOf(towerSteps(seed, energyOf)) },
 ]
 
 export const GENERATED_MAPS: readonly MapEntry[] = KINDS.map((k) => ({ id: k.id, mapSize: { ...k.mapSize } }))
@@ -48,7 +54,12 @@ export function currentMapId(id: string): string {
 
 /** The map for a generated map id and seed; the same pair (and actor energies) always gives the same map. */
 export function generateMap(id: string, seed: number, energyOf: EnergyOf): MapDefinition {
+  return runSteps(generateMapSteps(id, seed, energyOf))
+}
+
+/** generateMap in steps, for a progress bar (runStepsAsync); the same map as generateMap. */
+export function generateMapSteps(id: string, seed: number, energyOf: EnergyOf): Steps<MapDefinition> {
   const kind = KINDS.find((k) => k.id === id)
   if (!kind) throw new Error(`no generated map "${id}"`)
-  return kind.generate(seed, energyOf)
+  return kind.steps(seed, energyOf)
 }

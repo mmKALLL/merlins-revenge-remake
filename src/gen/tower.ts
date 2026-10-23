@@ -6,7 +6,8 @@
 // every other edge between floors stays walled.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { ROOM_SIZE, exitRoom, floorIsConnected, generateFloor, randomOpening, retrySeed, startRoom, themeIsSolid, type BoundaryOpening, type EnergyOf, type GeneratedFloor } from './floor'
+import { ROOM_SIZE, exitRoom, floorIsConnected, floorSteps, randomOpening, retrySeed, startRoom, themeIsSolid, type BoundaryOpening, type EnergyOf, type GeneratedFloor } from './floor'
+import { runSteps, scaledSteps, type Steps } from './steps'
 import { mirrorOpeningX, placeFloor } from './floor-transform'
 import { GenRandom } from './random'
 import type { Opening } from './room-shape'
@@ -42,26 +43,33 @@ export const towerIsSolid: (active: number) => boolean = (() => {
 
 /** A seeded tower; the same seed and actor energies always give the same tower. */
 export function generateTower(seed: number, energyOf: EnergyOf): GeneratedFloor {
+  return runSteps(towerSteps(seed, energyOf))
+}
+
+/** generateTower in steps: yields its progress after each room of each floor (a retry starts the count again). */
+export function* towerSteps(seed: number, energyOf: EnergyOf): Steps<GeneratedFloor> {
   for (let attempt = 0; attempt < TOWER_ATTEMPTS; attempt++) {
-    const tower = buildTower(retrySeed(seed, attempt), energyOf)
+    const tower = yield* buildTower(retrySeed(seed, attempt), energyOf)
     if (floorIsConnected(tower, towerIsSolid)) return tower
   }
   throw new Error(`${TOWER_ID}: no connected tower for seed ${seed} after ${TOWER_ATTEMPTS} attempts`)
 }
 
-function buildTower(seed: number, energyOf: EnergyOf): GeneratedFloor {
+function* buildTower(seed: number, energyOf: EnergyOf): Steps<GeneratedFloor> {
   const rng = new GenRandom(seed)
   // stairs[k] joins floor k's exit room to floor k + 1's start room, in tower coordinates
   const stairs = TOWER_FLOORS.slice(1).map((_, k) => randomOpening(rng, ROOM_SIZE.x, TOWER_FLOORS[k]!.edges.endOpening))
   const scrolls = drawSpellScrolls(rng)
-  const floors = TOWER_FLOORS.map((theme, k) => {
-    const floor = generateFloor(theme, Math.floor(rng.next() * SEED_RANGE), energyOf, {
+  const floors: GeneratedFloor[] = []
+  for (const [k, theme] of TOWER_FLOORS.entries()) {
+    const share = 1 / TOWER_FLOORS.length
+    const floor = yield* scaledSteps(floorSteps(theme, Math.floor(rng.next() * SEED_RANGE), energyOf, {
       placePlayer: k === 0,
       boundaryOpenings: stairOpenings(theme, k, stairs),
       spellScroll: scrolls[k]!,
-    })
-    return placeFloor(floor, { mapSize: TOWER_SIZE, offset: { x: 0, y: rowsAbove(k) }, mirrorX: isMirrored(k) })
-  })
+    }), k * share, share)
+    floors.push(placeFloor(floor, { mapSize: TOWER_SIZE, offset: { x: 0, y: rowsAbove(k) }, mirrorX: isMirrored(k) }))
+  }
   const map: MapDefinition = {
     mapSize: TOWER_SIZE,
     roomSize: ROOM_SIZE,
