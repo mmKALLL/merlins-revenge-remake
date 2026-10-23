@@ -124,15 +124,22 @@ export interface EnemyChoice {
  */
 export type Corner = 'exit' | 'farX' | 'farY'
 
-/** A fixed group of units; `faction` sets the room's faction for its other enemies, `alone` leaves the room to the group. */
+/**
+ * A fixed group of units; `faction` sets the room's faction for its other enemies, `allies` adds
+ * further factions they may come from (teams that leave the group alone; with alliances the room
+ * draws an alliance instead), `alone` leaves the room to the group. `lead` names its leader: a
+ * floor's midboss and boss rooms take groups with different leaders when they can.
+ */
 export interface UnitGroup {
   label: string
   units: Record<string, number>
   faction?: string
+  allies?: readonly string[]
   alone?: boolean
+  lead?: string
 }
 
-/** An exit room group; its `boss` unit stands two tiles in from the floor's far corner. */
+/** An exit room group; its `boss` unit (its leader) stands two tiles in from the floor's far corner. */
 export interface BossGroup extends UnitGroup {
   boss: string
 }
@@ -518,6 +525,8 @@ export const GOBLIN_FOREST: FloorTheme = {
 /** merlinOpenObjects key indices (assets/tile-keys/merlinOpenObjects.txt, 10 per row). */
 export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   player: 2,
+  scarletInGame: 51,
+  ochreInGame: 52,
   skeletonArcher: 81,
   skeletonWarrior: 82,
   skeletonThrower: 83,
@@ -871,16 +880,46 @@ const CASTLE_WALLS: WallAutotile = [
  */
 const WEAK_SOME_MID: TierWeights = { weak: 2, mid: 1 }
 
+/** A Magic Maze boss group: its leader and the minions it brings to the midboss corner. */
+interface MazeBossGroup {
+  label: string
+  lead: string
+  minions: Record<string, number>
+  faction: string
+  allies?: readonly string[]
+}
+
+/**
+ * Owner (2026-10-24): the maze's midboss and boss rooms draw from the same groups, the midboss
+ * corner alone with the minions below, the exit room with this many times the minions (rounded
+ * up) and its usual draws on top.
+ */
+const BOSS_MINION_FACTOR = 1.5
+
+const MAZE_BOSS_GROUPS: readonly MazeBossGroup[] = [
+  // Ochre (team blackSorcerer hates only Aldevar and the monster summon) leads the magical alliance's casters
+  { label: "Ochre's elementals", lead: 'ochreInGame', minions: { bombMage: 1, thunderMonk: 1, shrouder: 1, magicPortal: 1 }, faction: 'alliance' },
+  // Scarlet summons undead and her team and theirs leave each other alone, so her red army may come too
+  { label: "Scarlet's court", lead: 'scarletInGame', minions: { necromancer: 2, darkMage: 1 }, faction: 'undead', allies: ['scarlet'] },
+  { label: "dark sorcerer's court", lead: 'darkMage', minions: { darkMage: 1, necromancer: 1, greyGhost: 1 }, faction: 'undead' },
+  { label: "Scarlet's guard", lead: 'scMonk', minions: { scMonk: 1, scWarrior: 1, scArcher: 1 }, faction: 'scarlet' },
+]
+
+/** A group's units: its minions and its leader. */
+const withLead = (lead: string, minions: Record<string, number>): Record<string, number> => ({ ...minions, [lead]: (minions[lead] ?? 0) + 1 })
+const scaledMinions = (minions: Record<string, number>): Record<string, number> =>
+  Object.fromEntries(Object.entries(minions).map(([key, count]) => [key, Math.ceil(count * BOSS_MINION_FACTOR)]))
+const factionsOf = (g: MazeBossGroup) => ({ faction: g.faction, ...(g.allies ? { allies: g.allies } : {}) })
+
+const mazeMidboss = (g: MazeBossGroup): UnitGroup =>
+  ({ label: g.label, lead: g.lead, units: withLead(g.lead, g.minions), ...factionsOf(g), alone: true })
+const mazeBoss = (g: MazeBossGroup): BossGroup =>
+  ({ label: g.label, boss: g.lead, units: withLead(g.lead, scaledMinions(g.minions)), ...factionsOf(g) })
+
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
   [
-    midboss(
-      [
-        { label: 'necromancy study', units: { necromancer: 2, darkMage: 1 }, faction: 'undead' },
-        { label: 'Scarlet chapel', units: { scMonk: 2, scWarrior: 1 }, faction: 'scarlet' },
-      ],
-      { regulars: n(0, 2, WEAK) }
-    ),
+    midboss(MAZE_BOSS_GROUPS.map(mazeMidboss)),
     normal({ producers: n(4, 6, WEAK_SOME_MID), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
@@ -962,11 +1001,8 @@ export const MAGIC_MAZE: FloorTheme = {
       { key: 'magicPortal', weight: 2, tier: 'weak', faction: 'alliance' },
       { key: 'skeletonDwelling', weight: 1, tier: 'weak', faction: 'undead' },
     ],
-    // the Black Sorcerer is not in the engine's data: his stand-ins hold the exit
-    bosses: [
-      { label: "dark sorcerer's court", units: { darkMage: 3, necromancer: 1, greyGhost: 1 }, faction: 'undead', boss: 'darkMage' },
-      { label: "Scarlet's guard", units: { scMonk: 2, scWarrior: 2, scArcher: 1 }, faction: 'scarlet', boss: 'scMonk' },
-    ],
+    // the midboss corner's groups with more minions (the Black Sorcerer is not in the engine's data)
+    bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
       spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)], MERLIN_OPEN_OBJECTS),
@@ -1047,6 +1083,8 @@ const TEAM_OF: Record<string, string> = {
   scWarrior: 'scarlet',
   scArcher: 'scarlet',
   scMonk: 'scarlet',
+  scarletInGame: 'scarlet',
+  ochreInGame: 'blackSorcerer',
 }
 
 const teamOf = (key: string): string => {
@@ -1070,14 +1108,14 @@ function everyThemesChoices(pick: (u: UnitTuning) => EnemyChoice[]): EnemyChoice
 /**
  * Teams that leave each other alone (no hate either way in assets/teams; floor.test.ts checks
  * this), so a fort room mixes several teams without them brawling at once. The magical alliance
- * hates every other enemy team, so it holds rooms of its own.
+ * hates every other enemy team, so it holds rooms of its own, with Ochre (blackSorcerer) when he leads.
  */
 const FORT_ALLIANCES: Alliance[] = [
   { name: 'greenskins and beasts', factions: ['goblins', 'orcs', 'monsters', 'swamp', 'cave'], weight: 3 },
   { name: 'the dead and the red', factions: ['undead', 'scarlet', 'cave'], weight: 2 },
   { name: 'martial beasts', factions: ['karate', 'monsters', 'swamp'], weight: 2 },
   { name: 'dojo and Scarlet', factions: ['karate', 'scarlet'], weight: 1 },
-  { name: 'magical alliance', factions: ['magicalAlliance'], weight: 1 },
+  { name: 'magical alliance', factions: ['magicalAlliance', 'blackSorcerer'], weight: 1 },
 ]
 
 /**
@@ -1154,7 +1192,7 @@ export const GOLDEN_FORT: FloorTheme = {
     mixedFactionChance: 0, // its alliances already mix peaceful teams
     enemies: everyThemesChoices((u) => u.enemies),
     dwellings: everyThemesChoices((u) => u.dwellings),
-    bosses: TOWER_THEMES.flatMap((t) => t.units.bosses).map((b) => ({ ...b, faction: b.faction ?? teamOf(b.boss) })),
+    bosses: TOWER_THEMES.flatMap((t) => t.units.bosses).map((b) => ({ ...b, faction: teamOf(b.boss) })),
     alliances: FORT_ALLIANCES,
     potions: POTION_WEIGHTS,
     // owner: ten potions, two medikits and one spell scroll of any kind

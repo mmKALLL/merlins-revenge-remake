@@ -9,7 +9,7 @@ import { anims, defs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk', 'scarletInGame', 'ochreInGame']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /**
@@ -259,6 +259,30 @@ describe('multistage and special units', () => {
     }
     expect(summoned).toBeDefined()
     expect(summoned!.team).toBe('undead')
+  })
+
+  it('Scarlet (the in-game wizard) summons undead with her undead summon, as a necromancer does', () => {
+    let s = sim([{ x: 12, y: 5, symbol: 'scarletInGame' }])
+    const summonable = new Set(defs['undeadSummon']!.attack.multistage.map((m) => m.payload))
+    let summoned: ActorState | undefined
+    for (let i = 0; i < 1500 && !summoned; i++) {
+      s = pinPlayer(stepSim(s, NO_INPUT))
+      summoned = s.actors.find((a) => summonable.has(a.def))
+    }
+    expect(ofDef(s, 'scarletInGame')[0]!.team).toBe('scarlet')
+    expect(summoned?.team).toBe('undead')
+  })
+
+  it('Ochre (the in-game wizard) fires energy pulses at Merlin', () => {
+    let s = sim([{ x: 12, y: 5, symbol: 'ochreInGame' }])
+    const before = playerOf(s).energy
+    let pulses = 0
+    for (let i = 0; i < 600; i++) {
+      s = stepSim(s, NO_INPUT)
+      pulses = Math.max(pulses, ofDef(s, 'energyPulse').length)
+    }
+    expect(pulses).toBeGreaterThan(0)
+    expect(playerOf(s).energy).toBeLessThan(before)
   })
 
   it('a monk (team aldevar) heals a hurt Merlin with its heal blast', () => {

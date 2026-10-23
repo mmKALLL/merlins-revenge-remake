@@ -178,6 +178,11 @@ const spellActors = [
 for (const name of spellActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: Merlin\'s spells' })
 }
+// The in-game wizards as Magic Maze bosses (docs/notes/engine-mechanics-enemies-3.md, Wizards):
+// spell casters whose weapons (undeadSummon, energyPulseSpell) are already copied above
+for (const name of ['scarletInGame', 'ochreInGame']) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: in-game wizard' })
+}
 // every team file (enemy teams also fight each other through their hate lists)
 for (const file of readdirSync(CASTS).sort()) {
   const m = /^tem_(.+)\.txt$/.exec(file)
@@ -204,6 +209,8 @@ const castSprites = [
   'skelitonSword', 'skelitonTorsoTank', 'skelitonUpper', 'skw', 'smoke', 'smokePin', 'spark', 'speedyGuy',
   'swordOrc', 'thunderBlast', 'thunderMonk', 'towerAxe', 'townWatch', 'tvBox', 'undeadDragon',
   'undeadInvasion', 'vultureGuard', 'warrior',
+  // the in-game wizards Scarlet (sprite name "scw") and Ochre
+  'scw', 'ochreWizard',
   // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
   'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]

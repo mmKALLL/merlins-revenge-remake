@@ -19,7 +19,7 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   and a spell scroll. Rooms follow a per-theme room plan with enemy tiers (owner to review the tier lists and counts). The maze's walls are
   autotiled castle towers and wall faces. A fifth floor outside the tower, `5-golden-fort` (golden
   palace look, every theme's enemies in peaceful team alliances, rooms to an HP budget of 1500-2000,
-  a start room of 10 potions, 2 medikits and a scroll), awaits the owner's review. Next: MR3 wizards
+  a start room of 10 potions, 2 medikits and a scroll), awaits the owner's review. The maze's midboss and boss rooms share wizard-led groups (Scarlet, Ochre; one list, more minions at the exit). Next: MR3 wizards
   and the Black Sorcerer once ported, snapshots of generated floors.
 - **Level ups.** `modExperience` (experienceImWorth, `#lastAttacker`), experience stars
   (`modStarReleaser`, `objStar`, `starMaster`), the `*IncLevel` fields, the `level_up` sound, an

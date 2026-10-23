@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
@@ -104,7 +104,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     }
   })
 
-  it('keeps each room to one faction (or alliance), except a share of normal rooms that mix rival teams', () => {
+  it('keeps each room to one faction (or alliance, or a group and its allies), except a share of normal rooms that mix rival teams', () => {
     const factionOf = new Map<string, string>()
     for (const c of [...theme.units.enemies, ...theme.units.dwellings]) if (c.faction) factionOf.set(c.key, c.faction)
     const alliances = theme.units.alliances
@@ -121,10 +121,13 @@ describe.each(THEMES)('random floor: $name', (theme) => {
       }
       for (const [key, set] of perRoom) {
         const [x, y] = key.split(',').map(Number)
-        const normal = planCell(theme.units.roomPlan, { x: x!, y: y! }).kind === 'normal'
+        const cell = planCell(theme.units.roomPlan, { x: x!, y: y! })
+        const normal = cell.kind === 'normal'
         if (normal) normalRooms++
+        const groups = cell.kind === 'boss' ? theme.units.bosses : cell.groups ?? []
+        const ofGroup = groups.some((g) => g.faction && [...set].every((f) => f === g.faction || g.allies?.includes(f)))
         if (alliances) expect(alliances.some((a) => [...set].every((f) => a.factions.includes(f))), [...set].join(' ')).toBe(true)
-        else if (set.size > 1) {
+        else if (set.size > 1 && !ofGroup) {
           expect(normal, `${key}: ${[...set].join(' ')}`).toBe(true) // never a midboss or boss room
           mixedRooms++
         }
@@ -253,7 +256,11 @@ describe.each(THEMES)('random floor: $name', (theme) => {
           const onFreeTiles = f.placements.filter((p) => sameRoom(p.room, room) && !reserved.some((r) => sameRoom(r, p.tile))).length
           const full = onFreeTiles >= freeUnitTiles(f, room) - reserved.length
           if (!full && units.length < draw.count[1]) expect(cost, `${roomKey(room)}: ${units.join(' ')}`).toBeGreaterThanOrEqual(budgetEnergy(budget, theme.level))
-          if (budget.capped) expect(cost, `${roomKey(room)}: ${units.join(' ')}`).toBeLessThanOrEqual(budgetEnergy(budget, theme.level) + (budget.spread ?? 0))
+          // a group past the cap on its own gets no draws
+          const groupCost = Math.max(0, ...u.bosses.filter((g) => Object.entries(g.units).every(([k, n]) => units.filter((x) => x === k).length >= n))
+            .map((g) => Object.entries(g.units).reduce((sum, [k, n]) => sum + n * costOf(k), 0)))
+          const cap = Math.max(groupCost, budgetEnergy(budget, theme.level) + (budget.spread ?? 0))
+          if (budget.capped) expect(cost, `${roomKey(room)}: ${units.join(' ')}`).toBeLessThanOrEqual(cap)
         }
       }
     })
@@ -400,6 +407,42 @@ describe('Magic Maze necromancers (owner: a regular sight)', () => {
     const floors = SEEDS.slice(0, 200).map((s) => generateFloor(MAGIC_MAZE, s, energyOf))
     const featuring = floors.filter((f) => f.placements.some((p) => p.key === 'necromancer' && !fixed.some((r) => sameRoom(r, p.room))))
     expect(featuring.length).toBeGreaterThan(floors.length / 3)
+  })
+})
+
+describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => {
+  const groups = [...planCell(MAGIC_MAZE.units.roomPlan, cornerRoom(MAGIC_MAZE.floorSize, 'farY')).groups!, ...MAGIC_MAZE.units.bosses]
+  const leaderOf = (g: UnitGroup) => ('boss' in g ? (g.boss as string) : g.lead)
+
+  it('resolves every group unit to actor data with a sprite atlas', () => {
+    for (const key of new Set(groups.flatMap((g) => Object.keys(g.units)))) {
+      const def = pageDefs[key]
+      expect(def, key).toBeDefined()
+      expect(existsSync(`public/generated/sprites/${def!.name}.json`), `${key}: sprite ${def!.name}`).toBe(true)
+    }
+  })
+
+  it('never groups teams that hate each other', () => {
+    const hates = (a: string, b: string) => pageTeams[a]!.hates.flat().includes(b)
+    for (const g of groups) {
+      const teams = new Set(Object.keys(g.units).map((k) => pageDefs[k]!.team))
+      for (const a of teams) for (const b of teams) expect(hates(a, b), `${g.label}: ${a} hates ${b}`).toBe(false)
+    }
+  })
+
+  it('leads the midboss and boss rooms of a floor by different leaders', () => {
+    const midboss = cornerRoom(MAGIC_MAZE.floorSize, 'farY')
+    const exit = exitRoom(MAGIC_MAZE.floorSize)
+    const midbossGroups = planCell(MAGIC_MAZE.units.roomPlan, midboss).groups!
+    const countIn = (keys: string[], key: string) => keys.filter((k) => k === key).length
+    for (const seed of SEEDS.slice(0, 100)) {
+      const f = generateFloor(MAGIC_MAZE, seed, energyOf)
+      const boss = f.placements.find((p) => sameRoom(p.room, exit) && sameRoom(p.tile, BOSS_TILE))!.key
+      const midbossKeys = f.placements.filter((p) => sameRoom(p.room, midboss)).map((p) => p.key)
+      const group = midbossGroups.find((g) => Object.entries(g.units).every(([k, n]) => countIn(midbossKeys, k) === n))
+      expect(group, `seed ${seed}: midboss ${midbossKeys.join(' ')}`).toBeDefined()
+      expect(leaderOf(group!), `seed ${seed}: ${group!.label}`).not.toBe(boss)
+    }
   })
 })
 

@@ -1,0 +1,87 @@
+[#name: "act_ochreInGame", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#character: #archEnemy,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 1000,
+#enemyGoodShootingDistance: 150,
+#experienceAmountForNextLevel: 500,
+#experienceImWorth: 1000,
+#inertia: 60,
+#miniMapStatus: #inf,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #blackSorcerer,
+#name: "ochreWizard",
+#walkSpeed: 10,
+#weapon: #energyPulseSpell
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

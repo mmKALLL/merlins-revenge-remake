@@ -10,7 +10,7 @@ import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
 import { runSteps, type Steps } from './steps'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
-import { TIERS, type Alliance, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type UnitTuning, type Weighted } from './themes'
+import { TIERS, type Alliance, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type BossGroup, type UnitGroup, type UnitTuning, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -123,13 +123,14 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
   for (const b of options.boundaryOpenings ?? []) edges[roomKey(b.room)]![b.edge] = b.opening
   const rooms: RoomDefinition[] = []
   const placements: Placement[] = []
+  const takenLeaders = new Set<string>()
   for (let y = 1; y <= size.y; y++) {
     for (let x = 1; x <= size.x; x++) {
       const room = { x, y }
       const keepOpen = reservedTiles(size, room)
       const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
       decorate(rng, shape, theme.shape.decorationChance)
-      const units = placeUnits(rng, theme, room, shape, energyOf, options)
+      const units = placeUnits(rng, theme, room, shape, energyOf, options, takenLeaders)
       placements.push(...units)
       rooms.push(roomDefinition(rng, theme, room, shape, units))
       yield rooms.length / (size.x * size.y)
@@ -280,7 +281,8 @@ const fillsDraws = (draws: readonly TableDraw[], factions: RoomFactions): boolea
 function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null, cell: RoomPlanCell): RoomFactions {
   if (u.alliances) return pickAlliance(rng, u, u.alliances, draws, group)
   if (cell.kind === 'normal' && rng.chance(u.mixedFactionChance)) return null
-  const faction = group?.faction ?? pickFaction(rng, draws)
+  if (group?.faction) return new Set([group.faction, ...(group.allies ?? [])])
+  const faction = pickFaction(rng, draws)
   return faction === null ? null : new Set([faction])
 }
 
@@ -442,13 +444,28 @@ function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec
   return [...(player ? [player] : []), music, ...rewards]
 }
 
+/** A group's leader: a boss group's boss, or its `lead`. */
+const leaderOf = (g: UnitGroup | BossGroup): string | undefined => ('boss' in g ? g.boss : g.lead)
+
+/**
+ * One of a room's groups, at random among those whose leader no other room of the floor has
+ * taken (all of them when every leader is taken); its leader is then taken.
+ */
+function pickGroup<G extends UnitGroup>(rng: GenRandom, groups: readonly G[], takenLeaders: Set<string>): G {
+  const fresh = groups.filter((g) => !takenLeaders.has(leaderOf(g) ?? ''))
+  const group = rng.pick(fresh.length > 0 ? fresh : groups)
+  const leader = leaderOf(group)
+  if (leader) takenLeaders.add(leader)
+  return group
+}
+
 /**
  * A room's units by its plan cell: the start room's own placements, or the corner potions, the
  * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
  * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
  * one faction or alliance.
  */
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions): Placement[] {
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
@@ -456,8 +473,8 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, options)
   const keys: string[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
-  const boss = cell.kind === 'boss' ? rng.pick(u.bosses) : null
-  const group = boss ?? (cell.groups?.length ? rng.pick(cell.groups) : null)
+  const boss = cell.kind === 'boss' ? pickGroup(rng, u.bosses, takenLeaders) : null
+  const group = boss ?? (cell.groups?.length ? pickGroup(rng, cell.groups, takenLeaders) : null)
   const draws = group?.alone ? [] : roomDraws(rng, theme, cell)
   const factions = roomFactions(rng, u, draws, group, cell)
   const counts = new Map<string, number>()
