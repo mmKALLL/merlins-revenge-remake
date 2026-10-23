@@ -932,7 +932,9 @@ export const MAGIC_MAZE: FloorTheme = {
       { key: 'thunderMonk', weight: 3, tier: 'weak', faction: 'alliance' },
       { key: 'shrouder', weight: 2, tier: 'mid', faction: 'alliance' },
       { key: 'necromancer', weight: 5, tier: 'strong', maxPerRoom: 2, faction: 'undead', producer: true },
-      { key: 'darkMage', weight: 2, tier: 'mid', faction: 'undead' },
+      // owner: about 20 % fewer dark mages. They are the maze's only undead regular, so the court's
+      // and the study's draws are all dark mages and their weight changes little; the cap does
+      { key: 'darkMage', weight: 2, tier: 'mid', maxPerRoom: 4, faction: 'undead' },
       { key: 'greyGhost', weight: 1, tier: 'weak', maxPerRoom: 1, faction: 'undead', producer: true },
       { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
       { key: 'scArcher', weight: 2, tier: 'weak', faction: 'scarlet' },

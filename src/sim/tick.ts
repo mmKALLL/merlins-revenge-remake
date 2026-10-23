@@ -36,6 +36,7 @@ import { clampToRoom, roomAfterMove } from '../mr-open/mr-room-exit'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { activateAtStart, navModeClear, stepActivation } from './activation'
+import { withAttackGrace } from './attack-grace'
 import { checkMapCleared, completeMap, isEndRoom, isWholeMapClear } from './map-complete'
 import {
   collisionRectFor, createActor, defOf, faceAlong, isAlive, isKeptWithRoom, isSpell, isStepped, isUnit, playerOf, playerStatsOf, roomMusicTrack, spawnAllRooms,
@@ -98,10 +99,10 @@ export function createSim(
   const [player, s] = createActor(empty, 'player', startPos)
   const withPlayer: SimState = { ...s, playerId: player.id, actors: [player] }
   if (worldMode === 'continuous') {
-    const started = activateAtStart(spawnAllRooms(withPlayer))
+    const started = withAttackGrace(activateAtStart(spawnAllRooms(withPlayer)))
     return checkMapCleared(withRoomMusic({ ...started, navMode: navModeClear(started) }))
   }
-  return withRoomMusic(withExitsEvaluated(spawnRoomActors(withPlayer, s.room)))
+  return withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(withPlayer, s.room))))
 }
 
 /** Where characters are kept: the current room, or the whole map in a continuous world. */
@@ -300,9 +301,9 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   }
   const target = next.rooms[toKey]
   if (target?.spawned) {
-    return withRoomMusic(withExitsEvaluated({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } }))
+    return withRoomMusic(withExitsEvaluated(withAttackGrace({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } })))
   }
-  return withRoomMusic(withExitsEvaluated(spawnRoomActors(next, to)))
+  return withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(next, to))))
 }
 
 /**
