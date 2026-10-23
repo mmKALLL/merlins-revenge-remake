@@ -38,7 +38,7 @@
     "energy": 900
   },
   "boulderCave": {
-    "energy": 525
+    "energy": 450
   },
   "bowOrc": {
     "energy": 200
@@ -73,7 +73,7 @@
     "energy": 800
   },
   "vultureGuard": {
-    "energy": 800
+    "energy": 600
   },
   "bombMage": {
     "energy": 160
