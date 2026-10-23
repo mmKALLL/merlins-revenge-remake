@@ -492,16 +492,16 @@ export const GOBLIN_FOREST: FloorTheme = {
     enemies: [
       { key: 'goblinArcher', weight: 6, tier: 'weak' },
       { key: 'goblinWarrior', weight: 1.5, tier: 'weak' },
-      { key: 'bat', weight: 1, tier: 'weak', maxPerRoom: 2 },
-      { key: 'goblinMage', weight: 1, tier: 'mid', maxPerRoom: 2 },
+      { key: 'bat', weight: 1, tier: 'weak' },
+      { key: 'goblinMage', weight: 1, tier: 'mid' },
       { key: 'swordOrc', weight: 1, tier: 'strong', maxPerRoom: 2 },
       { key: 'bowOrc', weight: 0.7, tier: 'strong', maxPerRoom: 2 },
       { key: 'mageOrc', weight: 1, tier: 'strong', maxPerRoom: 1, producer: true },
     ],
     dwellings: [
       { key: 'goblinHut', weight: 1, tier: 'weak' },
-      { key: 'goblinMageHut', weight: 1, tier: 'mid', maxPerRoom: 1 },
-      { key: 'batTree', weight: 0.6, tier: 'mid', maxPerRoom: 1 },
+      { key: 'goblinMageHut', weight: 1, tier: 'mid' },
+      { key: 'batTree', weight: 0.6, tier: 'mid' },
       { key: 'orcHouse', weight: 1, tier: 'strong', maxPerRoom: 1 },
     ],
     bosses: [
@@ -718,12 +718,12 @@ export const UNDEAD_MARSH: FloorTheme = {
       { key: 'skeletonWarrior', weight: 6, tier: 'weak', faction: 'undead' },
       { key: 'skeletonThrower', weight: 2, tier: 'weak', faction: 'undead' },
       { key: 'skeletonArcher', weight: 2, tier: 'mid', faction: 'undead' },
-      { key: 'greyGhost', weight: 1, tier: 'mid', maxPerRoom: 1, faction: 'undead', producer: true },
-      { key: 'skeletonComando', weight: 1, tier: 'mid', maxPerRoom: 2, faction: 'undead' },
+      { key: 'greyGhost', weight: 1, tier: 'mid', faction: 'undead', producer: true },
+      { key: 'skeletonComando', weight: 1, tier: 'mid', faction: 'undead' },
       { key: 'skeletonGiant', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'undead' },
       // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own
       { key: 'quadranid', weight: 4, tier: 'weak', faction: 'critters' },
-      { key: 'bat', weight: 1.5, tier: 'weak', maxPerRoom: 2 },
+      { key: 'bat', weight: 1.5, tier: 'weak' },
     ],
     dwellings: [
       { key: 'skeletonDwelling', weight: 3, tier: 'weak', faction: 'undead' },
@@ -822,16 +822,16 @@ export const DRAGON_CANYON: FloorTheme = {
       { key: 'karateGuy', weight: 4, tier: 'weak' },
       { key: 'kongFuChicken', weight: 2, tier: 'weak' },
       { key: 'lizard', weight: 2, tier: 'weak' },
-      { key: 'plant', weight: 1.2, tier: 'mid', maxPerRoom: 2 },
-      { key: 'boulderMonster', weight: 1.5, tier: 'mid', maxPerRoom: 2 },
+      { key: 'plant', weight: 1.2, tier: 'mid' },
+      { key: 'boulderMonster', weight: 1.5, tier: 'mid' },
       { key: 'lizardSoldier', weight: 1, tier: 'mid' },
-      { key: 'hydra1', weight: 0.8, tier: 'strong', maxPerRoom: 1 },
+      { key: 'hydra1', weight: 0.8, tier: 'mid' },
       { key: 'dragon', weight: 1.5, tier: 'strong', maxPerRoom: 2 },
       { key: 'darkGolem', weight: 0.8, tier: 'strong', maxPerRoom: 1 },
     ],
     dwellings: [
       { key: 'dojo', weight: 3, tier: 'weak' },
-      { key: 'boulderCave', weight: 1, tier: 'mid', maxPerRoom: 1 },
+      { key: 'boulderCave', weight: 1, tier: 'mid' },
       { key: 'darkCave', weight: 1, tier: 'strong', maxPerRoom: 1 },
     ],
     bosses: [
@@ -950,10 +950,10 @@ export const MAGIC_MAZE: FloorTheme = {
       // owner: about 20 % fewer dark mages. They are the maze's only undead regular, so the court's
       // and the study's draws are all dark mages and their weight changes little; the cap does
       { key: 'darkMage', weight: 2, tier: 'mid', maxPerRoom: 4, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, tier: 'weak', maxPerRoom: 1, faction: 'undead', producer: true },
+      { key: 'greyGhost', weight: 1, tier: 'weak', faction: 'undead', producer: true },
       { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
       { key: 'scArcher', weight: 2, tier: 'weak', faction: 'scarlet' },
-      { key: 'scMonk', weight: 1, tier: 'mid', maxPerRoom: 1, faction: 'scarlet', producer: true },
+      { key: 'scMonk', weight: 1, tier: 'mid', faction: 'scarlet', producer: true },
       // giant orcs and vultures are monsters, who brawl with all of the above
       { key: 'blackOrc', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },
       { key: 'vultureGuard', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },

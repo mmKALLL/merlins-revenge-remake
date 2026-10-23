@@ -494,4 +494,8 @@ they stay out of it.
   100) and bat trees weak; cocoons and bat trees lost their maxPerRoom caps (2 and 1, from the first
   floors) so the "many weak generators" room can still fill 4-6. New marsh bosses by the owner: a
   necromancer trio, and a necromancer with 12 skeleton archers.
+- **Caps only on strong enemies (owner, 2026-10-24):** weak and mid enemies and dwellings no longer
+  carry `maxPerRoom` (the variety falloff already spreads draws across kinds); strong ones keep theirs,
+  and the maze's dark mage keeps 4 (its -20 % count). hydra1 is mid tier; hydra2/hydra3 (boss groups
+  only) count as strong.
 
