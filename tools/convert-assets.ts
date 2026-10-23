@@ -17,6 +17,7 @@ import { combineTilesets } from './combined-tileset'
 import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
+import { withDerivedTiles } from './derived-tiles'
 import { tileCapacity, tilesPerRow, usesWhiteTransparency, whiteToAlpha } from './tileset-sheet'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -126,7 +127,7 @@ function convertTileSets(maps: ConvertedMap[]): Map<string, ArtTileset> {
     converted.add(name)
     const symbols = [...key.symbols]
     const sheetPath = join(ASSETS, 'tilesets', `${name}.png`)
-    const sheet = existsSync(sheetPath) ? readPng(sheetPath) : undefined
+    const sheet = existsSync(sheetPath) ? withDerivedTiles(name, readPng(sheetPath), key.tileSize) : undefined
     if (!sheet) placeholders.add(name)
     const perRow = sheet ? tilesPerRow(sheet.width, key.tileSize.x) : TILES_PER_ROW
     const capacity = sheet ? tileCapacity(sheet.width, sheet.height, key.tileSize) : 0

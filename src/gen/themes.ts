@@ -400,7 +400,6 @@ const LEAFY_TREE = 11
 const OAK = 29
 const BUSHY_TREE = 32
 const SMALL_PINE = 46
-const PINE_CLUMP = 81
 const GREY_ROCK = 2
 const ROCK_PILE = 7
 const BOULDER = 26
@@ -458,10 +457,10 @@ export const GOBLIN_FOREST: FloorTheme = {
   tileSets: MERLIN4_TILESETS,
   objectTiles: MERLIN4_OBJECTS,
   ground: [w(GRASS, 20), w(GRASS_FLOWERS, 1)],
-  wall: [w(PINES, 3), w(PINE_CLUMP, 3), w(LEAFY_TREE, 1), w(BUSHY_TREE, 1)],
-  longWall: [w(PINES, 2), w(PINE_CLUMP, 2), w(BUSHY_TREE, 1)],
+  wall: [w(PINES, 5), w(LEAFY_TREE, 2), w(BUSHY_TREE, 2)],
+  longWall: [w(PINES, 3), w(BUSHY_TREE, 1)],
   materials: [
-    { name: 'forest', weight: 7, tiles: [w(PINES, 3), w(LEAFY_TREE, 2), w(OAK, 1), w(BUSHY_TREE, 2), w(PINE_CLUMP, 2), w(SMALL_PINE, 1)] },
+    { name: 'forest', weight: 7, tiles: [w(PINES, 3), w(LEAFY_TREE, 2), w(OAK, 1), w(BUSHY_TREE, 2), w(SMALL_PINE, 1)] },
     { name: 'rocks', weight: 2.5, tiles: [w(GREY_ROCK, 3), w(ROCK_PILE, 2), w(BOULDER, 2), w(CRAGGY_ROCK, 1), w(ROUND_ROCK, 1)] },
   ],
   stumps: [w(STUMP)],
@@ -624,13 +623,10 @@ const VINE_POT = 78
 const SKULL = 80
 const ROCK_HEAP = 90
 const STONE_BOULDER = 111
-const STONE_BOULDER_B = 112
-const STONE_BOULDER_C = 113
 // walkable (#none)
 const GOLD_COINS = 60
 const LITTLE_PLANT = 70
 const GREY_PEBBLES = 79
-const GREY_FLOWER = 83
 const PUDDLE = 120
 const DARK_PEBBLES = 140
 // merlinOpenPassive tiles (10 per row)
@@ -638,6 +634,8 @@ const GOLD_FLOOR = 17
 const PALACE_FLOOR = 36
 const MUD = 2
 const MUD_STONES = 9
+/** Remake tile: the cracked grey stone (25) re-coloured to a soft red sandstone (tools/derived-tiles.ts). */
+const RED_SANDSTONE = 37
 const BLUE_COBBLES = 35
 
 /**
@@ -689,7 +687,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     { name: 'rocks', weight: 2, tiles: [w(GREY_BOULDER, 2), w(DARK_ROCK, 2), w(GREY_CRAG, 1)] },
   ],
   stumps: [w(SKULL, 2), w(DEAD_SAPLING, 1)],
-  decorations: [w(PUDDLE, 3), w(GREY_FLOWER, 2), w(GREY_PEBBLES, 1), w(DARK_PEBBLES, 1), w(LITTLE_PLANT, 1)],
+  decorations: [w(PUDDLE, 3), w(GREY_PEBBLES, 1), w(DARK_PEBBLES, 1), w(LITTLE_PLANT, 1)],
   shape: {
     patches: [1, 3],
     patchSize: [2, 6],
@@ -777,9 +775,9 @@ export const DRAGON_CANYON: FloorTheme = {
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: MERLIN_OPEN_OBJECTS,
-  ground: [w(MUD, 30), w(MUD_STONES, 1)],
-  wall: [w(STONE_BOULDER, 3), w(STONE_BOULDER_B, 3), w(STONE_BOULDER_C, 2), w(GREY_CRAG, 1)],
-  longWall: [w(STONE_BOULDER, 3), w(STONE_BOULDER_B, 3), w(STONE_BOULDER_C, 3), w(GREY_BOULDER, 1), w(GREY_CRAG, 1)],
+  ground: [w(RED_SANDSTONE)],
+  wall: [w(STONE_BOULDER, 6), w(GREY_CRAG, 1)],
+  longWall: [w(STONE_BOULDER, 6), w(GREY_BOULDER, 1), w(GREY_CRAG, 1)],
   materials: [
     { name: 'rocks', weight: 5, tiles: [w(GREY_BOULDER, 2), w(GREY_CRAG, 2), w(ROCK_SPIRE, 1), w(ROCK_HEAP, 1)] },
     { name: 'dark rocks', weight: 2, tiles: [w(DARK_ROCK)] },

@@ -468,3 +468,17 @@ they stay out of it.
 - Data model additions (other floors unchanged, checked by hashing 30 generated floors of each):
   `HpBudget.spread`, `.producers`, `.capped`; `RoomPlanCell.mixed`; `UnitTuning.alliances`;
   `FloorTheme.wallAutotile`. `drawToBudget` tells its source how much the room may still take.
+
+## Owner tuning (2026-10-23): canyon ground, sharp tiles
+
+- **Dragon Canyon ground:** red sandstone, a remake tile the converter makes from original art
+  (`tools/derived-tiles.ts`: merlinOpenPassive 25, the cracked grey stone, re-coloured to
+  rgb(235, 140, 85) at brightness 1.12 into the empty slot 37). Picked from renders of sand, grey
+  stone, pastel and four brightness levels; it keeps the canyon clearly apart from the marsh's mud.
+- **Sharp tiles only:** the tilesets also carry low-resolution, 2x-upscaled variants meant for
+  magic-drained areas (merlinOpenActive 74, 83, 92, 93, 102, 103, 112, 113; merlin4Active 45, 74-76,
+  81-84), e.g. the boulders 112 and 113 beside the sharp 111. The floors no longer use them: the
+  canyon's walls are boulder 111 and the crags, the forest lost its pine clump (merlin4 81), the
+  marsh its grey flower (83). `src/gen/tile-resolution.test.ts` detects such tiles from the art and
+  fails if a theme places one.
+
