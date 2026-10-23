@@ -398,6 +398,7 @@ function main(): void {
     overlay.show(visiblePanel(state))
     const running = simRuns(state)
     input.setEnabled(running)
+    if (!running) touchControls?.release() // the menu covers the controls: no press survives it
     audio.setPaused(!running)
     // no menu button keeps the focus while playing: Space and Enter belong to the game
     if (running && document.activeElement instanceof HTMLElement) document.activeElement.blur()

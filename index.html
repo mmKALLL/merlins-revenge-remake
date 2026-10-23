@@ -103,7 +103,9 @@
       #touch { display: none; position: fixed; inset: 0; z-index: 10; pointer-events: none; }
       html[data-screen='playing'] #touch { display: block; }
       html.touch-controls[data-screen='playing'] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-      html.touch-controls[data-screen='playing'] canvas { touch-action: none; }
+      /* no page scroll, pinch or double-tap zoom while playing, also from the portrait band between the
+         buttons: a zoomed or scrolled page moves the controls away from the fingers */
+      html.touch-controls[data-screen='playing'], html.touch-controls[data-screen='playing'] body { touch-action: none; }
       html.touch-controls body { overflow-x: hidden; }
       html.touch-controls #game { margin-top: 0; max-width: 100vw; }
       #touch-nub-zone { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
