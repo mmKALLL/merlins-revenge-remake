@@ -73,6 +73,8 @@ Run `pnpm assets:convert` and reload. The shipped file grants Merlin the energy 
 
 Unzip it anywhere on a static web host (sub-paths work) and open `index.html` over HTTP; opening the file directly from disk does not work because the page fetches its assets.
 
+Served over HTTPS, the page can be installed as an app that opens full screen without the browser bar (Chrome: the menu's "Add to home screen" / "Install app"; iOS Safari: Share, "Add to Home Screen"). `public/manifest.webmanifest` (relative URLs, so any sub-path works) names it, prefers landscape and links Merlin's icon, which `pnpm assets:convert` draws at 180, 192 and 512 px into `generated/app-icons/`. There is no service worker: Chrome no longer needs one to install from the menu (only its automatic install banner still asks for one), and without one an update is never stuck in a cache.
+
 ## Reporting bugs
 
 When something goes wrong in the game, open the browser console (F12) and run
