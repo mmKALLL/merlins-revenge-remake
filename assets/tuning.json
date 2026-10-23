@@ -148,5 +148,8 @@
     "attack": {
       "power": 2.1
     }
+  },
+  "skeletonDwelling": {
+    "energy": 75
   }
 }

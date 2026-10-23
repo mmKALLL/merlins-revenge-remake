@@ -482,3 +482,16 @@ they stay out of it.
   marsh its grey flower (83). `src/gen/tile-resolution.test.ts` detects such tiles from the art and
   fails if a theme places one.
 
+## Owner tuning (2026-10-24): mixed rooms, fewer walls, marsh generators
+
+- **Mixed rooms:** each normal room (not the start, midboss or boss) rolls `mixedFactionChance`
+  (0.15), separately from the wildcard roll, to draw from every faction at once, so rival teams share
+  the room and brawl. The golden fort keeps its peaceful alliances (0).
+- **Fewer walls:** the forest's patches and long walls (patches 3-6, size 2-7, long wall 35 %) and the
+  canyon's baffles (1 thick, reach 50-75 %) are trimmed: interior wall share 16.5 % -> 14.5 % in the
+  forest and 17.1 % -> 15.2 % in the canyon (100 seeds).
+- **Marsh generators:** the owner made skeleton dwellings mid tier (and 75 health in tuning.json, from
+  100) and bat trees weak; cocoons and bat trees lost their maxPerRoom caps (2 and 1, from the first
+  floors) so the "many weak generators" room can still fill 4-6. New marsh bosses by the owner: a
+  necromancer trio, and a necromancer with 12 skeleton archers.
+

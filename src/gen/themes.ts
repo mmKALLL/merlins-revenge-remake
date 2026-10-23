@@ -196,6 +196,8 @@ export interface UnitTuning {
    * own (it keeps its own groups), for variance; never the start, midboss or boss room.
    */
   wildcardChance: number
+  /** Chance per normal room of drawing from every faction at once (rival teams that brawl); its own roll. */
+  mixedFactionChance: number
   /** regular enemies and summoners (`producer`) */
   enemies: EnemyChoice[]
   dwellings: EnemyChoice[]
@@ -265,6 +267,8 @@ const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 
 /** Owner: about one normal room in ten ignores its cell (UnitTuning.wildcardChance). */
 const WILDCARD_CHANCE = 0.1
+/** Owner: about 15 % of normal rooms mix rival teams (UnitTuning.mixedFactionChance). */
+const MIXED_FACTION_CHANCE = 0.15
 
 /** Tier weights for a draw; a tier the room's faction lacks is skipped, so mixes fall back. */
 type TierWeights = Partial<Record<Tier, number>>
@@ -466,11 +470,11 @@ export const GOBLIN_FOREST: FloorTheme = {
   stumps: [w(STUMP)],
   decorations: [w(YELLOW_FLOWERS, 2), w(BUTTERCUP, 2), w(YELLOW_PETALS, 1), w(PEBBLES, 1), w(LITTLE_PEBBLES, 1)],
   shape: {
-    patches: [4, 7],
-    patchSize: [2, 9],
+    patches: [3, 6],
+    patchSize: [2, 7],
     smoothSteps: 1,
     birth: 5,
-    longWallChance: 0.45,
+    longWallChance: 0.35,
     longWallSide: [6, 9],
     longWallEnd: [3, 5],
     stumpChance: 0.012,
@@ -484,6 +488,7 @@ export const GOBLIN_FOREST: FloorTheme = {
     exitMusic: 'musicLastStand',
     roomPlan: GOBLIN_FOREST_PLAN,
     wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
     enemies: [
       { key: 'goblinArcher', weight: 6, tier: 'weak' },
       { key: 'goblinWarrior', weight: 1.5, tier: 'weak' },
@@ -708,6 +713,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     exitMusic: 'musicLastStand',
     roomPlan: UNDEAD_MARSH_PLAN,
     wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
     enemies: [
       { key: 'skeletonWarrior', weight: 6, tier: 'weak', faction: 'undead' },
       { key: 'skeletonThrower', weight: 2, tier: 'weak', faction: 'undead' },
@@ -721,16 +727,21 @@ export const UNDEAD_MARSH: FloorTheme = {
     ],
     dwellings: [
       { key: 'skeletonDwelling', weight: 3, tier: 'weak', faction: 'undead' },
-      { key: 'cocoon', weight: 2, tier: 'weak', maxPerRoom: 2, faction: 'critters' },
-      { key: 'batTree', weight: 1, tier: 'mid', maxPerRoom: 1 },
+      { key: 'cocoon', weight: 2, tier: 'weak', faction: 'critters' },
+      { key: 'batTree', weight: 1, tier: 'weak' },
     ],
     bosses: [
       { label: 'skeleton army', units: { skelitonLord: 1, skeletonWarrior: 3 }, faction: 'undead', boss: 'skelitonLord' },
-      { label: 'necromancer pair', units: { necromancer: 2 }, faction: 'undead', boss: 'necromancer', alone: true },
-      { label: 'necromancer and giant', units: { necromancer: 1, skeletonGiant: 1 }, faction: 'undead', boss: 'necromancer', alone: true },
+      { label: 'necromancer trio', units: { necromancer: 3 }, faction: 'undead', boss: 'necromancer', alone: true },
+      { label: 'necromancer and archers', units: { necromancer: 1, skeletonArcher: 12 }, faction: 'undead', boss: 'necromancer', alone: true },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(spellWeights([w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
+    startRewards: startRewards(
+      spellWeights(
+        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)],
+        MERLIN_OPEN_OBJECTS
+      )
+    ),
   },
 }
 
@@ -790,7 +801,7 @@ export const DRAGON_CANYON: FloorTheme = {
     patchSize: [2, 5],
     smoothSteps: 1,
     birth: 5,
-    baffles: { chance: 0.7, count: [2, 3], reach: [0.55, 0.75], verticalChance: 0.6, thickness: [1, 2] },
+    baffles: { chance: 0.7, count: [2, 3], reach: [0.5, 0.75], verticalChance: 0.6, thickness: [1, 1] },
     longWallChance: 0,
     longWallSide: [6, 9],
     longWallEnd: [3, 5],
@@ -805,6 +816,7 @@ export const DRAGON_CANYON: FloorTheme = {
     exitMusic: 'musicLastStand',
     roomPlan: DRAGON_CANYON_PLAN,
     wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
     // martial artists as the weak ones; dragons, hydras and dark golems as the strong ones
     enemies: [
       { key: 'karateGuy', weight: 4, tier: 'weak' },
@@ -828,7 +840,9 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)),
+    startRewards: startRewards(
+      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)
+    ),
   },
 }
 
@@ -925,6 +939,7 @@ export const MAGIC_MAZE: FloorTheme = {
     exitMusic: 'musicLastStand',
     roomPlan: MAGIC_MAZE_PLAN,
     wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
     // MR3's wizards are not ported: the magical alliance, the undead casters and Scarlet's army
     // (the chromatic sorcerers' troops) stand in, each faction in rooms of its own
     enemies: [
@@ -984,21 +999,54 @@ const MERLIN_OPEN_GOBLIN_OBJECTS: Record<string, number> = {
  * themes' units, so its factions are the engine's teams themselves.
  */
 const TEAM_OF: Record<string, string> = {
-  goblinArcher: 'goblins', goblinWarrior: 'goblins', goblinHero: 'goblins', goblinMage: 'goblins',
-  goblinHut: 'goblins', goblinMageHut: 'goblins', orcHouse: 'goblins',
-  bowOrc: 'orcs', swordOrc: 'orcs', mageOrc: 'orcs',
-  bat: 'cave', batTree: 'cave',
-  skeletonWarrior: 'undead', skeletonThrower: 'undead', skeletonArcher: 'undead', skeletonComando: 'undead',
-  skeletonGiant: 'undead', skeletonDwelling: 'undead', skelitonLord: 'undead', greyGhost: 'undead',
-  necromancer: 'undead', darkMage: 'undead',
-  quadranid: 'monsters', cocoon: 'monsters', lizard: 'monsters', lizardSoldier: 'monsters',
-  boulderMonster: 'monsters', boulderCave: 'monsters', dragon: 'monsters', darkGolem: 'monsters',
-  darkCave: 'monsters', fourArmGolem: 'monsters', doubleDarkGolem: 'monsters', blackOrc: 'monsters',
+  goblinArcher: 'goblins',
+  goblinWarrior: 'goblins',
+  goblinHero: 'goblins',
+  goblinMage: 'goblins',
+  goblinHut: 'goblins',
+  goblinMageHut: 'goblins',
+  orcHouse: 'goblins',
+  bowOrc: 'orcs',
+  swordOrc: 'orcs',
+  mageOrc: 'orcs',
+  bat: 'cave',
+  batTree: 'cave',
+  skeletonWarrior: 'undead',
+  skeletonThrower: 'undead',
+  skeletonArcher: 'undead',
+  skeletonComando: 'undead',
+  skeletonGiant: 'undead',
+  skeletonDwelling: 'undead',
+  skelitonLord: 'undead',
+  greyGhost: 'undead',
+  necromancer: 'undead',
+  darkMage: 'undead',
+  quadranid: 'monsters',
+  cocoon: 'monsters',
+  lizard: 'monsters',
+  lizardSoldier: 'monsters',
+  boulderMonster: 'monsters',
+  boulderCave: 'monsters',
+  dragon: 'monsters',
+  darkGolem: 'monsters',
+  darkCave: 'monsters',
+  fourArmGolem: 'monsters',
+  doubleDarkGolem: 'monsters',
+  blackOrc: 'monsters',
   vultureGuard: 'monsters',
-  plant: 'swamp', hydra1: 'swamp', hydra3: 'swamp',
-  karateGuy: 'karate', kongFuChicken: 'karate', dojo: 'karate',
-  bombMage: 'magicalAlliance', thunderMonk: 'magicalAlliance', shrouder: 'magicalAlliance', magicPortal: 'magicalAlliance',
-  scWarrior: 'scarlet', scArcher: 'scarlet', scMonk: 'scarlet',
+  plant: 'swamp',
+  hydra1: 'swamp',
+  hydra3: 'swamp',
+  karateGuy: 'karate',
+  kongFuChicken: 'karate',
+  dojo: 'karate',
+  bombMage: 'magicalAlliance',
+  thunderMonk: 'magicalAlliance',
+  shrouder: 'magicalAlliance',
+  magicPortal: 'magicalAlliance',
+  scWarrior: 'scarlet',
+  scArcher: 'scarlet',
+  scMonk: 'scarlet',
 }
 
 const teamOf = (key: string): string => {
@@ -1103,6 +1151,7 @@ export const GOLDEN_FORT: FloorTheme = {
     exitMusic: 'musicLastStand',
     roomPlan: GOLDEN_FORT_PLAN,
     wildcardChance: 0,
+    mixedFactionChance: 0, // its alliances already mix peaceful teams
     enemies: everyThemesChoices((u) => u.enemies),
     dwellings: everyThemesChoices((u) => u.dwellings),
     bosses: TOWER_THEMES.flatMap((t) => t.units.bosses).map((b) => ({ ...b, faction: b.faction ?? teamOf(b.boss) })),

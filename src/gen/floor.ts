@@ -272,9 +272,14 @@ const choicesFor = ({ table, draw }: TableDraw, factions: RoomFactions): EnemyCh
 const fillsDraws = (draws: readonly TableDraw[], factions: RoomFactions): boolean =>
   draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, factions).length > 0)
 
-/** A room's factions: its group's, or one drawn for it; with alliances, one alliance's. */
-function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null): RoomFactions {
+/**
+ * A room's factions: its group's, or one drawn for it; with alliances, one alliance's. Owner: a
+ * normal room is now and then a brawl of any factions (`mixedFactionChance`, its own roll beside the
+ * wildcard's), never a midboss or boss room.
+ */
+function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null, cell: RoomPlanCell): RoomFactions {
   if (u.alliances) return pickAlliance(rng, u, u.alliances, draws, group)
+  if (cell.kind === 'normal' && rng.chance(u.mixedFactionChance)) return null
   const faction = group?.faction ?? pickFaction(rng, draws)
   return faction === null ? null : new Set([faction])
 }
@@ -454,7 +459,7 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   const boss = cell.kind === 'boss' ? rng.pick(u.bosses) : null
   const group = boss ?? (cell.groups?.length ? rng.pick(cell.groups) : null)
   const draws = group?.alone ? [] : roomDraws(rng, theme, cell)
-  const factions = roomFactions(rng, u, draws, group)
+  const factions = roomFactions(rng, u, draws, group, cell)
   const counts = new Map<string, number>()
   const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
   const add = (key: string | null) => {

@@ -104,10 +104,12 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     }
   })
 
-  it('keeps each room to one faction (or alliance), so rival teams do not brawl', () => {
+  it('keeps each room to one faction (or alliance), except a share of normal rooms that mix rival teams', () => {
     const factionOf = new Map<string, string>()
     for (const c of [...theme.units.enemies, ...theme.units.dwellings]) if (c.faction) factionOf.set(c.key, c.faction)
     const alliances = theme.units.alliances
+    let normalRooms = 0
+    let mixedRooms = 0
     for (const f of floors.values()) {
       const perRoom = new Map<string, Set<string>>()
       for (const p of f.placements) {
@@ -117,14 +119,22 @@ describe.each(THEMES)('random floor: $name', (theme) => {
         set.add(faction)
         perRoom.set(roomKey(p.room), set)
       }
-      for (const set of perRoom.values()) {
+      for (const [key, set] of perRoom) {
+        const [x, y] = key.split(',').map(Number)
+        const normal = planCell(theme.units.roomPlan, { x: x!, y: y! }).kind === 'normal'
+        if (normal) normalRooms++
         if (alliances) expect(alliances.some((a) => [...set].every((f) => a.factions.includes(f))), [...set].join(' ')).toBe(true)
-        else expect(set.size).toBe(1)
+        else if (set.size > 1) {
+          expect(normal, `${key}: ${[...set].join(' ')}`).toBe(true) // never a midboss or boss room
+          mixedRooms++
+        }
       }
     }
+    // the mixed roll is mixedFactionChance; a mixed room can still draw from one faction only
+    if (!alliances && normalRooms > 0) expect(mixedRooms / normalRooms).toBeLessThan(theme.units.mixedFactionChance * 1.5 + 0.02)
   })
 
-  it('never puts teams that hate each other into one room (assets/teams)', () => {
+  it('never puts teams that hate each other into one room, outside the mixed normal rooms (assets/teams)', () => {
     const hates = (a: string, b: string) => pageTeams[a]!.hates.flat().includes(b)
     for (const [seed, f] of [...floors].slice(0, 200)) {
       const teams = new Map<string, Set<string>>()
@@ -136,6 +146,8 @@ describe.each(THEMES)('random floor: $name', (theme) => {
         teams.set(roomKey(p.room), set)
       }
       for (const [room, set] of teams) {
+        const [x, y] = room.split(',').map(Number)
+        if (theme.units.mixedFactionChance > 0 && planCell(theme.units.roomPlan, { x: x!, y: y! }).kind === 'normal') continue
         for (const a of set) for (const b of set) expect(hates(a, b), `seed ${seed} room ${room}: ${a} hates ${b}`).toBe(false)
       }
     }
