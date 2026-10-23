@@ -20,6 +20,7 @@ export interface InputSnapshot {
   chargeHeld: boolean // E, left mouse button or Space in mouse mode: charge, release at the mouse
   shootNearest: boolean // Space (nearest mode): charge, release at the nearest hostile
   shootShort: boolean // Space (push-back mode): charge, release a little short of the nearest hostile (push-back shot)
+  shootFarthest: boolean // remake: Space (farthest mode): charge, release at the farthest hostile on screen
   cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
   cheatMedikit: boolean // M pressed (once per press): one more medikit for Merlin (tick-cheats.ts)
   armyKey: boolean // R pressed (once per press): summon the whole reserve army, or send the army out into it (tick-army.ts)
@@ -35,6 +36,7 @@ export const NO_INPUT: InputSnapshot = {
   chargeHeld: false,
   shootNearest: false,
   shootShort: false,
+  shootFarthest: false,
   cheatKillAll: false,
   cheatMedikit: false,
   armyKey: false,
@@ -84,7 +86,7 @@ export type AiMode =
   | 'lookForBuilding' | 'walkToBuilding' | 'build' // objAiCPUBuilder
 
 /** Which input started the player's current charge; decides the release target (null when not charging). */
-export type ChargeKind = 'mouse' | 'nearest' | 'short'
+export type ChargeKind = 'mouse' | 'nearest' | 'short' | 'farthest'
 
 export interface AiState {
   mode: AiMode

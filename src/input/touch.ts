@@ -1,13 +1,15 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
-// nub on the left that appears where a finger first presses, a blast button on the right, and a
-// weapon button and an army button beside it. They feed the same InputTracker as the keyboard: the
-// nub moves Merlin at any angle (a keyboard-speed analog of WASD), the blast button acts as Space
-// (charge while held, release by the Space mode; the mouse mode without a mouse position fires at
-// the nearest enemy), the weapon button shows the current weapon and steps to the next one on a
-// tap, and the army button is R (a tap summons the whole reserve at the nearest enemy, or sends the
-// army back once the fight is over).
+// nub on the left that appears where a finger first presses, a blast button on the right with a
+// target button above it, and a weapon button and an army button beside it. They feed the same
+// InputTracker as the keyboard: the nub moves Merlin at any angle (a keyboard-speed analog of WASD),
+// the blast button acts as Space (charge while held, release by the Space mode; the mouse mode
+// without a mouse position fires at the nearest enemy), the target button switches the Space mode
+// between the nearest and the farthest enemy and shows which, the weapon button shows the current
+// weapon and steps to the next one on a tap, and the army button is R (a tap summons the whole
+// reserve at the nearest enemy, or sends the army back once the fight is over).
 // Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
+import type { SpaceMode } from './keyboard'
 
 /** Finger travel (CSS px) from the press point before the nub moves Merlin. */
 export const NUB_DEAD_ZONE = 12
@@ -93,17 +95,33 @@ export class TouchState {
   }
 }
 
-/** Where the controls report (the nub and blast button's state, weapon and army button taps), and the army button's picture. */
-export interface TouchOptions { onChange: TouchListener; onNextWeapon: () => void; onArmy: () => void; armyIconUrl: string }
+/** The target button's label for each Space mode: what the blast button aims at on a finger-only device. */
+const TARGET_LABEL: Record<SpaceMode, string> = { nearest: 'NEAR', farthest: 'FAR', pushBack: 'PUSH', mouse: 'NEAR' }
+
+/**
+ * Where the controls report (the nub and blast button's state, weapon, army and target button taps), the
+ * army button's picture, and every picture the weapon button may show (loaded and decoded up front,
+ * so a weapon switch shows its icon at once).
+ */
+export interface TouchOptions {
+  onChange: TouchListener
+  onNextWeapon: () => void
+  onArmy: () => void
+  onTarget: () => void
+  armyIconUrl: string
+  weaponIconUrls: readonly string[]
+}
 
 /**
  * The attached controls: `showWeapon` sets the weapon button's picture (an image URL), `showArmy`
- * shows or hides the army button, `release` lets go of the nub and the blast button (a menu opened over them).
+ * shows or hides the army button, `showTarget` labels the target button with the Space mode, `release`
+ * lets go of the nub and the blast button (a menu opened over them).
  */
 export interface TouchControls {
   detach: () => void
   showWeapon: (iconUrl: string) => void
   showArmy: (visible: boolean) => void
+  showTarget: (mode: SpaceMode) => void
   release: () => void
 }
 
@@ -115,7 +133,7 @@ export interface TouchControls {
  * left on the screen everything is let go.
  */
 export function attachTouchControls(parent: HTMLElement, options: TouchOptions): TouchControls {
-  const { onChange, onNextWeapon, onArmy } = options
+  const { onChange, onNextWeapon, onArmy, onTarget } = options
   const root = el('div', 'touch')
   const zone = el('div', 'touch-nub-zone')
   const base = el('div', 'touch-nub')
@@ -131,10 +149,14 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
   army.setAttribute('aria-label', 'Army: summon the whole reserve, or send the army back')
   army.style.backgroundImage = `url("${options.armyIconUrl}")`
   army.hidden = true // shown only while R would act (showArmy: main.ts asks armyKeyAction)
+  const target = el('div', 'touch-target')
+  target.setAttribute('role', 'button')
+  target.setAttribute('aria-label', 'Blast target: the nearest or the farthest enemy')
   base.appendChild(knob)
   zone.appendChild(base)
-  root.append(zone, army, weapon, button)
+  root.append(zone, army, weapon, target, button)
   parent.appendChild(root)
+  const icons = preload([options.armyIconUrl, ...options.weaponIconUrls]) // kept referenced: the browser keeps them decoded
 
   const state = new TouchState()
   /** Shows the state and reports it, also when unchanged: the tracker may have let go of it meanwhile (a blur). */
@@ -176,11 +198,13 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
 
   const [weaponDown, weaponUp] = tapButton(weapon, onNextWeapon)
   const [armyDown, armyUp] = tapButton(army, onArmy)
+  const [targetDown, targetUp] = tapButton(target, onTarget)
 
   // a lost capture ends the press too: the controls are hidden while a menu is open, even under a finger
   const listeners: [EventTarget, string, (e: never) => void][] = [
     [weapon, 'pointerdown', weaponDown], [weapon, 'pointerup', weaponUp], [weapon, 'pointercancel', weaponUp],
     [army, 'pointerdown', armyDown], [army, 'pointerup', armyUp], [army, 'pointercancel', armyUp],
+    [target, 'pointerdown', targetDown], [target, 'pointerup', targetUp], [target, 'pointercancel', targetUp],
     [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'lostpointercapture', pointerUp],
     [button, 'pointerdown', blastDown], [button, 'lostpointercapture', pointerUp],
     [window, 'pointerup', pointerUp], [window, 'pointercancel', pointerUp],
@@ -196,6 +220,7 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
       for (const [target, type, fn] of listeners) target.removeEventListener(type, fn as EventListener)
       root.removeEventListener('contextmenu', noMenu)
       root.remove()
+      icons.length = 0
     },
     showWeapon: (iconUrl: string) => {
       if (iconUrl === shown) return
@@ -206,8 +231,22 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
       if (army.hidden === !visible) return
       army.hidden = !visible
     },
+    showTarget: (mode: SpaceMode) => {
+      const label = TARGET_LABEL[mode]
+      if (target.textContent !== label) target.textContent = label
+    },
     release: () => { if (state.releaseAll()) report() },
   }
+}
+
+/** Starts loading and decoding each image; one that fails to load just shows nothing when used, as before. */
+function preload(urls: readonly string[]): HTMLImageElement[] {
+  return urls.map((url) => {
+    const img = new Image()
+    img.src = url
+    img.decode().catch(() => {})
+    return img
+  })
 }
 
 /** Keeps a finger's events on `target` while it slides off it; a pointer already gone (some browsers) is not captured, and the window listeners still end it. */

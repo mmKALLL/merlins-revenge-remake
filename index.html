@@ -118,34 +118,52 @@
         position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
         border-radius: 50%; background: rgba(255, 255, 255, 0.4);
       }
-      #touch-blast {
-        position: absolute; right: calc(24px + env(safe-area-inset-right)); bottom: calc(24px + 1em + env(safe-area-inset-bottom));
-        width: 176px; height: 176px; border-radius: 50%; pointer-events: auto; touch-action: none;
-        background: rgba(255, 200, 0, 0.25); border: 2px solid rgba(255, 200, 0, 0.7);
+      /* the right-hand buttons: the blast button in the corner, the target button above it, the
+         weapon and army buttons in a column to its left */
+      #touch {
+        --blast: 144px; --target-w: 64px; --target-h: 36px; --gap: 12px;
+        --edge: calc(24px + env(safe-area-inset-right)); --low: calc(24px + 1em + env(safe-area-inset-bottom));
+        --column: calc(var(--edge) + var(--blast) + var(--gap));
       }
-      #touch-blast.active { background: rgba(255, 200, 0, 0.6); }
+      #touch-blast {
+        position: absolute; right: var(--edge); bottom: var(--low);
+        width: var(--blast); height: var(--blast); border-radius: 50%; pointer-events: auto; touch-action: none;
+        background: rgba(255, 200, 0, 0.14); border: 2px solid rgba(255, 200, 0, 0.45);
+      }
+      #touch-blast.active { background: rgba(255, 200, 0, 0.42); }
+      /* what the blast button aims at (Near / Far); a tap toggles it */
+      #touch-target {
+        position: absolute; right: calc(var(--edge) + (var(--blast) - var(--target-w)) / 2); bottom: calc(var(--low) + var(--blast) + var(--gap));
+        width: var(--target-w); height: var(--target-h); border-radius: calc(var(--target-h) / 2); pointer-events: auto; touch-action: none;
+        display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+        font: bold 13px/1 var(--font); color: rgba(255, 230, 150, 0.9); letter-spacing: 0.05em;
+        background: rgba(0, 0, 0, 0.35); border: 2px solid rgba(255, 200, 0, 0.45);
+      }
       /* the current weapon's icon; a tap steps to the next weapon */
       #touch-weapon {
-        position: absolute; right: calc(212px + env(safe-area-inset-right)); bottom: calc(24px + 1em + env(safe-area-inset-bottom));
+        position: absolute; right: var(--column); bottom: var(--low);
         width: 72px; height: 64px; border-radius: 8px; pointer-events: auto; touch-action: none;
         background: rgba(255, 255, 255, 0.08) center / 54px 48px no-repeat; border: 2px solid rgba(255, 255, 255, 0.35);
         image-rendering: pixelated;
       }
       /* R: summon the whole reserve army, or send it back; above the weapon button */
       #touch-army {
-        position: absolute; right: calc(212px + env(safe-area-inset-right)); bottom: calc(104px + 1em + env(safe-area-inset-bottom));
+        position: absolute; right: var(--column); bottom: calc(var(--low) + 80px);
         width: 72px; height: 64px; border-radius: 8px; pointer-events: auto; touch-action: none;
         background: rgba(60, 140, 255, 0.12) center / 36px 32px no-repeat; border: 2px solid rgba(60, 140, 255, 0.6);
         image-rendering: pixelated;
       }
       #touch-army[hidden] { display: none; }
-      #touch-weapon.active, #touch-army.active { border-color: rgba(255, 255, 255, 0.8); }
+      #touch-weapon.active, #touch-army.active, #touch-target.active { border-color: rgba(255, 255, 255, 0.8); }
       @media (orientation: portrait) {
         html.touch-controls[data-screen='playing'] body { padding-bottom: 40vh; }
-        #touch { top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222; }
-        #touch-blast { right: calc(32px + env(safe-area-inset-right)); bottom: calc(50% - 88px + 1em); }
-        #touch-weapon { right: calc(224px + env(safe-area-inset-right)); bottom: calc(50% + 8px + 1em); }
-        #touch-army { right: calc(224px + env(safe-area-inset-right)); bottom: calc(50% - 72px + 1em); }
+        #touch {
+          top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222;
+          --edge: calc(32px + env(safe-area-inset-right)); --gap: 16px; --low: calc(50% - var(--blast) / 2 + 1em);
+        }
+        #touch-target { bottom: calc(var(--low) + var(--blast) + 8px); }
+        #touch-weapon { bottom: calc(50% + 8px + 1em); }
+        #touch-army { bottom: calc(50% - 72px + 1em); }
         /* the ☰ button moves off the game into the band's top right corner, above the blast button */
         html.touch-controls #menu-button { top: auto; bottom: calc(40vh - 48px); }
       }

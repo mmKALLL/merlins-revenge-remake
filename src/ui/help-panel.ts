@@ -11,7 +11,7 @@ const KEYBOARD: Line[] = [
   ['Space', 'hold to charge, release to fire at the nearest enemy'],
   ['1-9', 'pick the first to ninth spell Merlin has collected (spell scrolls lie on some maps)'],
   ['Q', 'show the weapon palettes at the mouse for 2 s: spells above, punch and sword below; click one to pick it'],
-  ['F', 'switch what Space fires at between the nearest enemy and a push-back shot that lands short of it (Settings also offers the mouse cursor)'],
+  ['F', 'switch what Space fires at between the nearest enemy and a push-back shot that lands short of it (Settings also offers the mouse cursor and the farthest enemy)'],
   ['C', 'switch between the room camera and the follow camera'],
   ['N', 'hide or show the mini-map (bottom right, shown while no enemy is near)'],
   ['Esc', 'menu (pauses the game)'],
@@ -22,7 +22,8 @@ const KEYBOARD: Line[] = [
 
 const TOUCH: Line[] = [
   ['Left half', 'press anywhere and drag to walk in that direction'],
-  ['Yellow button', 'hold to charge, let go to fire at the nearest enemy (or the push-back shot, set in Settings; the mouse mode aims at the nearest enemy without a mouse)'],
+  ['Yellow button', 'hold to charge, let go to fire at the nearest enemy (or what the target button or Settings chose; the mouse mode aims at the nearest enemy without a mouse)'],
+  ['NEAR / FAR', 'tap to switch the yellow button between the nearest and the farthest enemy on screen'],
   ['Weapon button', 'shows the current weapon; tap for the next one'],
   ['Blue army button', 'as R: summon the whole reserve army at the nearest enemy; with the army out and no enemy left near, send it all back'],
   ['☰', 'menu (pauses the game)'],

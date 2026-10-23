@@ -259,6 +259,20 @@ describe('energy blast (combat notes §5)', () => {
     expect(target.x).toBeLessThan(300)
   })
 
+  it('the farthest Space mode fires at the farthest hostile in the room, the nearest mode at the nearest', () => {
+    const near = { x: 200, y: 144 }
+    const far = { x: 450, y: 200 }
+    const s0 = createSim(grid(openMap([{ x: 6, y: 5, tile: WARRIOR }, { x: 14, y: 6, tile: WARRIOR }])), defs, teams, anims, 1, { x: 100, y: 144 })
+    const [a, b] = s0.actors.filter((x) => x.id !== s0.playerId).map((x) => x.id)
+    const placed = { ...s0, actors: s0.actors.map((x) => (x.id === a ? { ...x, ...dummy, pos: near, prevPos: near } : x.id === b ? { ...x, ...dummy, pos: far, prevPos: far } : x)) }
+    const releasedAt = (shot: 'shootFarthest' | 'shootNearest') => {
+      const s = stepSim(run(placed, 3, { ...NO_INPUT, [shot]: true }), NO_INPUT)
+      return s.actors.find((x) => x.def === 'spell')!.targetPoint
+    }
+    expect(releasedAt('shootFarthest')).toEqual(far)
+    expect(releasedAt('shootNearest')).toEqual(near)
+  })
+
   it('starts a new charge while the released spell still flies (releaseSpell clears pCurrentSpell)', () => {
     let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
     s = run(s, 3, holdE)

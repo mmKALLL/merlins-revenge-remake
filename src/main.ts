@@ -3,8 +3,9 @@ import { InputLog } from './debug/sim-snapshot'
 import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
+import { ARMY_SUMMON } from './mr-open/mr-army'
 import {
-  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, type LoadedSprite,
+  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { InputTracker } from './input/keyboard'
@@ -277,6 +278,7 @@ async function startGame(mapId: string, shell: Shell): Promise<Game> {
     scene.draw(sim, alpha, fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
+    shell.touch?.showTarget(input.spaceMode)
     scene.drawEndSequence(ending && endSequenceView(ending))
     scene.present()
   }
@@ -313,7 +315,9 @@ function main(): void {
     onChange: (move, blast) => input.setTouch(move, blast),
     onNextWeapon: () => input.nextWeapon(),
     onArmy: () => input.touchArmy(),
-    armyIconUrl: weaponIconUrl('armySummon'),
+    onTarget: () => input.toggleTouchTarget(),
+    armyIconUrl: weaponIconUrl(ARMY_SUMMON),
+    weaponIconUrls: WEAPON_ICON_KEYS.map(weaponIconUrl),
   }) : null
 
   let state: AppState = linkedMap ? PLAYING : TITLE
