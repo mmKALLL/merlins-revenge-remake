@@ -19,6 +19,7 @@ function scriptedInput(tick: number): InputSnapshot {
     chargeHeld: tick % 60 >= 45,
     shootNearest: tick % 30 < 20,
     shootShort: false,
+    shootFarthest: false,
     cheatKillAll: false,
     cheatMedikit: false,
     armyKey: false,

@@ -8,6 +8,7 @@ import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
+import { runSteps, type Steps } from './steps'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
 import { TIERS, type Alliance, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type UnitGroup, type UnitTuning, type Weighted } from './themes'
 
@@ -102,15 +103,20 @@ export const retrySeed = (seed: number, attempt: number): number => (seed + atte
 
 /** A seeded floor for a theme; the same theme, seed, actor energies and options always give the same floor. */
 export function generateFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions = {}): GeneratedFloor {
+  return runSteps(floorSteps(theme, seed, energyOf, options))
+}
+
+/** generateFloor in steps: yields its progress after each room (a retry starts the count again). */
+export function* floorSteps(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions = {}): Steps<GeneratedFloor> {
   checkRoomPlan(theme)
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
-    const floor = buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
+    const floor = yield* buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
     if (floorIsConnected(floor, themeIsSolid(theme))) return floor
   }
   throw new Error(`random floor ${theme.id}: no connected floor for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
 }
 
-function buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): GeneratedFloor {
+function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): Steps<GeneratedFloor> {
   const rng = new GenRandom(seed)
   const size = theme.floorSize
   const edges = decideEdges(rng, theme)
@@ -126,6 +132,7 @@ function buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options
       const units = placeUnits(rng, theme, room, shape, energyOf, options)
       placements.push(...units)
       rooms.push(roomDefinition(rng, theme, room, shape, units))
+      yield rooms.length / (size.x * size.y)
     }
   }
   rooms.sort((a, b) => a.num - b.num)

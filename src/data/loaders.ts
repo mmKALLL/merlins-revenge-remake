@@ -224,7 +224,7 @@ export async function loadExitArrows(): Promise<ExitArrowTextures | null> {
 export interface WeaponSelectorTextures { icons: Record<string, Texture>; greenBox: Texture; yellowBox: Texture }
 
 /** The weapon keys with an icon: Merlin's scrolls but the golden machine gun, and his punch. */
-const WEAPON_ICON_KEYS = [...MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN), 'punch']
+export const WEAPON_ICON_KEYS = [...MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN), 'punch']
 
 /** hud/weapon-selector/<member>.png (tools/convert-assets.ts); null, with a warning, when not converted. */
 export async function loadWeaponSelectorTextures(): Promise<WeaponSelectorTextures | null> {

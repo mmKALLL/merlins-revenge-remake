@@ -282,8 +282,9 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - **Team caps**: the team member and reservation counts that gate dwelling releases and summons
   (reservationsMaster, counted per room in the original) count awake units only, so the rest of the
   map does not fill a team's cap.
-- **Space aims on screen** (owner request): Merlin's nearest-enemy shot and the push-back shot (Space modes; F cycles nearest, push-back, mouse)
-  only consider hostile units whose position lies inside the play view the follow camera shows
+- **Space aims on screen** (owner request): Merlin's nearest-enemy shot, the push-back shot and the
+  farthest-enemy shot (Space modes nearest, push-back, mouse, farthest; F toggles nearest and
+  push-back, the touch target button nearest and farthest; `src/sim/player-aim.ts`) only consider hostile units whose position lies inside the play view the follow camera shows
   (`viewRect`, `src/sim/view.ts`: the renderer's `cameraOrigin` around Merlin's position, clamped to
   the map, with the view size from `SimConfig.view`, 576x288). With none on screen the shot flies
   straight ahead, as with no hostile at all. In rooms mode the room is the view and nothing changes.

@@ -12,6 +12,7 @@ import { GENERATED_MAPS } from '../src/gen/generated-maps'
 import { TOWER_TILESETS, TOWER_TILESET_PARTS, TOWER_TILES_PER_ROW } from '../src/gen/tower-tilesets'
 import { parseTeams, withTeamTuning } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
+import { appIcon } from './app-icon'
 import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
 import { combineTilesets } from './combined-tileset'
 import { applyMapPatch, type MapPatch } from './map-patch'
@@ -389,6 +390,21 @@ function convertCutScenes(): void {
   console.log(`cut scenes: ${Object.keys(scenes).length}`)
 }
 
+/** The app icon's art: Merlin's first walk frame. */
+const APP_ICON_ART = join('sprites', 'mer', 'anm_mer_walk_3_01.bmp')
+/** The title screen's night blue (index.html), behind the art. */
+const APP_ICON_BACKGROUND: [number, number, number] = [0x0c, 0x10, 0x30]
+/** Sizes the manifest lists (192 and 512, as installers ask) and the iOS home screen's 180. */
+const APP_ICON_SIZES = [180, 192, 512]
+
+/** app-icons/icon-<size>.png: the icons manifest.webmanifest and index.html link to. */
+function convertAppIcons(): void {
+  mkdirSync(join(OUT, 'app-icons'), { recursive: true })
+  const art = decodeBmp(readFileSync(join(ASSETS, APP_ICON_ART)))
+  for (const size of APP_ICON_SIZES) writePng(join(OUT, 'app-icons', `icon-${size}.png`), appIcon(art, size, APP_ICON_BACKGROUND))
+  console.log(`app icons: ${APP_ICON_SIZES.join(', ')} px`)
+}
+
 function readPng(path: string): RgbaImage {
   const png = PNG.sync.read(readFileSync(path))
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
@@ -414,3 +430,4 @@ convertExitArrows()
 convertCutScenes()
 convertTitleLetters()
 convertHud()
+convertAppIcons()

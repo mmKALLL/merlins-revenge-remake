@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { InputTracker } from './keyboard'
-import { NUB_DEAD_ZONE, nubDirection } from './touch'
+import { NUB_DEAD_ZONE, nubDirection, TouchState } from './touch'
 
 describe('nubDirection', () => {
   it('does nothing inside the dead zone', () => {
@@ -59,5 +59,45 @@ describe('InputTracker touch input', () => {
     t.setTouch({ x: 0, y: 0 }, false)
     t.setTouch({ x: 0, y: 0 }, true)
     expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
+  })
+})
+
+describe('TouchState', () => {
+  const FAR = 40 // well past the dead zone
+
+  it('a press whose release never arrived cannot wedge the nub or the blast button', () => {
+    const t = new TouchState()
+    t.nubDown(1, { x: 100, y: 100 })
+    t.blastDown(2) // neither finger's pointerup arrives
+    t.nubDown(3, { x: 50, y: 50 })
+    expect(t.nubMove(1, { x: 100 + FAR, y: 100 })).toBeNull() // the stale finger no longer drives it
+    expect(t.nubMove(3, { x: 50, y: 50 + FAR })).toEqual({ x: 0, y: FAR })
+    expect(t.move).toEqual({ x: 0, y: 1 })
+    t.blastDown(4)
+    expect(t.pointerUp(2)).toBe(false) // a late release of the stale finger keeps the new press
+    expect(t.blast).toBe(true)
+    expect(t.pointerUp(4)).toBe(true)
+    expect(t.blast).toBe(false)
+  })
+
+  it('a release or cancel of an unknown finger changes nothing; of a known one, lets go', () => {
+    const t = new TouchState()
+    t.nubDown(1, { x: 0, y: 0 })
+    t.nubMove(1, { x: FAR, y: 0 })
+    expect(t.pointerUp(7)).toBe(false)
+    expect(t.move).toEqual({ x: 1, y: 0 })
+    expect(t.pointerUp(1)).toBe(true)
+    expect(t).toMatchObject({ move: { x: 0, y: 0 }, nubHeld: false })
+    expect(t.nubMove(1, { x: FAR, y: 0 })).toBeNull()
+  })
+
+  it('releaseAll (no finger left, a menu opening) lets go of everything once', () => {
+    const t = new TouchState()
+    t.nubDown(1, { x: 0, y: 0 })
+    t.nubMove(1, { x: -FAR, y: 0 })
+    t.blastDown(2)
+    expect(t.releaseAll()).toBe(true)
+    expect(t).toMatchObject({ move: { x: 0, y: 0 }, blast: false, nubHeld: false })
+    expect(t.releaseAll()).toBe(false)
   })
 })
