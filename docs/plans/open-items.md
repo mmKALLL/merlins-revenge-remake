@@ -33,6 +33,13 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
+- **Projectile volley spells.** One more enemy projectile per charge level (like monster summon's
+  stages); spread ~3 deg at level 1 up to ~30 deg, some speed jitter, and a per-projectile range
+  factor (orc bolts and bombs short, arrows mid, shurikens / thunder bolts / pins long). Candidates:
+  bomb volley, bolt fan, arrow rain, shuriken fan, thunder burst, pin storm, lava lob. Prototype the
+  bomb volley first.
+- **Enemy-only spell scrolls for Merlin.** Dark blast, goblin / Scarlet / skeleton / undead summon:
+  the mechanics work (enemies cast them), so it is mostly data.
 - **Scoring mode.** Each room counts down from 9999 points to 0 over 200 seconds. The map's total is
   shown bottom right, with the current room's points as a green `+1234` about 8 px to its right.
   The map selector shows the top score for each map.
