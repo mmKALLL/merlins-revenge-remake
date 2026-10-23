@@ -1,7 +1,36 @@
 # Open items
 
-Mirror of the owner's KanbanFlow board (which cloud sessions cannot reach), as of 2026-09-27.
+Mirror of the owner's KanbanFlow board (which cloud sessions cannot reach), as of 2026-10-24.
 Update this file when an item is done or added. Rules for how to work: `CLAUDE.md`.
+
+## Board priorities (owner, 2026-10-24)
+
+Work top down; the sections below hold the details.
+
+- **High priority:** Sorcerer's Tower: one music track per biome, no separate boss music.
+- **Medium priority:**
+  - The victory jingle does not play on winning a map if music was already playing.
+  - Projectile volley spells.
+  - Less reel on Merlin: the same knockback, but more friction when he walks against his current
+    movement vector.
+  - Scoring mode (two cards, one a duplicate).
+  - The eight friendly wizards, as allies and as enemies.
+  - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
+    - **Floor rewards:** at the very start and at each floor start, the player picks one of three:
+      a new random spell; a full heal plus one medikit; or 4-5 random potions split randomly
+      between two types. Keyboard or touch/click, each option previewing its contents, selectable
+      only after 0.8 s to prevent misclicks. A wizard ally in lieu of a spell is an idea; run any
+      other reward types past the owner.
+    - **Alternative biomes:** 2-3 per floor with different enemy groups, e.g. deep forest; cave or
+      hydra marsh; fortress or golem mountain; golden palace.
+    - **Location sign:** the place's name in the entry room, not blocking exits.
+    - **Safe arrival:** no enemies within 3 tiles (taxicab) of Merlin's arrival.
+    - **Statistics:** win ratio, floors reached and win streak, kept in localStorage. Abandoned runs
+      reset the streak but don't count towards the ratio or distribution.
+    - Hades-like gameplay ideas are welcome.
+- **Backlog:** level ups, save and load, check Ochre's pulse aim.
+- **Low priority:** the energy -> health rename, random midbosses and bosses, Steve's lock-up, cutscenes,
+  "army might be OP".
 
 ## To do
 
