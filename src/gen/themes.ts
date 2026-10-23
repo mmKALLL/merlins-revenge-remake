@@ -866,10 +866,10 @@ const CASTLE_WALLS: WallAutotile = [
 ]
 
 /**
- * Owner: necromancers should be a regular sight in the maze, so its generator rooms also draw strong
- * producers (necromancers in an undead room; the other factions fall back to weak ones).
+ * Owner: necromancers should be a regular sight in the maze, so its generator rooms also draw mid
+ * producers (necromancers, mid in the maze, in an undead room; other factions fall back to weak ones).
  */
-const WEAK_SOME_STRONG: TierWeights = { weak: 2, strong: 1 }
+const WEAK_SOME_MID: TierWeights = { weak: 2, mid: 1 }
 
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
@@ -881,11 +881,11 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
       ],
       { regulars: n(0, 2, WEAK) }
     ),
-    normal({ producers: n(4, 6, WEAK_SOME_STRONG), regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK_SOME_MID), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
   [
-    normal({ producers: n(2, 3, WEAK_SOME_STRONG), regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(2, 3, WEAK_SOME_MID), regulars: n(0, 2, WEAK) }),
     normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
     normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
   ],
@@ -946,10 +946,10 @@ export const MAGIC_MAZE: FloorTheme = {
       { key: 'bombMage', weight: 3, tier: 'weak', faction: 'alliance' },
       { key: 'thunderMonk', weight: 3, tier: 'weak', faction: 'alliance' },
       { key: 'shrouder', weight: 2, tier: 'mid', faction: 'alliance' },
-      { key: 'necromancer', weight: 5, tier: 'strong', maxPerRoom: 2, faction: 'undead', producer: true },
+      { key: 'necromancer', weight: 5, tier: 'mid', faction: 'undead', producer: true },
       // owner: about 20 % fewer dark mages. They are the maze's only undead regular, so the court's
       // and the study's draws are all dark mages and their weight changes little; the cap does
-      { key: 'darkMage', weight: 2, tier: 'mid', maxPerRoom: 4, faction: 'undead' },
+      { key: 'darkMage', weight: 2, tier: 'strong', maxPerRoom: 3, faction: 'undead' },
       { key: 'greyGhost', weight: 1, tier: 'weak', faction: 'undead', producer: true },
       { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
       { key: 'scArcher', weight: 2, tier: 'weak', faction: 'scarlet' },

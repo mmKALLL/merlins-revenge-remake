@@ -498,4 +498,6 @@ they stay out of it.
   carry `maxPerRoom` (the variety falloff already spreads draws across kinds); strong ones keep theirs,
   and the maze's dark mage keeps 4 (its -20 % count). hydra1 is mid tier; hydra2/hydra3 (boss groups
   only) count as strong.
+- **Maze (owner, 2026-10-24):** necromancers are mid tier there (no cap) and dark mages strong with at
+  most 3 a room; the maze's generator rooms draw weak and mid producers, so necromancers still show up.
 
