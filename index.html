@@ -143,16 +143,16 @@
       /* the right-hand buttons: the blast button in the corner, the target button above it, the
          weapon and army buttons in a column to its left */
       #touch {
-        --blast: 144px; --target-w: 64px; --target-h: 36px; --gap: 12px;
+        --blast: 176px; --target-w: 64px; --target-h: 36px; --gap: 12px;
         --edge: calc(24px + env(safe-area-inset-right)); --low: calc(24px + 1em + env(safe-area-inset-bottom));
         --column: calc(var(--edge) + var(--blast) + var(--gap));
       }
       #touch-blast {
         position: absolute; right: var(--edge); bottom: var(--low);
         width: var(--blast); height: var(--blast); border-radius: 50%; pointer-events: auto; touch-action: none;
-        background: rgba(255, 200, 0, 0.14); border: 2px solid rgba(255, 200, 0, 0.45);
+        background: rgba(255, 200, 0, 0.14); border: 2px solid rgba(255, 200, 0, 0.7);
       }
-      #touch-blast.active { background: rgba(255, 200, 0, 0.42); }
+      #touch-blast.active { background: rgba(255, 200, 0, 0.45); }
       /* what the blast button aims at (Near / Far); a tap toggles it */
       #touch-target {
         position: absolute; right: calc(var(--edge) + (var(--blast) - var(--target-w)) / 2); bottom: calc(var(--low) + var(--blast) + var(--gap));
