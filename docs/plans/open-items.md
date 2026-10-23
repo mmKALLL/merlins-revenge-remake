@@ -77,10 +77,11 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   (`armyKeyAction`). A blank army summon (below
   its first stage) flies at Merlin's nearest ally, sending one home.
 - Mobile polish (2026-10-23, owner requests; to confirm on a phone): touch controls that cannot
-  wedge (Steve's "controls locked up after a couple of screens", not reproduced in headless
+  wedge (Steve's "controls locked up after a couple of screens", on Firefox on iOS 27 = WebKit,
+  an iPhone 11, first test only; deprioritized, reopen if it recurs; not reproduced in headless
   Chrome: a new press takes the nub or blast button over, a lifted finger anywhere ends its press,
   no finger left releases all, no page zoom/scroll while playing); preloaded weapon icons; a
-  smaller, fainter blast button with a NEAR / FAR target toggle (new Space mode "farthest"); a
+  NEAR / FAR target toggle beside the 176 px blast button (lighter fill) (new Space mode "farthest"); a
   loading screen with a percentage (generated maps build in slices); installable as an app
   (`public/manifest.webmanifest`, Merlin icons, no service worker).
 - The dwarf tower (2026-10-22, owner requests): its axe hits every hostile within 50 px (reg point to
