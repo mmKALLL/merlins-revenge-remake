@@ -13,7 +13,8 @@ Work top down; the sections below hold the details.
   - Projectile volley spells.
   - Less reel on Merlin: the same knockback, but more friction when he walks against his current
     movement vector.
-  - Scoring mode (two cards, one a duplicate).
+  - Scoring mode.
+  - Golden machine gun (see To do below).
   - The eight friendly wizards, as allies and as enemies.
   - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
     - **Floor rewards:** at the very start and at each floor start, the player picks one of three:
