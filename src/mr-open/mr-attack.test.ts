@@ -3,7 +3,7 @@ import type { ActorDef, AttackDef } from './mr-actor-data'
 import { aimWithEyestrain, attackLoc, bulletPush, cooldownIncrement, cooldownReady, meleeHits, meleePush, rangedShot, resetCooldown, tickCooldown } from './mr-attack'
 
 const attack = (o: Partial<AttackDef>): AttackDef => ({
-  name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 }, strikeCircle: null,
+  name: 'none', type: 'melee', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 }, strikeCircle: null, chargeFullTicks: null,
   reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,

@@ -18,6 +18,7 @@ export interface AttackDef {
   idealAttackLoc: Vec // where an AI wants to stand relative to its target (melee: beside it)
   /** remake: a melee hit lands on every target whose sprite rect meets this circle (centre from the reg point, x mirrored); null = the engine's strike point */
   strikeCircle: { centre: Vec; radius: number } | null
+  chargeFullTicks: number | null // remake: the charge max is also capped at chargeStart + the charge speed x this many ticks (a faster charger reaches a bigger blast); null = engine
   /** a point for the player's natural punch (act_player); a number everywhere else */
   reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
   cooldown: number // counter length between attacks; advanced per tick by agility/dexterity/mana_regeneration
@@ -223,6 +224,7 @@ const ATTACK_DEFAULTS = {
   chargePerUnit: 5, fireDelay: 2, beam: false, freezeMultiplier: 1,
   glowTeal: false, // not in structAttack; only the freezing attacks set it
   strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
+  chargeFullTicks: null, // remake: no time cap on the charge, as in the engine
 } as const
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
@@ -514,6 +516,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     animFrame: frameList(a, 'animFrame', ctx),
     collisionLoc: vec(a, 'collisionLoc', ctx), idealAttackLoc: vec(a, 'idealAttackLoc', ctx),
     strikeCircle: strikeCircleOf(a, ctx),
+    chargeFullTicks: a['chargeFullTicks'] === null ? null : num(a, 'chargeFullTicks', ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),
     damageMultiplier: num(a, 'damageMultiplier', ctx),

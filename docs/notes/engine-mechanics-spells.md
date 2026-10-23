@@ -290,8 +290,15 @@ Details:
 - **cBlast charges 1.2x faster (owner request, 2026-10-23).** Its charge per tick is `chargeSpeed`
   0.1 x mana_flow with no `chargeSpeedMax` (`#unlimited`), so here the speed itself decides:
   `cBlast.attack.chargeSpeed` is 0.12 in `assets/tuning.json`. At Merlin's flow of 3 that is 0.36 a
-  tick instead of 0.3, and a full charge (mana_burst 1 to 999) takes 2773 ticks (92 s) instead of 3327
-  (111 s).
+  tick instead of 0.3 (the engine's full charge, mana_burst 1 to 999, would take 2773 ticks instead
+  of 3327).
+- **cBlast is full after 12 s (owner request, 2026-10-23).** A new attack field `chargeFullTicks`
+  (engine default null, no time cap) caps the charge max at `start + charge speed x chargeFullTicks`
+  besides the engine's max (`chargeLimits`), so the blast's size still grows with the charge speed.
+  `cBlast.attack.chargeFullTicks` is 360 in `assets/tuning.json`: at Merlin's start (flow 3) the max
+  is 130.6 (explosion radius 261 px, charge ball 131 px); with 4 Quick Charge potions (flow 5) it is
+  217 (radius 434 px). The charge sound's volume map tops out at charge 100, so it plays at full
+  volume from there on.
 - **Attack grace (owner request, 2026-10-23).** A hostile unit that has just become active for Merlin
   starts no ranged or magic attack for the player's `activationAttackGraceTicks` (24 ticks, 0.8 s, in
   `assets/tuning.json`; engine default 0): with the room camera the units of the room he enters (and

@@ -5,7 +5,7 @@ import { chargeAfterBullet, fireBulletsPeriod, mineCount } from './mr-mine'
 import { armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFunctionsFor, releaseVelocity } from './mr-spell'
 
 const energyBlast: AttackDef = {
-  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null,
+  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null, chargeFullTicks: null,
   reach: 9999, cooldown: 30, power: 0.75, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 200, b: 0 }, spellSpeed: 20, limitMagic: false, sound: null, releaseSound: 'spell_release', explodeSound: 'spell_explode',
@@ -31,6 +31,13 @@ describe('charging', () => {
     for (let i = 0; i < 12; i++) c = chargeStep(c, speed, max)
     expect(c).toBe(12.5)
     expect(chargeStep(c, speed, max)).toBe(12.5)
+  })
+  it('chargeFullTicks caps the max at what the charge reaches in that time, so a faster charger gets more', () => {
+    const timed = { ...player, attack: { ...energyBlast, chargeMaxBasic: 999, chargeFullTicks: 5 } }
+    expect(chargeLimits(timed).max).toBe(1 + 1 * 5)
+    expect(chargeLimits({ ...timed, mana_flow: 2 }).max).toBe(1 + 2 * 5)
+    // the engine's own max still applies when it is lower
+    expect(chargeLimits({ ...player, attack: { ...energyBlast, chargeFullTicks: 100 } }).max).toBe(12.5)
   })
   it('chargeLoc mirrors the caster chargeLoc by facing', () => {
     const def = { attack: energyBlast, chargeLoc: { x: 3, y: -8 } } as ActorDef

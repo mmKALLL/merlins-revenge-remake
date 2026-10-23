@@ -15,14 +15,17 @@ export interface ChargeLimits {
  * Charge counter parameters for a caster. `magicLimitPercent` is magicLimitMaster.getMagicLimit (only
  * with limitMagic). calcAttackChargeStart ends with `chargeStart = min(pChargeStart, chargeStartMax)`:
  * with a chargeStartMax (the summons) the start is the attack's own, mana_burst left out.
+ * Remake: with a `chargeFullTicks` the max is also what the charge reaches in that many ticks.
  */
 export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeLimits {
   const a = caster.attack
   let max = Math.min(a.chargeMax, caster.mana_capacity * a.chargeMaxModifier + a.chargeMaxBasic)
   if (a.limitMagic) max = (max * magicLimitPercent) / 100
-  const speed = a.chargeSpeed * caster.mana_flow
+  const flow = a.chargeSpeed * caster.mana_flow
+  const speed = a.chargeSpeedMax === null ? flow : Math.min(flow, a.chargeSpeedMax)
   const start = a.chargeStartMax === null ? Math.min(a.chargeStart + caster.mana_burst, max) : Math.min(a.chargeStart, a.chargeStartMax)
-  return { start, max, speed: a.chargeSpeedMax === null ? speed : Math.min(speed, a.chargeSpeedMax) }
+  if (a.chargeFullTicks !== null) max = Math.min(max, start + speed * a.chargeFullTicks)
+  return { start, max, speed }
 }
 
 /**
