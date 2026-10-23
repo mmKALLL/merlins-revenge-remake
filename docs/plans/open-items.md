@@ -40,6 +40,10 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
   bomb volley first.
 - **Enemy-only spell scrolls for Merlin.** Dark blast, goblin / Scarlet / skeleton / undead summon:
   the mechanics work (enemies cast them), so it is mostly data.
+- **The eight friendly wizards.** Amotonlin, Berlin, Flaetorlin, Foelin, Garonlin, Prestotolin,
+  Ulin, Verdanlin (`act_*InGame`, team aldevar, 200 HP, sprites in the cast dump; each casts one of
+  Merlin's ported spells): as allies (wizardMaster / modSummonWizard, tower rewards) and as enemies
+  (a palette swap at convert time, boss-level HP).
 - **Scoring mode.** Each room counts down from 9999 points to 0 over 200 seconds. The map's total is
   shown bottom right, with the current room's points as a green `+1234` about 8 px to its right.
   The map selector shows the top score for each map.
