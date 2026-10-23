@@ -76,6 +76,26 @@ engine's enemies run from their data. Read against the owner's reference bundle
   the lowest energy percentage (the caster itself included), nobody at 100 %. The explosion goes over the
   same teams and its `#takeHeal` payload adds `2 * (|vx| + |vy|)` energy (up to the max), no push.
 
+## Wizards
+
+The in-game wizards Scarlet and Ochre (`act_scarletInGame`, `act_ochreInGame`) are ported as
+enemies: plain `objCPUCharacter` / `objAiCPUSpellCaster` units with 1000 energy and inertia 60.
+
+- **Scarlet** (team `#scarlet`, `#name "scw"`: the cast's `anm_scw_*` strips) carries the
+  `#undeadSummon` scroll as her weapon, as the necromancer does (Summons above): randomSummon
+  stages from skeleton warrior up to skeleton lord, mana_capacity 35, mana_flow 1.5. The summoned
+  units are team `#undead`, which neither hates nor is hated by `#scarlet`.
+- **Ochre** (team `#blackSorcerer`, `#name "ochreWizard"`, `#character #archEnemy`, walkSpeed 10)
+  carries `#energyPulseSpell`: the spell stays where he releases it and fires `floor(charge / 2) +
+  1` energy pulses at his target (engine-mechanics-spells.md, Pulses and beams). In a probe (open
+  room, Merlin standing still 160 px away, 30 s) he cast 82 spells and fired 470 pulses, but they
+  burst 12-19 px from Merlin's loc, mostly past the 13 px reach of their blast (explodeCharge 10 ->
+  radius 5, plus Merlin's 8), so only 2 hurt him (20 each). His room is dangerous through its
+  elementals; the pulses' reach against a CPU caster's target is worth a look against
+  `modAttack.performRangedAttack` before any tuning.
+- Neither has a `#wizard` role or the wizard selector here: those belong to the player's wizard
+  allies (open items).
+
 ## Teams
 
 All team files are copied. Enemy teams hate each other too (undead hate goblins and orcs, karate hates

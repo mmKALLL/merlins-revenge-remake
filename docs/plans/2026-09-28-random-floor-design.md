@@ -227,7 +227,7 @@ tilesets; every obstacle is `#solid` and every decoration `#none` in its tile ke
 | Goblin Forest | merlin4 | goblin archers, warriors, bats, goblin mages; orcs | goblin huts, bat trees, mage huts, orc houses | orc camp; hydra trainer (hydra1, goblin hero, warrior) |
 | Undead Marsh | merlinOpen | undead: skeleton warriors, throwers, archers, ghosts, commandos, giants; critters: quadranids; bats in either | skeleton dwellings, cocoons, bat trees | skeleton army (skeleton lord); necromancer pair; necromancer and giant |
 | Dragon Canyon | merlinOpen | karate guys, kung fu chickens, lizards, plants (traps), boulder monsters, lizard soldiers; hydra1, dragons, dark golems | dojos, boulder caves, dark caves | dark golems (four-arm + double dark golem); dragon's lair; hydra den (hydra3, plants) |
-| Magic Maze | merlinOpen | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | dark sorcerer's court (dark mages); Scarlet's guard |
+| Magic Maze | merlinOpen | alliance: bomb mages, thunder monks, shrouders; undead: necromancers, dark mages, ghosts; scarlet: warriors, archers, monks; monsters: black orcs, vulture guards | magic portals, skeleton dwellings | the wizard groups, as the midboss (see Wizard bosses): Ochre's elementals; Scarlet's court; dark sorcerer's court; Scarlet's guard |
 | Golden Fort (not in the tower) | merlinOpen | every floor's enemies, in alliances of teams (see Golden Fort) | every floor's dwellings | any floor's boss group |
 
 Corner groups and tiers: see Room plans.
@@ -246,9 +246,9 @@ rock spires and cacti; the maze blue cobbles with grey castle walls (towers and 
   also release speedy guys); boulder monsters and dark golems. Owner additions: hydras (hydra1 in
   rooms, hydra3 as a boss) and traps: the plant (stationary needle shooter) is the only ported
   stationary hazard that fits; pit monsters, fire and cracks are not ported, gar towers are goblin.
-- **Magic Maze "MR3's new wizard enemies"**: not ported (the in-game wizards and ochre wizard need
-  `#wizard` and energy pulse); the magical alliance (bomb mage, thunder monk, shrouder, magic
-  portal) stands in. "Chromatic sorcerers": Scarlet's army (scarlet warrior, archer, monk).
+- **Magic Maze "MR3's new wizard enemies"**: the magical alliance (bomb mage, thunder monk,
+  shrouder, magic portal) stands in; the in-game wizards Scarlet and Ochre lead boss groups (see
+  Wizard bosses). "Chromatic sorcerers": Scarlet's army (scarlet warrior, archer, monk).
   "The Black Sorcerer": not in the engine's data (only his team file exists); a court of dark mages
   with a necromancer and a ghost, or Scarlet's guard. Owner additions: black orcs ("giant orcs")
   and vulture guards, both monsters, so in rooms of their own.
@@ -333,7 +333,7 @@ Groups per special corner (each has at least two; tested). New ones marked *new*
 | Goblin Forest | farY: orc hole (orc house, bow orc) *new*; orc shamans (2 orc mages) *new* | farX: goblin warrior band (4 warriors); archers and bats (3 archers, 2 bats) *new* |
 | Undead Marsh | farY: lone necromancer (alone); haunted crypt (skeleton dwelling, 2 grey ghosts) *new* | farX: critter nest (cocoon, 3 quadranids); skeleton patrol (3 warriors, 1 thrower) *new* |
 | Dragon Canyon | farY: golem quarry (boulder cave, boulder monster); dark cave (dark cave, dark golem) *new* | farX: dojo class (3 karate guys, 2 kung fu chickens) *new*; lizard pack (4 lizards) *new* |
-| Magic Maze | farY: necromancy study (2 necromancers, dark mage); Scarlet chapel (2 Scarlet monks, Scarlet warrior) *new* | farX: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
+| Magic Maze | farY: the wizard groups, alone (see Wizard bosses; they replaced the necromancy study and the Scarlet chapel) | farX: alliance squad (2 bomb mages, 2 thunder monks) *new*; Scarlet patrol (2 Scarlet warriors, 2 archers) *new* |
 
 ### HP budget: the numerous weak corner (owner, 2026-10-22)
 
@@ -501,3 +501,37 @@ they stay out of it.
 - **Maze (owner, 2026-10-24):** necromancers are mid tier there (no cap) and dark mages strong with at
   most 3 a room; the maze's generator rooms draw weak and mid producers, so necromancers still show up.
 
+## Wizard bosses: Scarlet and Ochre (owner, 2026-10-24)
+
+The in-game wizards `act_scarletInGame` and `act_ochreInGame` (engine-mechanics-enemies-3.md,
+Wizards) lead the Magic Maze's boss groups. They have their own merlinOpenObjects tiles
+(`#scarletInGame` 51, `#ochreInGame` 52), so the generator places them like any unit; no new
+placement mechanism was needed.
+
+- **One list for both rooms** (`MAZE_BOSS_GROUPS` in `themes.ts`): each group names its leader,
+  its minions and its faction. The midboss corner (farY) takes a group `alone` with those minions;
+  the exit room takes the same group with `BOSS_MINION_FACTOR` (1.5, rounded up) times the minions,
+  its leader on the boss tile, and the boss cell's usual draws (producers 0-1, regulars 2-3).
+  - Ochre's elementals: Ochre, bomb mage, thunder monk, shrouder, magic portal (boss: 2 of each).
+    Faction `alliance`: Ochre's team `blackSorcerer` hates only `aldevar` and `monsterSummon`, and
+    the magical alliance does not hate it.
+  - Scarlet's court: Scarlet, 2 necromancers, a dark mage (boss: 3 and 2). Faction `undead` with
+    `allies: ['scarlet']`, so the exit room may also draw her red army: scarlet and undead do not
+    hate each other, and her undead summon brings undead.
+  - Dark sorcerer's court: 2 dark mages, necromancer, ghost (boss: 3 dark mages, 2 and 2); it took
+    in the necromancy study.
+  - Scarlet's guard: 2 Scarlet monks, warrior, archer (boss: 3, 2, 2); it took in the Scarlet chapel.
+- **Different leaders** (`UnitGroup.lead`, a boss group's `boss`): rooms are filled in order, and a
+  room with groups picks among those whose leader no earlier room of the floor has taken (all when
+  none is left), so the midboss and boss of a floor are never the same wizard. Other themes' groups
+  have no `lead`, so their floors are unchanged.
+- **Group factions** (`UnitGroup.allies`): factions a group's room may draw alongside its `faction`.
+  The fort ignores them (its rooms draw alliances); its magical alliance now includes
+  `blackSorcerer`, and its bosses take the boss unit's team as their faction.
+- **Balance:** 1000 energy each, as in the data (no tuning). The fort's capped budget (2000) gets no
+  draws on top of a bigger boss group (Ochre's boss version counts 2400 there, the portals by its producer rule).
+- **Observed** (200 seeds, the test seeds): midboss Scarlet's court 59, dark sorcerer's court 56,
+  Ochre's elementals 45, Scarlet's guard 40; exit room Ochre 51, Scarlet 50, Scarlet monk 51, dark
+  mage 48. 171 floors have a wizard in one of the two rooms, 34 both. On average the midboss room
+  holds 4.2 units and the exit room 9.6. Seeds with each: 23758 (Ochre midboss, Scarlet boss),
+  87110 (Ochre boss), 1 (Scarlet's court midboss).
