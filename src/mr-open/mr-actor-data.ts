@@ -167,6 +167,8 @@ export interface ActorDef {
   idleWanderMarginTiles: number // sleepers within the follow camera's view grown by this many tiles on each side may idle wander
   idleWanderScanTicks: number // those sleepers are found, and roll for a wander, every this many ticks
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
+  /** the player: a hostile unit that becomes active (its room entered, the map start, a wake in the continuous world) starts no ranged or magic attack for this many ticks; 0 = engine */
+  activationAttackGraceTicks: number
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
@@ -281,6 +283,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     activationVerticalScale: 0.75, // continuous world: ranges a quarter shorter vertically
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
+    activationAttackGraceTicks: 0, // units attack as soon as they are active, as in the engine
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
@@ -316,7 +319,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -657,6 +660,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       activationVerticalScale: num(r, 'activationVerticalScale', ctx),
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
+      activationAttackGraceTicks: num(r, 'activationAttackGraceTicks', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),

@@ -146,6 +146,7 @@ export interface ActorState {
   /** continuous world (activation.ts): a sleeping unit has no AI, movement, attacks, production or regeneration (bar an idle wander); always true in rooms mode */
   awake: boolean
   wakeHold: number // continuous world: ticks a unit hit from far away stays awake regardless of distance
+  attackGrace: number // remake: ticks left in which a newly active hostile starts no ranged or magic attack (attack-grace.ts); 0 = none
   freezeTicks: number // modFreeze: frozen ticks left (walk speed halved); 0 = not frozen
   glowTeal: boolean // modFreeze: frozen by a glowTeal attack (drawn teal)
   beamFrom: Vec | null // a beam bullet: the spell it is stretched from (objBullet.setBeam)

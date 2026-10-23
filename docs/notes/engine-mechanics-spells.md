@@ -287,6 +287,22 @@ Details:
   (the remake team `overlay`, rgb(150, 210, 255)) so Merlin's monsters stand out from the wild ones.
   Its scroll carries an M (drawn by `tools/copy-assets.ts` in the outline colour, where cBlast's
   scroll has its C).
+- **cBlast charges 1.2x faster (owner request, 2026-10-23).** Its charge per tick is `chargeSpeed`
+  0.1 x mana_flow with no `chargeSpeedMax` (`#unlimited`), so here the speed itself decides:
+  `cBlast.attack.chargeSpeed` is 0.12 in `assets/tuning.json`. At Merlin's flow of 3 that is 0.36 a
+  tick instead of 0.3, and a full charge (mana_burst 1 to 999) takes 2773 ticks (92 s) instead of 3327
+  (111 s).
+- **Attack grace (owner request, 2026-10-23).** A hostile unit that has just become active for Merlin
+  starts no ranged or magic attack for the player's `activationAttackGraceTicks` (24 ticks, 0.8 s, in
+  `assets/tuning.json`; engine default 0): with the room camera the units of the room he enters (and
+  of the start room), in the continuous world those awake at the map start and every unit that wakes
+  (by distance or by a hit). An AI spell caster starts and charges no spell meanwhile, an objAiCPU
+  unit whose attack is not melee stands in reach instead of starting its strip; both keep walking
+  (the caster's optimum-position movement included), and melee attacks are not held, since a melee
+  unit has to reach Merlin first. Ranged attacks are held too because the MR3 wizards (bomb mage,
+  thunder monk, shrouder) and the archers fire bullets that are as sudden on entering a room as a
+  spell. Allies get no grace. The counter (`ActorState.attackGrace`) runs down with the cooldowns, so
+  it pauses while a unit sleeps (`src/sim/attack-grace.ts`).
 - **Filters stay sharp.** The colour filters (white flash, teal glow, team overlay) render at the
   canvas's resolution (`pixelFilter` in `src/render/scene.ts`); Pixi's 1x default blurred them.
 

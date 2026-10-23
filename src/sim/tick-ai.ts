@@ -15,6 +15,7 @@ import { arrived, frameMove, movedOnScreen, pathStep } from '../mr-open/mr-pathf
 import { findTarget, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import { armedDefOf, collisionRectFor, defOf, faceAlong, isAlive, isUnit, walkSpeedOf } from './actors'
 import { leaveIfFinished } from './tick-army'
+import { heldByAttackGrace } from './attack-grace'
 import { BUILDER_AI_MODES } from './tick-builder'
 import { nextRandom } from './rng'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip } from './state'
@@ -253,9 +254,13 @@ export function stepCpuAi(t: Tick): void {
       case 'stop':
         stopInReach(a)
         break
-      case 'startAttack':
-        startAttack(a, armedDefOf(t.s, a), decision.faceLeft)
+      case 'startAttack': {
+        const armed = armedDefOf(t.s, a)
+        // remake: in the attack grace a ranged attack waits in reach (attack-grace.ts)
+        if (heldByAttackGrace(a, armed.attack)) stopInReach(a)
+        else startAttack(a, armed, decision.faceLeft)
         break
+      }
       default: // idle, a repeated retarget, or no target found
         break
     }

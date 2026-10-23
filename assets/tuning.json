@@ -7,6 +7,7 @@
     "mana_flow": 3,
     "damageDealtMultiplier": 2,
     "medikitRestRate": 3,
+    "activationAttackGraceTicks": 24,
     "attack": {
       "chargeMaxBasic": 6
     }
@@ -132,6 +133,16 @@
         "b": 255
       },
       "opacity": 0.3
+    }
+  },
+  "cBlast": {
+    "attack": {
+      "chargeSpeed": 0.12
+    }
+  },
+  "darkMage": {
+    "attack": {
+      "power": 2.1
     }
   }
 }

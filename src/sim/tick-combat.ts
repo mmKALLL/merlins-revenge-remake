@@ -23,6 +23,7 @@ import { nearestHostileId, rollDetour } from './tick-ai'
 import { isInvincible } from './tick-pickup'
 import { teleportOut } from './tick-army'
 import { stepPlayerCooldowns } from './tick-weapons'
+import { stepAttackGrace } from './attack-grace'
 
 /** Ticks the player's die mode lasts before the map restart is requested. */
 export const PLAYER_DEATH_TICKS = 30
@@ -445,6 +446,7 @@ export function stepCooldownsAndRegen(t: Tick): void {
     if (t.removed.has(a.id) || !isUnit(t.s, a) || !a.awake) continue
     const def = defOf(t.s, a)
     stepFreeze(a)
+    stepAttackGrace(a)
     // updateCooldowns runs every weapon's counter, each advanced by its attack type's stat
     if (a.id === t.s.playerId) stepPlayerCooldowns(t, a)
     else a.cooldown = tickCooldown(a.cooldown, cooldownIncrement(armedDefOf(t.s, a)))

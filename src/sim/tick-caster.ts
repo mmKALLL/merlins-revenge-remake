@@ -22,6 +22,7 @@ import { actorIn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
 import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage } from './tick-spell'
 import { leaveIfFinished } from './tick-army'
+import { heldByAttackGrace } from './attack-grace'
 
 export const SPELL_CASTER_AI = 'objAiCPUSpellCaster'
 /** Character modes the caster AI acts in; #reel (dazed) and the death modes leave it idle. */
@@ -57,6 +58,7 @@ function stepCasting(t: Tick, a: ActorState, def: ActorDef): void {
     a.ai.retargetCounter++
   }
   if (!cooldownReady(a.cooldown)) return // objAiAttack.attack: nothing until the cooldown is done
+  if (heldByAttackGrace(a, def.attack)) return // remake: no charge yet (attack-grace.ts)
   const target = actorIn(t, a.ai.targetId!)!
   const limits = chargeLimits(def)
   let spell = chargingSpellOf(t, a)

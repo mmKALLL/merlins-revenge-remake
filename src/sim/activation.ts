@@ -13,6 +13,7 @@ import { defOf, isAlive, isUnit, playerOf } from './actors'
 import { stripNameFor } from './anim'
 import type { ActorState, SimState } from './state'
 import { bringIn, playerIn, waitingSleepers, type Tick } from './tick-context'
+import { startAttackGrace } from './attack-grace'
 import { chargingSpellOf } from './tick-spell'
 
 export type ActivationRules = Pick<ActorDef, 'wakeDistance' | 'sleepDistance' | 'hitWakeTicks'>
@@ -67,7 +68,7 @@ export function stepActivation(t: Tick): void {
   const p = playerIn(t)
   const rules = defOf(t.s, p)
   for (const sleeper of waitingSleepers(t)) {
-    if (withinWakeDistance(t.s, p, sleeper)) bringIn(t, sleeper).awake = true
+    if (withinWakeDistance(t.s, p, sleeper)) wake(t, bringIn(t, sleeper))
   }
   for (const a of t.actors) {
     if (a === p || t.removed.has(a.id) || !isUnit(t.s, a)) continue
@@ -76,14 +77,15 @@ export function stepActivation(t: Tick): void {
     // a unit that cannot sleep yet stays (or comes) awake: its reel, attack or death plays out first
     const awake = next.awake || !canSleep(a)
     if (a.awake === awake) continue
-    if (awake) wake(a)
+    if (awake) wake(t, a)
     else fallAsleep(t, a)
   }
 }
 
-/** Wakes the unit; the AI takes over from an idle wander (it retargets next tick). */
-function wake(a: ActorState): void {
+/** Wakes the unit and starts its attack grace; the AI takes over from an idle wander (it retargets next tick). */
+function wake(t: Tick, a: ActorState): void {
   a.awake = true
+  startAttackGrace(t.s, a)
   if (a.ai.mode === 'idleWander') a.ai = { ...a.ai, mode: 'findTarget', wanderGoal: null, idleTicks: 0, pathStall: 0 }
 }
 
