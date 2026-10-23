@@ -319,6 +319,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
     }
+    scene.musicTrack = audio.track
     scene.draw(sim, alpha, fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)

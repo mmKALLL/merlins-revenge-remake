@@ -136,6 +136,8 @@ export class Scene {
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
+  /** The track the room asked for, shown in the debug readout (main.ts sets it from the audio engine). */
+  musicTrack: string | null = null
   private tealGlow = tealGlowFilter()
   private teamOverlays = new Map<string, ColorMatrixFilter | null>()
   private whiteFlash = pixelFilter()
@@ -298,7 +300,7 @@ export class Scene {
         `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} actors ${s.actors.length} ` +
         `exits ${s.exitsOpen ? 'open' : 'shut'} cam ${this.cfg.cameraMode}\n` +
         `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} ` +
-        `energy ${p.energy.toFixed(0)} ${p.mode}`
+        `energy ${p.energy.toFixed(0)} ${p.mode} music ${this.musicTrack ?? 'off'}`
     }
   }
 
