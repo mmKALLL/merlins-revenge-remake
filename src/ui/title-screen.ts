@@ -1,12 +1,16 @@
-// The title screen (movieMaster opens on #titleScreen): the original's lettering, the main menu and
-// a credits line.
+// The title screen (movieMaster opens on #titleScreen): the original's lettering, the main menu (with
+// the remake's Roguelite entry and its statistics) and a credits line.
+import type { RogueliteStats } from '../data/roguelite-stats'
 import type { Panel } from './app-state'
 import { button, el, menuList } from './dom'
 import type { MenuPanel } from './overlay'
+import { floorsLine, statsLines } from './roguelite-stats-view'
 import { titleHeading } from './title-art'
 
 export interface TitleActions {
   play: () => void
+  /** starts a roguelite run (a fresh seed) */
+  roguelite: () => void
   open: (panel: Exclude<Panel, 'main'>) => void
 }
 
@@ -15,6 +19,8 @@ export interface TitleScreen extends MenuPanel {
   setMap(id: string): void
   /** While the map loads, Play is disabled and says so. */
   setLoading(loading: boolean): void
+  /** The roguelite statistics, shown under the Roguelite button. */
+  setStats(stats: RogueliteStats): void
 }
 
 export function titleScreen(actions: TitleActions): TitleScreen {
@@ -23,6 +29,9 @@ export function titleScreen(actions: TitleActions): TitleScreen {
   const play = button('Play', actions.play, 'primary')
   const mapName = el('span', 'hint')
   play.append(mapName)
+  const roguelite = button('Roguelite', actions.roguelite)
+  const statsText = el('span', 'title-stats')
+  roguelite.append(statsText)
   const credits = el('p', 'credits')
   credits.append(
     "Merlin's Revenge and the Merlin Open engine by Steve Riddett, ",
@@ -33,6 +42,7 @@ export function titleScreen(actions: TitleActions): TitleScreen {
     titleHeading(),
     menuList(
       play,
+      roguelite,
       button('Maps', () => actions.open('maps')),
       button('Settings', () => actions.open('settings')),
       button('How to play', () => actions.open('help')),
@@ -44,7 +54,12 @@ export function titleScreen(actions: TitleActions): TitleScreen {
     setMap: (id) => { mapName.textContent = id },
     setLoading: (loading) => {
       play.disabled = loading
+      roguelite.disabled = loading
       play.firstChild!.textContent = loading ? 'Loading…' : 'Play'
+    },
+    setStats: (stats) => {
+      const lines = stats.runs > 0 ? [...statsLines(stats), floorsLine(stats)] : statsLines(stats)
+      statsText.replaceChildren(...lines.map((line) => el('span', 'hint', line)))
     },
   }
 }

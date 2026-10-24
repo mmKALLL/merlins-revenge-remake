@@ -10,6 +10,7 @@ import {
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
 import { loadBestScores, saveBestScores, withRunScore } from './data/best-scores'
+import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, type RogueliteStats } from './data/roguelite-stats'
 import { browserStore } from './data/favourites'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
@@ -27,7 +28,8 @@ import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting }
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
 import { carryOver } from './sim/carry-over'
-import { holdsScroll } from './sim/rewards'
+import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
+import { collectedScrolls, holdsScroll } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
@@ -36,10 +38,11 @@ import { switchWorldMode } from './sim/world-mode'
 import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
 import { helpPanel } from './ui/help-panel'
 import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
-import { endRun, enterFloor, nextFloorPlan, startRun, type RunState } from './run/run'
+import { endRun, enterFloor, nextFloorPlan, runTimeText, startRun, visitedBiomeNames, type RunState } from './run/run'
 import { rewardPickups, rewardPools, rollRewards } from './run/rewards'
 import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt } from './ui/floor-pick'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
+import { runSummary, type RunSummary } from './ui/run-summary'
 import { mapsPanel } from './ui/maps-panel'
 import { menuButton } from './ui/menu-button'
 import { MenuOverlay, type MenuPanel } from './ui/overlay'
@@ -157,10 +160,16 @@ interface Shell {
   touch: TouchControls | null
   /** The loading screen, shown again while a roguelite run builds its next floor. */
   loading: LoadingScreen
-  /** Back to the title screen (a roguelite run's death ends the run there). */
+  /** Back to the title screen. */
   quitToTitle: () => void
   /** Roguelite: pauses on the floor pick until the player has picked a biome and a reward (indices into the offer). */
   pickFloor: (offer: PickOffer, art: PickArt) => Promise<{ biome: number; reward: number }>
+  /** Roguelite: counts a run's start in the statistics (one still in progress was abandoned). */
+  recordRunStart: () => void
+  /** Roguelite: counts a run's end on `floor` (0 = the first) and gives the statistics with it. */
+  recordRunEnd: (floor: number, won: boolean) => RogueliteStats
+  /** Roguelite: pauses on the run summary (its spells drawn by `art`) until New run or Main menu. */
+  showRunSummary: (summary: RunSummary, art: SpriteArt) => void
 }
 
 /** A weapon's selector icon as a URL (the touch weapon button). */
@@ -247,6 +256,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
   let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
+  if (run) shell.recordRunStart()
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -264,7 +274,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     saveBestScores(browserStore, improved)
   }
   const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
-    const newLayout = loaded === null && shell.newLayoutEachRun()
+    // a new roguelite run always draws a new seed (Restart map keeps the run's)
+    const newLayout = loaded === null && (shell.newLayoutEachRun() || (run !== null && seedChoice === 'fresh'))
     runSeed = seedChoice === 'same' && !newLayout ? pageSeed : nextRunSeed(runSeed)
     if (newLayout) pageSeed = runSeed
     // a roguelite run starts again on its first floor, whichever floor it had reached
@@ -272,10 +283,13 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       world = worldOf(mapFor(pageSeed))
       scene.invalidateTiles()
     }
-    if (run) run = startRun(pageSeed)
+    if (run) {
+      run = startRun(pageSeed)
+      shell.recordRunStart()
+    }
     buildingFloor = false
     sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
-      audio.handle(sim.events) // the start room's music again
+    audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }
   /** The pick screen's art: a sprite's first frame of an animation. */
@@ -301,7 +315,9 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     if (!run) return
     const plan = nextFloorPlan(run)
     if (plan === 'won') {
-      run = endRun(run, 'won')
+      // the original's end (the jingle, the fade and the cut scene), then the run summary
+      finishRun(run, 'won')
+      audio.handle(MAP_COMPLETE_EVENTS)
       ending = startEndSequence()
       return
     }
@@ -327,12 +343,36 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     audio.handle(sim.events) // the new floor's start music
     buildingFloor = false
   }
+  /** Roguelite: the statistics with the run counted, from its end (a quit during the win's end sequence keeps the win). */
+  let endedStats: RogueliteStats | null = null
+  const finishRun = (from: RunState, status: 'won' | 'dead') => {
+    run = endRun(from, status)
+    endedStats = shell.recordRunEnd(from.floor, status === 'won')
+  }
+  /** Roguelite: the summary of the run that has ended. */
+  const showRunSummary = () => {
+    const ended = run
+    const stats = endedStats
+    if (!ended || ended.status === 'playing' || !stats) return
+    shell.showRunSummary({
+      won: ended.status === 'won',
+      floorsReached: ended.floor + 1,
+      score: sim.score.valid ? sim.score.total : null,
+      bestScore: bests[sim.worldMode][mapId] ?? 0,
+      time: runTimeText(sim.runTicks),
+      spells: collectedScrolls(sim),
+      biomes: visitedBiomeNames(ended),
+      stats,
+    }, spriteArt)
+  }
   /** Roguelite: a death ends the run; there is no restart of the floor. */
   const endRunInDeath = () => {
     if (run?.status !== 'playing') return
-    run = endRun(run, 'dead')
-    shell.quitToTitle()
+    finishRun(run, 'dead')
+    showRunSummary()
   }
+  /** Roguelite: the win's end sequence is over; the summary replaces the original's play-again prompt. */
+  const winEndingOver = () => run?.status === 'won' && ending?.phase === 'done'
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
 
@@ -415,6 +455,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
         const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
         ending = r.seq
         audio.handle(r.cues)
+        if (winEndingOver()) {
+          showRunSummary()
+          break
+        }
         continue
       }
       const tickInput = input.snapshot()
@@ -441,7 +485,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
     shell.touch?.showTarget(input.spaceMode)
-    scene.drawEndSequence(ending && endSequenceView(ending))
+    const endView = ending && endSequenceView(ending)
+    scene.drawEndSequence(endView && run ? { ...endView, done: false } : endView) // a run's summary replaces the prompt
     scene.present()
   }
   requestAnimationFrame(frame)
@@ -492,6 +537,20 @@ function main(): void {
   let frameRate = loadFrameRate('60')
   const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const pickPanel = floorPick()
+  const summaryPanel = runSummary({
+    newRun: () => {
+      game?.restart('fresh')
+      dispatch({ kind: 'newRun' })
+    },
+    mainMenu: () => shell.quitToTitle(),
+  })
+  // kept here too: with storage blocked they last for this page
+  let rogueliteStats = loadRogueliteStats(browserStore)
+  const updateStats = (change: (s: RogueliteStats) => RogueliteStats): RogueliteStats => {
+    rogueliteStats = change(rogueliteStats)
+    saveRogueliteStats(browserStore, rogueliteStats)
+    return rogueliteStats
+  }
   const shell: Shell = {
     audio,
     input,
@@ -511,12 +570,19 @@ function main(): void {
       })
       dispatch({ kind: 'pick' })
     }),
+    recordRunStart: () => void updateStats(withRunStarted),
+    recordRunEnd: (floor, won) => updateStats((s) => withRunEnded(s, floor, won)),
+    showRunSummary: (summary, art) => {
+      summaryPanel.open(summary, art)
+      dispatch({ kind: 'runEnded' })
+    },
   }
 
   const back = () => dispatch({ kind: 'back' })
 
   const title = titleScreen({
     play: () => void play(),
+    roguelite: () => void play(ROGUELITE_MAP_ID),
     open: (panel) => dispatch({ kind: 'open', panel }),
   })
   const panels: Record<PanelKey, MenuPanel> = {
@@ -575,6 +641,7 @@ function main(): void {
     }, back),
     help: helpPanel(touch, back),
     floorPick: pickPanel,
+    runSummary: summaryPanel,
   }
   const overlay = new MenuOverlay(document.body, panels)
   menuButton(document.body, () => dispatch({ kind: 'pause' }))
@@ -582,6 +649,7 @@ function main(): void {
   function render(): void {
     document.documentElement.dataset['screen'] = state.screen
     title.setMap(mapToPlay())
+    title.setStats(rogueliteStats)
     overlay.show(visiblePanel(state))
     const running = simRuns(state)
     input.setEnabled(running)
@@ -597,8 +665,7 @@ function main(): void {
     render()
   }
 
-  async function play(): Promise<void> {
-    const mapId = mapToPlay()
+  async function play(mapId = mapToPlay()): Promise<void> {
     audio.setPaused(false) // inside the click: browsers start audio only from a user gesture
     // a generated floor gets a fresh seed in a fresh page (mapUrl drops the seed)
     if (game?.mapId === mapId && !isGeneratedMapId(mapId)) {

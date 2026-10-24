@@ -47,7 +47,7 @@ const MEDIKIT_SPRITE = 'medikit'
 const HEAL_LABEL = 'Full heal + medikit'
 
 /** A camelCase key as words: energyPulseSpell -> Energy pulse spell. */
-const wordsOf = (key: string): string => {
+export const wordsOf = (key: string): string => {
   const words = key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
@@ -189,7 +189,7 @@ function markChosen(card: HTMLButtonElement): void {
 function rewardContent(r: RewardOption, art: SpriteArt): HTMLElement[] {
   switch (r.kind) {
     case 'spell':
-      return [el('span', 'pick-detail', 'New spell'), artRow(art(r.scroll, 'stand'), art(r.scroll, 'writing') ?? el('span', 'pick-title', wordsOf(r.scroll)))]
+      return [el('span', 'pick-detail', 'New spell'), scrollArt(r.scroll, art)]
     case 'heal':
       return [el('span', 'pick-detail', 'Heal'), artRow(art(MEDIKIT_SPRITE, 'stand'), el('span', 'pick-title', HEAL_LABEL))]
     case 'potions':
@@ -199,6 +199,10 @@ function rewardContent(r: RewardOption, art: SpriteArt): HTMLElement[] {
       ]
   }
 }
+
+/** A scroll and its writing (its name when the writing art is missing), as a spell card shows it. */
+export const scrollArt = (scroll: string, art: SpriteArt): HTMLElement =>
+  artRow(art(scroll, 'stand'), art(scroll, 'writing') ?? el('span', 'pick-title', wordsOf(scroll)))
 
 function artRow(...items: (HTMLElement | null)[]): HTMLElement {
   const row = el('span', 'pick-art')
