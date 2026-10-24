@@ -280,7 +280,8 @@ override them by key like any actor. Rules: `src/sim/volley.ts`; firing: `stepVo
   from the speed and the bullet's own friction; a projectile that explodes on landing
   (`#bulletLanded` in its explodeEvents: bombs, thunder, lava) is launched only as fast as lands it
   on the aim (`launchToLand`: the largest speed whose friction flight stalls short of the aim),
-  never faster than the spell's own launch, so out of range it falls short.
+  never faster than the spell's own launch, so out of range it falls short, and never slower than
+  `minLandingSpeedShare` (0.5) of it, so a close aim is overshot.
 - **Hits.** Enemy bullets still collide only with their target. A volley projectile has no target:
   it hits the first living hated unit of the spell's `hits` roles (members and buildings: every
   bullet's own data only hits #teamMembers, so dwellings were missed) its collision rect touches, the nearest
@@ -569,3 +570,6 @@ splash.
 - **Damage buff back (owner, 2026-10-25):** every volley's `damageMultiplier` x2.5, so each
   projectile hits about 2.5x the enemy's own shot (bombs ~3.75x; tried 2x first).
 - **Bombs (owner, 2026-10-25):** 4.5x the enemy bomb, and a fan of 30 degrees at 1-2 bombs up to 80 (+-40).
+- **Launch speeds (owner, 2026-10-25):** an exploding projectile launches at no less than half its
+  full speed (`minLandingSpeedShare`), overshooting close aims; bombs 1.2x faster (rangeFactor 1.5,
+  about 90 px); thunder rangeFactor 2.6 (about 600 px, across the room).

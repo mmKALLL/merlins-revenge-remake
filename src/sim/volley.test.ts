@@ -13,7 +13,7 @@ import { createSim, stepSim } from './tick'
 import { shotAngleDeg, smoothShots, volleyBallPx, volleyIconStack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, spread: 'random' }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, spread: 'random' }
 
 describe('volley rules', () => {
   it('fires one projectile, one more per chargePerShot of charge, at most maxShots', () => {
@@ -144,22 +144,28 @@ describe('volleys in the sim', () => {
     expect(energyOf(s, dwelling)).toBeLessThan(before)
   })
 
-  it('the first projectile that explodes on landing lands on the aim when the aim is in range', () => {
+  const bombLanding = (dist: number): number => {
     const bombs = { ...engineDefs['bombVolley']!.attack, chargeSpeed: 1, chargeMaxModifier: 1, chargeMaxBasic: 0 }
-    for (const dist of [40, 70]) {
-      const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + dist, y: SPELL_Y } }
-      let s = world(bombs)
-      s = stepSim(s, { ...at, chargeHeld: true })
+    const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + dist, y: SPELL_Y } }
+    let s = world(bombs)
+    s = stepSim(s, { ...at, chargeHeld: true })
+    s = stepSim(s, at)
+    let landed: { x: number; y: number } | undefined
+    for (let i = 0; i < 60 && !landed; i++) {
       s = stepSim(s, at)
-      let landed: { x: number; y: number } | undefined
-      for (let i = 0; i < 60 && !landed; i++) {
-        s = stepSim(s, at)
-        landed = s.actors.find((a) => a.def === 'bomb' && a.mode === 'explode')?.pos
-      }
-      expect(landed).toBeDefined()
-      // the spell stands a little above the charge loc; the aim is level with the charge loc
-      expect(Math.abs(landed!.x - at.mouseWorld!.x)).toBeLessThan(6)
+      landed = s.actors.find((a) => a.def === 'bomb' && a.mode === 'explode')?.pos
     }
+    expect(landed).toBeDefined()
+    return landed!.x - PLAYER.x
+  }
+
+  it('the first projectile that explodes on landing lands on the aim when the aim is in range', () => {
+    // the spell stands a little above the charge loc; the aim is level with the charge loc
+    for (const dist of [60, 90]) expect(Math.abs(bombLanding(dist) - dist)).toBeLessThan(6)
+  })
+
+  it('a close aim is overshot: the launch keeps at least minLandingSpeedShare of the full speed', () => {
+    expect(bombLanding(5)).toBeGreaterThan(15)
   })
 
   it("deals the bullet's damage times Merlin's damageDealtMultiplier and the volley's damageMultiplier", () => {

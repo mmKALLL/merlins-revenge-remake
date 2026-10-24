@@ -204,7 +204,7 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const [speedU, r2] = nextRandom(r1)
   t.rng = r2
   const launch = volleyLaunch(spell.pos, spell.targetPoint, strength, atk.firingType, volley)
-  const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(spell.pos, spell.targetPoint, launch, bulletDef.friction) : launch
+  const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(spell.pos, spell.targetPoint, launch, bulletDef.friction, volley.minLandingSpeedShare) : launch
   const { fired, total } = spell.volley!
   const vel = turnAndScale(base, shotAngleDeg(fired, total, volley, angleU), shotSpeedFactor(fired, volley, speedU))
   const attack = { ...bulletDef.attack, hits: atk.hits, damageMultiplier: bulletDef.attack.damageMultiplier * volley.damageMultiplier }

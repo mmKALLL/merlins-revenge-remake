@@ -86,12 +86,13 @@ export function landingTravel(vel: Vec, friction: Vec): number {
 
 /**
  * Remake: a launch that explodes on landing is slowed so it lands on `aim` (the largest speed along
- * `launch` whose landing travel is not past the aim), never faster than `launch` itself (the spell's range).
+ * `launch` whose landing travel is not past the aim), never faster than `launch` itself (the spell's range)
+ * and never slower than `minShare` of it (a close aim is overshot).
  */
-export function launchToLand(from: Vec, aim: Vec, launch: Vec, friction: Vec): Vec {
+export function launchToLand(from: Vec, aim: Vec, launch: Vec, friction: Vec, minShare: number): Vec {
   const dist = Math.hypot(aim.x - from.x, aim.y - from.y)
   if (landingTravel(launch, friction) <= dist) return launch
-  let lo = 0
+  let lo = minShare
   let hi = 1
   for (let i = 0; i < LANDING_SEARCH_STEPS; i++) {
     const mid = (lo + hi) / 2

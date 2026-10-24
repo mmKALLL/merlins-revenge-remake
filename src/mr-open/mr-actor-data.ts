@@ -81,6 +81,7 @@ export interface VolleyDef {
   spreadMaxDeg: number // total fan width at maxShots, growing linearly in between
   spread: VolleySpread // even: equally spaced; random: the first at the aim, the others anywhere in the fan
   speedJitter: number // each projectile's speed x (1 +- up to this)
+  minLandingSpeedShare: number // a projectile that explodes on landing launches at least this share of the full speed
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -252,7 +253,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, spread: 'random' }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, spread: 'random' }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -351,7 +352,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'spread',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'spread',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -546,6 +547,7 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     chargePerShot: num(f, 'chargePerShot', c), maxShots: num(f, 'maxShots', c), rangeFactor: num(f, 'rangeFactor', c),
     damageMultiplier: num(f, 'damageMultiplier', c), staggerTicks: num(f, 'staggerTicks', c),
     spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
+    minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
     spread: volleySpreadOf(f['spread'], c),
   }
 }
