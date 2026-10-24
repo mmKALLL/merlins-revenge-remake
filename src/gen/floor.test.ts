@@ -5,11 +5,12 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
 import { withRemakeObjectSymbols } from './remake-object-tiles'
 import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
-import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, type GeneratedFloor } from './floor'
+import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, type GeneratedFloor, type Placement } from './floor'
 import { edgeMismatches } from './edge-check'
 import { TOWER_FLOORS } from './tower'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
+import { hatedTeams } from '../mr-open/mr-targeting'
 import { GOLDEN_FORT, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 /** Every theme: the generated maps' and the roguelite run's own biomes. */
@@ -118,56 +119,105 @@ describe.each(ALL_THEMES)('random floor: $name', (theme) => {
     }
   })
 
-  it('keeps each room to one faction (or alliance, or a group and its allies), except a share of normal rooms that mix rival teams', () => {
-    const factionOf = new Map<string, string>()
-    for (const c of [...theme.units.enemies, ...theme.units.dwellings]) if (c.faction) factionOf.set(c.key, c.faction)
+  /** A floor's placements per room key. */
+  const byRoom = (f: GeneratedFloor): Map<string, Placement[]> => {
+    const out = new Map<string, Placement[]>()
+    for (const p of f.placements) out.set(roomKey(p.room), [...(out.get(roomKey(p.room)) ?? []), p])
+    return out
+  }
+  const cellOf = (key: string) => {
+    const [x, y] = key.split(',').map(Number)
+    return planCell(theme.units.roomPlan, { x: x!, y: y! })
+  }
+  const isBrawl = (units: readonly Placement[]) => units.some((p) => p.side !== undefined)
+  const factionOf = new Map<string, string>()
+  for (const c of [...theme.units.enemies, ...theme.units.dwellings]) if (c.faction) factionOf.set(c.key, c.faction)
+  const enemyTeam = (key: string): string | undefined => {
+    const team = pageDefs[key]?.team
+    return team && pageTeams[team]?.category === 'enemies' ? team : undefined
+  }
+
+  it('keeps each room but the brawls to one faction (or alliance, or a group and its allies)', () => {
     const alliances = theme.units.alliances
-    let normalRooms = 0
-    let mixedRooms = 0
     for (const f of floors.values()) {
-      const perRoom = new Map<string, Set<string>>()
-      for (const p of f.placements) {
-        const faction = factionOf.get(p.key)
-        if (!faction) continue
-        const set = perRoom.get(roomKey(p.room)) ?? new Set<string>()
-        set.add(faction)
-        perRoom.set(roomKey(p.room), set)
-      }
-      for (const [key, set] of perRoom) {
-        const [x, y] = key.split(',').map(Number)
-        const cell = planCell(theme.units.roomPlan, { x: x!, y: y! })
-        const normal = cell.kind === 'normal'
-        if (normal) normalRooms++
+      for (const [key, units] of byRoom(f)) {
+        if (isBrawl(units)) continue
+        const set = new Set(units.flatMap((p) => factionOf.get(p.key) ?? []))
+        const cell = cellOf(key)
         const groups = cell.kind === 'boss' ? theme.units.bosses : cell.groups ?? []
-        const ofGroup = groups.some((g) => g.faction && [...set].every((f) => f === g.faction || g.allies?.includes(f)))
-        if (alliances) expect(alliances.some((a) => [...set].every((f) => a.factions.includes(f))), [...set].join(' ')).toBe(true)
-        else if (set.size > 1 && !ofGroup) {
-          expect(normal, `${key}: ${[...set].join(' ')}`).toBe(true) // never a midboss or boss room
-          mixedRooms++
-        }
+        const ofGroup = groups.some((g) => g.faction && [...set].every((x) => x === g.faction || g.allies?.includes(x)))
+        if (alliances) expect(alliances.some((a) => [...set].every((x) => a.factions.includes(x))), [...set].join(' ')).toBe(true)
+        else expect(set.size <= 1 || ofGroup, `${key}: ${[...set].join(' ')}`).toBe(true)
       }
     }
-    // the mixed roll is mixedFactionChance; a mixed room can still draw from one faction only
-    if (!alliances && normalRooms > 0) expect(mixedRooms / normalRooms).toBeLessThan(theme.units.mixedFactionChance * 1.5 + 0.02)
   })
 
-  it('never puts teams that hate each other into one room, outside the mixed normal rooms (assets/teams)', () => {
+  it('never puts teams that hate each other into one room, outside the brawls (assets/teams)', () => {
     const hates = (a: string, b: string) => pageTeams[a]!.hates.flat().includes(b)
     for (const [seed, f] of [...floors].slice(0, 200)) {
-      const teams = new Map<string, Set<string>>()
-      for (const p of f.placements) {
-        const team = pageDefs[p.key]?.team
-        if (!team || pageTeams[team]?.category !== 'enemies') continue
-        const set = teams.get(roomKey(p.room)) ?? new Set<string>()
-        set.add(team)
-        teams.set(roomKey(p.room), set)
-      }
-      for (const [room, set] of teams) {
-        const [x, y] = room.split(',').map(Number)
-        if (theme.units.mixedFactionChance > 0 && planCell(theme.units.roomPlan, { x: x!, y: y! }).kind === 'normal') continue
+      for (const [room, units] of byRoom(f)) {
+        if (isBrawl(units)) continue
+        const set = new Set(units.flatMap((p) => enemyTeam(p.key) ?? []))
         for (const a of set) for (const b of set) expect(hates(a, b), `seed ${seed} room ${room}: ${a} hates ${b}`).toBe(false)
       }
     }
+  })
+
+  it('declares as rivals exactly its faction pairs whose teams hate each other both ways', () => {
+    const teamsOf = new Map<string, Set<string>>()
+    for (const [key, faction] of factionOf) teamsOf.set(faction, new Set([...(teamsOf.get(faction) ?? []), ...(enemyTeam(key) ? [enemyTeam(key)!] : [])]))
+    const hostile = (a: string, b: string) => hatedTeams(a, pageTeams).includes(b) && hatedTeams(b, pageTeams).includes(a)
+    const factions = [...teamsOf.keys()]
+    const rivals = factions.flatMap((a, i) => factions.slice(i + 1).filter((b) => [...teamsOf.get(a)!].some((x) => [...teamsOf.get(b)!].some((y) => hostile(x, y)))).map((b) => [a, b].sort().join(' vs ')))
+    const declared = (theme.units.rivals ?? []).map((pair) => [...pair].sort().join(' vs '))
+    if (theme.units.mixedFactionChance === 0) expect(declared).toEqual([])
+    else expect(declared.sort()).toEqual(rivals.sort())
+    const rivalFactions = new Set((theme.units.rivals ?? []).flat())
+    for (const c of theme.units.enemies.concat(theme.units.dwellings)) if (c.brawlOnly) expect(rivalFactions.has(c.faction ?? ''), c.key).toBe(true)
+  })
+
+  it('makes brawls only of normal rooms, two rival factions each standing grouped on its own side of the room', () => {
+    const rivals = (theme.units.rivals ?? []).map((pair) => [...pair].sort().join(' vs '))
+    const middle = (ROOM_SIZE.x - 1) / 2
+    const offsets: number[] = []
+    for (const [seed, f] of floors) {
+      for (const [room, units] of byRoom(f)) {
+        if (!isBrawl(units)) continue
+        expect(cellOf(room).kind, `seed ${seed} room ${room}`).toBe('normal')
+        const sides = ([0, 1] as const).map((side) => units.filter((p) => p.side === side))
+        const factions = sides.map((s) => new Set(s.flatMap((p) => factionOf.get(p.key) ?? [])))
+        expect(factions.map((s) => s.size), `seed ${seed} room ${room}`).toEqual([1, 1])
+        expect(rivals).toContain(factions.flatMap((s) => [...s]).sort().join(' vs '))
+        const xs = sides.map((s) => s.reduce((sum, p) => sum + p.tile.x, 0) / s.length)
+        expect(Math.sign(xs[0]! - middle) * Math.sign(xs[1]! - middle), `seed ${seed} room ${room}: ${xs.join(' ')}`).toBe(-1)
+        offsets.push(...xs.map((x) => Math.abs(x - middle)))
+      }
+    }
+    // each side gathers around a quarter of the way in (4.25 tiles from the middle), not at the edges (6.5)
+    if (theme.units.rivals?.length) {
+      const mean = offsets.reduce((sum, d) => sum + d, 0) / offsets.length
+      expect(mean).toBeGreaterThan(3)
+      expect(mean).toBeLessThan(5.5)
+    }
+  })
+
+  it('keeps the brawl-only choices to the brawls, and makes brawls of about a seventh of the normal rooms', () => {
+    const brawlOnly = new Set(theme.units.enemies.concat(theme.units.dwellings).filter((c) => c.brawlOnly).map((c) => c.key))
+    let normalRooms = 0
+    let brawls = 0
+    for (const f of floors.values()) {
+      for (const [room, units] of byRoom(f)) {
+        if (cellOf(room).kind === 'normal') normalRooms++
+        if (isBrawl(units)) brawls++
+        else for (const p of units) expect(brawlOnly.has(p.key), `${room}: ${p.key}`).toBe(false)
+      }
+    }
+    // a measurement with loose bounds, not a tuning pin: the roll is mixedFactionChance, and a room
+    // whose draws the rivals cannot both fill stays a normal one
+    if (theme.units.rivals?.length) {
+      expect(brawls / normalRooms).toBeGreaterThan(0.03)
+      expect(brawls / normalRooms).toBeLessThan(0.25)
+    } else expect(brawls).toBe(0)
   })
 
   it('puts a corner group into each special corner room, and a boss group into the exit room', () => {
@@ -498,9 +548,12 @@ describe('Golden Fort (owner rules)', () => {
     }
   })
 
-  it('draws from every tower floor\'s enemies and dwellings, each with its team as its faction', () => {
+  it('draws from every tower floor\'s enemies and dwellings (not the brawl-only ones), each with its team as its faction', () => {
     const fortKeys = new Set([...u.enemies, ...u.dwellings].map((c) => c.key))
-    for (const theme of TOWER_THEMES) for (const c of [...theme.units.enemies, ...theme.units.dwellings]) expect(fortKeys.has(c.key), c.key).toBe(true)
+    for (const theme of TOWER_THEMES) {
+      for (const c of [...theme.units.enemies, ...theme.units.dwellings]) if (!c.brawlOnly) expect(fortKeys.has(c.key), c.key).toBe(true)
+    }
+    expect([...u.enemies, ...u.dwellings].filter((c) => c.brawlOnly)).toEqual([])
     for (const c of [...u.enemies, ...u.dwellings]) expect(c.faction, c.key).toBe(pageDefs[c.key]!.team)
     for (const b of u.bosses) expect(b.faction, b.label).toBe(pageDefs[b.boss]!.team)
   })

@@ -42,7 +42,7 @@ export function placeFloor(floor: GeneratedFloor, to: FloorPlacement): Generated
     const e = floor.edges[roomKey(at)]!
     edges[roomKey(moveRoom(at))] = to.mirrorX ? mirrorEdgesX(e) : e
   }
-  const placements = floor.placements.map((p) => ({ key: p.key, room: moveRoom(p.room), tile: moveTile(p.tile) }))
+  const placements = floor.placements.map((p) => ({ ...p, room: moveRoom(p.room), tile: moveTile(p.tile) }))
   const { startRoom, endRoom } = floor.map
   const map = {
     ...floor.map,

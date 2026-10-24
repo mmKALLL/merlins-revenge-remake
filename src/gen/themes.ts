@@ -117,6 +117,8 @@ export interface EnemyChoice {
    * faction and only takes choices of that faction (or of none).
    */
   faction?: string
+  /** owner: only a brawl room takes it, on its faction's side (UnitTuning.rivals); rooms of one faction never do */
+  brawlOnly?: boolean
 }
 
 /**
@@ -203,8 +205,13 @@ export interface UnitTuning {
    * own (it keeps its own groups), for variance; never the start, midboss or boss room.
    */
   wildcardChance: number
-  /** Chance per normal room of drawing from every faction at once (rival teams that brawl); its own roll. */
+  /**
+   * Chance per normal room of being a brawl: two rival factions (`rivals`), each drawing about half
+   * of the room's units and standing grouped on its own side of the room; its own roll.
+   */
   mixedFactionChance: number
+  /** faction pairs whose teams hate each other (assets/teams; floor.test.ts checks this), for brawls */
+  rivals?: readonly RivalPair[]
   /** regular enemies and summoners (`producer`) */
   enemies: EnemyChoice[]
   dwellings: EnemyChoice[]
@@ -219,6 +226,9 @@ export interface UnitTuning {
    */
   alliances?: Alliance[]
 }
+
+/** Two factions that brawl. */
+export type RivalPair = readonly [string, string]
 
 /** Factions that share a room peacefully. */
 export interface Alliance {
@@ -299,8 +309,10 @@ const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 
 /** Owner: about one normal room in ten ignores its cell (UnitTuning.wildcardChance). */
 const WILDCARD_CHANCE = 0.1
-/** Owner: about 15 % of normal rooms mix rival teams (UnitTuning.mixedFactionChance). */
+/** Owner: about 15 % of normal rooms are brawls of rival teams (UnitTuning.mixedFactionChance). */
 const MIXED_FACTION_CHANCE = 0.15
+/** The ninjas hate every other enemy team but the black sorcerer's, and they the ninjas. */
+const NINJAS = 'ninjas'
 
 /** Tier weights for a draw; a tier the room's faction lacks is skipped, so mixes fall back. */
 type TierWeights = Partial<Record<Tier, number>>
@@ -409,6 +421,8 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   goblinWarrior: 22,
   goblinMageHut: 23,
   goblinMage: 24,
+  skeletonWarrior: 26,
+  skeletonArcher: 28,
   batTree: 49,
   bat: 50,
   hydra1: 57,
@@ -463,6 +477,13 @@ const GRASS = 12
 const GRASS_FLOWERS = 14
 
 /**
+ * The forest's factions: its goblins, orcs and bats leave each other alone, so they make one; the
+ * undead (brawl rooms only) hate the goblins and orcs.
+ */
+const FOREST = 'forest'
+const UNDEAD = 'undead'
+
+/**
  * The owner's plan: generators toward the top-left (farY), regular enemies toward the bottom-right
  * (farX), where there are no generators; the centre balances the two with stronger enemies.
  */
@@ -470,8 +491,8 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
   [
     midboss(
       [
-        { label: 'orc hole', units: { orcHouse: 1, bowOrc: 1 } },
-        { label: 'orc shamans', units: { mageOrc: 2 } },
+        { label: 'orc hole', units: { orcHouse: 1, bowOrc: 1 }, faction: FOREST },
+        { label: 'orc shamans', units: { mageOrc: 2 }, faction: FOREST },
       ],
       { regulars: n(0, 2, WEAK) }
     ),
@@ -488,8 +509,8 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
     normal({ regulars: n(2, 3, WEAK) }),
     normal({
       groups: [
-        { label: 'goblin warrior band', units: { goblinWarrior: 4 } },
-        { label: 'archers and bats', units: { goblinArcher: 3, bat: 2 } },
+        { label: 'goblin warrior band', units: { goblinWarrior: 4 }, faction: FOREST },
+        { label: 'archers and bats', units: { goblinArcher: 3, bat: 2 }, faction: FOREST },
       ],
       regulars: NUMEROUS_WEAK,
     }),
@@ -533,24 +554,28 @@ export const GOBLIN_FOREST: FloorTheme = {
     roomPlan: GOBLIN_FOREST_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    rivals: [[FOREST, UNDEAD]],
     enemies: [
-      { key: 'goblinArcher', weight: 6, tier: 'weak' },
-      { key: 'goblinWarrior', weight: 1.5, tier: 'weak' },
-      { key: 'bat', weight: 1, tier: 'weak' },
-      { key: 'goblinMage', weight: 1, tier: 'mid' },
-      { key: 'swordOrc', weight: 1, tier: 'strong', maxPerRoom: 2 },
-      { key: 'bowOrc', weight: 0.7, tier: 'strong', maxPerRoom: 2 },
-      { key: 'mageOrc', weight: 1, tier: 'strong', maxPerRoom: 1, producer: true },
+      { key: 'goblinArcher', weight: 6, tier: 'weak', faction: FOREST },
+      { key: 'goblinWarrior', weight: 1.5, tier: 'weak', faction: FOREST },
+      { key: 'bat', weight: 1, tier: 'weak', faction: FOREST },
+      { key: 'goblinMage', weight: 1, tier: 'mid', faction: FOREST },
+      { key: 'swordOrc', weight: 1, tier: 'strong', maxPerRoom: 2, faction: FOREST },
+      { key: 'bowOrc', weight: 0.7, tier: 'strong', maxPerRoom: 2, faction: FOREST },
+      { key: 'mageOrc', weight: 1, tier: 'strong', maxPerRoom: 1, producer: true, faction: FOREST },
+      // owner: a few skeletons for the brawls, no dwellings or summoners
+      { key: 'skeletonWarrior', weight: 1, tier: 'weak', faction: UNDEAD, brawlOnly: true },
+      { key: 'skeletonArcher', weight: 1, tier: 'weak', faction: UNDEAD, brawlOnly: true },
     ],
     dwellings: [
-      { key: 'goblinHut', weight: 1, tier: 'weak' },
-      { key: 'goblinMageHut', weight: 1, tier: 'mid' },
-      { key: 'batTree', weight: 0.6, tier: 'mid' },
-      { key: 'orcHouse', weight: 1, tier: 'strong', maxPerRoom: 1 },
+      { key: 'goblinHut', weight: 1, tier: 'weak', faction: FOREST },
+      { key: 'goblinMageHut', weight: 1, tier: 'mid', faction: FOREST },
+      { key: 'batTree', weight: 0.6, tier: 'mid', faction: FOREST },
+      { key: 'orcHouse', weight: 1, tier: 'strong', maxPerRoom: 1, faction: FOREST },
     ],
     bosses: [
-      { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, boss: 'swordOrc' },
-      { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
+      { label: 'orc camp', units: { orcHouse: 1, swordOrc: 1 }, faction: FOREST, boss: 'swordOrc' },
+      { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, faction: FOREST, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('boltFan', 1), w('acidSplash', 1)], MERLIN4_OBJECTS)),
@@ -605,6 +630,9 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   shurikenNinja: 111,
   ninja: 112,
   mysteriousCloud: 113,
+  swordNinja: 114,
+  bug: 141,
+  druid: 146,
   speedyGuy: 115,
   fangBunnyBaby: 143,
   fangBunny: 144,
@@ -799,6 +827,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     roomPlan: UNDEAD_MARSH_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    rivals: [['undead', 'critters']],
     enemies: [
       { key: 'skeletonWarrior', weight: 6, tier: 'weak', faction: 'undead' },
       { key: 'skeletonThrower', weight: 2, tier: 'weak', faction: 'undead' },
@@ -830,6 +859,9 @@ export const UNDEAD_MARSH: FloorTheme = {
   },
 }
 
+/** The canyon's martial artists, monsters and swamp creatures leave each other alone; the ninjas (brawl rooms only) hate them all. */
+const CANYON = 'canyon'
+
 /**
  * The forest's orientation: the sketch's golem quarry (a boulder cave, a producer) already led the
  * farY corner, so it stays the generator midboss there.
@@ -838,8 +870,8 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
   [
     midboss(
       [
-        { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 } },
-        { label: 'dark cave', units: { darkCave: 1, darkGolem: 1 } },
+        { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 1 }, faction: CANYON },
+        { label: 'dark cave', units: { darkCave: 1, darkGolem: 1 }, faction: CANYON },
       ],
       { regulars: n(0, 2, WEAK) }
     ),
@@ -856,8 +888,8 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
     normal({ regulars: n(2, 3, WEAK) }),
     normal({
       groups: [
-        { label: 'dojo class', units: { karateGuy: 3, kongFuChicken: 2 } },
-        { label: 'lizard pack', units: { lizard: 4 } },
+        { label: 'dojo class', units: { karateGuy: 3, kongFuChicken: 2 }, faction: CANYON },
+        { label: 'lizard pack', units: { lizard: 4 }, faction: CANYON },
       ],
       regulars: NUMEROUS_WEAK,
     }),
@@ -903,27 +935,32 @@ export const DRAGON_CANYON: FloorTheme = {
     roomPlan: DRAGON_CANYON_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    rivals: [[CANYON, NINJAS]],
     // martial artists as the weak ones; dragons, hydras and dark golems as the strong ones
     enemies: [
-      { key: 'karateGuy', weight: 4, tier: 'weak' },
-      { key: 'kongFuChicken', weight: 2, tier: 'weak' },
-      { key: 'lizard', weight: 2, tier: 'weak' },
-      { key: 'plant', weight: 1.2, tier: 'mid' },
-      { key: 'boulderMonster', weight: 1.5, tier: 'mid' },
-      { key: 'lizardSoldier', weight: 1, tier: 'mid' },
-      { key: 'hydra1', weight: 0.8, tier: 'mid' },
-      { key: 'dragon', weight: 1.5, tier: 'strong', maxPerRoom: 2 },
-      { key: 'darkGolem', weight: 0.8, tier: 'strong', maxPerRoom: 1 },
+      { key: 'karateGuy', weight: 4, tier: 'weak', faction: CANYON },
+      { key: 'kongFuChicken', weight: 2, tier: 'weak', faction: CANYON },
+      { key: 'lizard', weight: 2, tier: 'weak', faction: CANYON },
+      { key: 'plant', weight: 1.2, tier: 'mid', faction: CANYON },
+      { key: 'boulderMonster', weight: 1.5, tier: 'mid', faction: CANYON },
+      { key: 'lizardSoldier', weight: 1, tier: 'mid', faction: CANYON },
+      { key: 'hydra1', weight: 0.8, tier: 'mid', faction: CANYON },
+      { key: 'dragon', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: CANYON },
+      { key: 'darkGolem', weight: 0.8, tier: 'strong', maxPerRoom: 1, faction: CANYON },
+      // owner: ninjas for the brawls, no ninja dwelling (mysterious cloud)
+      { key: 'shurikenNinja', weight: 1, tier: 'weak', faction: NINJAS, brawlOnly: true },
+      { key: 'ninja', weight: 1, tier: 'mid', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
+      { key: 'swordNinja', weight: 1, tier: 'mid', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
     ],
     dwellings: [
-      { key: 'dojo', weight: 3, tier: 'weak' },
-      { key: 'boulderCave', weight: 1, tier: 'mid' },
-      { key: 'darkCave', weight: 1, tier: 'strong', maxPerRoom: 1 },
+      { key: 'dojo', weight: 3, tier: 'weak', faction: CANYON },
+      { key: 'boulderCave', weight: 1, tier: 'mid', faction: CANYON },
+      { key: 'darkCave', weight: 1, tier: 'strong', maxPerRoom: 1, faction: CANYON },
     ],
     bosses: [
-      { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 }, boss: 'fourArmGolem' },
-      { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, boss: 'dragon' },
-      { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, boss: 'hydra3' },
+      { label: 'dark golems', units: { fourArmGolem: 1, doubleDarkGolem: 1 }, faction: CANYON, boss: 'fourArmGolem' },
+      { label: "dragon's lair", units: { dragon: 3, lizardSoldier: 2 }, faction: CANYON, boss: 'dragon' },
+      { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, faction: CANYON, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
@@ -1057,6 +1094,8 @@ export const MAGIC_MAZE: FloorTheme = {
     roomPlan: MAGIC_MAZE_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    // the undead and Scarlet's army leave each other alone
+    rivals: [['alliance', 'undead'], ['alliance', 'scarlet'], ['alliance', 'monsters'], ['undead', 'monsters'], ['scarlet', 'monsters']],
     // MR3's wizards are not ported: the magical alliance, the undead casters and Scarlet's army
     // (the chromatic sorcerers' troops) stand in, each faction in rooms of its own
     enemies: [
@@ -1173,12 +1212,13 @@ const teamOf = (key: string): string => {
 
 /**
  * Owner: the fort's enemies are very random, so its rooms draw from every theme's enemies and
- * dwellings, each at weight 1 and its own theme's tier, with its team as its faction.
+ * dwellings, each at weight 1 and its own theme's tier, with its team as its faction (the
+ * brawl-only ones left out: the fort has no brawls).
  */
 function everyThemesChoices(pick: (u: UnitTuning) => EnemyChoice[]): EnemyChoice[] {
   const byKey = new Map<string, EnemyChoice>()
   for (const theme of TOWER_THEMES) {
-    for (const c of pick(theme.units)) if (!byKey.has(c.key)) byKey.set(c.key, { ...c, weight: 1, faction: teamOf(c.key) })
+    for (const c of pick(theme.units)) if (!c.brawlOnly && !byKey.has(c.key)) byKey.set(c.key, { ...c, weight: 1, faction: teamOf(c.key) })
   }
   return [...byKey.values()]
 }
@@ -1309,7 +1349,6 @@ const BIOME_OBJECTS: Record<string, number> = { ...MERLIN_OPEN_OBJECTS, ...MERLI
  * ninjas), so the ninjas hold rooms of their own.
  */
 const WOODS = 'woods'
-const NINJAS = 'ninjas'
 
 export const DEEP_FOREST: FloorTheme = {
   id: 'deep-forest',
@@ -1360,14 +1399,20 @@ export const DEEP_FOREST: FloorTheme = {
     ),
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    rivals: [[WOODS, NINJAS]],
     enemies: [
-      { key: 'goblinWarrior', weight: 4, tier: 'weak', faction: WOODS },
-      { key: 'goblinArcher', weight: 3, tier: 'weak', faction: WOODS },
+      // owner (2026-10-25): half the goblin fighters, twice the goblin mages, and druids and bugs
+      { key: 'goblinWarrior', weight: 2, tier: 'weak', faction: WOODS },
+      { key: 'goblinArcher', weight: 1.5, tier: 'weak', faction: WOODS },
       // owner: bats could not be seen on the dark ground; quadranids and small lizards instead
       { key: 'lizard', weight: 1.2, tier: 'weak', faction: WOODS },
       { key: 'quadranid', weight: 1.2, tier: 'weak', faction: WOODS },
+      // the druid heals its friends (monsters, goblins, swamp) and has no attack of its own
+      { key: 'druid', weight: 1, tier: 'weak', maxPerRoom: 1, faction: WOODS },
+      // bugs (energy 4) swarm: a heavy weight so they come several at once, capped so they never flood a room
+      { key: 'bug', weight: 2.5, tier: 'weak', maxPerRoom: 5, faction: WOODS },
       { key: 'goblinHero', weight: 1.5, tier: 'mid', faction: WOODS },
-      { key: 'goblinMage', weight: 1.5, tier: 'mid', faction: WOODS },
+      { key: 'goblinMage', weight: 3, tier: 'mid', faction: WOODS },
       { key: 'plant', weight: 1.5, tier: 'mid', faction: WOODS },
       { key: 'fangBunnyBaby', weight: 1, tier: 'mid', maxPerRoom: 2, faction: WOODS },
       { key: 'fangBunny', weight: 0.6, tier: 'mid', maxPerRoom: 1, faction: WOODS },
@@ -1391,6 +1436,9 @@ export const DEEP_FOREST: FloorTheme = {
     ),
   },
 }
+
+/** The jungle's monsters, swamp creatures and bats leave each other alone; the ninjas (brawl rooms only) hate them all. */
+const JUNGLE = 'jungle'
 
 export const HYDRA_MARSH: FloorTheme = {
   id: 'hydra-marsh',
@@ -1432,33 +1480,37 @@ export const HYDRA_MARSH: FloorTheme = {
     startMusic: 'musicLastStand',
     roomPlan: biomePlan(
       [
-        { label: 'quadranid hive', units: { cocoon: 2, quadranid: 2 } },
-        { label: 'bat roost', units: { batTree: 2, bat: 2 } },
+        { label: 'quadranid hive', units: { cocoon: 2, quadranid: 2 }, faction: JUNGLE },
+        { label: 'bat roost', units: { batTree: 2, bat: 2 }, faction: JUNGLE },
       ],
       [
-        { label: 'lizard pack', units: { lizard: 4 } },
-        { label: 'plant bed', units: { plant: 3, lizard: 1 } },
+        { label: 'lizard pack', units: { lizard: 4 }, faction: JUNGLE },
+        { label: 'plant bed', units: { plant: 3, lizard: 1 }, faction: JUNGLE },
       ]
     ),
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
-    // monsters, the swamp's hydras and plants, and the cave's bats leave each other alone: no factions
+    rivals: [[JUNGLE, NINJAS]],
     enemies: [
-      { key: 'lizard', weight: 4, tier: 'weak' },
-      { key: 'bat', weight: 2, tier: 'weak' },
-      { key: 'lizardSoldier', weight: 1.5, tier: 'mid' },
-      { key: 'plant', weight: 2, tier: 'mid' },
-      { key: 'quadranid', weight: 2, tier: 'mid' },
-      { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2 },
-      { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1 },
+      { key: 'lizard', weight: 4, tier: 'weak', faction: JUNGLE },
+      { key: 'bat', weight: 2, tier: 'weak', faction: JUNGLE },
+      { key: 'lizardSoldier', weight: 1.5, tier: 'mid', faction: JUNGLE },
+      { key: 'plant', weight: 2, tier: 'mid', faction: JUNGLE },
+      { key: 'quadranid', weight: 2, tier: 'mid', faction: JUNGLE },
+      { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2, faction: JUNGLE },
+      { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1, faction: JUNGLE },
+      // owner: ninjas for the brawls, no ninja dwelling (mysterious cloud)
+      { key: 'shurikenNinja', weight: 1, tier: 'weak', faction: NINJAS, brawlOnly: true },
+      { key: 'ninja', weight: 1, tier: 'mid', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
+      { key: 'swordNinja', weight: 1, tier: 'strong', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
     ],
     dwellings: [
-      { key: 'cocoon', weight: 2, tier: 'weak' },
-      { key: 'batTree', weight: 1, tier: 'weak' },
+      { key: 'cocoon', weight: 2, tier: 'weak', faction: JUNGLE },
+      { key: 'batTree', weight: 1, tier: 'weak', faction: JUNGLE },
     ],
     bosses: [
-      { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2 }, boss: 'hydra3' },
-      { label: 'lizard war party', units: { lizardSoldier: 3, lizard: 3 }, boss: 'lizardSoldier' },
+      { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2 }, faction: JUNGLE, boss: 'hydra3' },
+      { label: 'lizard war party', units: { lizardSoldier: 3, lizard: 3 }, faction: JUNGLE, boss: 'lizardSoldier' },
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
@@ -1521,6 +1573,7 @@ export const GOLEM_MOUNTAIN: FloorTheme = {
     ),
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    rivals: [[GOLEMS, LAVA]],
     enemies: [
       { key: 'boulderMonster', weight: 4, tier: 'weak', faction: GOLEMS },
       // the ice rock (350) is about a boulder monster's match (300), so it joins the weak ones
@@ -1579,6 +1632,8 @@ export const GOLDEN_PALACE: FloorTheme = {
     ),
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
+    // Scarlet's army and the dojo leave each other alone
+    rivals: [[SCARLET, NINJAS], [SCARLET, MAGES], [DOJO, NINJAS], [DOJO, MAGES], [NINJAS, MAGES]],
     enemies: [
       { key: 'scWarrior', weight: 3, tier: 'weak', faction: SCARLET },
       { key: 'scArcher', weight: 3, tier: 'weak', faction: SCARLET },

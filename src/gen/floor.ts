@@ -11,7 +11,7 @@ import { signSpot, signTiles } from './location-sign'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
 import { runSteps, type Steps } from './steps'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
-import { TIERS, type Alliance, type Corner, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type BossGroup, type UnitGroup, type UnitTuning, type Weighted } from './themes'
+import { TIERS, type Alliance, type Corner, type RivalPair, type DrawSpec, type EnemyChoice, type FloorTheme, type HpBudget, type RoomPlan, type RoomPlanCell, type TierDraw, type BossGroup, type UnitGroup, type UnitTuning, type Weighted } from './themes'
 
 export const ROOM_SIZE: Vec = { x: 18, y: 9 }
 /** Engine rooms count y down: the start is the bottom-left corner, the exit the top-right one. */
@@ -77,7 +77,13 @@ export function energyLookup(defs: Readonly<Record<string, { energy: number }>>)
 }
 
 /** A placed unit: an objects-layer key at a room tile (0-based). */
-export interface Placement { key: string; room: Vec; tile: Vec }
+export interface Placement {
+  key: string
+  room: Vec
+  tile: Vec
+  /** in a brawl room, which of its two rival factions (UnitTuning.rivals) the unit fights for */
+  side?: Side
+}
 
 /** An opening on the floor's boundary, into a neighbouring floor (the tower's stairs). */
 export interface BoundaryOpening { room: Vec; edge: Edge; opening: Opening }
@@ -323,22 +329,24 @@ type RoomFactions = ReadonlySet<string> | null
 
 const inFactions = (c: EnemyChoice, factions: RoomFactions): boolean => c.faction === undefined || factions === null || factions.has(c.faction)
 
-/** The choices a draw can take with these factions. */
-const choicesFor = ({ table, draw }: TableDraw, factions: RoomFactions): EnemyChoice[] =>
-  draw ? table.filter((c) => inFactions(c, factions) && (draw.tiers[c.tier] ?? 0) > 0) : []
+/** Which choices a draw may take. */
+type Admits = (c: EnemyChoice) => boolean
+/** A room of one faction (or alliance): its factions' choices and the factionless ones, never a brawl-only one. */
+const ofFactions = (factions: RoomFactions): Admits => (c) => !c.brawlOnly && inFactions(c, factions)
+/** One side of a brawl: that faction's choices only, brawl-only ones included. */
+const ofSide = (faction: string): Admits => (c) => c.faction === faction
 
-/** Whether the factions have choices for every draw that asks for at least one unit. */
-const fillsDraws = (draws: readonly TableDraw[], factions: RoomFactions): boolean =>
-  draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, factions).length > 0)
+/** The choices a draw can take. */
+const choicesFor = ({ table, draw }: TableDraw, admits: Admits): EnemyChoice[] =>
+  draw ? table.filter((c) => admits(c) && (draw.tiers[c.tier] ?? 0) > 0) : []
 
-/**
- * A room's factions: its group's, or one drawn for it; with alliances, one alliance's. Owner: a
- * normal room is now and then a brawl of any factions (`mixedFactionChance`, its own roll beside the
- * wildcard's), never a midboss or boss room.
- */
-function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null, cell: RoomPlanCell): RoomFactions {
+/** Whether the choices fill every draw that asks for at least one unit. */
+const fillsDraws = (draws: readonly TableDraw[], admits: Admits): boolean =>
+  draws.every((d) => !d.draw || d.draw.count[0] === 0 || choicesFor(d, admits).length > 0)
+
+/** A room's factions: its group's, or one drawn for it; with alliances, one alliance's. */
+function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[], group: UnitGroup | null): RoomFactions {
   if (u.alliances) return pickAlliance(rng, u, u.alliances, draws, group)
-  if (cell.kind === 'normal' && rng.chance(u.mixedFactionChance)) return null
   if (group?.faction) return new Set([group.faction, ...(group.allies ?? [])])
   const faction = pickFaction(rng, draws)
   return faction === null ? null : new Set([faction])
@@ -350,12 +358,34 @@ function roomFactions(rng: GenRandom, u: UnitTuning, draws: readonly TableDraw[]
  * have). Null when no faction's choice fits the draws, so they only take factionless choices.
  */
 function pickFaction(rng: GenRandom, draws: readonly TableDraw[]): string | null {
-  const factions = new Set(draws.flatMap((d) => choicesFor(d, null)).flatMap((c) => (c.faction ? [c.faction] : [])))
-  const weightOf = (f: string) => draws.flatMap((d) => choicesFor(d, new Set([f]))).filter((c) => c.faction === f).reduce((s, c) => s + c.weight, 0)
+  const factions = new Set(draws.flatMap((d) => choicesFor(d, ofFactions(null))).flatMap((c) => (c.faction ? [c.faction] : [])))
+  const only = (f: string) => ofFactions(new Set([f]))
+  const weightOf = (f: string) => draws.flatMap((d) => choicesFor(d, only(f))).filter((c) => c.faction === f).reduce((s, c) => s + c.weight, 0)
   const all = [...factions].map((value) => ({ value, weight: weightOf(value) }))
-  const filling = all.filter((o) => fillsDraws(draws, new Set([o.value])))
+  const filling = all.filter((o) => fillsDraws(draws, only(o.value)))
   const options = filling.length > 0 ? filling : all
   return options.length > 0 ? rng.weighted(options) : null
+}
+
+/** A brawl room's two rival factions (sides 0 and 1); side 0 is its group's faction when it has a group. */
+type Brawl = RivalPair
+/** A brawl side. */
+type Side = 0 | 1
+
+/**
+ * Owner: a normal room now and then (`mixedFactionChance`, its own roll beside the wildcard's) is a
+ * brawl of two rival factions (`rivals`): a pair at random among those whose factions both have
+ * choices for some draw of the room, with its group's faction when it has a group (a group without
+ * a faction keeps its room out of brawls). Never a midboss, boss or alliance room; with no such
+ * pair, the room is a normal one.
+ */
+function rollBrawl(rng: GenRandom, u: UnitTuning, cell: RoomPlanCell, draws: readonly TableDraw[], group: UnitGroup | null): Brawl | null {
+  if (cell.kind !== 'normal' || u.alliances || !rng.chance(u.mixedFactionChance)) return null
+  if (group && !group.faction) return null
+  const drawsFor = (f: string) => draws.some((d) => d.draw && d.draw.count[1] > 0 && choicesFor(d, ofSide(f)).length > 0)
+  const withGroupFirst = ([a, b]: Brawl): Brawl[] => (!group ? [[a, b]] : a === group.faction ? [[a, b]] : b === group.faction ? [[b, a]] : [])
+  const pairs = (u.rivals ?? []).flatMap(withGroupFirst).filter((pair) => pair.every(drawsFor))
+  return pairs.length > 0 ? rng.pick(pairs) : null
 }
 
 /** The factions a group needs in its room: its own, and those of its units in the theme's tables. */
@@ -374,7 +404,7 @@ function pickAlliance(rng: GenRandom, u: UnitTuning, alliances: readonly Allianc
   const needed = groupFactions(u, group)
   const holding = alliances.filter((a) => needed.every((f) => a.factions.includes(f)))
   if (holding.length === 0) throw new Error(`no alliance holds the factions of "${group?.label}" (${needed.join(', ')})`)
-  const filling = holding.filter((a) => fillsDraws(draws, new Set(a.factions)))
+  const filling = holding.filter((a) => fillsDraws(draws, ofFactions(new Set(a.factions))))
   const options = filling.length > 0 ? filling : holding
   return new Set(rng.weighted(options.map((a) => ({ value: a, weight: a.weight }))).factions)
 }
@@ -390,8 +420,8 @@ const varietyWeight = (c: EnemyChoice, counts: ReadonlyMap<string, number>, vari
  * One unit for a draw: a tier by the draw's weights among those still open (and that `fits`), then
  * a choice by weight.
  */
-function pickUnit(rng: GenRandom, d: TableDraw, factions: RoomFactions, counts: Map<string, number>, variety: boolean, fits: (key: string) => boolean): string | null {
-  const open = choicesFor(d, factions).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity) && fits(c.key))
+function pickUnit(rng: GenRandom, d: TableDraw, admits: Admits, counts: Map<string, number>, variety: boolean, fits: (key: string) => boolean): string | null {
+  const open = choicesFor(d, admits).filter((c) => (counts.get(c.key) ?? 0) < (c.maxPerRoom ?? Infinity) && fits(c.key))
   if (open.length === 0) return null
   const tiers = TIERS.filter((t) => open.some((c) => c.tier === t)).map((t) => ({ value: t, weight: d.draw!.tiers[t]! }))
   const tier = rng.weighted(tiers)
@@ -558,7 +588,8 @@ function pickGroup<G extends UnitGroup>(rng: GenRandom, groups: readonly G[], ta
  * A room's units by its plan cell: the start room's own placements, or the corner potions, the
  * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
  * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
- * one faction or alliance.
+ * one faction or alliance; in a brawl, each unit for the side with fewer so far (the group's
+ * units on side 0), or the other side when it has nothing for the draw.
  */
 function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, edges: RoomEdges, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
   const u = theme.units
@@ -566,34 +597,42 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   const reserved = reservedTiles(theme.floorSize, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)) && isSafe(t))
   if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, edges, options)
-  const keys: string[] = []
+  const units: { key: string; side: Side }[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
   const boss = cell.kind === 'boss' ? pickGroup(rng, u.bosses, takenLeaders) : null
   const group = boss ?? (cell.groups?.length ? pickGroup(rng, cell.groups, takenLeaders) : null)
   const draws = group?.alone ? [] : roomDraws(rng, theme, cell)
-  const factions = roomFactions(rng, u, draws, group, cell)
+  const brawl = rollBrawl(rng, u, cell, draws, group)
+  const sides: readonly Admits[] = brawl ? brawl.map(ofSide) : [ofFactions(roomFactions(rng, u, draws, group))]
   const counts = new Map<string, number>()
   const count = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1)
-  const add = (key: string | null) => {
-    if (!key) return
-    keys.push(key)
+  const add = (key: string, side: Side) => {
+    units.push({ key, side })
     count(key)
   }
+  const sideSize = (side: Side) => units.filter((p) => p.side === side).length
   if (boss) {
     fixed.push({ key: boss.boss, room, tile: BOSS_TILE })
     count(boss.boss)
   }
   for (const [key, n] of Object.entries(group?.units ?? {})) {
-    for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key)
+    for (let i = key === boss?.boss ? 1 : 0; i < n; i++) add(key, 0)
   }
   for (const d of draws) {
     const { draw } = d
     if (!draw) continue
     const costOf = draw.hpBudget ? budgetCost(draw.hpBudget, producerKeys(u), energyOf) : energyOf
     const take = (allowance = Infinity) => {
-      const key = pickUnit(rng, d, factions, counts, !boss, (k) => allowance === Infinity || costOf(k) <= allowance)
-      add(key)
-      return key
+      const fits = (k: string) => allowance === Infinity || costOf(k) <= allowance
+      const order: Side[] = sideSize(0) <= sideSize(1) ? [0, 1] : [1, 0]
+      for (const side of order.filter((s) => s < sides.length)) {
+        const key = pickUnit(rng, d, sides[side]!, counts, !boss, fits)
+        if (key) {
+          add(key, side)
+          return key
+        }
+      }
+      return null
     }
     if (draw.hpBudget) {
       const b = draw.hpBudget
@@ -603,7 +642,37 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
       for (let i = 0; i < n; i++) take()
     }
   }
-  return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]
+  const placed = units.slice(0, tiles.length)
+  const isBrawl = brawl !== null && sideSize(0) > 0 && sideSize(1) > 0
+  if (!isBrawl) return [...fixed, ...placed.map(({ key }, i) => ({ key, room, tile: tiles[i]! }))]
+  const sideTiles = brawlTiles(rng, tiles, placed.map((p) => p.side))
+  return [...fixed, ...placed.map(({ key, side }, i) => ({ key, room, tile: sideTiles[i]!, side }))]
+}
+
+/** Remake (brawl rooms): side 0 or 1 gathers around this share of the room's width, the other side around one minus it. */
+const BRAWL_SIDE_AT = 0.25
+/** ...taking the tiles nearest that point, each tile's distance blurred by up to this many tiles, so a side stands loosely grouped. */
+const BRAWL_SPREAD = 3
+
+/**
+ * Remake (owner): a brawl's tiles, one per unit of the given sides: each side grouped around its
+ * point on the room's long axis (BRAWL_SIDE_AT, the sides to the left and right at random), so
+ * the two start on opposite sides but close enough to fight each other, not only Merlin.
+ */
+function brawlTiles(rng: GenRandom, tiles: readonly Vec[], sides: readonly Side[]): Vec[] {
+  const leftSide = rng.int(0, 1)
+  const centreOf = (side: Side): Vec => ({ x: (ROOM_SIZE.x - 1) * (side === leftSide ? BRAWL_SIDE_AT : 1 - BRAWL_SIDE_AT), y: (ROOM_SIZE.y - 1) / 2 })
+  const byNearness = (side: Side): Vec[] => {
+    const c = centreOf(side)
+    return tiles.map((t) => ({ t, d: Math.hypot(t.x - c.x, t.y - c.y) + rng.next() * BRAWL_SPREAD })).sort((a, b) => a.d - b.d).map((o) => o.t)
+  }
+  const ranked = [byNearness(0), byNearness(1)]
+  const taken = new Set<Vec>()
+  return sides.map((side) => {
+    const tile = ranked[side]!.find((t) => !taken.has(t))!
+    taken.add(tile)
+    return tile
+  })
 }
 
 // ---- tiles ----
