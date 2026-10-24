@@ -122,6 +122,10 @@ function whiteDisc(tex: Texture): Texture {
 /** Canvas pixels per game pixel: sprites stay sharp at 2x (text: PIXEL_TEXT). */
 const RENDER_RESOLUTION = 2
 
+/** A music file name as a short label for the debug readout: "woods_of_evil_v1" -> "woods of evil"; null: off. */
+const trackLabel = (track: string | null): string =>
+  track === null ? 'off' : track.replace(/_v\d+(_\d+)?$/, '').replace(/_/g, ' ')
+
 export class Scene {
   readonly app = new Application()
   private world = new Container()
@@ -143,6 +147,8 @@ export class Scene {
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
+  /** The track the room asked for, for the debug readout (main.ts sets it from the audio engine). */
+  musicTrack: string | null = null
   private tealGlow = tealGlowFilter()
   private teamOverlays = new Map<string, ColorMatrixFilter | null>()
   private whiteFlash = pixelFilter()
@@ -306,7 +312,7 @@ export class Scene {
     if (this.cfg.debug) {
       this.debugText.text =
         `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} actors ${s.actors.length} cam ${this.cfg.cameraMode}\n` +
-        `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} energy ${p.energy.toFixed(0)} ${p.mode} exits ${s.exitsOpen ? 'open' : 'shut'}`
+        `pos ${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)} hp ${p.energy.toFixed(0)} ${p.mode} exits ${s.exitsOpen ? 'open' : 'shut'} ♪ ${trackLabel(this.musicTrack)}`
     }
   }
 
