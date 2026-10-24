@@ -10,7 +10,7 @@
 #bullet: #crossBolt,
 #chargeColour: rgb(200,120,90),
 #chargeSize: 0.606,
-#chargeSpeed: 0.2288,
+#chargeSpeed: 0.2746,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "orc_fire",
 #volume: 100,
-#volley: [#chargePerShot: 4.95, #maxShots: 10, #rangeFactor: 1, #damageMultiplier: 1.3, #spreadMinDeg: 20, #spreadMaxDeg: 60]
+#volley: [#chargePerShot: 4.95, #maxShots: 10, #rangeFactor: 1.2, #damageMultiplier: 1.56, #spreadMinDeg: 20, #spreadMaxDeg: 60]
 ],
 #character: #boltFan,
 #collectSound: "collect_powerup_01",

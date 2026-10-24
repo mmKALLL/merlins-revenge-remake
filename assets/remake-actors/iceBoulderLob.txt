@@ -10,7 +10,7 @@
 #bullet: #iceBoulder,
 #chargeColour: rgb(110,170,210),
 #chargeSize: 0.625,
-#chargeSpeed: 0.1778,
+#chargeSpeed: 0.2134,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "boulder_fire",
 #volume: 100,
-#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 1.5, #damageMultiplier: 2, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 60, #staggerTicks: 5, #speedJitter: 0.1]
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 1.8, #damageMultiplier: 2.4, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 60, #staggerTicks: 5, #speedJitter: 0.1]
 ],
 #character: #iceBoulderLob,
 #collectSound: "collect_powerup_01",

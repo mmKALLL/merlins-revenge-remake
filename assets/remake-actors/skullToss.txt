@@ -10,7 +10,7 @@
 #bullet: #skeletonHead,
 #chargeColour: rgb(225,220,200),
 #chargeSize: 0.75,
-#chargeSpeed: 0.1852,
+#chargeSpeed: 0.2222,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "skeleton_fire",
 #volume: 100,
-#volley: [#chargePerShot: 8, #maxShots: 9, #rangeFactor: 1.25, #damageMultiplier: 1.03, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 45, #staggerTicks: 4, #speedJitter: 0.15]
+#volley: [#chargePerShot: 8, #maxShots: 9, #rangeFactor: 1.5, #damageMultiplier: 1.236, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 45, #staggerTicks: 4, #speedJitter: 0.15]
 ],
 #character: #skullToss,
 #collectSound: "collect_powerup_01",

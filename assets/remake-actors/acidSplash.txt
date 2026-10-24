@@ -10,7 +10,7 @@
 #bullet: #acid,
 #chargeColour: rgb(190,230,60),
 #chargeSize: 0.75,
-#chargeSpeed: 0.1852,
+#chargeSpeed: 0.2222,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "hydra1_fire",
 #volume: 40,
-#volley: [#chargePerShot: 5, #maxShots: 8, #rangeFactor: 2.65, #damageMultiplier: 1.68, #spread: #random, #spreadMinDeg: 15, #spreadMaxDeg: 50, #staggerTicks: 2, #speedJitter: 0.15]
+#volley: [#chargePerShot: 5, #maxShots: 8, #rangeFactor: 3.18, #damageMultiplier: 2.016, #spread: #random, #spreadMinDeg: 15, #spreadMaxDeg: 50, #staggerTicks: 2, #speedJitter: 0.15]
 ],
 #character: #acidSplash,
 #collectSound: "collect_powerup_01",

@@ -10,7 +10,7 @@
 #bullet: #smoke,
 #chargeColour: rgb(180,170,200),
 #chargeSize: 0.857,
-#chargeSpeed: 0.162,
+#chargeSpeed: 0.1944,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 60,
-#volley: [#chargePerShot: 7, #maxShots: 5, #rangeFactor: 1, #damageMultiplier: 1.6, #spread: #random, #spreadMinDeg: 15, #spreadMaxDeg: 35, #staggerTicks: 3, #speedJitter: 0.05]
+#volley: [#chargePerShot: 7, #maxShots: 5, #rangeFactor: 1.2, #damageMultiplier: 1.92, #spread: #random, #spreadMinDeg: 15, #spreadMaxDeg: 35, #staggerTicks: 3, #speedJitter: 0.05]
 ],
 #character: #poisonSmoke,
 #collectSound: "collect_powerup_01",

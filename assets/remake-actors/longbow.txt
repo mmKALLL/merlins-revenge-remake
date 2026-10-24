@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 100,
-#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 2.5, #damageMultiplier: 0.94, #spread: #even, #spreadMinDeg: 4, #spreadMaxDeg: 8, #staggerTicks: 2, #speedJitter: 0]
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 3, #damageMultiplier: 0.658, #spread: #even, #spreadMinDeg: 4, #spreadMaxDeg: 8, #staggerTicks: 2, #speedJitter: 0, #pierce: 2]
 ],
 #character: #longbow,
 #collectSound: "collect_powerup_01",

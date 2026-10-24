@@ -10,7 +10,7 @@
 #bullet: #smokePin,
 #chargeColour: rgb(140,200,110),
 #chargeSize: 0.444,
-#chargeSpeed: 0.3125,
+#chargeSpeed: 0.375,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 6.75, #maxShots: 10, #rangeFactor: 2.5, #damageMultiplier: 0.27, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 6.75, #maxShots: 10, #rangeFactor: 3, #damageMultiplier: 0.324, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #pinStorm,
 #collectSound: "collect_powerup_01",
