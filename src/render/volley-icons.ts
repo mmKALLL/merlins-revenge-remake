@@ -55,8 +55,9 @@ export class VolleyIcons {
 }
 
 /**
- * The icons from the bottom left: each next one ICON_STEP px right of and above the one before and
- * drawn over it, inside the iconStackPx square from (0, 0); the "+" to the right, level with the middle.
+ * The icons from the top right: each next one ICON_STEP px left of and below the one before and drawn
+ * over it, so the earlier ones peek out at its top right (owner's choice), inside the iconStackPx
+ * square from (0, 0); the "+" to the right, level with the middle.
  */
 function layOut(stack: Container, tex: Texture, count: number): void {
   const { icons, more } = volleyIconStack(count)
@@ -65,8 +66,8 @@ function layOut(stack: Container, tex: Texture, count: number): void {
   for (let i = 0; i < icons; i++) {
     const icon = new Sprite(tex)
     icon.scale.set(k)
-    const cellX = i * ICON_STEP
-    const cellY = side - ICON_PX - i * ICON_STEP
+    const cellX = side - ICON_PX - i * ICON_STEP
+    const cellY = i * ICON_STEP
     icon.position.set(cellX + Math.round((ICON_PX - icon.width) / 2), cellY + Math.round((ICON_PX - icon.height) / 2))
     stack.addChild(icon)
   }

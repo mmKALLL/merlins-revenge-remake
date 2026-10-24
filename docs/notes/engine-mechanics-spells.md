@@ -537,7 +537,7 @@ splash.
   exploding ones; the others keep flying past the aim.
 - **Dwellings:** volley projectiles hit with the spell's `hits` (the skeleton dwelling was immune to
   needles).
-- **Slower charge:** `chargeSpeed` x 0.4 for all but needle spray and arrow rain (the light, fast
+- **Slower charge:** `chargeSpeed` x 0.5 (owner, 2026-10-25; first tried x 0.4, the table below) for all but needle spray and arrow rain (the light, fast
   ones; dragon fire to join them). Ticks from the first charge to the max at Merlin's start
   (capacity 13, flow 3, 30 ticks a second) and to the full count:
 

@@ -10,7 +10,7 @@
 #bullet: #shuriken,
 #chargeColour: rgb(175,130,225),
 #chargeSize: 0.417,
-#chargeSpeed: 0.267,
+#chargeSpeed: 0.3337,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

@@ -10,7 +10,7 @@
 #bullet: #thunderBlast,
 #chargeColour: rgb(250,225,90),
 #chargeSize: 0.556,
-#chargeSpeed: 0.16,
+#chargeSpeed: 0.2,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

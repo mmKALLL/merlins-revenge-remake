@@ -10,7 +10,7 @@
 #bullet: #bomb,
 #chargeColour: rgb(150,150,165),
 #chargeSize: 1.667,
-#chargeSpeed: 0.067,
+#chargeSpeed: 0.0838,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

@@ -10,7 +10,7 @@
 #bullet: #flamingRock,
 #chargeColour: rgb(240,110,60),
 #chargeSize: 0.769,
-#chargeSpeed: 0.144,
+#chargeSpeed: 0.18,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

@@ -10,7 +10,7 @@
 #bullet: #smokePin,
 #chargeColour: rgb(140,200,110),
 #chargeSize: 0.444,
-#chargeSpeed: 0.25,
+#chargeSpeed: 0.3125,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

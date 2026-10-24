@@ -10,7 +10,7 @@
 #bullet: #crossBolt,
 #chargeColour: rgb(200,120,90),
 #chargeSize: 0.606,
-#chargeSpeed: 0.183,
+#chargeSpeed: 0.2288,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
