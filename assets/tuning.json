@@ -185,5 +185,10 @@
   },
   "fangBunnyBabyBullet": {
     "landedTicks": 15
+  },
+  "bug": {
+    "attack": {
+      "damageMultiplier": 0.75
+    }
   }
 }

@@ -148,4 +148,5 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   tests (`hurtRectFor`), and the sprite rect melee strikes and explosions test and take their radius
   from (`hurtSpriteRectFor`). Wall collision, pickups and AI ranges keep the engine rect; the axe's
   landing splash keeps the engine's reg-point distance. `plant.minHurtboxPx` is 12.
-
+- **Bug bite (owner, 2026-10-25):** the bug's damageMultiplier 0.75 (was 0.35): its 2 px push now deals
+  1.5 energy a bite instead of 0.7 (`assets/tuning.json`).
