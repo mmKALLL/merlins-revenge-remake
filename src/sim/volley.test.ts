@@ -10,7 +10,7 @@ import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { iconStackPx, shotAngleDeg, volleyBallPx, volleyIconCount, volleyShots, volleySpreadDeg } from './volley'
+import { ICON_ROW_SHIFT, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
 const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0 }
@@ -57,9 +57,11 @@ describe('volley rules', () => {
     for (const g of gaps) expect(g).toBeCloseTo(gaps[0]!)
   })
 
-  it('stacks one icon per projectile up to ten, in rows of five', () => {
-    expect([0, 3, 5, 6, 10, 12].map(volleyIconCount)).toEqual([0, 3, 5, 6, 10, 10])
-    expect([0, 5, 6, 10].map(iconStackPx)).toEqual([0, 16, 18, 18])
+  it('stacks one icon per projectile in rows of five, with no cap but the shots', () => {
+    expect([0, 1, 5, 6, 10, 11, 18].map(iconRows)).toEqual([0, 1, 1, 2, 2, 3, 4])
+    // each further row shifts the stack's box by ICON_ROW_SHIFT
+    const five = iconStackSize(5)
+    expect(iconStackSize(18)).toEqual({ w: five.w + 3 * ICON_ROW_SHIFT.x, h: five.h + 3 * ICON_ROW_SHIFT.y })
   })
 })
 
@@ -236,12 +238,14 @@ describe('volleys in the sim', () => {
 
 describe('the charging ball (remake)', () => {
   it('grows linearly with the charge and always holds the icon stack', () => {
-    const v = { ...VOLLEY, maxShots: 10 }
-    const charges = Array.from({ length: 21 }, (_, i) => i)
-    const sizes = charges.map((c) => volleyBallPx(c, 0.1, v))
-    const steps = sizes.slice(1).map((px, i) => px - sizes[i]!)
-    for (const step of steps) expect(step).toBeCloseTo(steps[0]!)
-    for (const c of charges) expect(volleyBallPx(c, 0.1, v)).toBeGreaterThan(iconStackPx(volleyShots(c, v)))
+    for (const maxShots of [10, 18]) {
+      const v = { ...VOLLEY, maxShots }
+      const charges = Array.from({ length: maxShots * 2 + 1 }, (_, i) => i)
+      const sizes = charges.map((c) => volleyBallPx(c, 0.1, v))
+      const steps = sizes.slice(1).map((px, i) => px - sizes[i]!)
+      for (const step of steps) expect(step).toBeCloseTo(steps[0]!)
+      for (const c of charges) expect(volleyBallPx(c, 0.1, v)).toBeGreaterThan(iconStackPx(volleyShots(c, v)))
+    }
   })
 })
 
