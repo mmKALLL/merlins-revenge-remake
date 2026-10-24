@@ -1,6 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import { InputTracker } from './keyboard'
-import { NUB_DEAD_ZONE, nubDirection, TouchState } from './touch'
+import { NUB_DEAD_ZONE, nubDirection, TouchState, wantsTouchControls } from './touch'
+
+describe('wantsTouchControls', () => {
+  /** A window whose media queries match as `features` says. */
+  const device = (features: { coarse: boolean; anyHover: boolean }) => ({
+    matchMedia: (q: string) => ({ matches: q === '(pointer: coarse)' ? features.coarse : q === '(any-hover: none)' ? !features.anyHover : false }) as MediaQueryList,
+  })
+  const none = new URLSearchParams()
+
+  it('shows them on a touch-only phone or tablet', () => {
+    expect(wantsTouchControls(none, device({ coarse: true, anyHover: false }))).toBe(true)
+  })
+
+  it('not where any pointer can hover: a desktop, or a touchscreen laptop or tablet with a mouse', () => {
+    expect(wantsTouchControls(none, device({ coarse: false, anyHover: true }))).toBe(false)
+    expect(wantsTouchControls(none, device({ coarse: true, anyHover: true }))).toBe(false)
+  })
+
+  it('?touch=1 and ?touch=0 force them on or off', () => {
+    expect(wantsTouchControls(new URLSearchParams('touch=1'), device({ coarse: false, anyHover: true }))).toBe(true)
+    expect(wantsTouchControls(new URLSearchParams('touch=0'), device({ coarse: true, anyHover: false }))).toBe(false)
+  })
+})
 
 describe('nubDirection', () => {
   it('does nothing inside the dead zone', () => {

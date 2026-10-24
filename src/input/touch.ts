@@ -7,7 +7,7 @@
 // between the nearest and the farthest enemy and shows which, the weapon button shows the current
 // weapon and steps to the next one on a tap, and the army button is R (a tap summons the whole
 // reserve at the nearest enemy, or sends the army back once the fight is over).
-// Shown on coarse-pointer devices; ?touch=1 / ?touch=0 forces them on or off.
+// Shown on phones and tablets without a mouse (TOUCH_ONLY_QUERIES); ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { SpaceMode } from './keyboard'
 
@@ -27,12 +27,18 @@ export function nubDirection(d: Vec, deadZone = NUB_DEAD_ZONE): Vec {
   return { x: d.x / k, y: d.y / k }
 }
 
-/** Whether to show touch controls: ?touch=1/0 wins, else a coarse (finger) primary pointer. */
-export function wantsTouchControls(params: URLSearchParams, win: Window): boolean {
+/**
+ * A touch-only device: a finger as the main pointer and nothing that can hover. A laptop with a
+ * touchscreen, or a tablet with a mouse or trackpad attached, has a hovering pointer and gets none.
+ */
+export const TOUCH_ONLY_QUERIES = ['(pointer: coarse)', '(any-hover: none)']
+
+/** Whether to show touch controls: ?touch=1/0 wins, else a touch-only device. */
+export function wantsTouchControls(params: URLSearchParams, win: Pick<Window, 'matchMedia'>): boolean {
   const forced = params.get('touch')
   if (forced === '1') return true
   if (forced === '0') return false
-  return win.matchMedia('(pointer: coarse)').matches
+  return TOUCH_ONLY_QUERIES.every((q) => win.matchMedia(q).matches)
 }
 
 /** What the controls report: the nub's direction and whether the blast button is held. */
