@@ -262,7 +262,8 @@ override them by key like any actor. Rules: `src/sim/volley.ts`; firing: `stepVo
 
 - **Fields.** `attack.releaseFunction #volley` with `attack.volley` (engine default null:
   `chargePerShot`, `maxShots`, `rangeFactor`, `damageMultiplier`, `staggerTicks` 2, `spreadMinDeg` 10,
-  `spreadMaxDeg` 32, `speedJitter` 0.05, `spread` #random or #even), the projectile in `attack.bullet`, the launch in
+  `spreadMaxDeg` 32, `speedJitter` 0.05, `spread` #random or #even, `chill` 0 and `pierce` 0: see the
+  second batch below), the projectile in `attack.bullet`, the launch in
   `attack.firingType`, the charge in the usual `chargeSpeed` / `chargeMaxModifier` / `chargeMaxBasic`.
 - **Count.** A volley released at charge c fires `min(maxShots, 1 + floor(c / chargePerShot))`. The
   charge max is the engine's (`mana_capacity x chargeMaxModifier + chargeMaxBasic`), held at
@@ -585,3 +586,59 @@ splash.
   on the player, in `assets/tuning.json`) keep hitting while their explode strip plays: a unit that
   enters the blast is hit as on its first tick, once per blast (`lingerExplosion`). Enemy blasts hit on
   their first tick only, as in the engine (modExploder.explode's single impactAttack).
+
+### Volley spells, second batch (2026-10-25)
+
+Thirteen more volleys (draft and open questions: `docs/plans/2026-10-25-volley-batch-2.md`), built
+by the same rules as the first after its tweak rounds: the count starts at 0, one projectile per
+`chargePerShot`; the full count is reached exactly at a capacity tier (15 / 18 / 21, the
+`chargeMaxModifier` rounded up to 4 decimals); each projectile keeps its bullet's own push, damage,
+friction, explosion and payload, and hits about 2.5x the enemy's own shot (the volley
+`damageMultiplier`, measured in the sim as before: an inertia-0 target 48 px away, the enemy's shot at
+its wielder's strength, Merlin's with his `damageDealtMultiplier` 2). Most charge slowly (72 ticks from
+nothing to the full count, 2.4 s, at flow 3); the strong long-range ones slower (90); only dragon fire
+fast (36). The ball is 30 px at the full count (`chargeSize` = 30 / full charge).
+
+| Spell (key) | Projectile (enemy) | Max | Tier | Per level | Start (cap 13) | Ticks to full | Launch (range) | Volley dmg mult | Enemy shot | Merlin's | Fan | Notable |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Longbow (`longbow`) | scArcherArrow (Scarlet archer) | 4 | 21 | 12 | 2 | 60 | 20 (about 340 px) | 0.94 | 122 | 305 | even 4-8, no jitter | few, accurate, far |
+| Dragon Fire (`dragonFire`) | fireBall (dragons) | 10 | 18 | 5.4 | 7 | 36 | 10 (about 190 px) | 1.0 | 16 | 41 | random 30-80, stagger 1, jitter 0.25 | fast, wide spray, low push |
+| Boulder Lob (`boulderLob`) | boulder (boulder monster) | 4 | 18 | 12 | 2 | 72 | 12 (about 210 px) | 1.25 | 42 | 105 | random 30-60, stagger 5 | heavy push (power 2) |
+| Dark Rock (`darkRockBurst`) | darkRock (dark golems), explodes | 5 | 15 | 6 | 4 | 72 | 20 (lands on the aim, at most about 160 px) | 2.6 | 65 | 163 | random 20-50, stagger 3 | short-range blasts |
+| Poison Smoke (`poisonSmoke`) | smoke (shrouder), explodes | 5 | 18 | 7 | 3 | 72 | 8 (lands on the aim, at most about 295 px) | 1.6 | 41 | 102 | random 15-35, stagger 3 | a blast, low push |
+| Acid Splash (`acidSplash`) | acid (hydra) | 8 | 15 | 5 | 6 | 72 | 12 (about 130 px) | 1.68 | 58 | 145 | random 25-60, jitter 0.15 | short range, many |
+| Lightning (`lightningFan`) | lightning (vulture guard) | 3 | 21 | 15 | 1 | 90 | 16 (about 450 px) | 1.2 | 99 | 245 | even 6-14, stagger 3, no jitter | huge push (power 3.5) |
+| Bunny Lob (`bunnyLob`) | fangBunnyBabyBullet (fang bunny baby) | 8 | 15 | 4 | 6 | 72 | 10 (about 190 px) | 1.0 | 20 | 49 | random 30-70, jitter 0.25 | cheap sparks |
+| Skull Toss (`skullToss`) | skeletonHead (skeleton thrower) | 5 | 18 | 8 | 3 | 72 | 10 (about 260 px) | 1.03 | 50 | 124 | random 20-45, stagger 4, jitter 0.15 | solid push (power 1) |
+| Frost Burst (`frostBurst`) | freezeBlast (frosty monk), explodes, freezes | 4 | 21 | 12 | 2 | 90 | 16 (lands on the aim, at most about 450 px) | 1.24 | 34 | 86 | random 20-42, stagger 4 | radius 50 blast, long freeze |
+| Ice Boulder (`iceBoulderLob`) | iceBoulder (ice rock), freezes | 4 | 21 | 12 | 2 | 90 | 12 (about 210 px) | 1.25 | 42 | 105 | random 30-60, stagger 5 | heavy push, long freeze |
+| Blue Flame (`chillFlame`) | blueFlame (undead dragon) | 5 | 18 | 8 | 3 | 72 | 12 (about 240 px) | 1.09 | 53 | 133 | random 20-42, stagger 3 | **chills** (`#chill: 4`) |
+| Laser (`laserVolley`) | laser (quadranid) | 6 | 18 | 7 | 4 | 54 | 16 (about 450 px) | 0.76 | 55 | 137 | even 6-16, stagger 1, no jitter | **pierces** 2 (`#pierce: 2`) |
+
+"Enemy shot" and "Merlin's" are one projectile's damage (an exploding one hitting directly). Freeze
+lengths on an inertia-0 target (`freezeTicksAfter`, the push after inertia): a frost burst freezes for
+about 190-380 ticks and an ice boulder about 200-235 (the original bullets' own `freezeMultiplier` 3 and
+pushes; the freeze halves the walk speed); a blue flame chills for about 30 ticks a flame. Sounds: the
+enemy's own fire sound where it has one (the shrouder and frosty monk have none: `spell_release`).
+
+Remake decisions (owner, 2026-10-25):
+- **Chill** (`attack.volley.chill`, engine default 0): a chilling volley's projectiles carry
+  `#takeFreeze` before their own payload functions, with `freezeMultiplier` = chill and the teal glow
+  (`volleyProjectileAttack` in `src/sim/volley.ts`), so the hit freezes as the arctic blast's does:
+  `(|push x| + |push y|) x chill x 4` ticks, the push after the victim's inertia. Blue flame: 4.
+- **Pierce** (`attack.volley.pierce`, engine default 0): a projectile flies on through that many
+  hostiles after hitting them, each hit once (`piercesLeft` and `piercedIds` on the bullet,
+  `pierceThrough` in `src/sim/tick-combat.ts`); it stops at the next one. Laser: 2 (three enemies in
+  all). Arrows do not pierce, as in the engine.
+- Smoke is a blast as in the engine (no lingering cloud); the freeze blast and ice boulder freeze
+  from their own payloads (no new code).
+- Object tiles: merlinOpenObjects 19, 20, 54-60, 100, 102, 109, 110 (slots 18 and 53 are `none` in
+  the key but have art on the sheet), merlin4Objects 181-193. Themed floors: longbow, acid and bunny
+  lob in the Goblin Forest; skull toss, poison smoke and blue flame in the Undead Marsh; dragon fire,
+  boulder lob and dark rock in the Dragon Canyon; lightning, frost burst, ice boulder and laser in the
+  Magic Maze. The scroll writings needed four new glyphs (D, I, c, g); the ice boulder's fly frame is
+  named `anm_iceboulder_*`, so the art tool matches it in any case.
+- `?map=test_maps/spell_test` (from `tools/make-spells-test-map.mjs`, which now also writes the
+  layout that had been hand-edited): longbow, dragon fire and boulder lob left of the first batch in
+  the row below Merlin, dark rock, poison smoke, acid splash and lightning right of it; bunny lob,
+  skull toss, frost burst, ice boulder, blue flame and laser in the top row.

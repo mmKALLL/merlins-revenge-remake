@@ -120,6 +120,9 @@ Work top down; the sections below hold the details.
   devices.
   The spell test map has eight Max Blast potions side by side, a row below the volleys. To try: projectiles
   launched from Merlin rather than the ball (`launchFrom`; set #spell in a volley list to compare).
+  Second batch (2026-10-25, to review): thirteen more volleys, blue flame chilling and laser piercing
+  (`docs/plans/2026-10-25-volley-batch-2.md`, with its open questions: hatching eggs, the skull toss,
+  the freeze lengths, lightning's push).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
   original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
