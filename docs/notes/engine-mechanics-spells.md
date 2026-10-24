@@ -250,6 +250,72 @@ Details:
   (`#takeHit`, times `damageMultiplier` 10), with no second takeHit as a contact hit has.
   `splashGraveOn` stamps the axe's grave image where it landed (`drawSplashGrave`).
 
+## Volley spells (remake)
+
+Owner design (2026-10-24), not in the engine: eight scrolls that fire a fan of an enemy's
+projectiles, one more for each charge level. They are remake data, so their actor files live apart
+from the copied originals in `assets/remake-actors/` (`act_`-style Lingo lists, `#objScroll` like
+Merlin's scrolls, `#releaseFunction #volley` and a `#volley` list); `assets/tuning.json` can still
+override them by key like any actor. Rules: `src/sim/volley.ts`; firing: `stepVolley` in
+`src/sim/tick-spell.ts`; hits: `firstHostileTouched` in `src/sim/tick-combat.ts`; icons:
+`src/render/volley-icons.ts`; art: `tools/volley-scroll-art.ts` (run by `tools/copy-assets.ts`).
+
+- **Fields.** `attack.releaseFunction #volley` with `attack.volley` (engine default null:
+  `chargePerShot`, `maxShots`, `rangeFactor`, `damageMultiplier`, `staggerTicks` 2, `spreadMinDeg` 3,
+  `spreadMaxDeg` 30, `speedJitter` 0.05), the projectile in `attack.bullet`, the launch in
+  `attack.firingType`, the charge in the usual `chargeSpeed` / `chargeMaxModifier` / `chargeMaxBasic`.
+- **Count.** A volley released at charge c fires `min(maxShots, 1 + floor(c / chargePerShot))`. The
+  charge max is the engine's (`mana_capacity x chargeMaxModifier + chargeMaxBasic`), held at
+  `(maxShots - 1) x chargePerShot` (`chargeLimits`), so Max Blast potions unlock the higher counts.
+  The data puts every volley's full count at capacity 20 (thunder burst: 24) and one level every 4
+  ticks for the small projectiles, 6 for bombs and lava, 15 for thunder (at Merlin's flow 3).
+- **Release.** The spell stays where it was released and fires one projectile every `staggerTicks`
+  (the first at once) toward the aim at the release, shrinking by `chargePerShot` each; then it is
+  gone. Each launch is `performRangedAttack`'s #fullstrength (Merlin's strength 8) or #proportional
+  (distance / 10) velocity times `rangeFactor`, turned into its place in the fan: the fan's total
+  width is `spreadMinDeg` at 1-2 projectiles growing linearly to `spreadMaxDeg` at `maxShots`, cut
+  into equal slots swept from one side to the other with a random point in each; the speed is
+  jittered by up to +-`speedJitter`. The range follows from the speed and the bullet's own friction.
+- **Hits.** Enemy bullets still collide only with their target. A volley projectile has no target:
+  it hits the first living hated unit (of its `hits` roles) its collision rect touches, the nearest
+  to where it was a tick before when it touches several, with the bullet's usual hit (contact push
+  twice; an #explode bullet explodes there as it does now). It carries a copy of the bullet's attack
+  with `damageMultiplier x volley.damageMultiplier`, and Merlin's `damageDealtMultiplier` (2) applies
+  as to all he deals (`withOwnerDamage`).
+- **Icons.** While charging and firing, the projectiles the spell stands for are drawn over it as
+  mini projectiles (the bullet's first fly frame, at most 8 px), each five as one icon with a 5.
+- **Scrolls.** Art made at copy time from original members: the plain healBlast scroll tinted to the
+  volley's colour with a mini projectile on it, the energy pulse's `_ws` icon with its disc recoloured
+  and the projectile on it, and the name in a pixel font drawn after the writings (2 px stems, 1 px
+  bars, black outline, the writings' orange-to-yellow rows). Object tiles: merlinOpenObjects' empty
+  slots 31-37 and 40 (painted with the scroll), merlin4Objects 173-180 past its key
+  (`src/gen/remake-object-tiles.ts`, written into the converted keys). Every floor's start scroll
+  list includes them at weight 1; themed: arrows and bolts in the Goblin Forest, needles in the
+  Undead Marsh, shurikens and lava in the Dragon Canyon, bombs, thunder and pins in the Magic Maze
+  (4 each). `?map=test_maps/spell_test` has them in a row below Merlin.
+
+Numbers (damage measured in the sim on an inertia-0 target 48 px away, one projectile; the enemy's
+shot from its wielder's strength; Merlin's with his `damageDealtMultiplier` 2; at the start Merlin's
+mana capacity is 13):
+
+| volley | projectile | launch speed (range) | per level | max | at the start | volley dmg mult | enemy shot | Merlin's | ratio |
+|---|---|---|---|---|---|---|---|---|---|
+| bombVolley | bomb (explodes) | 10 (about 80 px) | 3 | 7 | 4 | 1.5 | 17.5 | 44 | 2.5 |
+| boltFan | crossBolt | 8 (about 120 px) | 5.5 | 10 | 6 | 1.3 | 35 | 87 | 2.5 |
+| arrowRain | archerArrow | 10 (about 160 px) | 8 | 10 | 6 | 1.4 | 39 | 100 | 2.55 |
+| shurikenFan | shuriken | 12 (friction 1 %: crosses the room) | 8 | 10 | 6 | 0.85 | 38 | 94 | 2.5 |
+| thunderBurst | thunderBlast (explodes, radius 50) | 10 (about 270 px) | 18 | 4 | 2 | 1.3 | 70 | 177 | 2.5 |
+| pinStorm | smokePin | 20 (about 180 px) | 7.5 | 10 | 6 | 0.27 | 36 | 91 | 2.5 |
+| lavaLob | flamingRock (explodes) | 10 (about 80 px) | 6.5 | 7 | 4 | 1.9 | 41 | 102 | 2.5 |
+| needleSpray | needle | 16 (about 175 px) | 6 | 10 | 6 | 1.2 | 28 | 69 | 2.45 |
+
+"Per level" is `chargePerShot`, set from Merlin's damage per projectile at about 12 damage per unit
+of charge, about 15.6 (cheaper levels) for the short-range bolts, bombs and lava, and 18 for the
+thunder bolt (its blast also hits around it). The pins' own power (1.5, the most of any bullet)
+times their much faster launch made them 9x the shrouder's, hence 0.27. The lava golem's rock
+`reincarnateAs #fire`, but `act_fire` is not ported, so neither the enemies' rocks nor Merlin's leave
+a fire.
+
 ## Port
 
 - Rules: `src/mr-open/mr-weapons.ts` (modWeaponManager: order, current weapon, selectSpell),
