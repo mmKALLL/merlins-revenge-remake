@@ -719,7 +719,8 @@ const MUD_STONES = 9
 /** Remake tile: the cracked grey stone (25) re-coloured to a soft red sandstone (tools/derived-tiles.ts). */
 const RED_SANDSTONE = 37
 const BLUE_COBBLES = 35
-const DARK_GRASS = 22
+/** merlinOpenPassive's sea-green grass (owner: Woods of Mourning's dark grass, 22, hid its enemies). */
+const SEA_GREEN_GRASS = 28
 const SWAMP = 23
 const GREY_STONE = 25
 
@@ -1316,7 +1317,7 @@ export const DEEP_FOREST: FloorTheme = {
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: BIOME_OBJECTS,
-  ground: [w(DARK_GRASS)],
+  ground: [w(SEA_GREEN_GRASS)],
   wall: [w(GREEN_PINES, 5), w(EYED_TREE, 1), w(EYED_TREE_B, 1), w(GREEN_TREE, 1)],
   longWall: [w(GREEN_PINES, 4), w(EYED_TREE, 1)],
   materials: [

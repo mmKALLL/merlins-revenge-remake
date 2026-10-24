@@ -178,6 +178,8 @@ export interface ActorDef {
   armyMembers: string[] // modAutoSummon (Merlin): the reserve unit types the #army key summons, in order
   // --- remake additions (not in the engine; the defaults keep engine behaviour where noted)
   collisionRectScale: number // scales the collision rect about the reg point (1 = engine size)
+  /** the least width and height (px) of the unit's hit area for bullets, melee and blasts, grown about its centre; 0 = engine size */
+  minHurtboxPx: number
   scenicMaxTicks: number // a #scenic detour also ends (back to #beeline) after this many ticks
   detourChance: number // chance of a spreading detour after a melee attack and every detourMoveTicks of walking; 0 = off
   detourMoveTicks: number // ticks of continuous walking between detour rolls
@@ -319,6 +321,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     armyMembers: [], // modAutoSummon.addModParams
     // remake additions
     collisionRectScale: 1, // engine-sized rect
+    minHurtboxPx: 0, // hit areas as the engine's rects
     scenicMaxTicks: 60, // cutoff on #scenic detours (none in the engine)
     detourChance: 0.15, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, // spreading detour
     projectileSpreadDeg: 0, knockbackSpreadDeg: 0, // angular spread, off as in the engine
@@ -364,7 +367,7 @@ for (const k of [
   // engine properties kept in raw only
   'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
   // remake additions
-  'collisionRectScale', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
+  'collisionRectScale', 'minHurtboxPx', 'scenicMaxTicks', 'detourChance', 'detourMoveTicks', 'detourMoveMaxTicks', 'detourPauseTicks',
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
@@ -731,7 +734,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       unitToBuild: symbolList(r, 'unitToBuild', ctx).map(actorKey), buildRate: num(r, 'buildRate', ctx), buildOne: bool(r, 'buildOne', ctx),
       armyMembers: symbolList(r, 'armyMembers', ctx).map(actorKey),
       // remake additions
-      collisionRectScale: num(r, 'collisionRectScale', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
+      collisionRectScale: num(r, 'collisionRectScale', ctx), minHurtboxPx: num(r, 'minHurtboxPx', ctx), scenicMaxTicks: num(r, 'scenicMaxTicks', ctx),
       detourChance: num(r, 'detourChance', ctx), detourMoveTicks: num(r, 'detourMoveTicks', ctx),
       detourMoveMaxTicks: num(r, 'detourMoveMaxTicks', ctx), detourPauseTicks: num(r, 'detourPauseTicks', ctx),
       detourDistance: num(r, 'detourDistance', ctx), detourMinTargetDistance: num(r, 'detourMinTargetDistance', ctx),

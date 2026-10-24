@@ -59,11 +59,11 @@ describe('app state', () => {
     expect(nextAppState(picking, { kind: 'picked' })).toEqual(PLAYING)
   })
 
-  it('keeps the music on the floor pick only; every other menu pauses all sound', () => {
+  it('keeps the music on the floor pick and the run summary; every other menu pauses all sound', () => {
     expect(audioPause(PLAYING)).toBe('none')
     expect(audioPause(nextAppState(PLAYING, { kind: 'pick' }))).toBe('effects')
     expect(audioPause(nextAppState(PLAYING, { kind: 'pause' }))).toBe('all')
-    expect(audioPause(nextAppState(PLAYING, { kind: 'runEnded' }))).toBe('all')
+    expect(audioPause(nextAppState(PLAYING, { kind: 'runEnded' }))).toBe('effects')
     expect(audioPause(TITLE)).toBe('all')
   })
 

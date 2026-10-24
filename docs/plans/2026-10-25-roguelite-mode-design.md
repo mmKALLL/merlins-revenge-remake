@@ -168,3 +168,5 @@ golem (the lava golem's twin, with no objects tile).
 Owner tweak (2026-10-25): Woods of Mourning has no bats (they could not be seen on its dark ground):
 lizards and quadranids are weak units instead, a cocoon replaces the bat tree, and the bat roost
 midboss is a critter nest (a cocoon and 3 quadranids); the laser volley is themed there.
+Woods of Mourning's ground is the sea-green grass (merlinOpenPassive 28) instead of the dark grass
+(22), so its enemies stand out (owner, 2026-10-25).

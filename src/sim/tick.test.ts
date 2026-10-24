@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { TeamDef } from '../mr-open/mr-team-data'
-import { collisionRectFor, createActor, playerOf, spawnRoomActors } from './actors'
+import { collisionRectFor, createActor, hurtRectFor, hurtSpriteRectFor, playerOf, spawnRoomActors, spriteRectFor } from './actors'
 import { createSim, findStartPos, stepSim } from './tick'
 import { DEFAULT_SIM_CONFIG, NO_INPUT, roomKey, type SimState } from './state'
 import { buildWorldGrid } from './world-grid'
@@ -60,7 +60,7 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
     aiType: null, layerZ: 'gGameObjectLayer', startOffset: { x: -16, y: -16 }, energy: 100, energyRecoverDelay: 300,
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, frictionReelAgainstWalk: null, inertia: 0, damageSpeed: 5, stallSpeed: 0.2, teamRole: 'teamMembers', walkSpeed: 0,
     residentGroups: [], totalResidents: 10, productionTimeScale: 1, wakeDistance: 192, sleepDistance: 256, hitWakeTicks: 180, navModeClearRadius: 256, activationVerticalScale: 0.75, idleWanderMarginTiles: 8, idleWanderScanTicks: 5, killAllCheatRadius: 320, activationAttackGraceTicks: 0, passiveEnergyRecovery: true, damageDealtMultiplier: 1, explosionsLinger: false, frozenAttackSlowdown: 3, medikitRestRate: 1, medikitPickupEnergy: 25, armyKeySummons: true, keepAttackOnTargetLoss: false, leaveWhenFinished: false, teleportable: true, unitToBuild: [], buildRate: 100, buildOne: true, armyMembers: [], startingArmy: {}, splashRadius: null, splashGraveOn: false, landedTicks: 30, reelProof: false, collisionDetection: true, minEnergy: 0, maxEnergy: over.energy ?? 100, graveOn: true, reincarnateAs: [], runReload: false, explodeEvents: [], exploderSound: null, exploderVolume: 50, chargeLoc: { x: 0, y: -8 },
-    walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0, idleWanderRadius: 32, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
+    walkAcceleration: 0.5, navModeAcceleration: 0, collisionRectScale: 1, minHurtboxPx: 0, pathFindingStallTime: 5, scenicMaxTicks: 60, detourChance: 0, detourMoveTicks: 90, detourMoveMaxTicks: 60, detourPauseTicks: 15, detourDistance: 50, detourMinTargetDistance: 50, idleWanderIntervalTicks: 5, idleWanderChancePerSecond: 0, idleWanderRadius: 32, projectileSpreadDeg: 0, knockbackSpreadDeg: 0, weaponTechnique: 0, strength: 1, agility: 1, dexterity: 1, eyestrain: 0, mana_burst: 1, mana_capacity: 10,
     mana_flow: 1, mana_regeneration: 1, weapon: null, experienceImWorth: 0, character: null, collectSound: null, counterColour: { r: 255, g: 255, b: 255 },
     attack: {
       name: 'none', type: 'none', animType: 'none', animFrame: [2], collisionLoc: { x: 25, y: 0 }, idealAttackLoc: { x: 25, y: 0 }, strikeCircle: null, chargeFullTicks: null, blankSummonsReserve: false, volley: null,
@@ -348,6 +348,31 @@ describe('collisionRectFor', () => {
   it('falls back to stand for a strip the atlas lacks', () => {
     const s = make(openMap({ objects: [{ room: 1, x: 10, y: 4, tile: GOBLIN }] }))
     expect(collisionRectFor(s, { ...s.actors[1]!, anim: 'look' })).toEqual(collisionRectFor(s, s.actors[1]!))
+  })
+})
+
+describe('minHurtboxPx (remake)', () => {
+  const goblinWith = (minHurtboxPx: number) => {
+    const s0 = make(openMap({ objects: [{ room: 1, x: 10, y: 4, tile: GOBLIN }] }))
+    const s = { ...s0, defs: { ...s0.defs, goblinWarrior: { ...s0.defs['goblinWarrior']!, minHurtboxPx } } }
+    return { s, g: s.actors[1]! }
+  }
+
+  it('keeps the engine rects at 0 and grows only the hit areas, about their centres', () => {
+    const plain = goblinWith(0)
+    expect(hurtRectFor(plain.s, plain.g)).toEqual(collisionRectFor(plain.s, plain.g))
+    expect(hurtSpriteRectFor(plain.s, plain.g)).toEqual(spriteRectFor(plain.s, plain.g))
+    const { s, g } = goblinWith(20)
+    // the 13x14 collision rect grows to 20x20; walls still meet the engine rect
+    expect(hurtRectFor(s, g)).toEqual({ left: -10, top: -10, right: 10, bottom: 10 })
+    expect(collisionRectFor(s, g)).toEqual({ left: -6.5, top: -7, right: 6.5, bottom: 7 })
+    const sprite = hurtSpriteRectFor(s, g)
+    expect([sprite.right - sprite.left, sprite.bottom - sprite.top]).toEqual([20, 20])
+  })
+
+  it('never shrinks a rect already larger than the minimum', () => {
+    const { s, g } = goblinWith(4)
+    expect(hurtRectFor(s, g)).toEqual(collisionRectFor(s, g))
   })
 })
 

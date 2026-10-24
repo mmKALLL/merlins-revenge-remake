@@ -114,6 +114,10 @@ Work top down; the sections below hold the details.
   Lingo, so it would be a remake design; waiting for the owner's description of how it worked.
 - **Low priority:** call "energy" "health" in the UI and code, if not too entangled with the
   engine's naming.
+- **Woods of Mourning ground too dark (owner to choose).** Candidates from merlinOpenPassive:
+  21 (mid grass), 28 (sea-green grass), 20 (teal grass), 12 (bright grass, as the Goblin Forest);
+  now 22. Small lizards (-30 % energy, 2x reel friction), the plant's 12 px least hit area and
+  Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
 

@@ -4,7 +4,7 @@ import type { RogueliteStats } from '../data/roguelite-stats'
 import type { Panel } from './app-state'
 import { button, el, menuList } from './dom'
 import type { MenuPanel } from './overlay'
-import { floorsLine, statsLines } from './roguelite-stats-view'
+import { runsLine } from './roguelite-stats-view'
 import { titleHeading } from './title-art'
 
 export interface TitleActions {
@@ -58,8 +58,8 @@ export function titleScreen(actions: TitleActions): TitleScreen {
       play.firstChild!.textContent = loading ? 'Loading…' : 'Play'
     },
     setStats: (stats) => {
-      const lines = stats.runs > 0 ? [...statsLines(stats), floorsLine(stats)] : statsLines(stats)
-      statsText.replaceChildren(...lines.map((line) => el('span', 'hint', line)))
+      // owner: the main menu shows only the runs, wins and win ratio
+      statsText.replaceChildren(el('span', 'hint', runsLine(stats)))
     },
   }
 }
