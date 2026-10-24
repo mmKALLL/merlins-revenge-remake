@@ -1,5 +1,5 @@
-// Scoring (remake): the room countdown, its pause outside the room, banking on clear, and the
-// continuous world voiding the score.
+// Scoring (remake): the room countdown, its pause outside the room, banking on clear, rooms with
+// nothing to clear paying nothing, the continuous world's rooms, and a mode switch voiding the run.
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { currentRoomPoints, NEW_SCORE, ROOM_COUNTDOWN_TICKS, ROOM_POINTS_MAX, roomPoints, stepScore } from './score'
@@ -45,10 +45,22 @@ describe('room points', () => {
 })
 
 describe('scoring in rooms', () => {
-  it('a start room with no hostile is clear at once and pays its full value', () => {
-    const s = sim(map([false, true]))
-    expect(s.score.total).toBe(ROOM_POINTS_MAX)
+  it('a start room with no hostile has nothing to clear and pays nothing', () => {
+    const s = steps(sim(map([false, true])), 30)
+    expect(s.score.valid).toBe(true)
+    expect(s.score.total).toBe(0)
     expect(currentRoomPoints(s)).toBeNull()
+  })
+
+  it('a room clear on Merlin\'s first entry pays nothing', () => {
+    const rooms: Record<string, RoomState> = {
+      '1,1': { spawned: true, actors: [], graves: [], clear: true },
+      '2,1': { spawned: true, actors: [], graves: [], clear: true },
+    }
+    const at = (x: number, score = NEW_SCORE) => ({ worldMode: 'rooms', room: { x, y: 1 }, rooms, score } as SimState)
+    const score = stepScore(at(1), at(2, stepScore(at(1), at(1))))
+    expect(score.total).toBe(0)
+    expect(score.rooms['2,1']?.banked).toBe(true)
   })
 
   it('a hostile room counts down while Merlin is in it and banks what is left when it clears', () => {
@@ -85,19 +97,30 @@ describe('scoring in rooms', () => {
   })
 })
 
-describe('the continuous world voids the score', () => {
-  it('starting in the continuous world gives no score', () => {
-    const s = steps(sim(map([false, true]), 'continuous'), 5)
-    expect(s.score.valid).toBe(false)
-    expect(s.score.total).toBe(0)
+describe('scoring in the continuous world', () => {
+  it('a run started there counts down Merlin\'s room by the map\'s rooms and banks it once no hostile is in it', () => {
+    let s = steps(sim(map([true, true]), 'continuous'), 30)
+    expect(s.score.valid).toBe(true)
+    expect(currentRoomPoints(s)).toBe(roomPoints(30))
+    s = stepSim(withoutGoblins(s), NO_INPUT)
+    expect(s.score.total).toBe(roomPoints(30))
+    expect(currentRoomPoints(s)).toBeNull()
   })
 
-  it('switching to it during a run voids the run, and switching back does not restore it', () => {
-    let s = sim(map([false, true]))
+  it('a start room with no hostile pays nothing there either', () => {
+    const s = steps(sim(map([false, true]), 'continuous'), 5)
     expect(s.score.valid).toBe(true)
-    s = switchWorldMode(s, 'continuous')
+    expect(s.score.total).toBe(0)
+  })
+})
+
+describe('switching the world mode during a run voids it', () => {
+  it.each<[WorldMode, WorldMode]>([['rooms', 'continuous'], ['continuous', 'rooms']])('from %s to %s, and switching back does not restore it', (from, to) => {
+    let s = steps(sim(map([true, true]), from), 3)
+    expect(s.score.valid).toBe(true)
+    s = switchWorldMode(s, to)
     expect(s.score.valid).toBe(false)
-    s = steps(switchWorldMode(steps(s, 3), 'rooms'), 3)
+    s = steps(switchWorldMode(steps(s, 3), from), 3)
     expect(s.score.valid).toBe(false)
     expect(s.score.total).toBe(0)
   })

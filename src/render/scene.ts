@@ -45,7 +45,10 @@ const TILE_LAYERS: readonly LayerName[] = ['backgroundPassive', 'backgroundActiv
 /** Engine draw layers (actor data `#layerZ`) -> z within the actor container; unknown layers draw with objects. */
 const LAYER_Z: Record<string, number> = { gGameObjectLayer: 0, gPlayerLayer: 1, gGameBulletLayer: 2 }
 
-/** The debug readout's two lines fill the strip below the play view, `gap` px right of the health bar (remake). */
+/**
+ * The debug readout's two lines fill the strip below the play view, `gap` px right of the health bar
+ * (remake); kept short enough to end well left of the score (a five-digit total) at the strip's right end.
+ */
 const DEBUG_TEXT = { gap: 8, fontSize: 8, lineHeight: 8 }
 const NO_TINT = 0xffffff
 /** modColourTransform.glowTeal: the frozen sprite is blended this far toward its target colour rgb(0, 255, 255). */
@@ -140,8 +143,6 @@ export class Scene {
   private bulletAngles = new Map<number, number>()
   private graveKey: { room: string; rooms: SimState['rooms'] | null } = { room: '', rooms: null }
   private spellTexture: Texture | null = null
-  /** The track the room asked for, shown in the debug readout (main.ts sets it from the audio engine). */
-  musicTrack: string | null = null
   private tealGlow = tealGlowFilter()
   private teamOverlays = new Map<string, ColorMatrixFilter | null>()
   private whiteFlash = pixelFilter()
@@ -304,10 +305,8 @@ export class Scene {
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {
       this.debugText.text =
-        `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} actors ${s.actors.length} ` +
-        `exits ${s.exitsOpen ? 'open' : 'shut'} cam ${this.cfg.cameraMode}\n` +
-        `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} vel ${p.vel.x.toFixed(2)},${p.vel.y.toFixed(2)} ` +
-        `energy ${p.energy.toFixed(0)} ${p.mode} music ${this.musicTrack ?? 'off'}`
+        `fps ${fps.toFixed(0)} tick ${s.tick} room ${s.room.x},${s.room.y} actors ${s.actors.length} cam ${this.cfg.cameraMode}\n` +
+        `pos ${p.pos.x.toFixed(1)},${p.pos.y.toFixed(1)} energy ${p.energy.toFixed(0)} ${p.mode} exits ${s.exitsOpen ? 'open' : 'shut'}`
     }
   }
 

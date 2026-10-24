@@ -69,9 +69,8 @@ Work top down; the sections below hold the details.
   Ulin, Verdanlin (`act_*InGame`, team aldevar, 200 HP, sprites in the cast dump; each casts one of
   Merlin's ported spells): as allies (wizardMaster / modSummonWizard, tower rewards) and as enemies
   (a palette swap at convert time, boss-level HP).
-- **Open-world score and an online leaderboard.** Scoring only counts room-by-room runs; a run
-  played in the continuous world shows no score. Later: a separate score for the continuous world
-  (it has no rooms to count down) and an online leaderboard per map.
+- **Online leaderboard.** An online leaderboard per map (and per world mode, as the local bests).
+  The open-world score is done (2026-10-25, see Awaiting the owner's review).
 - **Save and load the state of a map.** Original: `saveMaster` (save/load menu options,
   `addSaveData`/`restoreFromSave` on every object). Builds on the snapshot code in `src/debug/`.
 
@@ -97,6 +96,13 @@ Work top down; the sections below hold the details.
 - Scoring (`docs/notes/engine-mechanics-hud.md` §5): each room counts down from 9999 over 200 s of
   Merlin's time in it while uncleared and banks what is left when it clears; the map's total and the
   room's green `+1234` sit at the right end of the strip below the room; the map selector shows each
+  map's best (localStorage, per map id; a death's partial run counts). Owner's first review applied
+  (2026-10-25): a room clear on first entry pays nothing (the start room too); a run started in the
+  open world is scored by the map's rooms and kept as a separate open-world best, the map lists
+  showing the bests of the current camera's mode (old bests migrated as room camera bests); a camera
+  switch during a run voids it (grey `—`, no best); one best per generated map id; the debug readout
+  shortened to end well left of a five-digit total. To confirm: the open world's room rule (a room
+  banks once no hostile stands in its area, so hostiles chasing Merlin out of it bank it too).
   map's best (localStorage, per map id; a death's partial run counts). To confirm: an empty room
   paying its full 9999 at once (the start room included), the HUD placement (total left of the room
   points, both ending at the room's right edge x 608), the open-world note, one best per generated

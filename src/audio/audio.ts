@@ -98,11 +98,6 @@ export class AudioEngine {
     this.applyVolume()
   }
 
-  /** The track the current room asked for (null: none, or musicOff), whether or not music is on. */
-  get track(): string | null {
-    return this.wanted
-  }
-
   get current(): AudioSettings {
     return { ...this.settings }
   }

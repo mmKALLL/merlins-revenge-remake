@@ -62,7 +62,7 @@ Run `pnpm assets:convert` and reload. The shipped file grants Merlin the energy 
 - Swept collision: strong knockback can no longer push anyone through a wall.
 - Livelier enemies: random detours spread out crowds of attackers, and arrows and blasts have a little spread.
 - A map browser with every original map in its folders, favourites, and a map-complete cut scene.
-- Scoring: each room is worth 9999 points counting down over 200 seconds until it is cleared; the map's total shows below the room, and the map browser keeps each map's best (room-by-room play only).
+- Scoring: each room with enemies in it is worth 9999 points counting down over 200 seconds until it is cleared; the map's total shows below the room, and the map browser keeps each map's best, separately for the room camera and the open world (switching the camera during a run voids its score).
 - Looping music with faded transitions, separate music and effects toggles, and a volume slider.
 - Keys work by physical position, so WASD also works on other keyboard layouts.
 - Balance tweaks live in one tuning file (`assets/tuning.json`); the original data stays untouched.
