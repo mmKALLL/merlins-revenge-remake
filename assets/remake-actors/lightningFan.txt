@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "vulture_fire",
 #volume: 40,
-#volley: [#chargePerShot: 15, #maxShots: 3, #rangeFactor: 2, #damageMultiplier: 1.2, #spread: #even, #spreadMinDeg: 6, #spreadMaxDeg: 14, #staggerTicks: 3, #speedJitter: 0]
+#volley: [#chargePerShot: 15, #maxShots: 3, #rangeFactor: 2.4, #damageMultiplier: 0.84, #spread: #even, #spreadMinDeg: 6, #spreadMaxDeg: 14, #staggerTicks: 3, #speedJitter: 0, #pierce: 2]
 ],
 #character: #lightningFan,
 #collectSound: "collect_powerup_01",

@@ -10,7 +10,7 @@
 #bullet: #bomb,
 #chargeColour: rgb(150,150,165),
 #chargeSize: 1.667,
-#chargeSpeed: 0.0838,
+#chargeSpeed: 0.1006,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 60,
-#volley: [#chargePerShot: 2.5714, #maxShots: 7, #rangeFactor: 1.5, #damageMultiplier: 2.7, #spreadMinDeg: 30, #spreadMaxDeg: 90]
+#volley: [#chargePerShot: 2.5714, #maxShots: 7, #rangeFactor: 1.8, #damageMultiplier: 3.24, #spreadMinDeg: 30, #spreadMaxDeg: 90]
 ],
 #character: #bombVolley,
 #collectSound: "collect_powerup_01",

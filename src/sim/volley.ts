@@ -125,12 +125,8 @@ export function turnAndScale(vel: Vec, deg: number, factor: number): Vec {
   return { x: (vel.x * c - vel.y * s) * factor, y: (vel.x * s + vel.y * c) * factor }
 }
 
-/** Mini projectiles in one diagonal row over a charging volley; more start a second row (owner). */
+/** Mini projectiles in one diagonal row over a charging volley; more start another row (owner). */
 export const ICONS_PER_ROW = 5
-/** The rows of mini projectiles at most. */
-const ICON_ROWS = 2
-/** The most mini projectiles stacked over a charging volley. */
-export const ICON_STACK_MAX = ICONS_PER_ROW * ICON_ROWS
 /** The longest side of a mini projectile, in game px. */
 export const ICON_PX = 8
 /** Each stacked icon sits this many px left of and below the one before (drawn over it). */
@@ -140,14 +136,11 @@ export const ICON_ROW_SHIFT = { x: 2, y: 1 } as const
 /** Room around the stack inside the spell's ball. */
 const BALL_MARGIN = 4
 
-/** The stacked icons for `count` projectiles: one each, at most ICON_STACK_MAX. */
-export const volleyIconCount = (count: number): number => Math.min(count, ICON_STACK_MAX)
-
-/** The rows the icons for `count` projectiles take (0 for none). */
-export const iconRows = (count: number): number => Math.ceil(volleyIconCount(count) / ICONS_PER_ROW)
+/** The rows the icons for `count` projectiles take, one icon each (0 for none). */
+export const iconRows = (count: number): number => Math.ceil(Math.max(0, count) / ICONS_PER_ROW)
 
 /** The side of the square one row's diagonal covers: the first row's, as the later rows sit beside it. */
-export const iconRowPx = (count: number): number => ICON_PX + ICON_STEP * (Math.min(volleyIconCount(count), ICONS_PER_ROW) - 1)
+export const iconRowPx = (count: number): number => ICON_PX + ICON_STEP * (Math.min(count, ICONS_PER_ROW) - 1)
 
 /** The width and height the stacked icons for `count` projectiles cover (0 for none). */
 export function iconStackSize(count: number): { w: number; h: number } {

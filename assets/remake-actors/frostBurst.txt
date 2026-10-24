@@ -10,7 +10,7 @@
 #bullet: #freezeBlast,
 #chargeColour: rgb(150,220,240),
 #chargeSize: 0.625,
-#chargeSpeed: 0.1778,
+#chargeSpeed: 0.2134,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 80,
-#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 2, #damageMultiplier: 1.24, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 42, #staggerTicks: 4, #speedJitter: 0.05]
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 2.4, #damageMultiplier: 1.488, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 42, #staggerTicks: 4, #speedJitter: 0.05]
 ],
 #character: #frostBurst,
 #collectSound: "collect_powerup_01",

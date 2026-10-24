@@ -10,7 +10,7 @@
 #bullet: #thunderBlast,
 #chargeColour: rgb(250,225,90),
 #chargeSize: 0.556,
-#chargeSpeed: 0.2,
+#chargeSpeed: 0.24,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 120,
-#volley: [#chargePerShot: 13.5, #maxShots: 4, #rangeFactor: 2.6, #damageMultiplier: 1.3, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 13.5, #maxShots: 4, #rangeFactor: 3.12, #damageMultiplier: 1.56, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #thunderBurst,
 #collectSound: "collect_powerup_01",

@@ -1,10 +1,10 @@
 // Remake: the projectiles a volley spell stands for, drawn over the spell while it charges and fires
-// (src/sim/volley.ts): mini copies of the projectile stacked diagonally, one per projectile up to
-// ICON_STACK_MAX in rows of ICONS_PER_ROW, after objSpellIcons over the summons.
+// (src/sim/volley.ts): mini copies of the projectile stacked diagonally, one per projectile in rows
+// of ICONS_PER_ROW, after objSpellIcons over the summons.
 import { Container, Sprite, type Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { ActorState } from '../sim/state'
-import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackSize, volleyIconCount, volleyShotsShown } from '../sim/volley'
+import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackSize, volleyShotsShown } from '../sim/volley'
 
 /** Per-projectile nudges (px) for icons whose art sits off-centre in their frame (owner: the pin poked out of the ball). */
 const ICON_NUDGE: Readonly<Record<string, { x: number; y: number }>> = { smokePin: { x: 0, y: -1 }, skeletonHead: { x: 1, y: 0 } }
@@ -58,10 +58,9 @@ export class VolleyIcons {
  * row starts over at the first icon's place, shifted by ICON_ROW_SHIFT; all inside iconStackSize from (0, 0).
  */
 function layOut(stack: Container, tex: Texture, count: number): void {
-  const icons = volleyIconCount(count)
   const rowSide = iconRowPx(count)
   const k = Math.min(1, ICON_PX / Math.max(tex.width, tex.height))
-  for (let i = 0; i < icons; i++) {
+  for (let i = 0; i < count; i++) {
     const icon = new Sprite(tex)
     icon.scale.set(k)
     const row = Math.floor(i / ICONS_PER_ROW)

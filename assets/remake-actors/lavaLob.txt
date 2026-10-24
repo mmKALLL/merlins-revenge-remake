@@ -10,7 +10,7 @@
 #bullet: #flamingRock,
 #chargeColour: rgb(240,110,60),
 #chargeSize: 0.769,
-#chargeSpeed: 0.18,
+#chargeSpeed: 0.216,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 5.5714, #maxShots: 7, #rangeFactor: 2.9, #damageMultiplier: 1.9, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 5.5714, #maxShots: 7, #rangeFactor: 3.48, #damageMultiplier: 2.28, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #lavaLob,
 #collectSound: "collect_powerup_01",

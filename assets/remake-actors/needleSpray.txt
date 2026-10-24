@@ -10,7 +10,7 @@
 #bullet: #needle,
 #chargeColour: rgb(160,225,150),
 #chargeSize: 0.556,
-#chargeSpeed: 0.5,
+#chargeSpeed: 0.6,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 5.4, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 1.225, #spread: #even]
+#volley: [#chargePerShot: 5.4, #maxShots: 10, #rangeFactor: 2.4, #damageMultiplier: 1.47, #spread: #even]
 ],
 #character: #needleSpray,
 #collectSound: "collect_powerup_01",

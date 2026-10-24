@@ -150,6 +150,8 @@ Work top down; the sections below hold the details.
   launched from Merlin rather than the ball (`launchFrom`; set #spell in a volley list to compare).
   Second batch (2026-10-25, to review): thirteen more volleys, blue flame chilling and laser piercing
   (`docs/plans/2026-10-25-volley-batch-2.md`, with the owner's answers; acid and laser retuned).
+  Retune round 4 (to review): 1.2x range, lightning/blue flame/shuriken/longbow pierce at 0.7x
+  damage, the rest 1.2x damage and charge, blue flame freezes ~3 s, icon rows up to the max shots.
   Next: lizard and ostrich egg volleys whose hatched units fight for Merlin (owner, 2026-10-25).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
