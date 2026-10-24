@@ -19,6 +19,7 @@
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: the room's characters stored (a dying one finishes when the room is back), the new room restored or spawned (combat notes §2);
 //     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
+// 13. remake: the score (score.ts): the room's countdown, a cleared room's points banked
 // In a continuous world (remake feature, engine notes walking-and-rooms "Continuous world") every
 // room is spawned at the start and steps 11-12 give way to: units woken or put to sleep
 // (activation.ts), graves stored in their own room, nav mode by distance, and the music of the room
@@ -47,6 +48,7 @@ import {
   ATTACK_STRIPS, DEFAULT_SIM_CONFIG, NO_PICKUPS, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
 } from './state'
+import { NEW_SCORE, startScore, stepScore } from './score'
 import { stepCpuAi } from './tick-ai'
 import { stepCheats } from './tick-cheats'
 import { alignCasterSpell, stepSpellCasters } from './tick-caster'
@@ -94,16 +96,19 @@ export function createSim(
     pickups: NO_PICKUPS,
     arsenal: startingArsenal(defs['player']!),
     army: NO_ARMY,
+    score: NEW_SCORE,
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
   const withPlayer: SimState = { ...s, playerId: player.id, actors: [player] }
   if (worldMode === 'continuous') {
     const started = withAttackGrace(activateAtStart(spawnAllRooms(withPlayer)))
-    return checkMapCleared(withRoomMusic({ ...started, navMode: navModeClear(started) }))
+    return withStartScore(checkMapCleared(withRoomMusic({ ...started, navMode: navModeClear(started) })))
   }
-  return withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(withPlayer, s.room))))
+  return withStartScore(withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(withPlayer, s.room)))))
 }
+
+const withStartScore = (s: SimState): SimState => ({ ...s, score: startScore(s) })
 
 /** Where characters are kept: the current room, or the whole map in a continuous world. */
 function playAreaRect(s: SimState): Rect {
@@ -385,6 +390,11 @@ function settleContinuous(t: Tick, room: Vec): SimState {
 }
 
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {
+  const next = stepWorld(s, input, cfg)
+  return { ...next, score: stepScore(s, next) }
+}
+
+function stepWorld(s: SimState, input: InputSnapshot, cfg: SimConfig): SimState {
   const t = beginTick(s)
   stepCheats(t, input)
   stepArmyKey(t, input, cfg.view)

@@ -8,6 +8,7 @@ import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Arsenal } from '../mr-open/mr-weapons'
 import type { Rng } from './rng'
+import type { ScoreState } from './score'
 import { PLAY_VIEW, type Size } from './view'
 import type { WorldGrid } from './world-grid'
 
@@ -214,6 +215,7 @@ export interface SimState {
   pickups: PlayerPickups
   arsenal: Arsenal // Merlin's weapons (modWeaponManager)
   army: ArmyReserve // armyMaster.pReserveArmy
+  score: ScoreState // remake: the room countdowns and the map's total (score.ts)
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)
 }
 

@@ -3,13 +3,15 @@
 import type { Vec } from '../mr-open/mr-geometry'
 import { asleep, canSleep, navModeClear, withinWakeDistance } from './activation'
 import { isKeptWithRoom, isUnit, playerOf, spawnAllRooms } from './actors'
+import { VOID_SCORE } from './score'
 import { roomKey, type ActorState, type SimState, type WorldMode } from './state'
 import { EMPTY_ROOM, withExitsEvaluated } from './tick'
 
 /** The same state played the other way: room by room, or as one continuous world. */
 export function switchWorldMode(s: SimState, mode: WorldMode): SimState {
   if (s.worldMode === mode) return s
-  return mode === 'continuous' ? toContinuous(s) : toRooms(s)
+  // the continuous world voids the run's score (score.ts)
+  return mode === 'continuous' ? { ...toContinuous(s), score: VOID_SCORE } : toRooms(s)
 }
 
 /**

@@ -9,6 +9,7 @@ import type { Rng } from '../sim/rng'
 import { NO_ARMY, type ArmyReserve } from '../mr-open/mr-army'
 import { startingArsenal, type Arsenal } from '../mr-open/mr-weapons'
 import { NO_PICKUPS, type ActorState, type AnimationSet, type InputSnapshot, type PlayerPickups, type RoomState, type SimState, type WorldMode } from '../sim/state'
+import { VOID_SCORE, type ScoreState } from '../sim/score'
 import type { WorldGrid } from '../sim/world-grid'
 
 /** Bump when the snapshot shape or the meaning of a field changes. */
@@ -40,6 +41,7 @@ export interface SimSnapshot {
   pickups?: PlayerPickups // absent in snapshots made before potions existed
   arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
   army?: ArmyReserve // likewise
+  score?: ScoreState // absent in snapshots made before scoring: such a run has no score
   actors: ActorState[]
   rooms: Record<string, RoomState>
   /** the inputs of the ticks leading up to this moment, oldest first (context; not replayed on load) */
@@ -112,6 +114,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     pickups: s.pickups,
     arsenal: s.arsenal,
     army: s.army,
+    score: s.score,
     actors: s.actors,
     rooms: s.rooms,
     inputs: [...(extras.inputs ?? [])],
@@ -169,6 +172,7 @@ export function deserializeSim(
     pickups: snap.pickups ?? NO_PICKUPS,
     arsenal: snap.arsenal ?? startingArsenal(defs['player']!),
     army: snap.army ?? NO_ARMY,
+    score: snap.score ?? VOID_SCORE,
     events: [],
   }
 }
