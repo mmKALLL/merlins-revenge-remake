@@ -393,9 +393,10 @@ describe('HP budget draws', () => {
 })
 
 describe('generated map ids', () => {
-  it('lists one map per theme under randomly_generated/, numbered by difficulty, then the tower', () => {
+  it('lists one map per theme under randomly_generated/, numbered by difficulty, then the tower and the roguelite run', () => {
     expect(GENERATED_MAPS.map((m) => m.id)).toEqual([
       'randomly_generated/1-goblin-forest', 'randomly_generated/2-undead-marsh', 'randomly_generated/3-dragon-canyon', 'randomly_generated/4-magic-maze', 'randomly_generated/5-golden-fort', 'randomly_generated/sorcerers-tower',
+      'randomly_generated/tower-roguelite',
     ])
     expect(isGeneratedMapId('randomly_generated/nowhere')).toBe(false)
   })
