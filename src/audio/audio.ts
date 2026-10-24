@@ -67,6 +67,9 @@ function saveAudioSettings(s: AudioSettings): void {
   }
 }
 
+/** What a pause silences: nothing, the effects only (the music plays on), or every sound. */
+export type AudioPause = 'none' | 'effects' | 'all'
+
 export class AudioEngine {
   private readonly ctx: AudioContext | null
   private readonly master: GainNode | null = null
@@ -84,7 +87,7 @@ export class AudioEngine {
   private readonly fading = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>() // old tracks fading out
   private pending: string | null = null // track being fetched/decoded
   private musicToken = 0
-  private paused = false // setPaused: the context stays suspended until the game resumes
+  private pause: AudioPause = 'none' // setPause: 'all' keeps the context suspended until the game resumes
 
   constructor(settings: AudioSettings = loadAudioSettings()) {
     this.settings = settings
@@ -139,21 +142,23 @@ export class AudioEngine {
         for (const type of UNLOCK_EVENTS) target.removeEventListener(type, unlock, true)
         return
       }
-      if (!this.paused) void ctx.resume()
+      if (this.pause !== 'all') void ctx.resume()
     }
     for (const type of UNLOCK_EVENTS) target.addEventListener(type, unlock, true)
   }
 
   /**
-   * Suspends every sound while the game is paused (a menu is open) and resumes it after, the music
-   * where it stopped. Call the resume from a key or click handler: browsers only start audio there.
+   * 'all' suspends every sound while the game is paused (a menu is open) and resumes it after, the
+   * music where it stopped. 'effects' (the roguelite floor pick) keeps the music playing and silences
+   * the effects. Call the resume from a key or click handler: browsers only start audio there.
    */
-  setPaused(paused: boolean): void {
-    if (this.paused === paused) return
-    this.paused = paused
+  setPause(pause: AudioPause): void {
+    if (this.pause === pause) return
+    this.pause = pause
     if (!this.ctx) return
-    if (paused) void this.ctx.suspend()
+    if (pause === 'all') void this.ctx.suspend()
     else void this.ctx.resume()
+    this.applyVolume()
   }
 
   /** Forwards one tick's sim events. */
@@ -168,7 +173,7 @@ export class AudioEngine {
   playSound(name: string, volume: number): void {
     const ctx = this.ctx
     // effects heard only while running: sounds queued on a suspended context would all burst out on resume
-    if (!ctx || !this.effectsBus || !this.effectsAudible() || ctx.state !== 'running') return
+    if (!ctx || !this.effectsBus || !this.effectsAudible() || this.pause !== 'none' || ctx.state !== 'running') return
     const buf = this.effects.get(name)
     if (!buf) {
       if (this.index && !this.index.sounds.includes(name)) this.warnOnce(`sound "${name}" has no file`)
@@ -241,7 +246,7 @@ export class AudioEngine {
   private applyVolume(): void {
     // the music bus also carries playMusic's default volume
     if (this.musicBus) this.musicBus.gain.value = (DEFAULT_VOLUME / MAX_VOLUME) * (this.settings.musicVolume / VOLUME_SETTING_MAX)
-    if (this.effectsBus) this.effectsBus.gain.value = this.settings.effectsVolume / VOLUME_SETTING_MAX
+    if (this.effectsBus) this.effectsBus.gain.value = this.pause === 'none' ? this.settings.effectsVolume / VOLUME_SETTING_MAX : 0
   }
 
   private stopEffects(): void {

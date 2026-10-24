@@ -35,7 +35,7 @@ import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
 import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
-import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
+import { audioPause, nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
 import { helpPanel } from './ui/help-panel'
 import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
 import { endRun, enterFloor, nextFloorPlan, runTimeText, startRun, visitedBiomeNames, type RunState } from './run/run'
@@ -664,7 +664,7 @@ function main(): void {
     const running = simRuns(state)
     input.setEnabled(running)
     if (!running) touchControls?.release() // the menu covers the controls: no press survives it
-    audio.setPaused(!running)
+    audio.setPause(audioPause(state))
     // no menu button keeps the focus while playing: Space and Enter belong to the game
     if (running && document.activeElement instanceof HTMLElement) document.activeElement.blur()
   }
@@ -676,7 +676,7 @@ function main(): void {
   }
 
   async function play(mapId = mapToPlay()): Promise<void> {
-    audio.setPaused(false) // inside the click: browsers start audio only from a user gesture
+    audio.setPause('none') // inside the click: browsers start audio only from a user gesture
     // a generated floor gets a fresh seed in a fresh page (mapUrl drops the seed)
     if (game?.mapId === mapId && !isGeneratedMapId(mapId)) {
       game.restart('fresh')
