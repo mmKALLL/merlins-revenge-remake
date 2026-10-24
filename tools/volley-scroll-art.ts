@@ -4,9 +4,10 @@
 // spell's weapon selector icon with its disc recoloured and the projectile on it, and the name
 // written in a pixel font drawn after the original writings (2 px stems, 1 px bars, a black outline
 // and the writings' orange-to-yellow rows).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { PNG } from 'pngjs'
+import { decodeBmp } from './bmp'
 
 export interface VolleyScrollArt {
   key: string
@@ -18,7 +19,7 @@ export interface VolleyScrollArt {
 export const VOLLEY_SCROLL_ART: readonly VolleyScrollArt[] = [
   { key: 'bombVolley', name: 'Bomb Volley', projectile: 'bomb', colour: { r: 150, g: 150, b: 165 } },
   { key: 'boltFan', name: 'Bolt Fan', projectile: 'crossBolt', colour: { r: 200, g: 120, b: 90 } },
-  { key: 'arrowRain', name: 'Arrow Rain', projectile: 'archerArrow', colour: { r: 215, g: 175, b: 110 } },
+  { key: 'arrowRain', name: 'Arrow Rain', projectile: 'gobarrow', colour: { r: 215, g: 175, b: 110 } },
   { key: 'shurikenFan', name: 'Shuriken Fan', projectile: 'shuriken', colour: { r: 175, g: 130, b: 225 } },
   { key: 'thunderBurst', name: 'Thunder Burst', projectile: 'thunderBlast', colour: { r: 250, g: 225, b: 90 } },
   { key: 'pinStorm', name: 'Pin Storm', projectile: 'smokePin', colour: { r: 140, g: 200, b: 110 } },
@@ -239,9 +240,7 @@ export function writeVolleyScrollArt(assets: string): string[] {
   const icon = PNG.sync.read(readFileSync(join(assets, BASE_ICON)))
   const written: string[] = []
   for (const art of VOLLEY_SCROLL_ART) {
-    const frameFile = join(assets, 'sprites', art.projectile, `anm_${art.projectile}_fly_${flyDelay(assets, art.projectile)}_01.png`)
-    if (!existsSync(frameFile)) throw new Error(`volley ${art.key}: no fly frame ${frameFile}`)
-    const frame = PNG.sync.read(readFileSync(frameFile))
+    const frame = firstFlyFrame(assets, art)
     const scroll = tinted(base, art.colour)
     paint(scroll, miniature(scrollPose(frame), SCROLL_FACE), SCROLL_FACE.cx, SCROLL_FACE.cy)
     const ws = iconWithDisc(icon, art.colour)
@@ -260,10 +259,17 @@ export function writeVolleyScrollArt(assets: string): string[] {
   return written
 }
 
-/** The delay part of the projectile's first fly frame name (anm_<p>_fly_<delay>_01.png). */
-function flyDelay(assets: string, projectile: string): string {
-  const regs = readFileSync(join(assets, 'sprites', projectile, 'regpoints.tsv'), 'utf8')
-  const m = new RegExp(`anm_${projectile}_fly_(\\d+)_01`).exec(regs)
-  if (!m) throw new Error(`volley art: ${projectile} has no fly strip`)
-  return m[1]!
+/**
+ * The projectile's first fly frame (anm_<p>_fly_<delay>_01): a cast-dump PNG, or an original gfx BMP
+ * (white is transparent) such as the goblin arrow's.
+ */
+function firstFlyFrame(assets: string, art: VolleyScrollArt): PNG {
+  const dir = join(assets, 'sprites', art.projectile)
+  const file = existsSync(dir) ? readdirSync(dir).find((f) => new RegExp(`^anm_${art.projectile}_fly_\\d+_01\\.(png|bmp)$`).test(f)) : undefined
+  if (!file) throw new Error(`volley ${art.key}: no fly frame in ${dir}`)
+  if (file.endsWith('.png')) return PNG.sync.read(readFileSync(join(dir, file)))
+  const bmp = decodeBmp(readFileSync(join(dir, file)))
+  const png = new PNG({ width: bmp.width, height: bmp.height })
+  png.data.set(bmp.rgba)
+  return png
 }

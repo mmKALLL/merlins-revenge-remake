@@ -1,16 +1,10 @@
 // Remake: the projectiles a volley spell stands for, drawn over the spell while it charges and fires
 // (src/sim/volley.ts): mini copies of the projectile stacked diagonally, one per projectile up to
-// ICON_STACK_MAX and a small black "+" beside the stack for more, after objSpellIcons over the summons.
-import { Container, Graphics, Sprite, type Texture } from 'pixi.js'
+// ICON_STACK_MAX, after objSpellIcons over the summons.
+import { Container, Sprite, type Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { ActorState } from '../sim/state'
 import { ICON_PX, ICON_STEP, iconStackPx, volleyIconStack, volleyShotsShown } from '../sim/volley'
-
-/** The "+" for more projectiles than the stack shows: arm length either side of its centre, in game px. */
-const PLUS_ARM = 2
-/** Gap between the stack and the "+". */
-const PLUS_GAP = 1
-const PLUS_COLOUR = 0x000000
 
 export class VolleyIcons {
   private stacks = new Map<number, { stack: Container; shown: number }>()
@@ -39,7 +33,7 @@ export class VolleyIcons {
     }
     entry.stack.visible = true
     entry.stack.zIndex = spellSprite.zIndex + 1
-    // the icons' square is centred on the ball; the "+" hangs off its right side
+    // the icons' square is centred on the ball
     const half = iconStackPx(shown) / 2
     entry.stack.position.set(Math.round(spellSprite.x - half), Math.round(spellSprite.y - half))
   }
@@ -57,10 +51,10 @@ export class VolleyIcons {
 /**
  * The icons from the top right: each next one ICON_STEP px left of and below the one before and drawn
  * over it, so the earlier ones peek out at its top right (owner's choice), inside the iconStackPx
- * square from (0, 0); the "+" to the right, level with the middle.
+ * square from (0, 0).
  */
 function layOut(stack: Container, tex: Texture, count: number): void {
-  const { icons, more } = volleyIconStack(count)
+  const { icons } = volleyIconStack(count)
   const side = iconStackPx(count)
   const k = Math.min(1, ICON_PX / Math.max(tex.width, tex.height))
   for (let i = 0; i < icons; i++) {
@@ -71,13 +65,5 @@ function layOut(stack: Container, tex: Texture, count: number): void {
     icon.position.set(cellX + Math.round((ICON_PX - icon.width) / 2), cellY + Math.round((ICON_PX - icon.height) / 2))
     stack.addChild(icon)
   }
-  if (more) stack.addChild(plusAt(side + PLUS_GAP + PLUS_ARM, Math.floor(side / 2)))
 }
 
-/** A 1 px thick "+" centred on (cx, cy). */
-function plusAt(cx: number, cy: number): Graphics {
-  return new Graphics()
-    .rect(cx - PLUS_ARM, cy, PLUS_ARM * 2 + 1, 1)
-    .rect(cx, cy - PLUS_ARM, 1, PLUS_ARM * 2 + 1)
-    .fill(PLUS_COLOUR)
-}

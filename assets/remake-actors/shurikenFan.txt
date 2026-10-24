@@ -10,7 +10,7 @@
 #bullet: #shuriken,
 #chargeColour: rgb(175,130,225),
 #chargeSize: 0.417,
-#chargeSpeed: 0.3337,
+#chargeSpeed: 0.5006,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.34, #spread: #even]
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.34, #spread: #even, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #shurikenFan,
 #collectSound: "collect_powerup_01",

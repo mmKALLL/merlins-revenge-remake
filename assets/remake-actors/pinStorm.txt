@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 7.5, #maxShots: 10, #rangeFactor: 2.5, #damageMultiplier: 0.108]
+#volley: [#chargePerShot: 7.5, #maxShots: 10, #rangeFactor: 2.5, #damageMultiplier: 0.108, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #pinStorm,
 #collectSound: "collect_powerup_01",

@@ -7,7 +7,7 @@
 [
 #animframe: #none,
 #animType: #magic,
-#bullet: #archerArrow,
+#bullet: #goblinArrow,
 #chargeColour: rgb(215,175,110),
 #chargeSize: 0.417,
 #chargeSpeed: 0.667,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 100,
-#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 0.549]
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 0.878, #spreadMinDeg: 30, #spreadMaxDeg: 75]
 ],
 #character: #arrowRain,
 #collectSound: "collect_powerup_01",

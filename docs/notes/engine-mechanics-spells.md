@@ -554,3 +554,16 @@ splash.
 
 - **Icons and ball, scroll art:** see Icons and Scrolls above.
 
+### Volley tweaks, third round (owner, 2026-10-25)
+
+- **Fans:** most volleys widen by about 5 degrees each way (20 degrees at 1-2 shots up to 42 at the
+  full count); bolt fan and bomb volley go up to 60 (+-30); arrow rain is the wide, cheap spray (30 up
+  to 75); needle spray is unchanged (the owner's favourite).
+- **Arrow rain** fires goblin arrows (the remake's graphic choice; the skeleton/archer arrow looked
+  wrong), with its multiplier raised 1.6x so its damage stays where it was, which also pays for its
+  short range and wide spread. The Scarlet longbow arrow is kept for the second batch's few, strong,
+  accurate, long shots.
+- **Shuriken fan** charges 1.5x faster; **lava lob** flies about twice as far (`rangeFactor` 2.5).
+- **Charge icons:** no "+" for more than five projectiles.
+- The scroll art tool also reads original gfx BMP fly frames (the goblin arrow has no cast PNG).
+

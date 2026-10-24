@@ -18,7 +18,7 @@ else behaves as the original projectile does: smoke is a blast, and arrows do no
 | Boulder lob | boulder (boulder monster) | 2 / 1 / 4.5 | few heavy rocks, big knockback, medium range | slow charge, max 4, random, wide fan, long stagger |
 | Dark rock | darkRock (dark golems), explodes | 1 / 1 / 10 | short-range bursting rocks, crowd control | slow charge, max 5, random, medium fan |
 | Poison smoke | smoke (shrouder), explodes | 0.25 / 6 / 2 | long-range lingering-looking blasts, low push | medium charge, max 5, random, narrow-medium fan |
-| Longbow | scArcherArrow (Scarlet archers, goblin tower) | 0.9 / 5 / 5 | few, fast, accurate | medium charge, max 4, even, very narrow fan, short stagger, no jitter |
+| Longbow | scArcherArrow (Scarlet archers, goblin tower) | 0.9 / 5 / 5 | the high-power, few-count, accurate, far-reaching option (owner) | medium charge, max 4, even, very narrow fan, short stagger, no jitter |
 | Dragon fire | fireBall (dragon flamethrower) | 0.2 / 6 / 4 | a fast, wide spray, low push | fast charge, max 10, random, widest fan, minimal stagger, high jitter |
 | Blue flame | blueFlame (undead dragon) | 0.2 / 15 / 4 | fewer, heavy flames that **chill** | slow charge, max 5, random, medium fan; adds a short freeze |
 | Fang bunny lob | fangBunnyBabyBullet (fang bunny babies) | 0.5 / 3 / 4 | cheap lobbed sparks, bouncy feel | fast charge, max 8, random, wide fan, high jitter |
