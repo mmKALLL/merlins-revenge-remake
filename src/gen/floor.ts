@@ -3,10 +3,11 @@
 // tree is always open), each room is laid out to connect its openings, and units are placed by the
 // theme's room plan, drawing by tier from its tables. The result is checked with a flood fill over the whole floor.
 import type { Vec } from '../mr-open/mr-geometry'
-import { roomXYToNum, type LayerName, type MapDefinition, type RoomDefinition, type TileGrid } from '../mr-open/mr-map-format'
+import { roomXYToNum, type LayerName, type LocationSign, type MapDefinition, type RoomDefinition, type TileGrid } from '../mr-open/mr-map-format'
 import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
+import { SIGN_WIDTH_TILES, signSpot, signTileIn, signTileRow, signTiles } from './location-sign'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
 import { runSteps, type Steps } from './steps'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
@@ -87,6 +88,13 @@ export interface FloorOptions {
   boundaryOpenings?: readonly BoundaryOpening[]
   /** the start room's spell scroll; drawn from the theme's list when unset */
   spellScroll?: string
+  /**
+   * Remake (roguelite floors): no unit or dwelling within this many tiles (taxicab) of where Merlin
+   * appears. The start room is then laid out first, so the other rooms know his tile.
+   */
+  safeArrivalTiles?: number
+  /** Remake (roguelite floors): this name on a board in the start room (location-sign.ts) */
+  locationSign?: string
 }
 
 export interface GeneratedFloor {
@@ -111,10 +119,14 @@ export function* floorSteps(theme: FloorTheme, seed: number, energyOf: EnergyOf,
   checkRoomPlan(theme)
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
     const floor = yield* buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
-    if (floorIsConnected(floor, themeIsSolid(theme))) return floor
+    if (floorIsConnected(floor, themeIsSolid(theme)) && hasAskedSign(floor, options)) return floor
   }
-  throw new Error(`random floor ${theme.id}: no connected floor for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
+  throw new Error(`random floor ${theme.id}: no connected floor${options.locationSign === undefined ? '' : ' with its sign'} for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
 }
+
+/** A start room without a spot for the asked-for location sign fails the attempt, as a broken floor does. */
+const hasAskedSign = (floor: GeneratedFloor, options: FloorOptions): boolean =>
+  options.locationSign === undefined || floor.map.locationSign !== undefined
 
 function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): Steps<GeneratedFloor> {
   const rng = new GenRandom(seed)
@@ -124,28 +136,66 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
   const rooms: RoomDefinition[] = []
   const placements: Placement[] = []
   const takenLeaders = new Set<string>()
-  for (let y = 1; y <= size.y; y++) {
-    for (let x = 1; x <= size.x; x++) {
-      const room = { x, y }
-      const keepOpen = reservedTiles(size, room)
-      const shape = generateRoomShape(rng, ROOM_SIZE, edges[roomKey(room)]!, theme.shape, theme.edges.openingDepth, keepOpen)
-      decorate(rng, shape, theme.shape.decorationChance)
-      const units = placeUnits(rng, theme, room, shape, energyOf, options, takenLeaders)
-      placements.push(...units)
-      rooms.push(roomDefinition(rng, theme, room, shape, units))
-      yield rooms.length / (size.x * size.y)
+  const start = startRoom(size)
+  let arrival: Vec | null = null
+  let locationSign: LocationSign | undefined
+  for (const room of roomOrder(size, options.safeArrivalTiles !== undefined)) {
+    const keepOpen = reservedTiles(size, room)
+    const roomEdges = edges[roomKey(room)]!
+    const shape = generateRoomShape(rng, ROOM_SIZE, roomEdges, theme.shape, theme.edges.openingDepth, keepOpen)
+    decorate(rng, shape, theme.shape.decorationChance)
+    const units = placeUnits(rng, theme, room, shape, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
+    placements.push(...units)
+    const def = roomDefinition(rng, theme, room, shape, units)
+    if (sameVec(room, start)) {
+      const tile = arrivalTile(room, options, units.find((p) => p.key === theme.units.player)?.tile)
+      arrival = worldTileOf(room, tile)
+      if (options.locationSign !== undefined) locationSign = standSign(theme, room, def, shape, roomEdges, units, tile, options.locationSign)
     }
+    rooms.push(def)
+    yield rooms.length / (size.x * size.y)
   }
   rooms.sort((a, b) => a.num - b.num)
   const map: MapDefinition = {
     mapSize: size,
     roomSize: ROOM_SIZE,
-    startRoom: startRoom(size),
+    startRoom: start,
     endRoom: exitRoom(size),
     layers: (['backgroundPassive', 'backgroundActive', 'objects'] as const).map((name) => ({ name, tileSet: theme.tileSets[name] })),
     rooms,
+    ...(locationSign ? { locationSign } : {}),
   }
   return { map, edges, placements }
+}
+
+/** Every room row by row from the top; with `startFirst`, the start room comes first. */
+function roomOrder(size: Vec, startFirst: boolean): Vec[] {
+  const rooms: Vec[] = []
+  for (let y = 1; y <= size.y; y++) for (let x = 1; x <= size.x; x++) rooms.push({ x, y })
+  if (!startFirst) return rooms
+  const start = startRoom(size)
+  return [start, ...rooms.filter((r) => !sameVec(r, start))]
+}
+
+const taxicab = (a: Vec, b: Vec): number => Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+
+/** Remake (safe arrival): whether a room tile may take a unit, kept more than `tiles` from Merlin's arrival. */
+function safeFromArrival(room: Vec, arrival: Vec | null, tiles: number | undefined): (tile: Vec) => boolean {
+  if (arrival === null || tiles === undefined) return () => true
+  return (tile) => taxicab(worldTileOf(room, tile), arrival) > tiles
+}
+
+/**
+ * Remake (roguelite floors): the location sign's board laid on the room's active layer at its spot
+ * (signSpot); none when the room has no spot for it.
+ */
+function standSign(theme: FloorTheme, room: Vec, def: RoomDefinition, shape: RoomShape, edges: RoomEdges, units: readonly Placement[], arrival: Vec, text: string): LocationSign | undefined {
+  const tile = signSpot(shape, edges, units.map((p) => p.tile), arrival)
+  if (!tile) return undefined
+  const sign = { room, tile, width: SIGN_WIDTH_TILES, text }
+  const board = signTileRow(SIGN_WIDTH_TILES).map((index) => signTileIn(theme.tileSets.backgroundActive, index))
+  signTiles(sign).forEach((t, i) => { def.layers.backgroundActive![t.y]![t.x] = board[i]! })
+  return sign
 }
 
 // ---- edges ----
@@ -465,11 +515,11 @@ function pickGroup<G extends UnitGroup>(rng: GenRandom, groups: readonly G[], ta
  * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
  * one faction or alliance.
  */
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>): Placement[] {
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
-  const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)))
+  const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)) && isSafe(t))
   if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, options)
   const keys: string[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
@@ -569,7 +619,9 @@ export function floorCells(floor: GeneratedFloor, isSolid: (active: number) => b
   return { cells, size }
 }
 
-export const worldTile = (p: Placement): Vec => ({ x: (p.room.x - 1) * ROOM_SIZE.x + p.tile.x, y: (p.room.y - 1) * ROOM_SIZE.y + p.tile.y })
+/** A room tile (0-based) as a world tile (0-based). */
+const worldTileOf = (room: Vec, tile: Vec): Vec => ({ x: (room.x - 1) * ROOM_SIZE.x + tile.x, y: (room.y - 1) * ROOM_SIZE.y + tile.y })
+export const worldTile = (p: Placement): Vec => worldTileOf(p.room, p.tile)
 
 /**
  * The start room reaches every unit and some tile of the end room. The flood starts from the start
