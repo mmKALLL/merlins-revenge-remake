@@ -78,6 +78,7 @@ export function createSim(
   if (!defs['player']) throw new Error('actor definitions have no "player" entry')
   const empty: SimState = {
     tick: 0,
+    runTicks: 0,
     worldMode,
     grid,
     defs,
@@ -383,6 +384,7 @@ function afterTick(t: Tick): SimState {
   return {
     ...t.s,
     tick: t.s.tick + 1,
+    runTicks: t.s.runTicks + 1,
     actors: sleepers.length ? [...working, ...sleepers] : working,
     rng: t.rng,
     nextId: t.nextId,

@@ -207,6 +207,8 @@ export type WorldMode = 'rooms' | 'continuous'
 
 export interface SimState {
   tick: number
+  /** remake (roguelite): ticks of the whole run, across floors; `tick` restarts with each map's timers */
+  runTicks: number
   worldMode: WorldMode
   grid: WorldGrid
   defs: Record<string, ActorDef>

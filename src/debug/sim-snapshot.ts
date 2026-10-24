@@ -39,6 +39,7 @@ export interface SimSnapshot {
   restartRequested: boolean
   mapComplete?: boolean // absent in snapshots made before map completion existed
   floorExited?: boolean // absent in snapshots made before roguelite floors existed
+  runTicks?: number // absent in snapshots made before roguelite floors existed (then the map's tick)
   pickups?: PlayerPickups // absent in snapshots made before potions existed
   arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
   army?: ArmyReserve // likewise
@@ -113,6 +114,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     restartRequested: s.restartRequested,
     mapComplete: s.mapComplete,
     floorExited: s.floorExited,
+    runTicks: s.runTicks,
     pickups: s.pickups,
     arsenal: s.arsenal,
     army: s.army,
@@ -156,6 +158,7 @@ export function deserializeSim(
   const withFields = (a: ActorState): ActorState => (a.freezeTicks !== undefined ? a : { ...a, ...ACTOR_FIELDS_SINCE_V1, ai: { ...a.ai, ...AI_FIELDS_SINCE_V1 } })
   return {
     tick: snap.tick,
+    runTicks: snap.runTicks ?? snap.tick,
     worldMode: snap.worldMode,
     grid,
     defs,
