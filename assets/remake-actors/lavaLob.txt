@@ -1,0 +1,38 @@
+[#name: "act_lavaLob", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #flamingRock,
+#chargeColour: rgb(240,110,60),
+#chargeSize: 0.333,
+#chargeSpeed: 0.444,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.4,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #lavaLob,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "darkGolem_fire",
+#volume: 100,
+#volley: [#chargePerShot: 8, #maxShots: 7, #rangeFactor: 1.25, #damageMultiplier: 1]
+],
+#character: #lavaLob,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

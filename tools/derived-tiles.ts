@@ -1,7 +1,8 @@
 // Remake tiles made from original art by the converter (no new drawing): a tile re-coloured into an
-// empty slot of its tileset. The Dragon Canyon's red sandstone (owner request) is the cracked grey
+// empty slot of its tileset; the remake's object symbols with their items' pictures. The Dragon Canyon's red sandstone (owner request) is the cracked grey
 // stone (merlinOpenPassive 25) warmed to a full red sandstone (owner's pick of four brightness levels).
 import type { RgbaImage } from './bmp'
+import { REMAKE_OBJECT_TILES } from '../src/gen/remake-object-tiles'
 
 export interface DerivedTile {
   tileSet: string
@@ -48,4 +49,43 @@ export function withDerivedTiles(tileSet: string, sheet: RgbaImage, tileSize: { 
     }
   }
   return out
+}
+
+/**
+ * The remake's object symbols (src/gen/remake-object-tiles.ts) written into a converted key, padding
+ * it with `none` up to a slot past its end; a slot inside the key must be `none`. Where the slot is
+ * on the sheet, the object's stand frame (`standFrame(symbol)`) is drawn centred in it, as the
+ * editor's picture of the item. Returns the new symbols and sheet (the inputs unchanged).
+ */
+export function withRemakeObjectTiles(
+  tileSet: string, symbols: readonly string[], sheet: RgbaImage | undefined, tileSize: { x: number; y: number },
+  standFrame: (symbol: string) => RgbaImage | undefined,
+): { symbols: string[]; sheet: RgbaImage | undefined } {
+  const tiles = Object.entries(REMAKE_OBJECT_TILES[tileSet] ?? {})
+  const outSymbols = [...symbols]
+  if (tiles.length === 0) return { symbols: outSymbols, sheet }
+  const out = sheet && { width: sheet.width, height: sheet.height, rgba: new Uint8Array(sheet.rgba) }
+  for (const [symbol, index] of tiles) {
+    while (outSymbols.length < index) outSymbols.push('none')
+    if (outSymbols[index - 1] !== 'none') throw new Error(`remake object tile ${tileSet} ${index} (${symbol}): the slot holds ${outSymbols[index - 1]}`)
+    outSymbols[index - 1] = symbol
+    const frame = standFrame(symbol)
+    if (out && frame) drawCentred(out, frame, index, tileSize)
+  }
+  return { symbols: outSymbols, sheet: out }
+}
+
+/** The frame's opaque pixels centred in tile `index` (1-based) of the sheet; nothing for a tile past the sheet. */
+function drawCentred(sheet: RgbaImage, frame: RgbaImage, index: number, tileSize: { x: number; y: number }): void {
+  const perRow = Math.floor(sheet.width / tileSize.x)
+  if (index > perRow * Math.floor(sheet.height / tileSize.y)) return
+  const x0 = ((index - 1) % perRow) * tileSize.x + Math.floor((tileSize.x - frame.width) / 2)
+  const y0 = Math.floor((index - 1) / perRow) * tileSize.y + Math.floor((tileSize.y - frame.height) / 2)
+  for (let y = 0; y < frame.height; y++) {
+    for (let x = 0; x < frame.width; x++) {
+      const src = (y * frame.width + x) * 4
+      if (frame.rgba[src + 3] === 0) continue
+      sheet.rgba.set(frame.rgba.subarray(src, src + 4), ((y0 + y) * sheet.width + x0 + x) * 4)
+    }
+  }
 }

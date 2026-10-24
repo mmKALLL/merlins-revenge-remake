@@ -284,22 +284,40 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   }
   // a splash bullet does not collide with its target (#collideWithTarget false)
   if (def.splashRadius !== null) return
-  // a target that fell asleep while the bullet flew can still be hit
-  const seen = a.targetId === null ? undefined : (actorIn(t, a.targetId) ?? sleeperIn(t, a.targetId))
-  if (!seen || !isAlive(seen)) return
-  if (!bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), seen.pos, collisionRectFor(t.s, seen))) return
-  const target = hitTargetIn(t, seen.id)!
+  const struck = a.hitsFirstHostile ? firstHostileTouched(t, a, def) : targetTouched(t, a)
+  if (!struck) return
+  const target = hitTargetIn(t, struck.id)!
   // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
   // same collisionVect: two pushes and two damage applications, the second with the vector
   // objGameObject.takeHit already scaled by the victim's inertia in place. An #explode bullet's
   // collisionVect is the explosion's (calcCollisionVectSpell with its explodeCharge).
   const push = def.attack.type === 'explode' ? explosionPushOn(t, a, def, target) : bulletPush(a.vel, def)
-  const atk = withOwnerDamage(t, a, def.attack)
+  const atk = withOwnerDamage(t, a, bulletAttackOf(a, def))
   const scaled = applyHit(t, target, push, atk.damageMultiplier)
   applyPayload(t, target, scaled, atk)
   // #bulletCollidedWithTarget: explode (modExploder) or die
   if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
   else t.removed.add(a.id)
+}
+
+/** The bullet's attack: a volley projectile's own copy (its damageMultiplier), else its definition's. */
+const bulletAttackOf = (a: ActorState, def: ActorDef): AttackDef => a.attack ?? def.attack
+
+/** objBullet.checkCollisionWithTarget: the bullet's target, when it touches it (a target that fell asleep while the bullet flew included). */
+function targetTouched(t: Tick, a: ActorState): ActorState | undefined {
+  const seen = a.targetId === null ? undefined : (actorIn(t, a.targetId) ?? sleeperIn(t, a.targetId))
+  if (!seen || !isAlive(seen)) return undefined
+  return bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), seen.pos, collisionRectFor(t.s, seen)) ? seen : undefined
+}
+
+/**
+ * Remake (volley projectiles): the first living hated unit of a role the bullet hits that it
+ * touches; when it touches several on one tick, the one nearest to where it was the tick before.
+ */
+function firstHostileTouched(t: Tick, a: ActorState, def: ActorDef): ActorState | undefined {
+  const rect = rectAt(a.pos, collisionRectFor(t.s, a))
+  const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits).filter((v) => bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
+  return touched.sort((p, q) => distance(p.pos, a.prevPos) - distance(q.pos, a.prevPos))[0]
 }
 
 /**
@@ -313,7 +331,7 @@ function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number):
     // modSplashDamage.calcAttackHitSplash: the unit's reg point within `radius` of the axe
     if (distance(v.pos, a.pos) >= radius) continue
     const victim = hitTargetIn(t, v.id)
-    if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), withOwnerDamage(t, a, def.attack))
+    if (victim) applyPayload(t, victim, splashPush(victim.pos, a.pos, def), withOwnerDamage(t, a, bulletAttackOf(a, def)))
   }
   // modSplashDamage.drawSplashGrave: the landing mark stays on the ground (the axe's crack)
   if (def.splashGraveOn) t.graves.push({ def: a.def, pos: { ...a.pos } })
@@ -333,7 +351,7 @@ function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: Act
  */
 export function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
   playSound(t, def.exploderSound, def.exploderVolume)
-  const atk = def.attack
+  const atk = bulletAttackOf(a, def)
   const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits))
   const dealt = withOwnerDamage(t, a, atk)
   for (const { id, push } of ex.pushes) {

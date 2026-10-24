@@ -1,10 +1,10 @@
 // Spells in play (combat notes §5, spells notes §4-5): a spell created over its caster
 // (objAiAttack.ensureSpell), the multistage summons' permission and rein-in
 // (modSpellMultistage), the release (objSpell.releaseNormal, or modFireBullets for pulses and
-// beams), the flight, and the explosion with its payload functions, summons and mines. The
+// beams, or the remake's volleys), the flight, and the explosion with its payload functions, summons and mines. The
 // player's charge input is in tick-player-attack.ts, the AI casters' in tick-caster.ts; the victim
 // side of a hit is in tick-combat.ts.
-import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import { ARMY_SUMMON, takeUnit, topAvailableStage } from '../mr-open/mr-army'
 import { resetCooldown } from '../mr-open/mr-attack'
 import { tileOfPx } from '../mr-open/mr-collision'
@@ -17,12 +17,13 @@ import {
 import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
 import { aimPoint } from './player-aim'
-import { randomInt, roughly, spreadVec } from './rng'
+import { nextRandom, randomInt, roughly, spreadVec } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
+import { shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyLaunch, volleyShots } from './volley'
 import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
@@ -52,6 +53,13 @@ export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: 
     spell.mode = 'fireBullets'
     spell.age = 0
     spell.ai.chargeKind = caster.ai.chargeKind
+  } else if (atk.volley !== null) {
+    // remake: the volley fires from where the spell stands, toward the aim at the release
+    spell.mode = 'volley'
+    spell.age = 0
+    spell.targetPoint = target
+    spell.volley = { total: volleyShots(spell.charge, atk.volley), fired: 0 }
+    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
   } else {
     spell.mode = 'fly'
     spell.targetPoint = target
@@ -129,6 +137,8 @@ export function stepSpells(t: Tick, input: InputSnapshot, view: Size): void {
       if (a.targetPoint && arrivedAtTarget(a.pos, a.targetPoint, a.vel)) explodeSpell(t, a)
     } else if (a.mode === 'fireBullets') {
       stepFireBullets(t, a, input, view)
+    } else if (a.mode === 'volley') {
+      stepVolley(t, a)
     } else if (a.mode === 'explode') {
       a.age++
       if (a.age >= EXPLODE_TICKS) t.removed.add(a.id)
@@ -150,6 +160,45 @@ function stepFireBullets(t: Tick, spell: ActorState, input: InputSnapshot, view:
     else firePulse(t, spell, atk, target)
   }
   if (next.last) t.removed.add(spell.id)
+}
+
+/**
+ * Remake volley: every projectile due fires (one every staggerTicks from the release); the spell
+ * shrinks by chargePerShot with each and is gone after the last, or when its caster is.
+ */
+function stepVolley(t: Tick, spell: ActorState): void {
+  const atk = spell.attack!
+  const volley = spell.volley!
+  const owner = spell.ownerId === null ? undefined : actorIn(t, spell.ownerId)
+  if (!owner || !isAlive(owner) || !atk.volley) {
+    t.removed.add(spell.id)
+    return
+  }
+  while (volley.fired < volley.total && shotDue(spell.age, volley.fired, atk.volley)) {
+    fireVolleyShot(t, spell, atk, atk.volley, defOf(t.s, owner).strength)
+    volley.fired++
+    spell.charge = Math.max(0, spell.charge - atk.volley.chargePerShot)
+  }
+  spell.age++
+  if (volley.fired >= volley.total) t.removed.add(spell.id)
+}
+
+/**
+ * One projectile of a volley: the attack's bullet launched toward the release aim (volleyLaunch),
+ * turned to its place in the fan and its speed jittered. It carries the bullet's attack with the
+ * volley's damageMultiplier and hits the first hostile unit it touches.
+ */
+function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: VolleyDef, strength: number): void {
+  const bulletDef = atk.bullet ? t.s.defs[atk.bullet] : undefined
+  if (!bulletDef || !spell.targetPoint) return
+  const [angleU, r1] = nextRandom(t.rng)
+  const [speedU, r2] = nextRandom(r1)
+  t.rng = r2
+  const base = volleyLaunch(spell.pos, spell.targetPoint, strength, atk.firingType, volley)
+  const vel = turnAndScale(base, shotAngleDeg(spell.volley!.fired, spell.volley!.total, volley, angleU), shotSpeedFactor(volley, speedU))
+  const attack = { ...bulletDef.attack, damageMultiplier: bulletDef.attack.damageMultiplier * volley.damageMultiplier }
+  spawn(t, bulletDef.key, spell.pos, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true })
+  playSound(t, atk.sound, atk.volume)
 }
 
 /** objSpell.getTargetLoc -> owner.getTargetLoc: where Merlin aims, a CPU caster's target, or none. */
