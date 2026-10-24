@@ -154,6 +154,7 @@ export class AudioEngine {
     for (const e of events) {
       if (e.kind === 'sound') this.playSound(e.name, e.volume)
       else if (e.kind === 'music') this.playMusic(e.track)
+      else if (e.kind === 'mapComplete') this.silenceForJingle()
     }
   }
 
@@ -188,6 +189,15 @@ export class AudioEngine {
   playMusic(track: string | null): void {
     this.wanted = track
     this.syncMusic()
+  }
+
+  /**
+   * Remake (owner request): the map-complete jingle (the end_level effect) is heard on its own, so the
+   * room's music stops at once; a restart's start room asks for its track again.
+   */
+  private silenceForJingle(): void {
+    this.wanted = null
+    this.stopMusic()
   }
 
   setMusic(on: boolean): void {

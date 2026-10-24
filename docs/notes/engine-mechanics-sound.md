@@ -145,3 +145,9 @@ Deviations:
 - **Music volume** is the `playMusic` default 150/255, times the master volume.
 - **Several music tiles in one room**: each would call `playMusic` in activation order; the port assumes row-major order, so the last tile wins.
 - The player's `#takeHitSoundVolume: 100` is never read by the engine (modEnergy reads `#takeHitVolume`), so `wizard_hit` plays at 150, as in the original.
+
+**Remake decision (owner report, 2026-10-25): the victory jingle is heard.** `end_level` is a sound
+effect; the room's music kept playing over it and drowned it out. On the sim's `mapComplete` event the
+audio engine now stops the music at once (`silenceForJingle`); restarting the map plays the start
+room's track again.
+
