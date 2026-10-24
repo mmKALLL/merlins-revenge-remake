@@ -1,9 +1,7 @@
 // Remake tiles made from original art by the converter (no new drawing): a tile re-coloured into an
 // empty slot of its tileset; the remake's object symbols with their items' pictures. The Dragon Canyon's red sandstone (owner request) is the cracked grey
 // stone (merlinOpenPassive 25) warmed to a full red sandstone (owner's pick of four brightness levels).
-// The roguelite's location sign is a blank board: an original sign with its writing painted over.
 import type { RgbaImage } from './bmp'
-import { BLANK_SIGN_SOURCE, BLANK_SIGN_TILES, BLANK_SIGN_TILESET } from '../src/gen/location-sign'
 import { REMAKE_OBJECT_TILES, withRemakeObjectSymbols } from '../src/gen/remake-object-tiles'
 
 export interface DerivedTile {
@@ -23,8 +21,6 @@ const BRIGHTNESS = 1.12
 /** The light grey a pastel tint is softened toward. */
 const PASTEL_GREY = 230
 const WHITE = 255
-/** A writing pixel is painted once this many of its neighbours are wood (not writing, not white). */
-const MIN_WOOD_NEIGHBOURS = 2
 
 type TileSize = { x: number; y: number }
 
@@ -49,7 +45,6 @@ function checkEmptySlot(sheet: RgbaImage, tileSize: TileSize, index: number, wha
 export function withDerivedTiles(tileSet: string, sheet: RgbaImage, tileSize: TileSize): RgbaImage {
   const tiles = DERIVED_TILES.filter((d) => d.tileSet === tileSet)
   const out: RgbaImage = { width: sheet.width, height: sheet.height, rgba: new Uint8Array(sheet.rgba) }
-  if (tileSet === BLANK_SIGN_TILESET) writeBlankSign(out, tileSize)
   for (const d of tiles) {
     checkEmptySlot(out, tileSize, d.to, `derived tile ${tileSet} ${d.to}`)
     const from = tileOrigin(sheet, tileSize, d.from)
@@ -66,87 +61,6 @@ export function withDerivedTiles(tileSet: string, sheet: RgbaImage, tileSize: Ti
         out.rgba[dst + 3] = sheet.rgba[src + 3]!
       }
     }
-  }
-  return out
-}
-
-/** The blank board's slots, left to right, as BLANK_SIGN_SOURCE's tiles. */
-const BLANK_SIGN_SLOTS = [BLANK_SIGN_TILES.left, BLANK_SIGN_TILES.middle, BLANK_SIGN_TILES.right]
-
-/** The key with the blank board's slots solid, like the original signs. */
-export function withBlankSignSymbols(tileSet: string, symbols: readonly string[]): string[] {
-  const out = [...symbols]
-  if (tileSet !== BLANK_SIGN_TILESET) return out
-  for (const slot of BLANK_SIGN_SLOTS) {
-    if (out[slot - 1] !== 'none') throw new Error(`blank sign ${tileSet} ${slot}: the slot holds ${out[slot - 1]}`)
-    out[slot - 1] = 'solid'
-  }
-  return out
-}
-
-/** The source sign's tiles side by side, its writing wiped, written into the blank board's slots. */
-function writeBlankSign(sheet: RgbaImage, tileSize: TileSize): void {
-  const strip = wipeWriting(cutStrip(sheet, tileSize, BLANK_SIGN_SOURCE))
-  BLANK_SIGN_SLOTS.forEach((slot, n) => {
-    checkEmptySlot(sheet, tileSize, slot, `blank sign ${BLANK_SIGN_TILESET}`)
-    const to = tileOrigin(sheet, tileSize, slot)
-    for (let y = 0; y < tileSize.y; y++) {
-      const src = (y * strip.width + n * tileSize.x) * 4
-      sheet.rgba.set(strip.rgba.subarray(src, src + tileSize.x * 4), ((to.y + y) * sheet.width + to.x) * 4)
-    }
-  })
-}
-
-/** Tiles of a sheet side by side in one image, one tile high. */
-function cutStrip(sheet: RgbaImage, tileSize: TileSize, tiles: readonly number[]): RgbaImage {
-  const width = tiles.length * tileSize.x
-  const rgba = new Uint8Array(width * tileSize.y * 4)
-  tiles.forEach((tile, n) => {
-    const from = tileOrigin(sheet, tileSize, tile)
-    for (let y = 0; y < tileSize.y; y++) {
-      const src = ((from.y + y) * sheet.width + from.x) * 4
-      rgba.set(sheet.rgba.subarray(src, src + tileSize.x * 4), (y * width + n * tileSize.x) * 4)
-    }
-  })
-  return { width, height: tileSize.y, rgba }
-}
-
-/**
- * The board with its writing painted over: the signs' wood is plain grey and their writing yellow, so
- * every coloured pixel takes the mean grey of its wood neighbours, filling the strokes from their
- * edges inward.
- */
-export function wipeWriting(board: RgbaImage): RgbaImage {
-  const out: RgbaImage = { width: board.width, height: board.height, rgba: new Uint8Array(board.rgba) }
-  const { width, height, rgba } = out
-  const at = (x: number, y: number) => (y * width + x) * 4
-  const isWhite = (i: number) => rgba[i] === WHITE && rgba[i + 1] === WHITE && rgba[i + 2] === WHITE
-  const isInk = (i: number) => !isWhite(i) && (rgba[i] !== rgba[i + 1] || rgba[i + 1] !== rgba[i + 2])
-  let ink: number[] = []
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (isInk(at(x, y))) ink.push(y * width + x)
-  const pending = new Set(ink)
-  while (ink.length > 0) {
-    const filled: [number, number][] = []
-    for (const p of ink) {
-      const x = p % width
-      const y = (p - x) / width
-      const wood: number[] = []
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const nx = x + dx
-          const ny = y + dy
-          if ((dx === 0 && dy === 0) || nx < 0 || ny < 0 || nx >= width || ny >= height || pending.has(ny * width + nx)) continue
-          if (!isWhite(at(nx, ny))) wood.push(rgba[at(nx, ny)]!)
-        }
-      }
-      if (wood.length >= MIN_WOOD_NEIGHBOURS) filled.push([p, Math.round(wood.reduce((a, b) => a + b, 0) / wood.length)])
-    }
-    if (filled.length === 0) throw new Error('blank sign: writing left that no wood surrounds')
-    for (const [p, grey] of filled) {
-      rgba.fill(grey, p * 4, p * 4 + 3)
-      pending.delete(p)
-    }
-    ink = ink.filter((p) => pending.has(p))
   }
   return out
 }

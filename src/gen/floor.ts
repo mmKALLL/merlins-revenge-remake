@@ -7,7 +7,7 @@ import { roomXYToNum, type LayerName, type LocationSign, type MapDefinition, typ
 import type { Edge } from '../mr-open/mr-screen-exits'
 import { GenRandom } from './random'
 import { Cell, floodOpen } from './grid'
-import { SIGN_WIDTH_TILES, signSpot, signTileIn, signTileRow, signTiles } from './location-sign'
+import { signSpot, signTiles } from './location-sign'
 import { decorate, generateRoomShape, patchComponents, type Opening, type RoomEdges, type RoomShape } from './room-shape'
 import { runSteps, type Steps } from './steps'
 import { autotileChoices, isWallCell, wallNeighbours } from './wall-autotile'
@@ -93,8 +93,8 @@ export interface FloorOptions {
    * appears. The start room is then laid out first, so the other rooms know his tile.
    */
   safeArrivalTiles?: number
-  /** Remake (roguelite floors): this name on a board in the start room (location-sign.ts) */
-  locationSign?: string
+  /** Remake (roguelite floors): the theme's location sign stands in the start room (location-sign.ts) */
+  locationSign?: boolean
   /**
    * Remake (roguelite floors): the start room holds these pickups (object keys) instead of the
    * theme's start rewards, laid out in front of Merlin (startPickupTiles)
@@ -126,12 +126,12 @@ export function* floorSteps(theme: FloorTheme, seed: number, energyOf: EnergyOf,
     const floor = yield* buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
     if (floorIsConnected(floor, themeIsSolid(theme)) && hasAskedSign(floor, options)) return floor
   }
-  throw new Error(`random floor ${theme.id}: no connected floor${options.locationSign === undefined ? '' : ' with its sign'} for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
+  throw new Error(`random floor ${theme.id}: no connected floor${options.locationSign ? ' with its sign' : ''} for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
 }
 
 /** A start room without a spot for the asked-for location sign fails the attempt, as a broken floor does. */
 const hasAskedSign = (floor: GeneratedFloor, options: FloorOptions): boolean =>
-  options.locationSign === undefined || floor.map.locationSign !== undefined
+  !options.locationSign || floor.map.locationSign !== undefined
 
 function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): Steps<GeneratedFloor> {
   const rng = new GenRandom(seed)
@@ -152,10 +152,10 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
     const units = placeUnits(rng, theme, room, shape, roomEdges, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
     placements.push(...units)
     const def = roomDefinition(rng, theme, room, shape, units)
-    if (sameVec(room, start) && (options.safeArrivalTiles !== undefined || options.locationSign !== undefined)) {
+    if (sameVec(room, start) && (options.safeArrivalTiles !== undefined || options.locationSign)) {
       const tile = arrivalTile(room, options, units.find((p) => p.key === theme.units.player)?.tile)
       arrival = worldTileOf(room, tile)
-      if (options.locationSign !== undefined) locationSign = standSign(theme, room, def, shape, roomEdges, units, tile, options.locationSign)
+      if (options.locationSign) locationSign = standSign(theme, room, def, shape, roomEdges, units, tile)
     }
     rooms.push(def)
     yield rooms.length / (size.x * size.y)
@@ -191,16 +191,19 @@ function safeFromArrival(room: Vec, arrival: Vec | null, tiles: number | undefin
 }
 
 /**
- * Remake (roguelite floors): the location sign's board laid on the room's active layer at its spot
+ * Remake (roguelite floors): the theme's location sign laid on the room's active layer at its spot
  * (signSpot); none when the room has no spot for it.
  */
-function standSign(theme: FloorTheme, room: Vec, def: RoomDefinition, shape: RoomShape, edges: RoomEdges, units: readonly Placement[], arrival: Vec, text: string): LocationSign | undefined {
-  const tile = signSpot(shape, edges, units.map((p) => p.tile), arrival)
+function standSign(theme: FloorTheme, room: Vec, def: RoomDefinition, shape: RoomShape, edges: RoomEdges, units: readonly Placement[], arrival: Vec): LocationSign | undefined {
+  const sign = theme.locationSign
+  if (!sign) throw new Error(`theme ${theme.id}: no location sign`)
+  if (sign.tileSet !== theme.tileSets.backgroundActive) throw new Error(`theme ${theme.id}: its sign is in ${sign.tileSet}, not its active tileset ${theme.tileSets.backgroundActive}`)
+  const width = sign.tiles.length
+  const tile = signSpot(shape, edges, units.map((p) => p.tile), arrival, width)
   if (!tile) return undefined
-  const sign = { room, tile, width: SIGN_WIDTH_TILES, text }
-  const board = signTileRow(SIGN_WIDTH_TILES).map((index) => signTileIn(theme.tileSets.backgroundActive, index))
-  signTiles(sign).forEach((t, i) => { def.layers.backgroundActive![t.y]![t.x] = board[i]! })
-  return sign
+  const spot = { room, tile, width }
+  signTiles(spot).forEach((t, i) => { def.layers.backgroundActive![t.y]![t.x] = sign.tiles[i]! })
+  return spot
 }
 
 // ---- edges ----

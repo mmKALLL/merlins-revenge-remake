@@ -1,5 +1,6 @@
 // Roguelite floors (docs/plans/2026-10-25-roguelite-mode-design.md): each one a generated floor on the
 // tower tilesets, connected, with its exit room open at the top and marked as the exit.
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { roomXYToNum } from '../mr-open/mr-map-format'
 import { pageDefs } from '../debug/snapshot-test-data'
@@ -12,6 +13,7 @@ import { SAFE_ARRIVAL_TILES, rogueliteFloor } from './roguelite'
 import { ROGUELITE_FLOORS, firstBiome, floorSeed, rogueliteFloorMap } from './roguelite-biomes'
 import { runSteps } from './steps'
 import type { FloorTheme } from './themes'
+import { TOWER_TILESETS } from './tower-tilesets'
 import { rewardPickups, rewardPools, rollRewards, startingKitPickups } from '../run/rewards'
 
 const energyOf = energyLookup(pageDefs)
@@ -62,6 +64,17 @@ describe('roguelite run map', () => {
   })
 })
 
+describe.each(BIOMES)('roguelite location sign: $name', (theme) => {
+  const towerActive = (JSON.parse(readFileSync(`public/generated/tilesets/${TOWER_TILESETS.backgroundActive}.json`, 'utf8')) as { symbols: string[] }).symbols
+
+  it('is an original sign, 2 or 3 solid tiles of the tower\'s active tileset', () => {
+    const sign = theme.locationSign!
+    expect(sign.tileSet).toBe(TOWER_TILESETS.backgroundActive)
+    expect([2, 3]).toContain(sign.tiles.length)
+    for (const t of sign.tiles) expect(towerActive[t - 1], `tile ${t}`).toBe('solid')
+  })
+})
+
 describe.each(BIOMES)('roguelite arrival: $name', (theme) => {
   const isSolid = themeIsSolid(theme)
   const floors = ARRIVAL_SEEDS.map((seed) => {
@@ -85,10 +98,11 @@ describe.each(BIOMES)('roguelite arrival: $name', (theme) => {
     for (const { seed, floor } of floors) {
       const sign = floor.map.locationSign
       expect(sign, `seed ${seed}`).toBeDefined()
-      expect(sign!.text).toBe(theme.name)
       expect(sign!.room).toEqual(floor.map.startRoom)
       const edges = floor.edges[`${sign!.room.x},${sign!.room.y}`]!
       const room = floor.map.rooms.find((r) => r.num === roomXYToNum(sign!.room, floor.map.mapSize))!
+      expect(signTiles(sign!).map((t) => room.layers.backgroundActive![t.y]![t.x]), `seed ${seed}`).toEqual(theme.locationSign!.tiles)
+      expect(signTiles(sign!).some((t) => sameVec(t, playerOf(floor, theme).tile)), `seed ${seed}`).toBe(false)
       for (const t of signTiles(sign!)) {
         expect(t.x > 0 && t.y > 0 && t.x < ROOM_SIZE.x - 1 && t.y < ROOM_SIZE.y - 1, `seed ${seed}`).toBe(true)
         expect(inOpeningBand(edges, t), `seed ${seed}`).toBe(false)

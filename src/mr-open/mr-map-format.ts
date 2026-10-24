@@ -19,12 +19,11 @@ export interface RoomDefinition {
   layers: Partial<Record<LayerName, TileGrid>>
 }
 
-/** A board of `width` tiles in a room's row, from its left tile (0-based), with `text` written on it. */
+/** Where a sign `width` tiles across stands in a room's row, from its left tile (0-based). */
 export interface LocationSign {
   room: Vec
   tile: Vec
   width: number
-  text: string
 }
 
 export interface MapDefinition {
@@ -35,7 +34,7 @@ export interface MapDefinition {
   endRoom?: Vec
   /** remake (roguelite floors): the end room is the floor's exit, left upward; its clearing never completes the map */
   markExit?: boolean
-  /** remake (roguelite floors): the floor's name on a board in its start room */
+  /** remake (roguelite floors): where the biome's original sign stands in the start room (its tiles are on the map) */
   locationSign?: LocationSign
   layers: LayerDefinition[]
   rooms: RoomDefinition[]

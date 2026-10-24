@@ -15,7 +15,6 @@ import type { EndSequenceView } from '../cutscene/end-sequence'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ExitArrowLayer } from './exit-arrows'
 import { HealthBars, type StandBox } from './health-bars'
-import { LocationSignLayer } from './location-sign'
 import { MiniMapLayer } from './minimap'
 import { PickupHud, pickupAlpha, pulseWhiteness } from './pickups'
 import { ScoreHud } from './score-hud'
@@ -143,7 +142,6 @@ export class Scene {
   private volleyIcons = new VolleyIcons(this.actorLayer, (bullet) => this.frameFor(bullet.name, 'fly', 0))
   private healthBars: HealthBars
   private exitArrows: ExitArrowLayer
-  private locationSign = new LocationSignLayer()
   private miniMap: MiniMapLayer
   /** Bullet rotation by actor id: the last non-zero velocity's angle, kept once the bullet lands. */
   private bulletAngles = new Map<number, number>()
@@ -217,7 +215,7 @@ export class Scene {
     }
     // exit arrows (painted on the room image), the location sign's writing and graves above tiles, below every actor
     this.actorLayer.sortableChildren = true
-    this.scrolled.addChild(this.exitArrows.layer, this.locationSign.layer, this.graveLayer, this.actorLayer, this.healthBars.layer)
+    this.scrolled.addChild(this.exitArrows.layer, this.graveLayer, this.actorLayer, this.healthBars.layer)
     this.world.addChild(this.scrolled, this.miniMap.layer) // modMiniMap draws on gGameTextLayer, above the game
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
@@ -301,7 +299,6 @@ export class Scene {
     }
     this.scrolled.position.set(-origin.x, -origin.y)
     this.exitArrows.sync(s)
-    this.locationSign.sync(s.grid)
     this.syncGraves(s)
     this.syncActors(s, lerp)
     this.healthBars.update(s, lerp, (name) => this.standBox(name))

@@ -4,7 +4,7 @@
 // the sheets and keys from TOWER_TILESET_PARTS). A floor in the tower moves its tile numbers by
 // its part's offset (inTowerTilesets).
 import type { LayerName } from '../mr-open/mr-map-format'
-import { MERLIN4_OBJECTS, MERLIN4_TILESETS, MERLIN_OPEN_OBJECTS, MERLIN_OPEN_TILESETS, type FloorTheme, type Weighted } from './themes'
+import { MERLIN4_OBJECTS, MERLIN4_TILESETS, MERLIN_OPEN_OBJECTS, MERLIN_OPEN_TILESETS, type FloorTheme, type SignTiles, type Weighted } from './themes'
 
 export const TOWER_TILESETS: Record<LayerName, string> = {
   backgroundPassive: 'towerPassive',
@@ -47,6 +47,16 @@ export function towerObjectTile(key: string): number {
   throw new Error(`tower tilesets: no objects tile for "${key}"`)
 }
 
+/**
+ * A location sign's tiles in the tower's active tileset, from the part holding its own tileset
+ * (the Goblin Forest draws from merlin4 but its sign is merlinOpen's).
+ */
+export function towerSignTiles(sign: SignTiles): SignTiles {
+  const part = TOWER_TILESET_PARTS.find((p) => p.tileSets.backgroundActive === sign.tileSet)
+  if (!part) throw new Error(`tower tilesets: the sign's tileset ${sign.tileSet} is not part of the tower's`)
+  return { tileSet: TOWER_TILESETS.backgroundActive, tiles: sign.tiles.map((t) => t + part.offset) }
+}
+
 /** The theme drawing the same tiles from the tower tilesets. */
 export function inTowerTilesets(theme: FloorTheme): FloorTheme {
   const part = TOWER_TILESET_PARTS.find((p) => p.tileSets.objects === theme.tileSets.objects)
@@ -63,5 +73,6 @@ export function inTowerTilesets(theme: FloorTheme): FloorTheme {
     materials: theme.materials.map((m) => ({ ...m, tiles: move(m.tiles) })),
     stumps: move(theme.stumps),
     decorations: move(theme.decorations),
+    ...(theme.locationSign ? { locationSign: towerSignTiles(theme.locationSign) } : {}),
   }
 }

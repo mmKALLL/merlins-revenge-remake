@@ -1,7 +1,7 @@
 // Roguelite floors (docs/plans/2026-10-25-roguelite-mode-design.md): one generated floor of a theme on
 // the tower tilesets, so the page's tilesets never change between floors, its exit room opened at the
 // top so Merlin can leave the floor upward. Merlin arrives safe (no unit within SAFE_ARRIVAL_TILES)
-// beside a sign with the floor's name, the reward picked for the floor (or the starting kit) laid out
+// beside the biome's original sign, the reward picked for the floor (or the starting kit) laid out
 // as pickups in front of him.
 import { ROOM_SIZE, exitRoom, floorSteps, randomOpening, type EnergyOf, type GeneratedFloor } from './floor'
 import { GenRandom } from './random'
@@ -27,7 +27,7 @@ export function* rogueliteFloor(theme: FloorTheme, seed: number, energyOf: Energ
   const floor = yield* floorSteps(withPickups, Math.floor(rng.next() * SEED_RANGE), energyOf, {
     boundaryOpenings: [exit],
     safeArrivalTiles: SAFE_ARRIVAL_TILES,
-    locationSign: theme.name,
+    locationSign: true,
     startPickups,
   })
   return { ...floor, map: { ...floor.map, markExit: true } }

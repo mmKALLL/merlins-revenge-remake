@@ -242,9 +242,18 @@ export interface StartRewards {
   extras: string[]
 }
 
+/** Remake (roguelite floors): an original location sign, its tiles left to right in an active tileset. */
+export interface SignTiles {
+  tileSet: string
+  tiles: readonly number[]
+}
+
 export interface FloorTheme {
   id: string
+  /** shown to the player; a biome with a location sign takes the sign's text */
   name: string
+  /** the original sign standing in the start room of the theme's roguelite floors (location-sign.ts) */
+  locationSign?: SignTiles
   /** 3-4 enemy keys that show who the player meets there (the roguelite pick screen's biome cards) */
   showcase: readonly string[]
   /** the floor's number, as in its map id and its place in the tower (1 = Goblin Forest); scales HP budgets */
@@ -269,6 +278,20 @@ export interface FloorTheme {
 }
 
 export const DEFAULT_FLOOR_SIZE: Vec = { x: 3, y: 3 }
+
+/** An original location sign of merlinOpenActive (rows 14-20, keyed solid), its tiles left to right. */
+const merlinOpenSign = (...tiles: number[]): SignTiles => ({ tileSet: 'merlinOpenActive', tiles })
+/** The signs the roguelite biomes stand in their start rooms, by their text. */
+export const LOCATION_SIGNS = {
+  woodsOfMourning: merlinOpenSign(154, 155, 156),
+  deadWoods: merlinOpenSign(159, 160),
+  remorselessMountains: merlinOpenSign(161, 162, 163),
+  blackFortress: merlinOpenSign(164, 165, 166),
+  eastWoods: merlinOpenSign(169, 170),
+  cavesOfFire: merlinOpenSign(177, 178),
+  goldenPalace: merlinOpenSign(184, 185, 186),
+  westJungle: merlinOpenSign(187, 188),
+} as const
 
 const w = <T>(value: T, weight = 1): Weighted<T> => ({ value, weight })
 
@@ -472,7 +495,8 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
 
 export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
-  name: 'Goblin Forest',
+  name: 'East Woods',
+  locationSign: LOCATION_SIGNS.eastWoods,
   showcase: ['goblinWarrior', 'goblinArcher', 'swordOrc', 'bat'],
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -734,7 +758,8 @@ const UNDEAD_MARSH_PLAN: RoomPlan = [
 
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
-  name: 'Undead Marsh',
+  name: 'Dead Woods',
+  locationSign: LOCATION_SIGNS.deadWoods,
   showcase: ['skeletonWarrior', 'greyGhost', 'skeletonGiant', 'quadranid'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -836,7 +861,8 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
 
 export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
-  name: 'Dragon Canyon',
+  name: 'Caves of Fire',
+  locationSign: LOCATION_SIGNS.cavesOfFire,
   showcase: ['karateGuy', 'lizard', 'dragon', 'darkGolem'],
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -989,7 +1015,8 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
 
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
-  name: 'Magic Maze',
+  name: 'Black Fortress',
+  locationSign: LOCATION_SIGNS.blackFortress,
   showcase: ['bombMage', 'scWarrior', 'necromancer', 'darkMage'],
   level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -1281,7 +1308,8 @@ const NINJAS = 'ninjas'
 
 export const DEEP_FOREST: FloorTheme = {
   id: 'deep-forest',
-  name: 'Deep Forest',
+  name: 'Woods of Mourning',
+  locationSign: LOCATION_SIGNS.woodsOfMourning,
   showcase: ['goblinHero', 'fangBunny', 'ninja', 'plant'],
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -1359,7 +1387,8 @@ export const DEEP_FOREST: FloorTheme = {
 
 export const HYDRA_MARSH: FloorTheme = {
   id: 'hydra-marsh',
-  name: 'Hydra Marsh',
+  name: 'West Jungle',
+  locationSign: LOCATION_SIGNS.westJungle,
   showcase: ['lizard', 'quadranid', 'plant', 'hydra3'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -1437,7 +1466,8 @@ const LAVA = 'lava'
 
 export const GOLEM_MOUNTAIN: FloorTheme = {
   id: 'golem-mountain',
-  name: 'Golem Mountain',
+  name: 'Remorseless Mountains',
+  locationSign: LOCATION_SIGNS.remorselessMountains,
   showcase: ['boulderMonster', 'iceRock', 'lavaGolem', 'fourArmGolem'],
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
@@ -1523,6 +1553,7 @@ export const GOLDEN_PALACE: FloorTheme = {
   ...GOLDEN_FORT,
   id: 'golden-palace',
   name: 'Golden Palace',
+  locationSign: LOCATION_SIGNS.goldenPalace,
   showcase: ['scArcher', 'karateGuy', 'shrouder', 'lavaGolem'],
   level: 4,
   objectTiles: BIOME_OBJECTS,
