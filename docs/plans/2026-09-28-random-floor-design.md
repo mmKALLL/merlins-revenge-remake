@@ -591,3 +591,5 @@ and a mixed room drawing from every faction by weight often still held one team.
   has only the mid lava golem, so rooms of weak draws cannot brawl. A brawl averages about 4 units on
   one side and 3 on the other; each side's centre sits about 4.2 tiles from the room's middle.
 
+Owner (2026-10-25): the brawl share may vary between biomes, and may be higher on early floors and
+lower on later ones (Remorseless Mountains stays at about 7%).
