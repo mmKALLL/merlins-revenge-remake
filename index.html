@@ -79,7 +79,7 @@
       .map-lists { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: 13px; }
       #maps, #favourites {
         position: relative; margin: 0; padding: 0; list-style: none; overflow-y: auto; max-height: 50vh;
-        border: 1px solid var(--line); border-radius: 3px; background: var(--panel); min-width: 16ch; flex: 1 1 16rem;
+        border: 1px solid var(--line); border-radius: 3px; background: var(--panel); min-width: 24ch; flex: 1 1 22rem;
       }
       #maps li, #favourites li { display: flex; }
       #maps button, #favourites button {
@@ -89,7 +89,9 @@
       /* star column on the left, larger glyph */
       #maps .star { flex: none; width: 28px; padding: 4px 0; font-size: 18px; line-height: 1; text-align: center; }
       #maps button.star[aria-pressed='true'] { color: var(--accent); }
-      #maps .best, #favourites .best { float: right; padding-left: 2ch; color: #5c5; font-variant-numeric: tabular-nums; }
+      /* a row with a best score: the score keeps to the right end of the same line */
+      #maps button:has(.best), #favourites button:has(.best) { display: flex; }
+      #maps .best, #favourites .best { margin-left: auto; padding-left: 2ch; color: #5c5; font-variant-numeric: tabular-nums; }
       #maps [aria-current='page'] .best, #favourites [aria-current='page'] .best { color: inherit; }
       #favourites li.empty { padding: 6px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
       #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: var(--hover); }

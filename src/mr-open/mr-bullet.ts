@@ -8,8 +8,6 @@ import type { Rect, Vec } from './mr-geometry'
 
 /** objBullet stallSpeed: both axes under 2 px/tick -> #bulletLanded. */
 export const BULLET_STALL_SPEED = 2
-/** Ticks a landed arrow stays visible before removal (remake choice; the engine removes the arrow once its land strip has played). */
-export const LANDED_TICKS = 30
 
 /**
  * CollisionCheck(bullet, target): `bulletRect` is the bullet's collision rect in world px,

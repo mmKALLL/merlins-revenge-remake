@@ -6,7 +6,7 @@ import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import {
   aimWithEyestrain, bulletPush, cooldownIncrement, meleeHits, meleePush, rangedShot, resetCooldown, splashPush, tickCooldown,
 } from '../mr-open/mr-attack'
-import { bulletHits, bulletStalled, LANDED_TICKS } from '../mr-open/mr-bullet'
+import { bulletHits, bulletStalled } from '../mr-open/mr-bullet'
 import { rectAt } from '../mr-open/mr-collision'
 import { freezeTicksAfter } from '../mr-open/mr-freeze'
 import { distance, type Vec } from '../mr-open/mr-geometry'
@@ -260,7 +260,7 @@ export function stepBullets(t: Tick): void {
     if (a.mode === 'fly') stepFlyingBullet(t, a)
     else if (a.mode === 'land') {
       a.age++
-      if (a.age < LANDED_TICKS) continue
+      if (a.age < defOf(t.s, a).landedTicks) continue
       t.removed.add(a.id)
       reincarnate(t, a, defOf(t.s, a)) // objBullet #land fin (flamingRock leaves a fire)
     } else if (a.mode === 'explode') {
