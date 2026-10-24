@@ -164,3 +164,7 @@ golem (the lava golem's twin, with no objects tile).
 - The reward rolls: the spell is never one already held; the potion splits; the kit always holds 5 potions.
 - Safe arrival: no enemy within 3 tiles.
 - The statistics rules: an abandoned run resets the streak only.
+
+Owner tweak (2026-10-25): Woods of Mourning has no bats (they could not be seen on its dark ground):
+lizards and quadranids are weak units instead, a cocoon replaces the bat tree, and the bat roost
+midboss is a critter nest (a cocoon and 3 quadranids); the laser volley is themed there.

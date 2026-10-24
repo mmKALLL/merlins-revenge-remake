@@ -669,3 +669,6 @@ Remake decisions (owner, 2026-10-25):
 - **Skull toss, more heads (owner, 2026-10-25):** 9 at most (was 5), each head charging as before
   (chargePerShot 8, chargeSpeed unchanged), so the full volley takes 1.8x as long; still full at tier
   18 (chargeMaxModifier 4).
+- **Charge icon rows (owner, 2026-10-25):** up to 10 icons, 5 per diagonal row; each next row starts
+  over at the first icon's place shifted +2 x, +1 y (`ICON_ROW_SHIFT`), the box centred on the ball;
+  the skull icons sit 1 px further right (`ICON_NUDGE`).

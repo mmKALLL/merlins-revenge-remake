@@ -1347,7 +1347,7 @@ export const DEEP_FOREST: FloorTheme = {
     roomPlan: biomePlan(
       [
         { label: 'ninja hideout', units: { mysteriousCloud: 1, ninja: 1, shurikenNinja: 1 }, faction: NINJAS },
-        { label: 'bat roost', units: { batTree: 2, bat: 2 }, faction: WOODS },
+        { label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: WOODS },
       ],
       [
         { label: 'goblin raiders', units: { goblinWarrior: 3, goblinArcher: 2 }, faction: WOODS },
@@ -1359,7 +1359,9 @@ export const DEEP_FOREST: FloorTheme = {
     enemies: [
       { key: 'goblinWarrior', weight: 4, tier: 'weak', faction: WOODS },
       { key: 'goblinArcher', weight: 3, tier: 'weak', faction: WOODS },
-      { key: 'bat', weight: 2, tier: 'weak', faction: WOODS },
+      // owner: bats could not be seen on the dark ground; quadranids and small lizards instead
+      { key: 'lizard', weight: 1.2, tier: 'weak', faction: WOODS },
+      { key: 'quadranid', weight: 1.2, tier: 'weak', faction: WOODS },
       { key: 'goblinHero', weight: 1.5, tier: 'mid', faction: WOODS },
       { key: 'goblinMage', weight: 1.5, tier: 'mid', faction: WOODS },
       { key: 'plant', weight: 1.5, tier: 'mid', faction: WOODS },
@@ -1371,7 +1373,7 @@ export const DEEP_FOREST: FloorTheme = {
     ],
     dwellings: [
       { key: 'goblinHut', weight: 2, tier: 'weak', faction: WOODS },
-      { key: 'batTree', weight: 1, tier: 'strong', faction: WOODS },
+      { key: 'cocoon', weight: 1, tier: 'strong', faction: WOODS },
       { key: 'goblinMageHut', weight: 1, tier: 'strong', faction: WOODS },
       { key: 'mysteriousCloud', weight: 0.5, tier: 'strong', maxPerRoom: 1, faction: NINJAS },
     ],
@@ -1381,7 +1383,7 @@ export const DEEP_FOREST: FloorTheme = {
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
-      spellWeights([w('armySummon', 2), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('needleSpray', 1), w('bunnyLob', 1), w('shurikenFan', 1)], BIOME_OBJECTS)
+      spellWeights([w('armySummon', 2), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('needleSpray', 1), w('bunnyLob', 1), w('shurikenFan', 1), w('laserVolley', 1)], BIOME_OBJECTS)
     ),
   },
 }

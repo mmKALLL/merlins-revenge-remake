@@ -4,7 +4,7 @@
 import { Container, Sprite, type Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { ActorState } from '../sim/state'
-import { ICON_PX, ICON_ROW_OFFSET, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackPx, volleyIconCount, volleyShotsShown } from '../sim/volley'
+import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackSize, volleyIconCount, volleyShotsShown } from '../sim/volley'
 
 /** Per-projectile nudges (px) for icons whose art sits off-centre in their frame (owner: the pin poked out of the ball). */
 const ICON_NUDGE: Readonly<Record<string, { x: number; y: number }>> = { smokePin: { x: 0, y: -1 }, skeletonHead: { x: 1, y: 0 } }
@@ -36,10 +36,10 @@ export class VolleyIcons {
     }
     entry.stack.visible = true
     entry.stack.zIndex = spellSprite.zIndex + 1
-    // the icons' square is centred on the ball
-    const half = iconStackPx(shown) / 2
+    // the icons' box is centred on the ball
+    const size = iconStackSize(shown)
     const nudge = (bulletDef && ICON_NUDGE[bulletDef.key]) || { x: 0, y: 0 }
-    entry.stack.position.set(Math.round(spellSprite.x - half) + nudge.x, Math.round(spellSprite.y - half) + nudge.y)
+    entry.stack.position.set(Math.round(spellSprite.x - size.w / 2) + nudge.x, Math.round(spellSprite.y - size.h / 2) + nudge.y)
   }
 
   /** Drops the stacks of spells no longer drawn (or hidden). */
@@ -55,7 +55,7 @@ export class VolleyIcons {
 /**
  * The icons from the top right: each next one ICON_STEP px left of and below the one before and drawn
  * over it, so the earlier ones peek out at its top right (owner's choice); past ICONS_PER_ROW a new
- * row starts ICON_ROW_OFFSET right of and below the last one; all inside the iconStackPx square from (0, 0).
+ * row starts over at the first icon's place, shifted by ICON_ROW_SHIFT; all inside iconStackSize from (0, 0).
  */
 function layOut(stack: Container, tex: Texture, count: number): void {
   const icons = volleyIconCount(count)
@@ -66,8 +66,8 @@ function layOut(stack: Container, tex: Texture, count: number): void {
     icon.scale.set(k)
     const row = Math.floor(i / ICONS_PER_ROW)
     const inRow = i % ICONS_PER_ROW
-    const cellX = rowSide - ICON_PX - inRow * ICON_STEP + row * ICON_ROW_OFFSET
-    const cellY = inRow * ICON_STEP + row * ICON_ROW_OFFSET
+    const cellX = rowSide - ICON_PX - inRow * ICON_STEP + row * ICON_ROW_SHIFT.x
+    const cellY = inRow * ICON_STEP + row * ICON_ROW_SHIFT.y
     icon.position.set(cellX + Math.round((ICON_PX - icon.width) / 2), cellY + Math.round((ICON_PX - icon.height) / 2))
     stack.addChild(icon)
   }

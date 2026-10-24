@@ -135,8 +135,8 @@ export const ICON_STACK_MAX = ICONS_PER_ROW * ICON_ROWS
 export const ICON_PX = 8
 /** Each stacked icon sits this many px left of and below the one before (drawn over it). */
 export const ICON_STEP = 2
-/** Each next row of icons sits this many px right of and below the one before (beside it, across the diagonal). */
-export const ICON_ROW_OFFSET = ICON_PX / 2
+/** Each next row of icons starts over at the first icon's place, shifted this much (owner: +2 x, +1 y). */
+export const ICON_ROW_SHIFT = { x: 2, y: 1 } as const
 /** Room around the stack inside the spell's ball. */
 const BALL_MARGIN = 4
 
@@ -149,10 +149,18 @@ export const iconRows = (count: number): number => Math.ceil(volleyIconCount(cou
 /** The side of the square one row's diagonal covers: the first row's, as the later rows sit beside it. */
 export const iconRowPx = (count: number): number => ICON_PX + ICON_STEP * (Math.min(volleyIconCount(count), ICONS_PER_ROW) - 1)
 
-/** The side of the square the stacked icons for `count` projectiles cover (0 for none). */
-export function iconStackPx(count: number): number {
+/** The width and height the stacked icons for `count` projectiles cover (0 for none). */
+export function iconStackSize(count: number): { w: number; h: number } {
   const rows = iconRows(count)
-  return rows === 0 ? 0 : iconRowPx(count) + ICON_ROW_OFFSET * (rows - 1)
+  if (rows === 0) return { w: 0, h: 0 }
+  const side = iconRowPx(count)
+  return { w: side + ICON_ROW_SHIFT.x * (rows - 1), h: side + ICON_ROW_SHIFT.y * (rows - 1) }
+}
+
+/** The longer side the stacked icons for `count` projectiles cover (0 for none): what the ball must hold. */
+export function iconStackPx(count: number): number {
+  const { w, h } = iconStackSize(count)
+  return Math.max(w, h)
 }
 
 /** The ball's diameter at no charge: room for one icon. */

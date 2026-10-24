@@ -59,7 +59,7 @@ describe('volley rules', () => {
 
   it('stacks one icon per projectile up to ten, in rows of five', () => {
     expect([0, 3, 5, 6, 10, 12].map(volleyIconCount)).toEqual([0, 3, 5, 6, 10, 10])
-    expect([0, 5, 6, 10].map(iconStackPx)).toEqual([0, 16, 20, 20])
+    expect([0, 5, 6, 10].map(iconStackPx)).toEqual([0, 16, 18, 18])
   })
 })
 
