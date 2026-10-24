@@ -1497,6 +1497,8 @@ export const HYDRA_MARSH: FloorTheme = {
       { key: 'lizardSoldier', weight: 1.5, tier: 'mid', faction: JUNGLE },
       { key: 'plant', weight: 2, tier: 'mid', faction: JUNGLE },
       { key: 'quadranid', weight: 2, tier: 'mid', faction: JUNGLE },
+      // owner: druids heal the jungle's monsters and hydras
+      { key: 'druid', weight: 1.5, tier: 'mid', maxPerRoom: 1, faction: JUNGLE },
       { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2, faction: JUNGLE },
       { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1, faction: JUNGLE },
       // owner: ninjas for the brawls, no ninja dwelling (mysterious cloud)
@@ -1509,7 +1511,7 @@ export const HYDRA_MARSH: FloorTheme = {
       { key: 'batTree', weight: 1, tier: 'weak', faction: JUNGLE },
     ],
     bosses: [
-      { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2 }, faction: JUNGLE, boss: 'hydra3' },
+      { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2, druid: 1 }, faction: JUNGLE, boss: 'hydra3' },
       { label: 'lizard war party', units: { lizardSoldier: 3, lizard: 3 }, faction: JUNGLE, boss: 'lizardSoldier' },
     ],
     potions: POTION_WEIGHTS,

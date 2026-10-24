@@ -190,3 +190,6 @@ the reward pools (weight 1, `ENERGY_BLAST` in `src/run/rewards.ts`), and the sta
 always an attack (not the heal blast). The sword and energy punch (and the golden machine gun once
 ported) are never start-room scrolls: a floor's end may offer one Merlin lacks in place of the new
 spell, at weight 2 per biome (`RESERVED_WEAPONS`).
+
+West Jungle has druids too (mid, at most 1 a room, and one in the hydra nest boss room): they heal
+the jungle's monsters and hydras (owner, 2026-10-25).
