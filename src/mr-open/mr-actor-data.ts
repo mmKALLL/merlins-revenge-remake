@@ -86,6 +86,8 @@ export interface VolleyDef {
   speedJitter: number // each projectile's speed x (1 +- up to this)
   minLandingSpeedShare: number // a projectile that explodes on landing launches at least this share of the full speed
   launchFrom: VolleyLaunchFrom
+  /** remake: a chilling volley's projectiles also freeze what they hit (#takeFreeze, glowing teal) with this freezeMultiplier; 0 = no chill */
+  chill: number
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -258,7 +260,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random' }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0 }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -358,7 +360,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -555,6 +557,7 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
     minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
     spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
+    chill: num(f, 'chill', c),
   }
 }
 

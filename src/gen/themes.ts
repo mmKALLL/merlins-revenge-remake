@@ -746,7 +746,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
       spellWeights(
-        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('needleSpray', 1), w('skullToss', 1), w('poisonSmoke', 1)],
+        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('needleSpray', 1), w('skullToss', 1), w('poisonSmoke', 1), w('chillFlame', 1)],
         MERLIN_OPEN_OBJECTS
       )
     ),

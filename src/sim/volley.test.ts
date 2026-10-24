@@ -1,6 +1,6 @@
 // Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): the count from the
 // charge and its cap by the charge max, the fan, the stagger, first-hostile hits (dwellings too), the
-// landing of exploding projectiles on the aim and the damage.
+// landing of exploding projectiles on the aim, the damage and the chill.
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
@@ -13,7 +13,7 @@ import { createSim, stepSim } from './tick'
 import { iconStackPx, shotAngleDeg, volleyBallPx, volleyIconCount, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random' }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0 }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
@@ -196,6 +196,21 @@ describe('volleys in the sim', () => {
     s = release(s, ONE_SHOT_TICKS)
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(once).toBeCloseTo((1e6 - energyOf(s, id)) * 2)
+  })
+
+  it('a chilling volley freezes what it hits, glowing teal; a plain one does not', () => {
+    const struck = (chill: number) => {
+      let s = world(scrollAttack({ spreadMinDeg: 0, chill }))
+      let id: number
+      ;[s, id] = withDummy(s, PLAYER.x + 40)
+      s = release(s, ONE_SHOT_TICKS)
+      for (let i = 0; i < 40 && energyOf(s, id) === 1e6; i++) s = stepSim(s, aim)
+      return s.actors.find((a) => a.id === id)!
+    }
+    const chilled = struck(4)
+    expect(chilled.freezeTicks).toBeGreaterThan(0)
+    expect(chilled.glowTeal).toBe(true)
+    expect(struck(0).freezeTicks).toBe(0)
   })
 })
 

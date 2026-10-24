@@ -16,7 +16,7 @@ const symbols = keyFile.split(/\r?\n|\r/).map((l) => l.trim()).filter((l) => l.s
 const REMAKE_TILES = {
   bombVolley: 31, boltFan: 32, arrowRain: 33, shurikenFan: 34, thunderBurst: 35, pinStorm: 36, lavaLob: 37, needleSpray: 40,
   longbow: 19, dragonFire: 20, boulderLob: 54, darkRockBurst: 55, poisonSmoke: 56, acidSplash: 57, lightningFan: 58, bunnyLob: 59,
-  skullToss: 60, frostBurst: 100, iceBoulderLob: 102,
+  skullToss: 60, frostBurst: 100, iceBoulderLob: 102, chillFlame: 109,
 }
 const tile = (symbol) => {
   if (REMAKE_TILES[symbol]) return REMAKE_TILES[symbol]
@@ -30,7 +30,7 @@ const VOLLEYS = ['bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBu
 // the second batch: beside the first in its row, then in the top row
 const VOLLEYS_2_LEFT = ['longbow', 'dragonFire', 'boulderLob']
 const VOLLEYS_2_RIGHT = ['darkRockBurst', 'poisonSmoke', 'acidSplash', 'lightningFan']
-const VOLLEYS_2_TOP = ['bunnyLob', 'skullToss', 'frostBurst', 'iceBoulderLob']
+const VOLLEYS_2_TOP = ['bunnyLob', 'skullToss', 'frostBurst', 'iceBoulderLob', 'chillFlame']
 const MAX_BLAST = 'manaCapacity'
 const POTIONS = 8
 const MERLIN_COLUMN = 9
