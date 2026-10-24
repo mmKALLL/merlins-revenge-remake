@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "boulder_fire",
 #volume: 100,
-#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 1.5, #damageMultiplier: 1.25, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 60, #staggerTicks: 5, #speedJitter: 0.1]
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 1.5, #damageMultiplier: 2, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 60, #staggerTicks: 5, #speedJitter: 0.1]
 ],
 #character: #boulderLob,
 #collectSound: "collect_powerup_01",

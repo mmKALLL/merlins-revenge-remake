@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 6, #maxShots: 5, #rangeFactor: 2.5, #damageMultiplier: 2.6, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 50, #staggerTicks: 3, #speedJitter: 0.05]
+#volley: [#chargePerShot: 6, #maxShots: 5, #rangeFactor: 2.5, #damageMultiplier: 3.64, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 50, #staggerTicks: 3, #speedJitter: 0.05]
 ],
 #character: #darkRockBurst,
 #collectSound: "collect_powerup_01",

@@ -658,3 +658,5 @@ Remake decisions (owner, 2026-10-25):
   flame, frost burst, ice boulder, lava lob and shuriken fan have no floor whose enemies fire them.
 - **Dragon fire pierces (owner, 2026-10-25):** `#pierce: 2` like the laser, damage x0.7
   (damageMultiplier 0.7).
+- **Golem lobs stronger (owner, 2026-10-25):** boulder lob and ice boulder x1.6 (damageMultiplier
+  2), dark rock x1.4 (3.64).
