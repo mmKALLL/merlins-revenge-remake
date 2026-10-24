@@ -114,7 +114,7 @@ export const ICON_STACK_MAX = 5
 /** The longest side of a mini projectile, in game px. */
 export const ICON_PX = 8
 /** Each stacked icon sits this many px left of and below the one before (drawn over it). */
-export const ICON_STEP = 3
+export const ICON_STEP = 2
 /** Room around the stack inside the spell's ball. */
 const BALL_MARGIN = 2
 
