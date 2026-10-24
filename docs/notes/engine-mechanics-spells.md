@@ -663,3 +663,6 @@ Remake decisions (owner, 2026-10-25):
 - **Bunny lob, many more (owner, 2026-10-25):** 18 at most (was 8), still full at tier 15
   (chargeMaxModifier 4.8, chargePerShot 4); chargeSpeed x1.8 (2.25x for the count, 20% slower), so
   each spark charges 25% slower than before and the full volley takes 1.25x as long.
+- **Skull toss, more heads (owner, 2026-10-25):** 9 at most (was 5), each head charging as before
+  (chargePerShot 8, chargeSpeed unchanged), so the full volley takes 1.8x as long; still full at tier
+  18 (chargeMaxModifier 4).
