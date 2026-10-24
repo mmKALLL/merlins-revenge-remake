@@ -11,7 +11,7 @@ const KEYBOARD: Line[] = [
   ['Space', 'hold to charge, release to fire at the nearest enemy'],
   ['1-9', 'pick the first to ninth spell Merlin has collected (spell scrolls lie on some maps)'],
   ['Q', 'show the weapon palettes at the mouse for 2 s: spells above, punch and sword below; click one to pick it'],
-  ['F', 'switch what Space fires at between the nearest enemy and a push-back shot that lands short of it (Settings also offers the mouse cursor and the farthest enemy)'],
+  ['F', 'switch what Space fires at between the nearest and the farthest enemy (Settings also offers the mouse cursor)'],
   ['C', 'switch between the room camera and the follow camera'],
   ['N', 'hide or show the mini-map (bottom right, shown while no enemy is near)'],
   ['Esc', 'menu (pauses the game)'],

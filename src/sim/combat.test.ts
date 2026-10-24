@@ -249,16 +249,6 @@ describe('energy blast (combat notes §5)', () => {
     expect(s.actors.find((a) => a.def === 'spell')!.targetPoint).toEqual({ x: 200, y: 144 })
   })
 
-  it('the push-back shot lands on the line to the nearest hostile, short of it', () => {
-    let { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
-    s = run(s, 3, { ...NO_INPUT, shootShort: true })
-    s = stepSim(s, NO_INPUT)
-    const target = s.actors.find((a) => a.def === 'spell')!.targetPoint!
-    expect(target.y).toBe(144)
-    expect(target.x).toBeGreaterThan(100)
-    expect(target.x).toBeLessThan(300)
-  })
-
   it('the farthest Space mode fires at the farthest hostile in the room, the nearest mode at the nearest', () => {
     const near = { x: 200, y: 144 }
     const far = { x: 450, y: 200 }

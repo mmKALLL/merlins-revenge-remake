@@ -18,7 +18,6 @@ function scriptedInput(tick: number): InputSnapshot {
     mouseWorld: { x: 200 + (tick % 50), y: 120 },
     chargeHeld: tick % 60 >= 45,
     shootNearest: tick % 30 < 20,
-    shootShort: false,
     shootFarthest: false,
     cheatKillAll: false,
     cheatMedikit: false,

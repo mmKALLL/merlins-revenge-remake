@@ -102,7 +102,7 @@ export class TouchState {
 }
 
 /** The target button's label for each Space mode: what the blast button aims at on a finger-only device. */
-const TARGET_LABEL: Record<SpaceMode, string> = { nearest: 'NEAR', farthest: 'FAR', pushBack: 'PUSH', mouse: 'NEAR' }
+const TARGET_LABEL: Record<SpaceMode, string> = { nearest: 'NEAR', farthest: 'FAR', mouse: 'NEAR' }
 
 /**
  * Where the controls report (the nub and blast button's state, weapon, army and target button taps), the

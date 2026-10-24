@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InputTracker, nextSpaceMode, nextTouchTarget, SPACE_MODES, type SpaceMode } from './keyboard'
+import { InputTracker, nextTarget, SPACE_MODES, type SpaceMode } from './keyboard'
 
 describe('InputTracker', () => {
   it('sums held direction keys into a move vector, opposite keys cancel', () => {
@@ -16,26 +16,25 @@ describe('InputTracker', () => {
   it('maps E and left click to mouse aim, and Space by its mode', () => {
     const t = new InputTracker()
     t.setMouseButton(true)
-    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootFarthest: false })
     t.setMouseButton(false)
     t.keyDown('KeyE')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootFarthest: false })
     t.keyUp('KeyE')
     const space = (mode: SpaceMode) => {
       t.setSpaceMode(mode)
       t.keyDown('Space')
-      const { chargeHeld, shootNearest, shootShort, shootFarthest } = t.snapshot()
+      const { chargeHeld, shootNearest, shootFarthest } = t.snapshot()
       t.keyUp('Space')
-      return { chargeHeld, shootNearest, shootShort, shootFarthest }
+      return { chargeHeld, shootNearest, shootFarthest }
     }
-    expect(space('nearest')).toEqual({ chargeHeld: false, shootNearest: true, shootShort: false, shootFarthest: false })
-    expect(space('pushBack')).toEqual({ chargeHeld: false, shootNearest: false, shootShort: true, shootFarthest: false })
-    expect(space('mouse')).toEqual({ chargeHeld: true, shootNearest: false, shootShort: false, shootFarthest: false })
-    expect(space('farthest')).toEqual({ chargeHeld: false, shootNearest: false, shootShort: false, shootFarthest: true })
+    expect(space('nearest')).toEqual({ chargeHeld: false, shootNearest: true, shootFarthest: false })
+    expect(space('mouse')).toEqual({ chargeHeld: true, shootNearest: false, shootFarthest: false })
+    expect(space('farthest')).toEqual({ chargeHeld: false, shootNearest: false, shootFarthest: true })
   })
 
   it('the touch target button toggles nearest and farthest (from any other mode: farthest)', () => {
-    expect(SPACE_MODES.map(nextTouchTarget)).toEqual(['farthest', 'farthest', 'farthest', 'nearest'])
+    expect(SPACE_MODES.map(nextTarget)).toEqual(['farthest', 'farthest', 'nearest'])
     const t = new InputTracker('nearest')
     t.toggleTouchTarget()
     expect(t.spaceMode).toBe('farthest')
@@ -43,18 +42,17 @@ describe('InputTracker', () => {
     expect(t.snapshot()).toMatchObject({ shootNearest: false, shootFarthest: true })
   })
 
-  it('F toggles the Space mode once per press between nearest and push-back, skipping mouse and farthest; and reports each change', () => {
-    expect(SPACE_MODES.map(nextSpaceMode)).toEqual(['pushBack', 'nearest', 'nearest', 'nearest'])
+  it('F toggles the Space mode once per press between nearest and farthest; and reports each change', () => {
     const heard: SpaceMode[] = []
     const t = new InputTracker('nearest', (m) => heard.push(m))
     t.keyDown('KeyF')
     t.keyDown('KeyF') // key repeat does not step again
-    expect(t.spaceMode).toBe('pushBack')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootShort: false }) // F alone fires nothing
+    expect(t.spaceMode).toBe('farthest')
+    expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: false, shootFarthest: false }) // F alone fires nothing
     t.keyUp('KeyF')
     t.keyDown('KeyF')
     expect(t.spaceMode).toBe('nearest')
-    expect(heard).toEqual(['pushBack', 'nearest'])
+    expect(heard).toEqual(['farthest', 'nearest'])
     t.setSpaceMode('nearest') // no change, nothing to report
     expect(heard).toHaveLength(2)
   })

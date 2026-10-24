@@ -48,9 +48,9 @@ describe('InputTracker touch input', () => {
   it('moves like the direction keys and blasts like Space, following the Space mode', () => {
     const t = new InputTracker()
     t.setTouch({ x: -1, y: 1 }, true)
-    expect(t.snapshot()).toMatchObject({ move: { x: -1, y: 1 }, shootNearest: true, shootShort: false })
+    expect(t.snapshot()).toMatchObject({ move: { x: -1, y: 1 }, shootNearest: true, shootFarthest: false })
     t.keyDown('KeyF')
-    expect(t.snapshot()).toMatchObject({ shootNearest: false, shootShort: true })
+    expect(t.snapshot()).toMatchObject({ shootNearest: false, shootFarthest: true })
     // an analog nub move passes through while no direction key is held; a key wins
     t.setTouch({ x: 1, y: 0.25 }, false)
     expect(t.snapshot().move).toEqual({ x: 1, y: 0.25 })
@@ -58,7 +58,7 @@ describe('InputTracker touch input', () => {
     expect(t.snapshot().move).toEqual({ x: 0, y: -1 })
     t.keyUp('KeyW')
     t.setTouch({ x: 0, y: 0 }, false)
-    expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, shootNearest: false, shootShort: false })
+    expect(t.snapshot()).toMatchObject({ move: { x: 0, y: 0 }, shootNearest: false, shootFarthest: false })
   })
 
   it('the army button is R once per tap, at the nearest enemy even in mouse mode', () => {
@@ -80,7 +80,7 @@ describe('InputTracker touch input', () => {
     expect(t.snapshot()).toMatchObject({ chargeHeld: false, shootNearest: true })
     t.setTouch({ x: 0, y: 0 }, false)
     t.setTouch({ x: 0, y: 0 }, true)
-    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootShort: false })
+    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootFarthest: false })
   })
 })
 

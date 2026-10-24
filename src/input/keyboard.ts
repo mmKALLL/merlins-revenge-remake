@@ -1,9 +1,8 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
 // E or the left button charges and fires at the mouse position. Space charges and fires by its mode
-// (SpaceMode): at the nearest enemy, short of it (a push-back shot), at the mouse like E (straight
-// ahead while no mouse position is known), or at the farthest enemy on screen; F toggles the first
-// two (Settings offers all four). C switches between the room camera and the follow camera (main.ts
+// (SpaceMode): at the nearest enemy, at the mouse like E (straight ahead while no mouse position is
+// known), or at the farthest enemy on screen; F toggles nearest and farthest (Settings offers all three). C switches between the room camera and the follow camera (main.ts
 // takes each press with takeCameraToggle), N hides or shows the mini-map (takeMiniMapToggle). The
 // debug cheats K (kill the enemies on screen) and M (one more medikit) reach the sim once per press,
 // in the next snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M), and
@@ -31,24 +30,18 @@ const MOVE_KEYS: Record<string, Vec> = {
 const SPELL_KEY = /^Digit([1-9])$/
 
 /** What Space (and the touch blast button) fires at. */
-export const SPACE_MODES = ['nearest', 'pushBack', 'mouse', 'farthest'] as const
+export const SPACE_MODES = ['nearest', 'mouse', 'farthest'] as const
 export type SpaceMode = typeof SPACE_MODES[number]
 
-/** The Space mode after one F press: nearest <-> pushBack; F skips the mouse and farthest modes (owner request), leaving them for nearest. */
-export function nextSpaceMode(mode: SpaceMode): SpaceMode {
-  return mode === 'nearest' ? 'pushBack' : 'nearest'
-}
-
-/** The Space mode after a tap on the touch target button: farthest -> nearest, any other -> farthest. */
-export function nextTouchTarget(mode: SpaceMode): SpaceMode {
+/** The Space mode after an F press or a tap on the touch target button: farthest -> nearest, any other -> farthest. */
+export function nextTarget(mode: SpaceMode): SpaceMode {
   return mode === 'farthest' ? 'nearest' : 'farthest'
 }
 
-type SpaceShot = 'chargeHeld' | 'shootNearest' | 'shootShort' | 'shootFarthest'
+type SpaceShot = 'chargeHeld' | 'shootNearest' | 'shootFarthest'
 
 const SPACE_SHOT: Record<SpaceMode, SpaceShot> = {
   nearest: 'shootNearest',
-  pushBack: 'shootShort',
   mouse: 'chargeHeld',
   farthest: 'shootFarthest',
 }
@@ -88,7 +81,7 @@ export class InputTracker {
   keyDown(code: string): void {
     if (!this.enabled) return
     const pressed = !this.held.has(code) // key repeat sends more keydowns while held
-    if (code === 'KeyF' && pressed) this.setSpaceMode(nextSpaceMode(this.mode))
+    if (code === 'KeyF' && pressed) this.setSpaceMode(nextTarget(this.mode))
     if (code === 'KeyC' && pressed) this.cameraToggle = !this.cameraToggle
     if (code === 'KeyN' && pressed) this.miniMapToggle = !this.miniMapToggle
     if (code === 'KeyK' && pressed) this.cheatKillAll = true
@@ -111,7 +104,7 @@ export class InputTracker {
   get spaceMode(): SpaceMode { return this.mode }
   /** Remake (the touch target button): the blast button aims at the farthest enemy, or back at the nearest. */
   toggleTouchTarget(): void {
-    if (this.enabled) this.setSpaceMode(nextTouchTarget(this.mode))
+    if (this.enabled) this.setSpaceMode(nextTarget(this.mode))
   }
   /** Whether C was pressed since the last call: the camera (and world mode) should switch once. */
   takeCameraToggle(): boolean {
@@ -183,7 +176,7 @@ export class InputTracker {
     // the keys win; without them the touch nub's analog move passes through unrounded
     const keyed = x !== 0 || y !== 0
     const move = keyed ? { x: Math.sign(x), y: Math.sign(y) } : { ...this.touchMove }
-    const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootShort: false, shootFarthest: false }
+    const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootFarthest: false }
     if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
     if (this.touchBlast) shots[this.touchShot()] = true
     const { cheatKillAll, cheatMedikit, armyKey, armyFromTouch, selectSpell, selectWeapon, cycleWeapon } = this
@@ -199,7 +192,6 @@ export class InputTracker {
       mouseWorld: this.mouseWorld,
       chargeHeld: this.held.has('KeyE') || this.mouseDown || shots.chargeHeld,
       shootNearest: shots.shootNearest,
-      shootShort: shots.shootShort,
       shootFarthest: shots.shootFarthest,
       cheatKillAll,
       cheatMedikit,

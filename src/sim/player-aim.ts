@@ -1,5 +1,5 @@
 // Where Merlin aims (objAiPlayer.getTargetLoc: the mouse), with the remake's Space modes: the
-// nearest hostile, a little short of it (a push-back shot), or the farthest hostile.
+// nearest hostile or the farthest hostile.
 import type { Rect, Vec } from '../mr-open/mr-geometry'
 import { hatedTeams, type Targetable } from '../mr-open/mr-targeting'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
@@ -9,14 +9,11 @@ import { insideRect, viewRect, type Size } from './view'
 
 /** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
 const AHEAD_PX = 100
-/** The push-back shot (Space with the F toggle on) lands this many px short of the nearest hostile, toward the player. */
-const SHORT_PX = 18
 
 /** The input flag that holds each kind of charge; checked in this order when a charge starts. */
-const CHARGE_INPUT: Record<ChargeKind, 'chargeHeld' | 'shootNearest' | 'shootShort' | 'shootFarthest'> = {
+const CHARGE_INPUT: Record<ChargeKind, 'chargeHeld' | 'shootNearest' | 'shootFarthest'> = {
   mouse: 'chargeHeld',
   nearest: 'shootNearest',
-  short: 'shootShort',
   farthest: 'shootFarthest',
 }
 
@@ -29,8 +26,7 @@ export function chargeKindFor(input: InputSnapshot): ChargeKind | null {
 }
 
 /**
- * Where Merlin aims: the mouse (else straight ahead), the nearest hostile, SHORT_PX short of it, or
- * the farthest hostile. In a continuous world (remake) only hostiles inside the play view count; in
+ * Where Merlin aims: the mouse (else straight ahead), the nearest hostile or the farthest hostile. In a continuous world (remake) only hostiles inside the play view count; in
  * rooms the room is the view. Without a hostile in sight every kind aims like the mouse.
  */
 export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null, view: Size): Vec {
@@ -38,13 +34,7 @@ export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: Cha
   const mouse = input.mouseWorld ?? ahead
   if (kind === null || kind === 'mouse') return mouse
   const target = kind === 'farthest' ? farthestHostileOnScreen(t, p, view) : nearestHostileOnScreen(t, p, view)
-  if (!target) return mouse
-  if (kind !== 'short') return { ...target.pos }
-  const dx = target.pos.x - p.pos.x
-  const dy = target.pos.y - p.pos.y
-  const d = Math.hypot(dx, dy)
-  if (d <= SHORT_PX) return { ...p.pos }
-  return { x: target.pos.x - (dx / d) * SHORT_PX, y: target.pos.y - (dy / d) * SHORT_PX }
+  return target ? { ...target.pos } : mouse
 }
 
 /** What Merlin can see: the play view in a continuous world, null (the whole room) in rooms. */
