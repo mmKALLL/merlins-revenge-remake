@@ -1,11 +1,12 @@
 // The roguelite floor pick (docs/plans/2026-10-25-roguelite-mode-design.md, Floor end): one panel
 // where the player picks the next floor's biome and a reward. Every card shows what it holds: the
 // biome's name and a row of its enemies, the spell's scroll and writing, the heal, the exact potions. The cards take
-// no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or Tab and Enter, the
-// number keys, a tap or a click pick; play goes on as soon as both picks are made.
+// no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or WASD (up and down
+// between the rows) or Tab and Enter, the number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
 import { potionTotal, type RewardOption } from '../run/rewards'
 import { el, panel } from './dom'
+import { focusInRows } from './grid-nav'
 import type { MenuPanel } from './overlay'
 
 /** A sprite frame as a canvas (the scrolls' and potions' 'stand' and 'writing'); null when it is missing. */
@@ -96,6 +97,7 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
   let openedAt = 0
   let unlockTimer: number | undefined
   let cards: HTMLButtonElement[] = []
+  let rows: HTMLButtonElement[][] = []
 
   const setLocked = (locked: boolean) => {
     root.classList.toggle('locked', locked)
@@ -133,27 +135,25 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
     })
     biomeGroup.list.replaceChildren(...biomeCards)
     rewardGroup.list.replaceChildren(...rewardCards)
-    cards = [...(choosesBiome ? biomeCards : []), ...rewardCards]
+    rows = [choosesBiome ? biomeCards : [], rewardCards]
+    cards = rows.flat()
     openedAt = now()
     setLocked(true)
     unlockTimer = window.setTimeout(() => setLocked(false), PICK_LOCK_MS)
   }
 
-  // the number keys pick the numbered cards; left and right step between the cards
+  // the number keys pick the numbered cards; the arrows or WASD move up and down between the rows,
+  // left and right within one (capture phase: ahead of the overlay's own arrow keys)
   document.addEventListener('keydown', (e) => {
-    if (root.hidden || e.repeat) return
+    if (root.hidden) return
     const n = Number(e.key)
-    if (Number.isInteger(n) && n >= 1 && n <= cards.length) {
+    if (!e.repeat && Number.isInteger(n) && n >= 1 && n <= cards.length) {
       e.preventDefault()
       cards[n - 1]!.click()
       return
     }
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-    e.preventDefault()
-    const at = cards.indexOf(document.activeElement as HTMLButtonElement)
-    const step = e.key === 'ArrowRight' ? 1 : -1
-    cards[at < 0 ? 0 : (at + step + cards.length) % cards.length]?.focus()
-  })
+    focusInRows(rows, e)
+  }, true)
 
   return { root, open }
 }

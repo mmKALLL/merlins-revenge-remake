@@ -1,6 +1,6 @@
 // The menu overlay (#menu): shows one panel at a time over the page, moves the focus into it, and
 // lets the up and down arrow keys step between its controls (Tab works as usual). It scrolls like
-// a normal page, also on phones.
+// a normal page, also on phones. A panel with its own navigation takes the keys first (preventDefault).
 import { el } from './dom'
 
 export interface MenuPanel {
@@ -42,7 +42,7 @@ export class MenuOverlay<K extends string> {
   }
 
   private arrowKeys(e: KeyboardEvent): void {
-    if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || keepsArrows(e.target) || this.shown === null) return
+    if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.defaultPrevented || keepsArrows(e.target) || this.shown === null) return
     const items = [...this.panels[this.shown].root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((i) => i.offsetParent !== null)
     if (items.length === 0) return
     e.preventDefault()
