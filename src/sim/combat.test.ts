@@ -264,6 +264,19 @@ describe('energy blast (combat notes §5)', () => {
     expect(releasedAt('shootNearest')).toEqual(near)
   })
 
+  it('switching the Space mode mid-charge (F) keeps charging and releases at the new mode\'s target', () => {
+    const near = { x: 200, y: 144 }
+    const far = { x: 450, y: 200 }
+    const s0 = createSim(grid(openMap([{ x: 6, y: 5, tile: WARRIOR }, { x: 14, y: 6, tile: WARRIOR }])), defs, teams, anims, 1, { x: 100, y: 144 })
+    const [a, b] = s0.actors.filter((x) => x.id !== s0.playerId).map((x) => x.id)
+    let s = { ...s0, actors: s0.actors.map((x) => (x.id === a ? { ...x, ...dummy, pos: near, prevPos: near } : x.id === b ? { ...x, ...dummy, pos: far, prevPos: far } : x)) }
+    s = run(s, 3, { ...NO_INPUT, shootNearest: true })
+    s = run(s, 2, { ...NO_INPUT, shootFarthest: true })
+    expect(s.actors.find((x) => x.def === 'spell')!.mode).toBe('charge')
+    s = stepSim(s, NO_INPUT)
+    expect(s.actors.find((x) => x.def === 'spell')!.targetPoint).toEqual(far)
+  })
+
   it('a heal blast fired by a Space mode goes to the nearest ally, else to Merlin himself', () => {
     const merlinPos = { x: 100, y: 144 }
     const allyPos = { x: 250, y: 200 }

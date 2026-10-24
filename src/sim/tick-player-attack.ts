@@ -10,7 +10,7 @@ import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isUnit, playerStatsOf, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
 import { aimPoint, chargeKindFor, isHeld, spellAimPoint } from './player-aim'
-import { ATTACK_STRIPS, type ActorState, type AttackStrip, type InputSnapshot } from './state'
+import { ATTACK_STRIPS, type ActorState, type AttackStrip, type ChargeKind, type InputSnapshot } from './state'
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { applyPayload, withOwnerDamage } from './tick-combat'
 import { nearestAllyOnScreen } from './tick-army'
@@ -34,8 +34,11 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): voi
   const def = playerStatsOf(t.s, p, t.arsenal) // the potions drunk raise the mana stats
   const spell = chargingSpellOf(t, p)
   if (spell) {
-    if (isHeld(input, p.ai.chargeKind)) continueCharge(t, p, def, spell)
-    else releaseSpell(t, p, def, spell, input, view)
+    const held = heldChargeKind(input, p.ai.chargeKind)
+    if (held !== null) {
+      p.ai.chargeKind = held
+      continueCharge(t, p, def, spell)
+    } else releaseSpell(t, p, def, spell, input, view)
   } else if (def.attack.type === 'magic') {
     startCharge(t, p, def, input)
   } else if (def.attack.type === 'melee') {
@@ -52,6 +55,12 @@ function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState
   stepMultistage(t, spell)
   alignSpell(spell, p, def)
 }
+
+/**
+ * The attack input that keeps a charge going: its own, else (remake) any other held one, so F
+ * switching what Space aims at mid-charge goes on charging, aimed the new way (owner request).
+ */
+const heldChargeKind = (input: InputSnapshot, kind: ChargeKind | null): ChargeKind | null => (isHeld(input, kind) ? kind : chargeKindFor(input))
 
 function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
   releaseMagic(t, p, def, spell, releaseAim(t, p, def, spell, input, view))

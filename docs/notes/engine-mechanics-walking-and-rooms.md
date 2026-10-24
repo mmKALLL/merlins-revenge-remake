@@ -284,7 +284,9 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   map does not fill a team's cap.
 - **Space aims on screen** (owner request): Merlin's nearest-enemy and
   farthest-enemy shots (Space modes nearest, mouse, farthest; F and the touch target button toggle
-  nearest and farthest; the push-back mode was removed 2026-10-25, owner; `src/sim/player-aim.ts`) only consider hostile units whose position lies inside the play view the follow camera shows
+  nearest and farthest; the push-back mode was removed 2026-10-25, owner; `src/sim/player-aim.ts`)
+  (F mid-charge only switches the aim: the charge goes on under the new input, `heldChargeKind`,
+  and releases at the new mode's target; owner, 2026-10-25) only consider hostile units whose position lies inside the play view the follow camera shows
   (`viewRect`, `src/sim/view.ts`: the renderer's `cameraOrigin` around Merlin's position, clamped to
   the map, with the view size from `SimConfig.view`, 576x288). With none on screen the shot flies
   straight ahead, as with no hostile at all. In rooms mode the room is the view and nothing changes.
