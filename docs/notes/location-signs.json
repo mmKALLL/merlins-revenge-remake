@@ -1,0 +1,29 @@
+{
+  "_note": "The named sign tiles of merlinOpenActive (the older merlinActive and merlin4Active sheets hold a subset). usedBy: the roguelite biome showing it. (of Death) is a suffix sign.",
+  "signs": [
+    {"name": "Apathetic Woods", "tiles": "131-133"},
+    {"name": "Scarlet's Storeroom", "tiles": "134-136"},
+    {"name": "Caves of Woe", "tiles": "137-138"},
+    {"name": "The Coughing Caves", "tiles": "141-143"},
+    {"name": "Swamp of Despair", "tiles": "144-146"},
+    {"name": "Back Garden", "tiles": "147-148"},
+    {"name": "East Jungle", "tiles": "149-150"},
+    {"name": "Magical Forest", "tiles": "151-153"},
+    {"name": "Woods of Mourning", "tiles": "154-156", "usedBy": "deep-forest"},
+    {"name": "(of Death)", "tiles": "157-158"},
+    {"name": "Dead Woods", "tiles": "159-160", "usedBy": "undead-marsh"},
+    {"name": "Remorseless Mountains", "tiles": "161-163", "usedBy": "golem-mountain"},
+    {"name": "Black Fortress", "tiles": "164-166", "usedBy": "magic-maze"},
+    {"name": "Caves of Doom", "tiles": "167-168"},
+    {"name": "East Woods", "tiles": "169-170", "usedBy": "goblin-forest"},
+    {"name": "Black Outpost", "tiles": "171-173"},
+    {"name": "Caverns of Darkness", "tiles": "174-176"},
+    {"name": "Caves of Fire", "tiles": "177-178", "usedBy": "dragon-canyon"},
+    {"name": "Ucca Copse", "tiles": "179-180"},
+    {"name": "Caves of Smoke", "tiles": "181-183"},
+    {"name": "Golden Palace", "tiles": "184-186", "usedBy": "golden-palace"},
+    {"name": "West Jungle", "tiles": "187-188", "usedBy": "hydra-marsh"},
+    {"name": "Inner Sanctum", "tiles": "191-193"},
+    {"name": "Wizard's Garden", "tiles": "194-196"}
+  ]
+}
