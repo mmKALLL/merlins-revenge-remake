@@ -50,6 +50,7 @@ export function titleScreen(actions: TitleActions): TitleScreen {
       button('How to play', () => actions.open('help')),
     ),
     credits,
+    el('p', 'build-label', __BUILD_LABEL__),
   )
   return {
     root,
