@@ -4,7 +4,7 @@
 // no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or WASD (up and down
 // between the rows) or Tab and Enter, the number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
-import { potionTotal, type RewardOption } from '../run/rewards'
+import { potionTotal, RESERVED_WEAPONS, type RewardOption } from '../run/rewards'
 import { el, panel } from './dom'
 import { focusInRows } from './grid-nav'
 import type { MenuPanel } from './overlay'
@@ -76,10 +76,13 @@ function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
   return row
 }
 
+/** A scroll reward's heading: a reserved melee weapon is a new weapon, the rest new spells. */
+const scrollHeading = (scroll: string): string => (RESERVED_WEAPONS.includes(scroll) ? 'New weapon' : 'New spell')
+
 /** What a reward card says, for its label and screen readers. */
 function rewardLabel(r: RewardOption): string {
   switch (r.kind) {
-    case 'spell': return `New spell: ${wordsOf(r.scroll)}`
+    case 'spell': return `${scrollHeading(r.scroll)}: ${wordsOf(r.scroll)}`
     case 'heal': return HEAL_LABEL
     case 'potions': return `${potionTotal(r.potions)} potions: ${r.potions.map((p) => `${p.count} ${potionName(p.character)}`).join(', ')}`
   }
@@ -189,7 +192,7 @@ function markChosen(card: HTMLButtonElement): void {
 function rewardContent(r: RewardOption, art: SpriteArt): HTMLElement[] {
   switch (r.kind) {
     case 'spell':
-      return [el('span', 'pick-detail', 'New spell'), scrollArt(r.scroll, art)]
+      return [el('span', 'pick-detail', scrollHeading(r.scroll)), scrollArt(r.scroll, art)]
     case 'heal':
       return [el('span', 'pick-detail', 'Heal'), artRow(art(MEDIKIT_SPRITE, 'stand'), el('span', 'pick-title', HEAL_LABEL))]
     case 'potions':

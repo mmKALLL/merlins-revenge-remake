@@ -3,17 +3,20 @@
 // the pickups each is laid out as in the next floor's start room (src/gen/roguelite.ts). Pure.
 import { firstBiome, floorSeed } from '../gen/roguelite-biomes'
 import { GenRandom } from '../gen/random'
-import type { FloorTheme, Weighted } from '../gen/themes'
-import { MEDIKIT_CHARACTER, type PotionCount } from '../mr-open/mr-pickup'
+import { ANY_SPELL_WEIGHT, PENDING_SCROLLS, type FloorTheme, type Weighted } from '../gen/themes'
+import { GOLDEN_MACHINE_GUN, MEDIKIT_CHARACTER, type PotionCount } from '../mr-open/mr-pickup'
 
-/** A reward: a scroll's spell, a full heal and a medikit, or potions. */
+/** A reward: a scroll's spell (or reserved weapon), a full heal and a medikit, or potions. */
 export type RewardOption =
   | { kind: 'spell'; scroll: string }
   | { kind: 'heal' }
   | { kind: 'potions'; potions: PotionCount[] }
 
-/** What a floor's rewards are drawn from: its biomes' start scrolls and potions. */
-export interface RewardPools { spellScrolls: Weighted<string>[]; potions: Weighted<string>[] }
+/**
+ * What a floor's rewards are drawn from: its biomes' start scrolls (the energy blast among them, the
+ * reserved weapons not), the reserved weapons a floor's end may offer instead, and potions.
+ */
+export interface RewardPools { spellScrolls: Weighted<string>[]; reservedWeapons: Weighted<string>[]; potions: Weighted<string>[] }
 
 /** Whether Merlin already holds the weapon of a scroll. */
 export type HoldsScroll = (scroll: string) => boolean
@@ -24,12 +27,29 @@ const REWARD_POTIONS: readonly [number, number] = [4, 5]
 const KIT_POTIONS = 5
 /** Every potions reward splits its potions between this many types. */
 const POTION_TYPES = 2
+/**
+ * Owner: Merlin starts a run with only his punch; the energy blast (his starting weapon elsewhere,
+ * player.weapon) is a scroll like any other, at the weight of a spell no biome favours.
+ */
+export const ENERGY_BLAST = 'energyBlast'
+/**
+ * Owner: the melee weapons are never start-room scrolls; a floor's end may offer one Merlin lacks in
+ * place of the new spell. The golden machine gun joins once it is ported (PENDING_SCROLLS).
+ */
+export const RESERVED_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch', GOLDEN_MACHINE_GUN]
+/** A reserved weapon's weight per biome, in the units of an unthemed original spell's ANY_SPELL_WEIGHT. */
+const RESERVED_WEAPON_WEIGHT = 2
+/** Spells that do not fight (the heal blast only heals): never the kit's, which is Merlin's first attack beside the punch. */
+const NOT_ATTACKS: readonly string[] = ['healBlast']
 /** Keeps the reward rolls apart from the floor layout drawn from the same floor seed. */
 const REWARD_SALT = 0x5eed
 
+const isReserved = (scroll: string): boolean => RESERVED_WEAPONS.includes(scroll)
+
 /**
  * The pools of the floor whose biome is still to be picked: every option's weights added up, so the
- * rewards on the pick screen do not depend on the biome picked beside them.
+ * rewards on the pick screen do not depend on the biome picked beside them (each biome adds the
+ * energy blast's and the reserved weapons' weights too, keeping their share of a biome's).
  */
 export function rewardPools(biomes: readonly FloorTheme[]): RewardPools {
   const merged = (list: (t: FloorTheme) => Weighted<string>[]): Weighted<string>[] => {
@@ -37,14 +57,20 @@ export function rewardPools(biomes: readonly FloorTheme[]): RewardPools {
     for (const b of biomes) for (const { value, weight } of list(b)) weights.set(value, (weights.get(value) ?? 0) + weight)
     return [...weights].map(([value, weight]) => ({ value, weight }))
   }
-  return { spellScrolls: merged((t) => t.units.startRewards.spellScrolls), potions: merged((t) => t.units.startRewards.potions) }
+  const perBiome = (value: string, weight: number): Weighted<string> => ({ value, weight: weight * biomes.length })
+  const spells = merged((t) => t.units.startRewards.spellScrolls).filter((s) => !isReserved(s.value) && s.value !== ENERGY_BLAST)
+  return {
+    spellScrolls: [...spells, perBiome(ENERGY_BLAST, ANY_SPELL_WEIGHT)],
+    reservedWeapons: RESERVED_WEAPONS.filter((key) => !PENDING_SCROLLS.has(key)).map((key) => perBiome(key, RESERVED_WEAPON_WEIGHT)),
+    potions: merged((t) => t.units.startRewards.potions),
+  }
 }
 
 const rewardRng = (runSeed: number, floor: number): GenRandom => new GenRandom((floorSeed(runSeed, floor) ^ REWARD_SALT) >>> 0)
 
-/** A scroll Merlin does not hold, by weight; null when he holds them all. */
-function newSpell(rng: GenRandom, pools: RewardPools, holds: HoldsScroll): RewardOption | null {
-  const unheld = pools.spellScrolls.filter((s) => !holds(s.value))
+/** A scroll of `candidates` Merlin does not hold, by weight; null when he holds them all. */
+function newSpell(rng: GenRandom, candidates: readonly Weighted<string>[], holds: HoldsScroll): RewardOption | null {
+  const unheld = candidates.filter((s) => !holds(s.value))
   return unheld.length === 0 ? null : { kind: 'spell', scroll: rng.weighted(unheld) }
 }
 
@@ -63,21 +89,24 @@ function potionSplit(rng: GenRandom, pools: RewardPools, total: number): RewardO
   return { kind: 'potions', potions: [{ character: first, count: firstCount }, { character: second, count: total - firstCount }] }
 }
 
-/** The three rewards offered when Merlin leaves for `floor` (1 = the second): a new spell, a heal and potions; two when he holds every spell. */
+/**
+ * The three rewards offered when Merlin leaves for `floor` (1 = the second): a new spell (or a
+ * reserved weapon he lacks), a heal and potions; two when he holds every spell and weapon.
+ */
 export function rollRewards(runSeed: number, floor: number, pools: RewardPools, holds: HoldsScroll): RewardOption[] {
   const rng = rewardRng(runSeed, floor)
-  const spell = newSpell(rng, pools, holds)
+  const spell = newSpell(rng, [...pools.spellScrolls, ...pools.reservedWeapons], holds)
   const potions = potionSplit(rng, pools, rng.int(...REWARD_POTIONS))
   return [...(spell ? [spell] : []), { kind: 'heal' }, potions]
 }
 
-/** Merlin starts a run with his own weapons, none of them a scroll's. */
+/** Merlin starts a run with only his punch, no scroll's weapon. */
 const HOLDS_NO_SCROLL: HoldsScroll = () => false
 
-/** The run's starting kit, given without a pick: a spell, a heal and exactly KIT_POTIONS potions. */
+/** The run's starting kit, given without a pick: an attack spell, a heal and exactly KIT_POTIONS potions. */
 export function startingKit(runSeed: number, pools: RewardPools): RewardOption[] {
   const rng = rewardRng(runSeed, 0)
-  const spell = newSpell(rng, pools, HOLDS_NO_SCROLL)
+  const spell = newSpell(rng, pools.spellScrolls.filter((s) => !NOT_ATTACKS.includes(s.value)), HOLDS_NO_SCROLL)
   return [...(spell ? [spell] : []), { kind: 'heal' }, potionSplit(rng, pools, KIT_POTIONS)]
 }
 

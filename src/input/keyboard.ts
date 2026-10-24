@@ -7,8 +7,8 @@
 // debug cheats K (kill the enemies on screen) and M (one more medikit) reach the sim once per press,
 // in the next snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M), and
 // so does R, the #army key (summon the whole reserve army, or send the army back; the original's C).
-// The weapon keys (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9)
-// once per press; Q opens the weapon palettes (#weaponSelector 12; main.ts takes each press with
+// The weapon keys (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9;
+// remake: or melee weapon, nthSpell) once per press; Q opens the weapon palettes (#weaponSelector 12; main.ts takes each press with
 // takeWeaponSelector), and a weapon picked on them (pickWeapon) reaches the next snapshot. The
 // on-screen touch controls (touch.ts) report through setTouch: the nub moves at any angle while no
 // direction key is held, the blast button counts as Space, except that in mouse mode a press without

@@ -27,7 +27,7 @@ import { frameCanvas } from './render/dom-sprite'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
-import { carryOver, withFullEnergy } from './sim/carry-over'
+import { carryOver, withFullEnergy, withRunStartArsenal } from './sim/carry-over'
 import { countsForRecords, withDifficultyDefs, withDifficultyStart, type Difficulty } from './sim/difficulty'
 import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
 import { collectedScrolls, holdsScroll } from './sim/rewards'
@@ -266,12 +266,16 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   // the run's difficulty, taken from the setting as each run starts: Merlin's energy, his head start, and whether it counts
   let runDifficulty = shell.difficulty()
   const runDefs = () => withDifficultyDefs(defs, runDifficulty)
-  const firstSim = (runSim: number, startPos: Vec, mode: WorldMode) => withDifficultyStart(createSim(world.grid, runDefs(), teams, anims, runSim, startPos, mode), runDifficulty)
   const recordsCount = () => countsForRecords(runDifficulty)
-  let sim = firstSim(seed, world.startPos, worldModeFor(cfg.cameraMode))
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
   let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
   if (run && recordsCount()) shell.recordRunStart()
+  /** A run's first sim of the current world, with the difficulty's head start; a roguelite run's without the starting weapon. */
+  const startSim = (simSeed: number, worldMode: WorldMode): SimState => {
+    const fresh = createSim(world.grid, runDefs(), teams, anims, simSeed, world.startPos, worldMode)
+    return withDifficultyStart(run ? withRunStartArsenal(fresh) : fresh, runDifficulty)
+  }
+  let sim = startSim(seed, worldModeFor(cfg.cameraMode))
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -304,7 +308,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       if (recordsCount()) shell.recordRunStart()
     }
     buildingFloor = false
-    sim = firstSim(runSeed, world.startPos, worldModeFor(scene.cameraMode))
+    sim = startSim(runSeed, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }

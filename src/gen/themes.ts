@@ -347,7 +347,8 @@ const startRewards = (spellScrolls: Weighted<string>[], extras: string[] = []): 
 
 /**
  * Spell scrolls (act_<key>, objType #objScroll) by their objects tileset key symbols
- * (docs/notes/engine-mechanics-spells.md). energyBlast is left out: Merlin starts with it.
+ * (docs/notes/engine-mechanics-spells.md). energyBlast is left out: Merlin starts with it (the
+ * roguelite, where he does not, adds it to its reward pools: src/run/rewards.ts).
  */
 export const SPELL_SCROLLS = [
   'armySummon',
@@ -364,7 +365,7 @@ export const SPELL_SCROLLS = [
 ] as const
 
 /** Owner: any spell can come up on any floor at this weight; the floor's own spells weigh more. */
-const ANY_SPELL_WEIGHT = 1
+export const ANY_SPELL_WEIGHT = 1
 /** Added to a floor's own spell weights (its lists' 1 / 2 / 3 become 4 / 5 / 6). */
 const THEMED_SPELL_BONUS = 3
 
@@ -422,6 +423,7 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   manaFlow: 15,
   walkSpeed: 16,
   medikit: 17,
+  energyBlast: 9, // the roguelite's scroll (src/run/rewards.ts)
   armySummon: 10,
   energyMines: 11,
   energyPulseSpell: 12,
@@ -622,6 +624,7 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   walkSpeed: 44,
   medikit: 45,
   maxikit: 46,
+  energyBlast: 21, // the roguelite's scroll (src/run/rewards.ts)
   armySummon: 22,
   energyMines: 23,
   energyPulseSpell: 24,

@@ -170,3 +170,9 @@ lizards and quadranids are weak units instead, a cocoon replaces the bat tree, a
 midboss is a critter nest (a cocoon and 3 quadranids); the laser volley is themed there.
 Woods of Mourning's ground is the sea-green grass (merlinOpenPassive 28) instead of the dark grass
 (22), so its enemies stand out (owner, 2026-10-25).
+
+Loadout (owner, 2026-10-25): a roguelite run starts with only the punch; the energy blast is a scroll in
+the reward pools (weight 1, `ENERGY_BLAST` in `src/run/rewards.ts`), and the starting kit's spell is
+always an attack (not the heal blast). The sword and energy punch (and the golden machine gun once
+ported) are never start-room scrolls: a floor's end may offer one Merlin lacks in place of the new
+spell, at weight 2 per biome (`RESERVED_WEAPONS`).

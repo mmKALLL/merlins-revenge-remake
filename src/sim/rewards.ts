@@ -2,7 +2,7 @@
 // screen offers no spell he has and the run summary lists the spells collected. The rewards
 // themselves are pickups in the next floor's start room.
 import { SCROLL_OBJ_TYPE } from '../mr-open/mr-pickup'
-import { startingArsenal, weaponOf } from '../mr-open/mr-weapons'
+import { weaponOf } from '../mr-open/mr-weapons'
 import type { SimState } from './state'
 
 /** Whether Merlin holds the weapon a scroll gives (its #character, as collectScroll adds it). */
@@ -11,10 +11,11 @@ export function holdsScroll(s: SimState, scroll: string): boolean {
   return weaponOf(s.arsenal, def?.character ?? scroll) !== undefined
 }
 
-/** The scrolls (actor keys) whose weapons Merlin holds beyond his starting ones, in the order he took them. */
+/**
+ * The scrolls (actor keys) whose weapons Merlin holds, in the order he took them: in a roguelite run
+ * every weapon but his punch (withRunStartArsenal), the energy blast too.
+ */
 export function collectedScrolls(s: SimState): string[] {
-  const player = s.defs['player']
-  const starting = new Set(player ? startingArsenal(player).weapons.map((w) => w.key) : [])
   const scrollOf = new Map<string, string>()
   for (const def of Object.values(s.defs)) {
     const weapon = def.character ?? def.key
@@ -22,6 +23,6 @@ export function collectedScrolls(s: SimState): string[] {
   }
   return s.arsenal.weapons.flatMap((w) => {
     const scroll = scrollOf.get(w.key)
-    return scroll !== undefined && !starting.has(w.key) ? [scroll] : []
+    return scroll !== undefined ? [scroll] : []
   })
 }

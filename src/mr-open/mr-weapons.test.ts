@@ -1,5 +1,5 @@
 // modWeaponManager for Merlin: weapons by symbol in the order added, a new one current at once,
-// selectSpell numbering only the spells.
+// the number keys counting every weapon but the natural attack (remake).
 import { describe, expect, it } from 'vitest'
 import type { AttackDef } from './mr-actor-data'
 import { addWeapon, NO_ARSENAL, nextWeapon, nthSpell } from './mr-weapons'
@@ -22,10 +22,11 @@ describe('weapons', () => {
     expect(again.current).toBe('energyBlast')
   })
 
-  it('selectSpell counts only the spells (animType #magic), in the order collected', () => {
-    expect(nthSpell(held, 1)).toBe('energyBlast')
-    expect(nthSpell(held, 2)).toBe('cBlast')
-    expect(nthSpell(held, 3)).toBeNull()
+  it('the number keys count the spells and melee weapons but not the punch, in the order collected', () => {
+    expect(nthSpell(held, 1, 'punch')).toBe('energyBlast')
+    expect(nthSpell(held, 2, 'punch')).toBe('merlinSword')
+    expect(nthSpell(held, 3, 'punch')).toBe('cBlast')
+    expect(nthSpell(held, 4, 'punch')).toBeNull()
   })
 
   it('the touch weapon button steps through every weapon but the skipped one (the punch) and wraps', () => {

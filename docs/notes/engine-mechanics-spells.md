@@ -727,3 +727,6 @@ Remake decisions (owner, 2026-10-25):
 
 Range is `landingTravel` at Merlin's strength 8 x `rangeFactor`; an exploding projectile lands on
 the aim within it.
+- **Number keys pick melee weapons too (owner, 2026-10-25):** 1-9 pick the n-th weapon Merlin holds
+  other than his natural punch, spells and melee weapons alike, in the order collected (the original's
+  selectSpell counted only #magic weapons). Q's palettes are unchanged.
