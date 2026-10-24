@@ -568,4 +568,4 @@ splash.
 - The scroll art tool also reads original gfx BMP fly frames (the goblin arrow has no cast PNG).
 - **Damage buff back (owner, 2026-10-25):** every volley's `damageMultiplier` x2.5, so each
   projectile hits about 2.5x the enemy's own shot (bombs ~3.75x; tried 2x first).
-
+- **Bombs (owner, 2026-10-25):** 4.5x the enemy bomb, and a fan of 30 degrees at 1-2 bombs up to 80 (+-40).
