@@ -168,7 +168,7 @@ const weaponIconUrl = (key: string): string => `${import.meta.env.BASE_URL}gener
 
 /** The pick screen draws the scrolls and potions this many times their size. */
 const PICK_ART_SCALE = 2
-/** The biome cards' enemy icons are drawn at the largest whole scale that fits this many px on their longer side (at least 1x). */
+/** The biome cards' enemy icons are drawn at the whole scale nearest to this many px on their longer side (at least 1x; the page shrinks any larger). */
 const UNIT_ICON_PX = 48
 /** A unit's icon is the first frame of the first of these strips it has. */
 const UNIT_ICON_STRIPS = ['stand', 'altStand', 'walk']
@@ -295,7 +295,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     const strip = frames && UNIT_ICON_STRIPS.find((s) => frames[s]?.length)
     const tex = strip ? frames[strip]![0] : undefined
     if (!tex) return null
-    return frameCanvas(tex, Math.max(1, Math.floor(UNIT_ICON_PX / Math.max(tex.frame.width, tex.frame.height))))
+    return frameCanvas(tex, Math.max(1, Math.round(UNIT_ICON_PX / Math.max(tex.frame.width, tex.frame.height))))
   }
   const pickArt: PickArt = { sprite: spriteArt, unit: unitArt }
   /**

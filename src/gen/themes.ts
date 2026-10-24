@@ -694,7 +694,6 @@ const MUD_STONES = 9
 /** Remake tile: the cracked grey stone (25) re-coloured to a soft red sandstone (tools/derived-tiles.ts). */
 const RED_SANDSTONE = 37
 const BLUE_COBBLES = 35
-const MOSS = 21
 const DARK_GRASS = 22
 const SWAMP = 23
 const GREY_STONE = 25
@@ -1288,7 +1287,7 @@ export const DEEP_FOREST: FloorTheme = {
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: BIOME_OBJECTS,
-  ground: [w(DARK_GRASS, 20), w(MOSS, 2)],
+  ground: [w(DARK_GRASS)],
   wall: [w(GREEN_PINES, 5), w(EYED_TREE, 1), w(EYED_TREE_B, 1), w(GREEN_TREE, 1)],
   longWall: [w(GREEN_PINES, 4), w(EYED_TREE, 1)],
   materials: [
@@ -1366,7 +1365,7 @@ export const HYDRA_MARSH: FloorTheme = {
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
   objectTiles: BIOME_OBJECTS,
-  ground: [w(SWAMP, 10), w(MOSS, 1)],
+  ground: [w(SWAMP)],
   wall: [w(TALL_REEDS, 3), w(DENSE_REEDS, 2), w(GRASSY_REEDS, 2), w(TANGLED_TREE, 2), w(LEAFY_GREEN_TREE, 1)],
   longWall: [w(TALL_REEDS, 3), w(DENSE_REEDS, 2), w(GRASSY_REEDS, 1)],
   materials: [
