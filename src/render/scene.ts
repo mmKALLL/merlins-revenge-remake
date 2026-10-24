@@ -18,6 +18,7 @@ import { HealthBars, type StandBox } from './health-bars'
 import { MiniMapLayer } from './minimap'
 import { PickupHud, pickupAlpha, pulseWhiteness } from './pickups'
 import { PlayerHealthBar } from './player-health-bar'
+import { VolleyIcons } from './volley-icons'
 import { WeaponSelectorLayer } from './weapon-selector'
 import { PIXEL_TEXT } from './text-options'
 
@@ -129,6 +130,8 @@ export class Scene {
   private actorSprites = new Map<number, Sprite>()
   /** objSpellIcons over charging (and exploding) summon spells, by spell id */
   private spellIcons = new Map<number, Sprite>()
+  /** remake: the projectiles over charging and firing volley spells */
+  private volleyIcons = new VolleyIcons(this.actorLayer, (bullet) => this.frameFor(bullet.name, 'fly', 0))
   private healthBars: HealthBars
   private exitArrows: ExitArrowLayer
   private miniMap: MiniMapLayer
@@ -353,6 +356,7 @@ export class Scene {
       else if (bullet) this.styleBullet(spr, a)
       else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a), this.teamOverlay(s.teams, a.team))
       if (spell) this.syncSpellIcon(s, a, def, spr)
+      if (spell) this.volleyIcons.sync(a, def, this.defs[(a.attack ?? def.attack).bullet ?? ''], spr)
     }
     for (const [id, spr] of this.actorSprites) {
       if (seen.has(id)) continue
@@ -365,6 +369,7 @@ export class Scene {
       icon.destroy()
       this.spellIcons.delete(id)
     }
+    this.volleyIcons.prune(seen)
   }
 
   /**

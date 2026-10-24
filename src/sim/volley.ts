@@ -63,3 +63,20 @@ export function turnAndScale(vel: Vec, deg: number, factor: number): Vec {
   const s = Math.sin(a)
   return { x: (vel.x * c - vel.y * s) * factor, y: (vel.x * s + vel.y * c) * factor }
 }
+
+/** Projectiles one group icon stands for over a charging volley. */
+export const ICON_GROUP = 5
+
+/** The charge icons for `count` projectiles: a group icon per ICON_GROUP, then one per projectile left (7 -> [5, 1, 1]). */
+export function volleyIconGroups(count: number): number[] {
+  const groups = Math.floor(count / ICON_GROUP)
+  return [...Array<number>(groups).fill(ICON_GROUP), ...Array<number>(count - groups * ICON_GROUP).fill(1)]
+}
+
+/** Projectiles a volley spell stands for: what its charge would fire, or once released what is left to fire; 0 for any other spell. */
+export function volleyShotsShown(mode: string, charge: number, v: VolleyDef | null, volley: { total: number; fired: number } | null): number {
+  if (!v) return 0
+  if (mode === 'charge') return volleyShots(charge, v)
+  if (mode === 'volley' && volley) return volley.total - volley.fired
+  return 0
+}
