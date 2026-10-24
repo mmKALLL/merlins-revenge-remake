@@ -47,4 +47,5 @@ cast member as PNG with `regpoints.tsv`); do not commit it wholesale.
     pnpm install
     pnpm assets:convert   # assets/ -> public/generated/ (assets:copy needs the local archive)
     pnpm test && pnpm tsc --noEmit && pnpm build
+    pnpm run deploy       # build, copy to ../studio-esagames-homepage/merlins-revenge-remake, commit, push (deploy:beta: the -beta folder)
     pnpm dev              # http://localhost:3371/?map=test_maps/combat_test (map ids are paths under assets/maps: ?map=works/sam)
