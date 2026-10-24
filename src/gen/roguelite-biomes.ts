@@ -25,8 +25,12 @@ const SEED_RANGE = 2 ** 32
 export const floorSeed = (runSeed: number, floor: number): number =>
   Math.floor(new GenRandom((runSeed ^ Math.imul(floor + 1, FLOOR_SEED_MIX)) >>> 0).next() * SEED_RANGE)
 
+/** The salt of the first-biome draw's seed, apart from every floor's (the first draw of nearby small seeds is alike). */
+const FIRST_BIOME_SALT = 0x85ebca6b
+
 /** The run's first floor: one of floor 1's biomes, at random from the run seed. */
-export const firstBiome = (runSeed: number): FloorTheme => new GenRandom(runSeed).pick(ROGUELITE_FLOORS[0]!)
+export const firstBiome = (runSeed: number): FloorTheme =>
+  new GenRandom(floorSeed((runSeed ^ FIRST_BIOME_SALT) >>> 0, 0)).pick(ROGUELITE_FLOORS[0]!)
 
 /** The map of the run's floor (0 = the first) in the chosen biome, `startPickups` (object keys) in its start room. */
 export function* rogueliteFloorMap(biome: FloorTheme, runSeed: number, floor: number, energyOf: EnergyOf, startPickups: readonly string[]): Steps<MapDefinition> {
