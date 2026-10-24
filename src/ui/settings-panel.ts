@@ -67,17 +67,27 @@ function choiceRow<T>(parent: HTMLElement, label: string, choices: Choice<T>[], 
 
 const ON_OFF: Choice<boolean>[] = [{ value: true, label: 'on' }, { value: false, label: 'off' }]
 
-function volumeRow(parent: HTMLElement, audio: AudioEngine): () => void {
-  const row = el('label', 'setting')
-  const name = el('span', 'setting-name', 'Volume')
+/** A volume slider (0-100) with a mute box; returns its repaint. */
+function volumeRow(parent: HTMLElement, label: string, volume: () => number, setVolume: (v: number) => void, on: () => boolean, setOn: (on: boolean) => void): () => void {
+  const row = el('div', 'setting')
+  const name = el('span', 'setting-name', label)
   const slider = el('input')
   slider.type = 'range'
   slider.min = '0'
   slider.max = '100'
-  slider.addEventListener('input', () => audio.setVolume(Number(slider.value)))
-  row.append(name, slider)
+  slider.setAttribute('aria-label', `${label} volume`)
+  slider.addEventListener('input', () => setVolume(Number(slider.value)))
+  const mute = el('label', 'mute')
+  const box = el('input')
+  box.type = 'checkbox'
+  box.addEventListener('change', () => setOn(!box.checked))
+  mute.append(box, ' mute')
+  row.append(name, slider, mute)
   parent.appendChild(row)
-  return () => { slider.value = String(audio.current.volume) }
+  return () => {
+    slider.value = String(volume())
+    box.checked = !on()
+  }
 }
 
 export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
@@ -104,9 +114,8 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'display', label: 'Display rate', title: 'Draws at every refresh of the display (120 Hz and up on some screens)' },
     ], host.frameRate, host.setFrameRate),
     choiceRow(body, 'Debug info', ON_OFF, host.debugInfo, host.setDebugInfo),
-    choiceRow(body, 'Music', ON_OFF, () => audio.current.music, (on) => audio.setMusic(on)),
-    choiceRow(body, 'Effects', ON_OFF, () => audio.current.effects, (on) => audio.setEffects(on)),
-    volumeRow(body, audio),
+    volumeRow(body, 'Music', () => audio.current.musicVolume, (v) => audio.setMusicVolume(v), () => audio.current.music, (on) => audio.setMusic(on)),
+    volumeRow(body, 'Sound effects', () => audio.current.effectsVolume, (v) => audio.setEffectsVolume(v), () => audio.current.effects, (on) => audio.setEffects(on)),
   ]
   return { root, onShow: () => { for (const r of repaint) r() } }
 }

@@ -159,3 +159,7 @@ room's track again.
   Evil), Woods of Mourning (Deep Forest) keeps Woods of Evil, Remorseless Mountains (Golem Mountain)
   plays the_ultimate_song_thing (was Baroque Rock Techno, which Caves of Fire keeps). final_stand_2
   was the original's credits music (keep it for a credits screen); merl2319 is not used in game.
+- **Volume settings (owner, 2026-10-25):** Settings has a Music and a Sound effects slider (0-100),
+  each with a mute box, instead of the music/effects toggles and one master volume. Stored in
+  `mr-remake.audio` as `musicVolume`/`effectsVolume` with `music`/`effects` (false = muted); an old
+  master volume carries over to both. At 0 or muted the music stops, as turning it off did.

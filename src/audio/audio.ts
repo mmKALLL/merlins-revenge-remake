@@ -1,29 +1,36 @@
 // Web Audio playback for the sim's `sound` and `music` events (docs/plans/2026-09-27-sound-design.md).
 // The sim decides what is heard; this decides how: a 7-voice effects pool that drops new sounds
 // when full (soundMaster.playSound), one looping music bus (soundMaster.playMusic, looping is a
-// remake choice), and the player's music/effects toggles and master volume, kept in localStorage.
+// remake choice), and the player's music and effects volumes with their mute boxes, kept in localStorage.
 import { loadAudioIndex, musicUrl, soundUrl, type AudioIndex } from '../data/loaders'
 import { DEFAULT_VOLUME, hasFreeVoice, MAX_VOLUME } from '../mr-open/mr-sound'
 import type { SimEvent } from '../sim/state'
 
 export interface AudioSettings {
-  music: boolean
-  effects: boolean
-  volume: number // master, 0-100
+  music: boolean // false = the music is muted
+  effects: boolean // false = the effects are muted
+  musicVolume: number // 0-100
+  effectsVolume: number // 0-100
 }
 
 const SETTINGS_KEY = 'mr-remake.audio'
-/** The master volume setting runs 0-100 (percent). */
-const MASTER_VOLUME_MAX = 100
+/** The volume settings run 0-100 (percent). */
+const VOLUME_SETTING_MAX = 100
 /** Key or pointer presses that resume a suspended AudioContext (browsers need a user gesture). */
 const UNLOCK_EVENTS = ['keydown', 'pointerdown'] as const
 /** Music change on entering a room: fade the old track out, pause, then start the new one (user request). */
 const MUSIC_FADE_S = 1
 const MUSIC_GAP_S = 0.5
 
-const DEFAULT_SETTINGS: AudioSettings = { music: true, effects: true, volume: 70 }
+const DEFAULT_VOLUME_SETTING = 70
+const DEFAULT_SETTINGS: AudioSettings = { music: true, effects: true, musicVolume: DEFAULT_VOLUME_SETTING, effectsVolume: DEFAULT_VOLUME_SETTING }
 
-const clampMasterVolume = (v: number): number => Math.max(0, Math.min(MASTER_VOLUME_MAX, v))
+const clampVolumeSetting = (v: number): number => Math.max(0, Math.min(VOLUME_SETTING_MAX, v))
+/** A stored volume: the field, else the old single master volume, else the default. */
+const storedVolume = (o: Record<string, unknown>, key: string): number => {
+  const v = typeof o[key] === 'number' ? o[key] : o['volume']
+  return typeof v === 'number' ? clampVolumeSetting(v) : DEFAULT_VOLUME_SETTING
+}
 
 /** Stops a source, ignoring one that has already stopped. */
 function stopQuietly(src: AudioBufferSourceNode, when?: number): void {
@@ -42,7 +49,8 @@ function loadAudioSettings(): AudioSettings {
       return {
         music: typeof o['music'] === 'boolean' ? o['music'] : DEFAULT_SETTINGS.music,
         effects: typeof o['effects'] === 'boolean' ? o['effects'] : DEFAULT_SETTINGS.effects,
-        volume: typeof o['volume'] === 'number' ? clampMasterVolume(o['volume']) : DEFAULT_SETTINGS.volume,
+        musicVolume: storedVolume(o, 'musicVolume'),
+        effectsVolume: storedVolume(o, 'effectsVolume'),
       }
     }
   } catch {
@@ -93,7 +101,6 @@ export class AudioEngine {
     this.effectsBus = ctx.createGain()
     this.effectsBus.connect(this.master)
     this.musicBus = ctx.createGain()
-    this.musicBus.gain.value = DEFAULT_VOLUME / MAX_VOLUME // playMusic's default volume
     this.musicBus.connect(this.master)
     this.applyVolume()
   }
@@ -161,7 +168,7 @@ export class AudioEngine {
   playSound(name: string, volume: number): void {
     const ctx = this.ctx
     // effects heard only while running: sounds queued on a suspended context would all burst out on resume
-    if (!ctx || !this.effectsBus || !this.settings.effects || ctx.state !== 'running') return
+    if (!ctx || !this.effectsBus || !this.effectsAudible() || ctx.state !== 'running') return
     const buf = this.effects.get(name)
     if (!buf) {
       if (this.index && !this.index.sounds.includes(name)) this.warnOnce(`sound "${name}" has no file`)
@@ -200,20 +207,31 @@ export class AudioEngine {
     this.stopMusic()
   }
 
+  /** Unmutes (true) or mutes the music: muted stops the bus; unmuted resumes the room's track from the start. */
   setMusic(on: boolean): void {
     this.update({ music: on })
-    this.syncMusic() // off stops the bus; on resumes the current room's track from the start
+    this.syncMusic()
   }
 
   setEffects(on: boolean): void {
     this.update({ effects: on })
-    if (!on) this.stopEffects()
+    if (!this.effectsAudible()) this.stopEffects()
   }
 
-  setVolume(volume: number): void {
-    this.update({ volume: clampMasterVolume(volume) })
+  setMusicVolume(volume: number): void {
+    this.update({ musicVolume: clampVolumeSetting(volume) })
     this.applyVolume()
+    this.syncMusic() // at 0 the music stops as when muted; above it, it resumes
   }
+
+  setEffectsVolume(volume: number): void {
+    this.update({ effectsVolume: clampVolumeSetting(volume) })
+    this.applyVolume()
+    if (!this.effectsAudible()) this.stopEffects()
+  }
+
+  private musicAudible = (): boolean => this.settings.music && this.settings.musicVolume > 0
+  private effectsAudible = (): boolean => this.settings.effects && this.settings.effectsVolume > 0
 
   private update(patch: Partial<AudioSettings>): void {
     this.settings = { ...this.settings, ...patch }
@@ -221,7 +239,9 @@ export class AudioEngine {
   }
 
   private applyVolume(): void {
-    if (this.master) this.master.gain.value = this.settings.volume / MASTER_VOLUME_MAX
+    // the music bus also carries playMusic's default volume
+    if (this.musicBus) this.musicBus.gain.value = (DEFAULT_VOLUME / MAX_VOLUME) * (this.settings.musicVolume / VOLUME_SETTING_MAX)
+    if (this.effectsBus) this.effectsBus.gain.value = this.settings.effectsVolume / VOLUME_SETTING_MAX
   }
 
   private stopEffects(): void {
@@ -232,7 +252,7 @@ export class AudioEngine {
   private syncMusic(): void {
     const ctx = this.ctx
     if (!ctx || !this.musicBus) return
-    const desired = this.settings.music ? this.wanted : null
+    const desired = this.musicAudible() ? this.wanted : null
     if (desired !== null && this.pending === desired) return
     if (this.playing !== null && this.playing.track === desired) {
       this.cancelPending() // back to the playing track before another finished loading: keep it
@@ -240,7 +260,7 @@ export class AudioEngine {
     }
     // A room change fades the old track out, then a short silence, then the new one (remake choice;
     // the engine cuts over at once). Turning music off in the controls stops it at once.
-    const fade = this.settings.music && this.playing !== null
+    const fade = this.musicAudible() && this.playing !== null
     let startAt = ctx.currentTime
     if (fade) {
       this.fadeOutMusic()
