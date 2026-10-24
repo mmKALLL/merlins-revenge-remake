@@ -416,6 +416,7 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   swordOrc: 68,
   orcHouse: 69,
   musicWoodsOfEvil: 78,
+  musicBaroqueRock: 79,
   manaCapacity: 13,
   manaBurst: 14,
   manaFlow: 15,
@@ -526,7 +527,7 @@ export const GOBLIN_FOREST: FloorTheme = {
   edges: { extraOpenChance: 0.75, sideOpening: [3, 5], endOpening: [4, 8], openingDepth: 2 },
   units: {
     player: 'player',
-    startMusic: 'musicWoodsOfEvil',
+    startMusic: 'musicBaroqueRock',
     roomPlan: GOBLIN_FOREST_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
@@ -1501,7 +1502,7 @@ export const GOLEM_MOUNTAIN: FloorTheme = {
   edges: { extraOpenChance: 0.7, sideOpening: [3, 5], endOpening: [4, 7], openingDepth: 2 },
   units: {
     player: 'player',
-    startMusic: 'musicBaroqueRockTechno',
+    startMusic: 'musicUltimateSongThing',
     roomPlan: biomePlan(
       [
         { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 2 }, faction: GOLEMS },

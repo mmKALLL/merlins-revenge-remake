@@ -155,3 +155,7 @@ room's track again.
   (`assets/remake-actors/musicFinalStand2`, `musicMerl2319`, `musicUltimateSongThing`; object tiles in
   `src/gen/remake-object-tiles.ts`) let maps use them; `?map=test_maps/music_test` has a room for each,
   after the original five (owner choosing a more upbeat track for East Woods).
+- **Floor music (owner, 2026-10-25):** East Woods (Goblin Forest) plays Baroque Rock (was Woods of
+  Evil), Woods of Mourning (Deep Forest) keeps Woods of Evil, Remorseless Mountains (Golem Mountain)
+  plays the_ultimate_song_thing (was Baroque Rock Techno, which Caves of Fire keeps). final_stand_2
+  was the original's credits music (keep it for a credits screen); merl2319 is not used in game.
