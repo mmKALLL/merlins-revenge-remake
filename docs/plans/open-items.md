@@ -16,7 +16,7 @@ Work top down; the sections below hold the details.
   - Scoring mode (done 2026-10-25, in review; see Awaiting the owner's review).
   - Golden machine gun (see To do below).
   - The eight friendly wizards, as allies and as enemies.
-  - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
+  - **A proper roguelite mode** (all five slices done, in review), selectable from the main menu or `randomly_generated/tower-roguelite`:
     - Slice 1 (carry-over and floor flow) done 2026-10-24: floors one at a time, the exit room in
       yellow, Merlin's record carried over; plan `docs/plans/2026-10-25-roguelite-mode.md`.
     - Slice 2 (the pick screen and the rewards) done 2026-10-24: at each floor end one screen picks
@@ -38,8 +38,12 @@ Work top down; the sections below hold the details.
       the original painted ones and the biomes are named after them: East Woods, Woods of
       Mourning, Dead Woods, West Jungle, Caves of Fire, Remorseless Mountains, Black Fortress,
       Golden Palace. Awaits the owner's review.
-    - **Statistics:** win ratio, floors reached and win streak, kept in localStorage. Abandoned runs
-      reset the streak but don't count towards the ratio or distribution.
+    - Slice 5 (run summary, statistics, main menu entry) done 2026-10-24: a death or the win (after
+      the original jingle, fade and cut scene) shows a summary (floors reached, score, time, spells
+      collected, biomes) with the stats (runs, wins and ratio, furthest floor per run as a bar
+      chart, win streak and best), and New run / Main menu, locked for 0.8 s. The title screen has
+      a Roguelite button with the stats. Abandoned runs reset the streak only. The whole roguelite
+      card awaits the owner's review.
     - Hades-like gameplay ideas are welcome.
 - **Backlog:** level ups, save and load, check Ochre's pulse aim.
 - **Low priority:** the energy -> health rename, random midbosses and bosses, Steve's lock-up, cutscenes,
@@ -110,6 +114,11 @@ Work top down; the sections below hold the details.
 
 ## Awaiting the owner's review
 
+- Roguelite mode, all five slices (`docs/plans/2026-10-25-roguelite-mode.md`; the engine notes'
+  map-complete §4): four floors with carry-over, the pick screen, rewards as pickups, the new
+  biomes and their signs, and the run summary with statistics and the title's Roguelite entry. To
+  confirm: the win keeps the original jingle, fade and cut scene before the summary; the summary's
+  layout; the stats line under the Roguelite button.
 - Scoring (`docs/notes/engine-mechanics-hud.md` §5): each room counts down from 9999 over 80 s of
   Merlin's time in it while uncleared and banks what is left when it clears; the map's total and the
   room's green `+1234` sit at the right end of the strip below the room; the map selector shows each

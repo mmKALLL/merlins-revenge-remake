@@ -367,6 +367,18 @@ start rooms, room and follow cameras, 1280x720 and 390x844). Deviations from the
 
 ## Slice 5: run summary, statistics and the main menu entry
 
+**Done (2026-10-24).** Tasks 13-14 implemented and checked in muted headless Chrome (a death
+summary on floor 2, a win summary after floor 4, New run by Enter, Main menu, the title's
+Roguelite entry with stats; 1280x720 and 390x844, no horizontal scroll). Deviations from the steps below:
+- The stats functions are `withRunStarted` / `withRunEnded` (the run's own `startRun` / `endRun`
+  keep their names); `winRatio` too. A win is counted when the end sequence starts, not when the
+  summary shows, so quitting during the cut scene keeps it.
+- The win keeps the original end (the jingle, the fade, the cut scene) before the summary, which
+  replaces only the play-again prompt. New run always draws a fresh seed.
+- The summary also lists the biomes visited and the map's best score; spells collected come from
+  the arsenal (`collectedScrolls`), so a scroll found on a floor counts as well as a reward.
+- The app screen is `summary` (actions `runEnded`, `newRun`); like the pick, no menu opens from it.
+
 ### Task 13: statistics (pure, with storage)
 
 **Files:** create `src/data/roguelite-stats.ts`; test `src/data/roguelite-stats.test.ts`.

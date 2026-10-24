@@ -134,9 +134,8 @@ has no such mode; these are remake decisions.
   score stays void.
 - **Floor flow** (`src/run/run.ts`, `src/main.ts`). Each floor's map is built on the tower tilesets
   from the run seed and the floor number (`floorSeed`), so the page's tilesets never change.
-  Leaving floor 4 wins the run (the map-complete end sequence for now); a death ends the run and
-  goes back to the title screen instead of restarting. Restart from the menu starts a new run on
-  floor 1.
+  Leaving floor 4 wins the run; a death ends it (no restart of the floor). Both end on the run
+  summary (below). Restart from the menu starts a new run on floor 1.
 - **Rewards** (`src/run/rewards.ts`; `holdsScroll` in `src/sim/rewards.ts`). Rolled from the run seed and the floor
   (`floorSeed`, salted apart from the layout): a new spell by the floor's start-scroll weights
   (`startRewards.spellScrolls`) less the scrolls Merlin holds (by the scroll's `#character`, as
@@ -206,3 +205,25 @@ has no such mode; these are remake decisions.
   out first), nearest 2 rows above Merlin, and only where every other tile of the room stays
   reachable from him; `MapDefinition.locationSign` records where. A start room with no such spot
   fails the floor attempt (a retry from the next seed, as for an unconnected floor).
+- **Run end** (`src/ui/run-summary.ts`, the `summary` app screen). A death shows the summary at
+  once. The win plays what a completed map plays: the jingle (`MAP_COMPLETE_EVENTS`: the
+  `mapComplete` event, which silences the music, and gGameCompleteSound), the fade and the end cut
+  scene; the summary then replaces the original's "Map complete, press Enter" prompt (the screen
+  stays black under it). Normal maps keep the original end. The summary lists the floors reached,
+  the score (the run's carried total, with the map's best in that world mode; none when the camera
+  was switched), the time (`runTicks` as m:ss, `runTimeText`), the spells collected (the scrolls
+  of the weapons Merlin holds beyond his starting ones, `collectedScrolls`, drawn as on the pick
+  screen) and the biomes visited by their sign names, then the statistics. New run and Main menu
+  take no press for `PICK_LOCK_MS` after it opens (dimmed until then), so a key held from play
+  skips nothing; no menu or Esc leaves it. New run always draws a fresh seed (whatever the Random
+  maps setting); Main menu goes to the title. The best score keeps recording per tick for the
+  roguelite map id, so a run's total counts as before.
+- **Statistics** (`src/data/roguelite-stats.ts`, localStorage `mr-remake.rogueliteStats`): runs,
+  wins (the win ratio), the furthest floor of each finished run, the current and best win streak.
+  A run's start sets `inProgress`; its end (counted as the win starts its end sequence, so a quit
+  during it keeps the win) counts the run on its floor, a win extends the streak and a death
+  resets it. A run left unfinished (Restart, Quit to title, a reload or the page closed) is found
+  at the next run's start: it resets the streak and counts nowhere else. Blocked storage keeps the
+  statistics for the page only. They show on the summary (a line and a bar chart per floor) and
+  under the title screen's Roguelite button, which starts a run of
+  `randomly_generated/tower-roguelite` in a fresh page (a fresh seed).
