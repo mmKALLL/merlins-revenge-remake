@@ -10,6 +10,7 @@ import { explode } from '../mr-open/mr-spell'
 import { chargeVolume } from '../mr-open/mr-sound'
 import { resolveHit } from '../mr-open/mr-take-hit'
 import type { TeamDef } from '../mr-open/mr-team-data'
+import { addWeapon } from '../mr-open/mr-weapons'
 import { createActor, playerOf } from './actors'
 import { NO_INPUT, type ActorState, type AnimationSet, type InputSnapshot, type SimState } from './state'
 import { createSim, stepSim } from './tick'
@@ -261,6 +262,24 @@ describe('energy blast (combat notes §5)', () => {
     }
     expect(releasedAt('shootFarthest')).toEqual(far)
     expect(releasedAt('shootNearest')).toEqual(near)
+  })
+
+  it('a heal blast fired by a Space mode goes to the nearest ally, else to Merlin himself', () => {
+    const merlinPos = { x: 100, y: 144 }
+    const allyPos = { x: 250, y: 200 }
+    const s0 = createSim(grid(openMap([{ x: 6, y: 5, tile: WARRIOR }, { x: 10, y: 6, tile: WARRIOR }])), defs, teams, anims, 1, merlinPos)
+    const player = s0.actors.find((x) => x.id === s0.playerId)!
+    const healer = { ...s0, arsenal: addWeapon(s0.arsenal, 'healBlast', s0.defs['healBlast']!.attack) }
+    const [enemy, friend] = s0.actors.filter((x) => x.id !== s0.playerId).map((x) => x.id)
+    const place = (withAlly: boolean) => ({
+      ...healer,
+      actors: healer.actors
+        .filter((x) => withAlly || x.id !== friend)
+        .map((x) => (x.id === enemy ? { ...x, ...dummy, pos: { x: 160, y: 144 } } : x.id === friend ? { ...x, ...dummy, team: player.team, pos: allyPos, prevPos: allyPos } : x)),
+    })
+    const releasedAt = (s: SimState) => stepSim(run(s, 3, { ...NO_INPUT, shootNearest: true }), NO_INPUT).actors.find((x) => x.def === 'spell')!.targetPoint
+    expect(releasedAt(place(true))).toEqual(allyPos)
+    expect(releasedAt(place(false))).toEqual(merlinPos)
   })
 
   it('starts a new charge while the released spell still flies (releaseSpell clears pCurrentSpell)', () => {

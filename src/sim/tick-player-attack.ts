@@ -9,7 +9,7 @@ import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isUnit, playerStatsOf, spriteRectFor } from './actors'
 import { onFreshFrame } from './anim'
-import { aimPoint, chargeKindFor, isHeld } from './player-aim'
+import { aimPoint, chargeKindFor, isHeld, spellAimPoint } from './player-aim'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip, type InputSnapshot } from './state'
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { applyPayload, withOwnerDamage } from './tick-combat'
@@ -59,13 +59,14 @@ function releaseSpell(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, 
 }
 
 /**
- * Where the released spell flies (aimPoint). Remake: an army summon charged short of its first
+ * Where the released spell flies (spellAimPoint). Remake: an army summon charged short of its first
  * stage, a blank that sends the allies it hits home, flies at Merlin's nearest ally in sight
  * instead, so a weak tap sends one ally back into the reserve.
  */
 function releaseAim(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): Vec {
-  const ally = sendsAlliesHome(spell.charge, spell.attack ?? def.attack) ? nearestAllyOnScreen(t, p, view) : undefined
-  return ally ? { ...ally.pos } : aimPoint(t, p, input, p.ai.chargeKind, view)
+  const atk = spell.attack ?? def.attack
+  const ally = sendsAlliesHome(spell.charge, atk) ? nearestAllyOnScreen(t, p, view) : undefined
+  return ally ? { ...ally.pos } : spellAimPoint(t, p, input, p.ai.chargeKind, view, atk)
 }
 
 function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): void {

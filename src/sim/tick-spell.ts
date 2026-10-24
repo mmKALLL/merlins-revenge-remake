@@ -16,7 +16,7 @@ import {
 } from '../mr-open/mr-spell'
 import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
-import { aimPoint } from './player-aim'
+import { spellAimPoint } from './player-aim'
 import { nextRandom, randomInt, roughly, spreadVec } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
@@ -217,7 +217,7 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
 function ownerAim(t: Tick, spell: ActorState, input: InputSnapshot, view: Size): Vec | null {
   const owner = spell.ownerId === null ? undefined : actorIn(t, spell.ownerId)
   if (!owner || !isAlive(owner)) return null
-  if (owner.id === t.s.playerId) return aimPoint(t, owner, input, spell.ai.chargeKind, view)
+  if (owner.id === t.s.playerId) return spellAimPoint(t, owner, input, spell.ai.chargeKind, view, spell.attack ?? defOf(t.s, owner).attack)
   const target = owner.ai.targetId === null ? undefined : actorIn(t, owner.ai.targetId)
   return target ? { ...target.pos } : null
 }

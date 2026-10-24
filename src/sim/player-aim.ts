@@ -1,7 +1,9 @@
 // Where Merlin aims (objAiPlayer.getTargetLoc: the mouse), with the remake's Space modes: the
-// nearest hostile or the farthest hostile.
+// nearest hostile or the farthest hostile (a healing spell: the nearest ally, else Merlin).
+import type { AttackDef } from '../mr-open/mr-actor-data'
 import type { Rect, Vec } from '../mr-open/mr-geometry'
-import { hatedTeams, type Targetable } from '../mr-open/mr-targeting'
+import { friendlyTeams, hatedTeams, type Targetable } from '../mr-open/mr-targeting'
+import { defOf, isAlive, isCharacter } from './actors'
 import type { ActorState, ChargeKind, InputSnapshot } from './state'
 import { actorIn, sleeperIn, type Tick } from './tick-context'
 import { nearestHostileId, targetables } from './tick-ai'
@@ -35,6 +37,38 @@ export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: Cha
   if (kind === null || kind === 'mouse') return mouse
   const target = kind === 'farthest' ? farthestHostileOnScreen(t, p, view) : nearestHostileOnScreen(t, p, view)
   return target ? { ...target.pos } : mouse
+}
+
+/** A spell whose impact heals (the heal blast: #takeHeal). */
+const heals = (atk: AttackDef): boolean => atk.payloadFunction.includes('takeHeal')
+
+/**
+ * Remake (owner request): where a spell of Merlin's flies. A healing spell fired by a Space mode
+ * (nearest or farthest) goes to the nearest ally he can see, else to Merlin himself; the rest, and
+ * every spell aimed by the mouse, as aimPoint.
+ */
+export function spellAimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null, view: Size, atk: AttackDef): Vec {
+  if (kind === null || kind === 'mouse' || !heals(atk)) return aimPoint(t, p, input, kind, view)
+  const ally = nearestFriendOnScreen(t, p, view, atk)
+  return { ...(ally ?? p).pos }
+}
+
+/** The nearest living friendly character Merlin can see (not himself) of a role `atk` hits; undefined for none. */
+function nearestFriendOnScreen(t: Tick, p: ActorState, view: Size, atk: AttackDef): ActorState | undefined {
+  const sight = sightOf(t, p, view)
+  const teams = friendlyTeams(p.team, t.s.teams)
+  let nearest: ActorState | undefined
+  let nearestD = Infinity
+  for (const a of t.actors) {
+    if (a.id === p.id || t.removed.has(a.id) || !teams.includes(a.team) || !isCharacter(t.s, a) || !isAlive(a)) continue
+    if (!atk.hits.includes(defOf(t.s, a).teamRole) || (sight && !insideRect(a.pos, sight))) continue
+    const d = (a.pos.x - p.pos.x) ** 2 + (a.pos.y - p.pos.y) ** 2
+    if (d < nearestD) {
+      nearestD = d
+      nearest = a
+    }
+  }
+  return nearest
 }
 
 /** What Merlin can see: the play view in a continuous world, null (the whole room) in rooms. */
