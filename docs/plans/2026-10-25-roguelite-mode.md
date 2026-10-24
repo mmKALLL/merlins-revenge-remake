@@ -239,6 +239,17 @@ it is green.
 
 ## Slice 2: the pick screen and the rewards
 
+**Done (2026-10-24).** Tasks 7-9 implemented and checked in muted headless Chrome (the kit at the
+run start, a keyboard pick and a click pick, the lock, 1280x720, 844x390 and 390x844, and a
+two-biome floor with a temporary table). Deviations from the steps below:
+- A potions reward is `{ character, count }[]` (one entry per type), not a list of keys.
+- `RewardOption` lives in `src/sim/rewards.ts` (the sim does not import `src/run`); `rollRewards`
+  takes `rewardPools(plan.options)` (the floor's biomes' weights added up, since the rewards show
+  before the biome is picked) and a `holdsScroll` test.
+- The heal is a maxikit then a medikit (`medikitCollected(null)`, then `(#medikit)`).
+- `FloorTheme.foes` (a few words on its enemies) is new, for the biome cards.
+- The pick lock is `pickUnlocked` in `src/run/pick.ts`; the app screen is `picking` (no menu).
+
 ### Task 7: reward rolls (pure)
 
 **Files:** create `src/run/rewards.ts`; test `src/run/rewards.test.ts`.

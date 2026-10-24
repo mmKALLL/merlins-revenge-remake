@@ -19,11 +19,12 @@ Work top down; the sections below hold the details.
   - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
     - Slice 1 (carry-over and floor flow) done 2026-10-24: floors one at a time, the exit room in
       yellow, Merlin's record carried over; plan `docs/plans/2026-10-25-roguelite-mode.md`.
-    - **Floor rewards:** at the very start and at each floor start, the player picks one of three:
-      a new random spell; a full heal plus one medikit; or 4-5 random potions split randomly
-      between two types. Keyboard or touch/click, each option previewing its contents, selectable
-      only after 0.8 s to prevent misclicks. A wizard ally in lieu of a spell is an idea; run any
-      other reward types past the owner.
+    - Slice 2 (the pick screen and the rewards) done 2026-10-24: at each floor end one screen picks
+      the next biome and one of three rewards (a new spell, a full heal plus a medikit, or 4-5
+      potions of two types), locked for 0.8 s; the run starts with the full kit (a spell, the heal,
+      5 potions of two types). A wizard ally in lieu of a spell is an idea; run any other reward
+      types past the owner. Owner to decide: whether roguelite floors still place the usual
+      start-room pickups (3 potions, a medikit and a scroll) on top of the rewards.
     - **Alternative biomes:** 2-3 per floor with different enemy groups, e.g. deep forest; cave or
       hydra marsh; fortress or golem mountain; golden palace.
     - **Location sign:** the place's name in the entry room, not blocking exits.

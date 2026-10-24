@@ -65,7 +65,6 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
 
   let openedAt = 0
   let unlockTimer: number | undefined
-  let picked: { biome: number | null; reward: number | null } = { biome: null, reward: null }
   let cards: HTMLButtonElement[] = []
 
   const setLocked = (locked: boolean) => {
@@ -78,7 +77,7 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
     heading.textContent = `On to floor ${offer.floorNumber}`
     const choosesBiome = offer.biomes.length > 1
     hint.textContent = choosesBiome ? 'Pick the next floor and a reward.' : 'Pick a reward.'
-    picked = { biome: choosesBiome ? null : 0, reward: null }
+    let picked: { biome: number | null; reward: number | null } = { biome: choosesBiome ? null : 0, reward: null }
     let done = false
     let numberKey = 0
     const pick = (kind: 'biome' | 'reward', index: number, card: HTMLButtonElement) => {
