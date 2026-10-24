@@ -62,6 +62,16 @@
   "skeletonGiant": {
     "energy": 160
   },
+  "lizard": {
+    "energy": 70,
+    "frictionReel": {
+      "x": 20,
+      "y": 20
+    }
+  },
+  "plant": {
+    "minHurtboxPx": 12
+  },
   "hydra1": {
     "energy": 300,
     "maxEnergy": 900

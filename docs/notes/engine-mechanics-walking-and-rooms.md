@@ -288,8 +288,11 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   (F mid-charge only switches the aim: the charge goes on under the new input, `heldChargeKind`,
   and releases at the new mode's target; owner, 2026-10-25) only consider hostile units whose position lies inside the play view the follow camera shows
   (`viewRect`, `src/sim/view.ts`: the renderer's `cameraOrigin` around Merlin's position, clamped to
-  the map, with the view size from `SimConfig.view`, 576x288). With none on screen the shot flies
-  straight ahead, as with no hostile at all. In rooms mode the room is the view and nothing changes.
+  the map, with the view size from `SimConfig.view`, 576x288). With none on screen, or no hostile at
+  all, the shot flies 100 px straight ahead (`AHEAD_PX`). In rooms mode the room is the view and
+  nothing changes. Until 2026-10-25 that fallback was the mouse whenever its position was known
+  (always, with a mouse on the page), so with the last hostile off screen or dead a Space shot went
+  to the cursor; owner: the cursor is never a target of the nearest and farthest modes.
 - **Nav mode** is on while no awake, living hostile unit is within `navModeClearRadius` (256 px
   sideways, 192 px vertically) of Merlin, re-evaluated every tick.
 - The four distances and times and `activationVerticalScale` are remake fields of the player's ActorDef (`src/mr-open/mr-actor-data.ts`),
