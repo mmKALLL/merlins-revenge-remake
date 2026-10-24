@@ -176,4 +176,4 @@ has no such mode; these are remake decisions.
   is solid, so it stands on open or decorated tiles 1 tile off the room's edges, in no opening's
   column or row band, under no placement, nearest 2 rows above Merlin, and only where every other
   tile of the room stays reachable from him. A start room with no such spot fails the floor attempt
-  (a retry from the next seed, as for an unconnected floor; about 1 floor in 12).
+  (a retry from the next seed, as for an unconnected floor; about 1 start room in 15).

@@ -147,7 +147,7 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
     const units = placeUnits(rng, theme, room, shape, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
     placements.push(...units)
     const def = roomDefinition(rng, theme, room, shape, units)
-    if (sameVec(room, start)) {
+    if (sameVec(room, start) && (options.safeArrivalTiles !== undefined || options.locationSign !== undefined)) {
       const tile = arrivalTile(room, options, units.find((p) => p.key === theme.units.player)?.tile)
       arrival = worldTileOf(room, tile)
       if (options.locationSign !== undefined) locationSign = standSign(theme, room, def, shape, roomEdges, units, tile, options.locationSign)
