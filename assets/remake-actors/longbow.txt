@@ -1,0 +1,38 @@
+[#name: "act_longbow", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #scArcherArrow,
+#chargeColour: rgb(190,60,60),
+#chargeSize: 0.625,
+#chargeSpeed: 0.2667,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.2858,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #longbow,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "goblin_fire",
+#volume: 100,
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 2.5, #damageMultiplier: 0.94, #spread: #even, #spreadMinDeg: 4, #spreadMaxDeg: 8, #staggerTicks: 2, #speedJitter: 0]
+],
+#character: #longbow,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

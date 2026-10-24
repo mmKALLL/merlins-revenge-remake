@@ -25,6 +25,20 @@ export const VOLLEY_SCROLL_ART: readonly VolleyScrollArt[] = [
   { key: 'pinStorm', name: 'Pin Storm', projectile: 'smokePin', colour: { r: 140, g: 200, b: 110 } },
   { key: 'lavaLob', name: 'Lava Lob', projectile: 'flamingRock', colour: { r: 240, g: 110, b: 60 } },
   { key: 'needleSpray', name: 'Needle Spray', projectile: 'needle', colour: { r: 160, g: 225, b: 150 } },
+  // the second batch
+  { key: 'longbow', name: 'Longbow', projectile: 'scArcherArrow', colour: { r: 190, g: 60, b: 60 } },
+  { key: 'dragonFire', name: 'Dragon Fire', projectile: 'fireBall', colour: { r: 250, g: 150, b: 40 } },
+  { key: 'boulderLob', name: 'Boulder Lob', projectile: 'boulder', colour: { r: 160, g: 140, b: 110 } },
+  { key: 'darkRockBurst', name: 'Dark Rock', projectile: 'darkRock', colour: { r: 110, g: 90, b: 130 } },
+  { key: 'poisonSmoke', name: 'Poison Smoke', projectile: 'smoke', colour: { r: 180, g: 170, b: 200 } },
+  { key: 'acidSplash', name: 'Acid Splash', projectile: 'acid', colour: { r: 190, g: 230, b: 60 } },
+  { key: 'lightningFan', name: 'Lightning', projectile: 'lightning', colour: { r: 120, g: 190, b: 250 } },
+  { key: 'bunnyLob', name: 'Bunny Lob', projectile: 'fangBunnyBabyBullet', colour: { r: 240, g: 150, b: 200 } },
+  { key: 'skullToss', name: 'Skull Toss', projectile: 'skeletonHead', colour: { r: 225, g: 220, b: 200 } },
+  { key: 'frostBurst', name: 'Frost Burst', projectile: 'freezeBlast', colour: { r: 150, g: 220, b: 240 } },
+  { key: 'iceBoulderLob', name: 'Ice Boulder', projectile: 'iceBoulder', colour: { r: 110, g: 170, b: 210 } },
+  { key: 'chillFlame', name: 'Blue Flame', projectile: 'blueFlame', colour: { r: 80, g: 120, b: 250 } },
+  { key: 'laserVolley', name: 'Laser', projectile: 'laser', colour: { r: 250, g: 80, b: 120 } },
 ]
 
 /** The plain scroll every volley scroll is recoloured from, and the icon whose disc is recoloured. */
@@ -177,7 +191,9 @@ const x7 = (rows: string[]): string[] => ['', '', '', ...rows] // lower case: x-
 const GLYPHS: Record<string, string[]> = {
   A: ['.####.', '##..##', '##..##', '##..##', '##..##', '######', '##..##', '##..##', '##..##', '##..##'],
   B: ['#####.', '##..##', '##..##', '##..##', '#####.', '##..##', '##..##', '##..##', '##..##', '#####.'],
+  D: ['#####.', '##..##', '##..##', '##..##', '##..##', '##..##', '##..##', '##..##', '##..##', '#####.'],
   F: ['######', '##....', '##....', '##....', '#####.', '##....', '##....', '##....', '##....', '##....'],
+  I: ['######', '..##..', '..##..', '..##..', '..##..', '..##..', '..##..', '..##..', '..##..', '######'],
   L: ['##....', '##....', '##....', '##....', '##....', '##....', '##....', '##....', '##....', '######'],
   N: ['##...##', '###..##', '###..##', '##.#.##', '##.#.##', '##.#.##', '##..###', '##..###', '##...##', '##...##'],
   P: ['#####.', '##..##', '##..##', '##..##', '#####.', '##....', '##....', '##....', '##....', '##....'],
@@ -187,8 +203,10 @@ const GLYPHS: Record<string, string[]> = {
   V: ['##....##', '##....##', '##....##', '##....##', '##....##', '##....##', '.##..##.', '.##..##.', '..####..', '...##...'],
   a: x7(['.####.', '....##', '.#####', '##..##', '##..##', '##..##', '.#####']),
   b: ['##....', '##....', '##....', '#####.', '##..##', '##..##', '##..##', '##..##', '##..##', '#####.'],
+  c: x7(['.####.', '##..##', '##....', '##....', '##....', '##..##', '.####.']),
   d: ['....##', '....##', '....##', '.#####', '##..##', '##..##', '##..##', '##..##', '##..##', '.#####'],
   e: x7(['.####.', '##..##', '##..##', '######', '##....', '##..##', '.####.']),
+  g: x7(['.#####', '##..##', '##..##', '##..##', '##..##', '##..##', '.#####', '....##', '.####.']),
   h: ['##....', '##....', '##....', '#####.', '##..##', '##..##', '##..##', '##..##', '##..##', '##..##'],
   i: ['', '##', '', '##', '##', '##', '##', '##', '##', '##'],
   k: ['##....', '##....', '##....', '##..##', '##.##.', '####..', '###...', '####..', '##.##.', '##..##'],
@@ -260,12 +278,12 @@ export function writeVolleyScrollArt(assets: string): string[] {
 }
 
 /**
- * The projectile's first fly frame (anm_<p>_fly_<delay>_01): a cast-dump PNG, or an original gfx BMP
- * (white is transparent) such as the goblin arrow's.
+ * The projectile's first fly frame (anm_<p>_fly_<delay>_01, any case: the ice boulder's is anm_iceboulder): a
+ * cast-dump PNG, or an original gfx BMP (white is transparent) such as the goblin arrow's.
  */
 function firstFlyFrame(assets: string, art: VolleyScrollArt): PNG {
   const dir = join(assets, 'sprites', art.projectile)
-  const file = existsSync(dir) ? readdirSync(dir).find((f) => new RegExp(`^anm_${art.projectile}_fly_\\d+_01\\.(png|bmp)$`).test(f)) : undefined
+  const file = existsSync(dir) ? readdirSync(dir).find((f) => new RegExp(`^anm_${art.projectile}_fly_\\d+_01\\.(png|bmp)$`, 'i').test(f)) : undefined
   if (!file) throw new Error(`volley ${art.key}: no fly frame in ${dir}`)
   if (file.endsWith('.png')) return PNG.sync.read(readFileSync(join(dir, file)))
   const bmp = decodeBmp(readFileSync(join(dir, file)))

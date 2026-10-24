@@ -158,6 +158,10 @@ export interface ActorState {
   explosionHitIds: number[] | null
   /** remake: a volley projectile hits the first hostile unit it touches, not only its target */
   hitsFirstHostile: boolean
+  /** remake (volley #pierce): hostiles a volley projectile still flies on through after hitting them */
+  piercesLeft: number
+  /** remake (volley #pierce): the units a piercing projectile has hit, which it does not hit again */
+  piercedIds: number[]
   /** modTeleport: an army unit arriving from the reserve or leaving for it; it acts as usual meanwhile, without tile collisions */
   teleport: 'in' | 'out' | null
   teleportAge: number // ticks into the teleport (TELEPORT_TICKS)

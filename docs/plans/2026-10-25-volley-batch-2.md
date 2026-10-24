@@ -1,4 +1,36 @@
-# Volley spells, second batch: draft for the owner to review
+# Volley spells, second batch
+
+## Built (2026-10-25)
+
+Thirteen of the fifteen are in, on the first batch's rules (count from 0, full count at a capacity
+tier, each projectile about 2.5x the enemy's shot, slow charge for most). Numbers, the chill and
+pierce decisions and the test map layout: `docs/notes/engine-mechanics-spells.md`, "Volley spells,
+second batch".
+
+- Data only: Longbow, Dragon Fire, Boulder Lob, Dark Rock, Poison Smoke, Acid Splash, Lightning,
+  Bunny Lob, Skull Toss (the skeleton thrower's head is an ordinary bullet), Frost Burst (the freeze
+  blast freezes from its own payload) and Ice Boulder (also its own freeze payload; the art tool now
+  finds its lower-case `anm_iceboulder` frames).
+- Blue Flame chills: a new volley field `#chill` (a freezeMultiplier; 0 by default) adds `#takeFreeze`
+  before the projectile's payload, with the teal glow. Blue flame: 4, about a second of halved speed.
+- Laser pierces: a new volley field `#pierce` (0 by default); each laser flies on through 2 hostiles,
+  hitting each once, and stops at the third.
+- Changes from the draft: dragon fire is the only fast-charging one (owner rule: only small fast
+  projectiles); the poison smoke and bunny lob charge slowly too; lightning, frost burst and ice
+  boulder reach their full count at the hard tier (21), longbow too (few, strong, far).
+
+Dropped: lizard and ostrich eggs (they hatch units: the open question below).
+
+Open questions for the owner:
+- Should the hatched units fight for Merlin, like a summon? (Eggs are not built until this is decided.)
+- Skull toss is built as a plain, solid volley (5 heads, power 1, 2.5x the thrower's damage). Anything sillier?
+- Acid and laser now differ by range (about 130 px against 450), fan (wide random against narrow
+  even) and the laser's pierce. Enough?
+- Frost burst and ice boulder keep the original freeze: about 6-12 s of halved speed per hit, far
+  longer than the blue flame's chill. Keep, or shorten (a volley `#chill`-style override would do it)?
+- Lightning's push is huge (power 3.5 at speed 16): enemies fly across the room. Intended?
+
+## The draft (as reviewed)
 
 Each volley keeps its projectile's original stats: push (`power`), damage per hit (`damageMultiplier`)
 and friction, which sets its range. On top of those it is tuned only through the volley data, which
@@ -30,8 +62,3 @@ else behaves as the original projectile does: smoke is a blast, and arrows do no
 | Lizard eggs | lizardEgg, hatches | 0.5 / 5 / 2 | lobbed eggs that hatch allies | slow charge, max 3, random |
 | Ostrich eggs | ostrichEgg, hatches | 0.3 / 6 / 5 | lobbed eggs that hatch allies | slow charge, max 3, random |
 | Skull toss | skeletonHead (skeleton thrower), comedic | 1 / 3.5 / 3 | silly but solid | medium charge, max 5, random |
-
-Open questions for the owner:
-- Should the hatched units fight for Merlin, like a summon?
-- What should the skull toss feel like?
-- Should acid and laser be told apart further, beyond range, push and the pierce?

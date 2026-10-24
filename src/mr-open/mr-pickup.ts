@@ -25,6 +25,9 @@ export const MERLIN_SCROLLS: readonly string[] = [
  */
 export const VOLLEY_SCROLLS: readonly string[] = [
   'bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBurst', 'pinStorm', 'lavaLob', 'needleSpray',
+  // the second batch
+  'longbow', 'dragonFire', 'boulderLob', 'darkRockBurst', 'poisonSmoke', 'acidSplash', 'lightningFan', 'bunnyLob',
+  'skullToss', 'frostBurst', 'iceBoulderLob', 'chillFlame', 'laserVolley',
 ]
 
 /** Every scroll with art: Merlin's from the cast, then the remake's. */

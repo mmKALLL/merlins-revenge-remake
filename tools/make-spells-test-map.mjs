@@ -1,6 +1,7 @@
-// Generates assets/maps/test_maps/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets): Merlin with
-// every spell scroll in a row above him and the remake's volley scrolls in a row below him in room 1, goblins, an orc and a goblin hut in room 2 to try
-// them on (docs/notes/engine-mechanics-spells.md). Run: node tools/make-spells-test-map.mjs
+// Generates assets/maps/test_maps/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets). Room 1: every
+// spell scroll in a row above Merlin, the remake's volley scrolls in a row below him (the first batch in the
+// middle, the second flanking it and in the top row), and Max Blast potions in the bottom row; room 2: goblins,
+// an orc and a goblin hut to try them on (docs/notes/engine-mechanics-spells.md). Run: node tools/make-spells-test-map.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const W = 18, H = 9
@@ -12,7 +13,11 @@ const MUD = 2 // merlinOpenPassive ground
 const keyFile = readFileSync(new URL('../assets/tile-keys/merlinOpenObjects.txt', import.meta.url), 'utf8')
 const symbols = keyFile.split(/\r?\n|\r/).map((l) => l.trim()).filter((l) => l.startsWith('#')).map((l) => l.slice(1))
 // the remake's volley scrolls are not in the original key: their slots as src/gen/remake-object-tiles.ts gives them
-const REMAKE_TILES = { bombVolley: 31, boltFan: 32, arrowRain: 33, shurikenFan: 34, thunderBurst: 35, pinStorm: 36, lavaLob: 37, needleSpray: 40 }
+const REMAKE_TILES = {
+  bombVolley: 31, boltFan: 32, arrowRain: 33, shurikenFan: 34, thunderBurst: 35, pinStorm: 36, lavaLob: 37, needleSpray: 40,
+  longbow: 19, dragonFire: 20, boulderLob: 54, darkRockBurst: 55, poisonSmoke: 56, acidSplash: 57, lightningFan: 58, bunnyLob: 59,
+  skullToss: 60, frostBurst: 100, iceBoulderLob: 102, chillFlame: 109, laserVolley: 110,
+}
 const tile = (symbol) => {
   if (REMAKE_TILES[symbol]) return REMAKE_TILES[symbol]
   const i = symbols.indexOf(symbol)
@@ -22,10 +27,26 @@ const tile = (symbol) => {
 
 const SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword']
 const VOLLEYS = ['bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBurst', 'pinStorm', 'lavaLob', 'needleSpray']
+// the second batch: beside the first in its row, then in the top row
+const VOLLEYS_2_LEFT = ['longbow', 'dragonFire', 'boulderLob']
+const VOLLEYS_2_RIGHT = ['darkRockBurst', 'poisonSmoke', 'acidSplash', 'lightningFan']
+const VOLLEYS_2_TOP = ['bunnyLob', 'skullToss', 'frostBurst', 'iceBoulderLob', 'chillFlame', 'laserVolley']
+const MAX_BLAST = 'manaCapacity'
+const POTIONS = 8
+const MERLIN_COLUMN = 9
+/** `names` side by side in row `r` from column `c0`, stepping over Merlin's column when `skipMerlin`. */
+const rowOf = (names, r, c0, skipMerlin = false) =>
+  names.map((s, i) => {
+    const c = c0 + i
+    return { c: skipMerlin && c >= MERLIN_COLUMN ? c + 1 : c, r, s }
+  })
 const rooms = [
   { num: 1, objs: [
-    { c: 9, r: 6, s: 'player' }, ...SCROLLS.map((s, i) => ({ c: i < 5 ? 4 + i : 5 + i, r: 3, s })),
-    ...VOLLEYS.map((s, i) => ({ c: i < 4 ? 5 + i : 6 + i, r: 8, s })),
+    { c: MERLIN_COLUMN, r: 5, s: 'player' },
+    ...rowOf(VOLLEYS_2_TOP, 1, 6, true),
+    ...rowOf(SCROLLS, 3, 4, true),
+    ...rowOf(VOLLEYS_2_LEFT, 7, 2), ...rowOf(VOLLEYS, 7, 5, true), ...rowOf(VOLLEYS_2_RIGHT, 7, 14),
+    ...rowOf(Array(POTIONS).fill(MAX_BLAST), 9, 5),
   ] },
   { num: 2, objs: [
     { c: 12, r: 3, s: 'goblinWarrior' }, { c: 13, r: 5, s: 'goblinWarrior' }, { c: 12, r: 7, s: 'goblinWarrior' },

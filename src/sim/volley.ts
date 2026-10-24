@@ -1,7 +1,7 @@
 // Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): a spell that fires a
 // fan of an enemy's projectiles when released, one more for every chargePerShot of charge. The rules
 // here are pure; tick-spell.ts fires the shots and tick-combat.ts lets them hit the first hostile.
-import type { VolleyDef } from '../mr-open/mr-actor-data'
+import type { AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import { bulletStalled } from '../mr-open/mr-bullet'
 import type { Vec } from '../mr-open/mr-geometry'
 import { stepVelocity } from '../mr-open/mr-movement'
@@ -100,6 +100,21 @@ export function launchToLand(from: Vec, aim: Vec, launch: Vec, friction: Vec, mi
     else hi = mid
   }
   return { x: launch.x * lo, y: launch.y * lo }
+}
+
+/** modFreeze's payload function, which a chilling volley adds before its projectile's own. */
+const FREEZE_PAYLOAD = 'takeFreeze'
+
+/**
+ * The attack a volley projectile carries: its bullet's own (push, payload, explosion), with the
+ * spell's hit roles and the volley's damageMultiplier on top of the bullet's; a chilling volley
+ * (remake, `chill` > 0) also freezes what it hits, as the arctic blast does, glowing teal.
+ */
+export function volleyProjectileAttack(bullet: AttackDef, hits: string[], v: VolleyDef): AttackDef {
+  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier }
+  if (v.chill <= 0) return attack
+  const others = bullet.payloadFunction.filter((fn) => fn !== FREEZE_PAYLOAD)
+  return { ...attack, payloadFunction: [FREEZE_PAYLOAD, ...others], freezeMultiplier: v.chill, glowTeal: true }
 }
 
 /** `vel` turned by `deg` degrees and scaled by `factor`. */
