@@ -57,8 +57,9 @@ describe('volley rules', () => {
     for (const g of gaps) expect(g).toBeCloseTo(gaps[0]!)
   })
 
-  it('stacks one icon per projectile up to five', () => {
-    expect([0, 3, 5, 6].map(volleyIconCount)).toEqual([0, 3, 5, 5])
+  it('stacks one icon per projectile up to ten, in rows of five', () => {
+    expect([0, 3, 5, 6, 10, 12].map(volleyIconCount)).toEqual([0, 3, 5, 6, 10, 10])
+    expect([0, 5, 6, 10].map(iconStackPx)).toEqual([0, 16, 20, 20])
   })
 })
 
