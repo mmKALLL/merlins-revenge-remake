@@ -118,7 +118,7 @@ Work top down; the sections below hold the details.
   and arrows, even fans for needles/shurikens and random ones (first at the aim) for the rest,
   exploding projectiles land on the aim, volleys hit dwellings; touch controls only on touch-only
   devices.
-  The spell test map has a row of eight Max Blast potions under the volleys. To try: projectiles
+  The spell test map has eight Max Blast potions side by side, a row below the volleys. To try: projectiles
   launched from Merlin rather than the ball (`launchFrom`; set #spell in a volley list to compare).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the

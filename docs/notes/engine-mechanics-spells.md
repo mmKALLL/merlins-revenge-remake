@@ -579,4 +579,5 @@ splash.
   grows linearly with the charge (`volleyBallPx`), from room for one icon to the larger of charge x
   chargeSize and what holds every icon stack in time, with a 4 px margin (it used to stall at five
   icons, then jump). The pin icon sits 1 px higher. To try: `launchFrom` (#caster, the default now)
-  starts the projectiles at Merlin's attack point instead of the ball (#spell). Bombs fan to 90 degrees.
+  starts the projectiles at Merlin's attack point instead of the ball (#spell). Bombs fan to 90 degrees; lava
+  lobs fly 1.2x further (rangeFactor 2.9).
