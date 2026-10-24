@@ -190,5 +190,10 @@
     "attack": {
       "damageMultiplier": 0.75
     }
+  },
+  "skelitonHead": {
+    "attack": {
+      "shotSpeedScale": 0.7
+    }
   }
 }

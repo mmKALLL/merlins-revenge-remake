@@ -150,3 +150,7 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   landing splash keeps the engine's reg-point distance. `plant.minHurtboxPx` is 12.
 - **Bug bite (owner, 2026-10-25):** the bug's damageMultiplier 0.75 (was 0.35): its 2 px push now deals
   1.5 energy a bite instead of 0.7 (`assets/tuning.json`).
+- **Skeleton heads' shots slower (owner, 2026-10-25):** a new attack field `shotSpeedScale` (engine 1)
+  scales performRangedAttack's launch speed; the skeleton head (skelitonHead, #proportional: distance /
+  10 per tick) fires at 0.7 of it. Its missile still flies past Merlin (friction 3 carries a
+  proportional shot about 3x the distance), only slower.

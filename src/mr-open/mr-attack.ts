@@ -87,11 +87,13 @@ export function rangedShot(from: Vec, aimAt: Vec, def: ActorDef, facingLeft: boo
   const spawn = attackLoc(from, a, facingLeft)
   const dx = aimAt.x - spawn.x
   const dy = aimAt.y - spawn.y
+  // remake: shotSpeedScale (1 = engine)
+  const k = a.shotSpeedScale
   if (a.firingType === 'fullstrength') {
     const d = Math.hypot(dx, dy) || 1
-    return { spawn, vel: { x: (dx / d) * def.strength, y: (dy / d) * def.strength } }
+    return { spawn, vel: { x: (dx / d) * def.strength * k, y: (dy / d) * def.strength * k } }
   }
-  return { spawn, vel: { x: dx / 10, y: dy / 10 } }
+  return { spawn, vel: { x: (dx / 10) * k, y: (dy / 10) * k } }
 }
 
 /** calcAttackPowerBullet: impact push = bullet velocity * power (scalar). */
