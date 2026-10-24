@@ -1,5 +1,5 @@
 // Generates assets/maps/test_maps/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets): Merlin with
-// every spell scroll in a row above him in room 1, goblins, an orc and a goblin hut in room 2 to try
+// every spell scroll in a row above him and the remake's volley scrolls in a row below him in room 1, goblins, an orc and a goblin hut in room 2 to try
 // them on (docs/notes/engine-mechanics-spells.md). Run: node tools/make-spells-test-map.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -11,15 +11,22 @@ const MUD = 2 // merlinOpenPassive ground
 // tile indices from the objects tileset key: one symbol per line, in tile order
 const keyFile = readFileSync(new URL('../assets/tile-keys/merlinOpenObjects.txt', import.meta.url), 'utf8')
 const symbols = keyFile.split(/\r?\n|\r/).map((l) => l.trim()).filter((l) => l.startsWith('#')).map((l) => l.slice(1))
+// the remake's volley scrolls are not in the original key: their slots as src/gen/remake-object-tiles.ts gives them
+const REMAKE_TILES = { bombVolley: 31, boltFan: 32, arrowRain: 33, shurikenFan: 34, thunderBurst: 35, pinStorm: 36, lavaLob: 37, needleSpray: 40 }
 const tile = (symbol) => {
+  if (REMAKE_TILES[symbol]) return REMAKE_TILES[symbol]
   const i = symbols.indexOf(symbol)
   if (i < 0) throw new Error(`merlinOpenObjects has no ${symbol}`)
   return i + 1
 }
 
 const SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword']
+const VOLLEYS = ['bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBurst', 'pinStorm', 'lavaLob', 'needleSpray']
 const rooms = [
-  { num: 1, objs: [{ c: 9, r: 6, s: 'player' }, ...SCROLLS.map((s, i) => ({ c: i < 5 ? 4 + i : 5 + i, r: 3, s }))] },
+  { num: 1, objs: [
+    { c: 9, r: 6, s: 'player' }, ...SCROLLS.map((s, i) => ({ c: i < 5 ? 4 + i : 5 + i, r: 3, s })),
+    ...VOLLEYS.map((s, i) => ({ c: i < 4 ? 5 + i : 6 + i, r: 8, s })),
+  ] },
   { num: 2, objs: [
     { c: 12, r: 3, s: 'goblinWarrior' }, { c: 13, r: 5, s: 'goblinWarrior' }, { c: 12, r: 7, s: 'goblinWarrior' },
     { c: 15, r: 4, s: 'goblinArcher' }, { c: 15, r: 6, s: 'goblinArcher' }, { c: 16, r: 5, s: 'swordOrc' }, { c: 16, r: 2, s: 'goblinHut' },

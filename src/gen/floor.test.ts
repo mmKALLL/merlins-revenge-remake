@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
+import { withRemakeObjectSymbols } from './remake-object-tiles'
 import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
 import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, type GeneratedFloor } from './floor'
 import { edgeMismatches } from './edge-check'
@@ -10,7 +11,11 @@ import { TOWER_FLOORS } from './tower'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { GOLDEN_FORT, MAGIC_MAZE, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
-const key = (name: string) => parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
+/** The objects key as converted: the original symbols with the remake's objects (the volley scrolls) written in. */
+const key = (name: string) => {
+  const parsed = parseTileKey(readFileSync(join(import.meta.dirname, '../../assets/tile-keys', `${name}.txt`), 'utf8'))
+  return { ...parsed, symbols: withRemakeObjectSymbols(name, parsed.symbols) }
+}
 /** the page's resolved actor data, so a unit without a definition fails here */
 const energyOf = energyLookup(pageDefs)
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 7919 + 1)

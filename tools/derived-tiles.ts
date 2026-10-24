@@ -2,7 +2,7 @@
 // empty slot of its tileset; the remake's object symbols with their items' pictures. The Dragon Canyon's red sandstone (owner request) is the cracked grey
 // stone (merlinOpenPassive 25) warmed to a full red sandstone (owner's pick of four brightness levels).
 import type { RgbaImage } from './bmp'
-import { REMAKE_OBJECT_TILES } from '../src/gen/remake-object-tiles'
+import { REMAKE_OBJECT_TILES, withRemakeObjectSymbols } from '../src/gen/remake-object-tiles'
 
 export interface DerivedTile {
   tileSet: string
@@ -52,9 +52,8 @@ export function withDerivedTiles(tileSet: string, sheet: RgbaImage, tileSize: { 
 }
 
 /**
- * The remake's object symbols (src/gen/remake-object-tiles.ts) written into a converted key, padding
- * it with `none` up to a slot past its end; a slot inside the key must be `none`. Where the slot is
- * on the sheet, the object's stand frame (`standFrame(symbol)`) is drawn centred in it, as the
+ * The remake's object symbols written into a converted key (withRemakeObjectSymbols) and, where a
+ * slot is on the sheet, the object's stand frame (`standFrame(symbol)`) drawn centred in it, as the
  * editor's picture of the item. Returns the new symbols and sheet (the inputs unchanged).
  */
 export function withRemakeObjectTiles(
@@ -62,17 +61,13 @@ export function withRemakeObjectTiles(
   standFrame: (symbol: string) => RgbaImage | undefined,
 ): { symbols: string[]; sheet: RgbaImage | undefined } {
   const tiles = Object.entries(REMAKE_OBJECT_TILES[tileSet] ?? {})
-  const outSymbols = [...symbols]
-  if (tiles.length === 0) return { symbols: outSymbols, sheet }
-  const out = sheet && { width: sheet.width, height: sheet.height, rgba: new Uint8Array(sheet.rgba) }
+  if (tiles.length === 0 || !sheet) return { symbols: withRemakeObjectSymbols(tileSet, symbols), sheet }
+  const out = { width: sheet.width, height: sheet.height, rgba: new Uint8Array(sheet.rgba) }
   for (const [symbol, index] of tiles) {
-    while (outSymbols.length < index) outSymbols.push('none')
-    if (outSymbols[index - 1] !== 'none') throw new Error(`remake object tile ${tileSet} ${index} (${symbol}): the slot holds ${outSymbols[index - 1]}`)
-    outSymbols[index - 1] = symbol
     const frame = standFrame(symbol)
-    if (out && frame) drawCentred(out, frame, index, tileSize)
+    if (frame) drawCentred(out, frame, index, tileSize)
   }
-  return { symbols: outSymbols, sheet: out }
+  return { symbols: withRemakeObjectSymbols(tileSet, symbols), sheet: out }
 }
 
 /** The frame's opaque pixels centred in tile `index` (1-based) of the sheet; nothing for a tile past the sheet. */
