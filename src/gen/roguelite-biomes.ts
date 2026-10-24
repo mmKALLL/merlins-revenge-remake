@@ -24,7 +24,7 @@ export const floorSeed = (runSeed: number, floor: number): number =>
 /** The run's first floor: one of floor 1's biomes, at random from the run seed. */
 export const firstBiome = (runSeed: number): FloorTheme => new GenRandom(runSeed).pick(ROGUELITE_FLOORS[0]!)
 
-/** The map of the run's floor (0 = the first) in the chosen biome. */
-export function* rogueliteFloorMap(biome: FloorTheme, runSeed: number, floor: number, energyOf: EnergyOf): Steps<MapDefinition> {
-  return (yield* rogueliteFloor(biome, floorSeed(runSeed, floor), energyOf)).map
+/** The map of the run's floor (0 = the first) in the chosen biome, `startPickups` (object keys) in its start room. */
+export function* rogueliteFloorMap(biome: FloorTheme, runSeed: number, floor: number, energyOf: EnergyOf, startPickups: readonly string[]): Steps<MapDefinition> {
+  return (yield* rogueliteFloor(biome, floorSeed(runSeed, floor), energyOf, startPickups)).map
 }

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { ROGUELITE_FLOORS } from '../gen/roguelite-biomes'
 import { pickUnlocked, PICK_LOCK_MS } from './pick'
-import { potionTotal, rewardPools, rollRewards, startingKit, type RewardOption } from './rewards'
+import { potionTotal, rewardPickups, rewardPools, rollRewards, startingKit, type RewardOption } from './rewards'
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1)
 const POOLS = ROGUELITE_FLOORS.map(rewardPools)
@@ -46,7 +46,7 @@ describe('roguelite rewards', () => {
 
   it('gives a starting kit of a spell, a heal and exactly 5 potions of two types', () => {
     for (const seed of SEEDS) {
-      const kit = startingKit(seed, POOLS[0]!, holdsNothing)
+      const kit = startingKit(seed, POOLS[0]!)
       expect(kit.map((o) => o.kind)).toEqual(['spell', 'heal', 'potions'])
       const potions = potionsOf(kit)
       expect(new Set(potions.map((p) => p.character)).size).toBe(2)
@@ -57,8 +57,17 @@ describe('roguelite rewards', () => {
   it('rolls the same rewards for the same seed and floor', () => {
     for (const seed of SEEDS) {
       expect(rollRewards(seed, 2, POOLS[2]!, holdsNothing)).toEqual(rollRewards(seed, 2, POOLS[2]!, holdsNothing))
-      expect(startingKit(seed, POOLS[0]!, holdsNothing)).toEqual(startingKit(seed, POOLS[0]!, holdsNothing))
+      expect(startingKit(seed, POOLS[0]!)).toEqual(startingKit(seed, POOLS[0]!))
     }
+  })
+})
+
+describe('reward pickups', () => {
+  it('lays a spell out as its scroll, the heal as a maxikit and a medikit, potions one by one', () => {
+    expect(rewardPickups({ kind: 'spell', scroll: 'armySummon' })).toEqual(['armySummon'])
+    expect(rewardPickups({ kind: 'heal' })).toEqual(['maxikit', 'medikit'])
+    const potions = [{ character: 'manaFlow', count: 3 }, { character: 'walkSpeed', count: 2 }]
+    expect(rewardPickups({ kind: 'potions', potions })).toEqual(['manaFlow', 'manaFlow', 'manaFlow', 'walkSpeed', 'walkSpeed'])
   })
 })
 

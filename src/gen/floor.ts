@@ -95,6 +95,11 @@ export interface FloorOptions {
   safeArrivalTiles?: number
   /** Remake (roguelite floors): this name on a board in the start room (location-sign.ts) */
   locationSign?: string
+  /**
+   * Remake (roguelite floors): the start room holds these pickups (object keys) instead of the
+   * theme's start rewards, laid out in front of Merlin (startPickupTiles)
+   */
+  startPickups?: readonly string[]
 }
 
 export interface GeneratedFloor {
@@ -144,7 +149,7 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
     const roomEdges = edges[roomKey(room)]!
     const shape = generateRoomShape(rng, ROOM_SIZE, roomEdges, theme.shape, theme.edges.openingDepth, keepOpen)
     decorate(rng, shape, theme.shape.decorationChance)
-    const units = placeUnits(rng, theme, room, shape, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
+    const units = placeUnits(rng, theme, room, shape, roomEdges, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
     placements.push(...units)
     const def = roomDefinition(rng, theme, room, shape, units)
     if (sameVec(room, start) && (options.safeArrivalTiles !== undefined || options.locationSign !== undefined)) {
@@ -471,12 +476,49 @@ function arrivalTile(room: Vec, options: FloorOptions, playerTile: Vec | undefin
   return { x: (stair.opening.from + stair.opening.to) / 2, y: ROOM_SIZE.y - 1 }
 }
 
+/** Remake (roguelite floors): the start pickups stand this many rows in front of (below) Merlin, then in the row between. */
+const PICKUP_ROWS_AHEAD = 2
+/** ...and at most this many tiles to either side of him while those rows have room. */
+const PICKUP_ROW_REACH = 2
+/** A doorway: an opening's band (inOpeningBand) within this many tiles of its edge. */
+const DOORWAY_DEPTH = 4
+
+/** Whether a room tile is in a doorway: the band of an opening, near the opening's edge. */
+export function inDoorway(edges: RoomEdges, t: Vec): boolean {
+  const within = (o: Opening | null, v: number) => o !== null && v >= o.from && v <= o.to
+  return (within(edges.top, t.x) && t.y < DOORWAY_DEPTH)
+    || (within(edges.bottom, t.x) && t.y >= ROOM_SIZE.y - DOORWAY_DEPTH)
+    || (within(edges.left, t.y) && t.x < DOORWAY_DEPTH)
+    || (within(edges.right, t.y) && t.x >= ROOM_SIZE.x - DOORWAY_DEPTH)
+}
+
+/**
+ * Remake (roguelite floors): the start pickups' tiles, in the order they are laid: the free tiles of
+ * the row PICKUP_ROWS_AHEAD below Merlin from the middle outwards (left first), then the row
+ * between, within PICKUP_ROW_REACH tiles to either side; past those, the free tiles nearest him.
+ * Doorways come last, so a pickup stands in one only when the room has no other free tile; the
+ * sign stands above Merlin, clear of them.
+ */
+export function startPickupTiles(free: readonly Vec[], arrival: Vec, edges: RoomEdges): Vec[] {
+  const inFront = (t: Vec) => t.y > arrival.y && t.y - arrival.y <= PICKUP_ROWS_AHEAD && Math.abs(t.x - arrival.x) <= PICKUP_ROW_REACH
+  const distance = (t: Vec) => Math.hypot(t.x - arrival.x, t.y - arrival.y)
+  const sideways = (t: Vec) => Math.abs(t.x - arrival.x)
+  const byLayout = (a: Vec, b: Vec): number =>
+    Number(inDoorway(edges, a)) - Number(inDoorway(edges, b))
+    || Number(!inFront(a)) - Number(!inFront(b))
+    || (inFront(a) ? b.y - a.y : distance(a) - distance(b))
+    || sideways(a) - sideways(b)
+    || a.x - b.x
+  return [...free].sort(byLayout)
+}
+
 /**
  * The start room: the player (unless the floor is not the first in the tower) and the start music
  * on the tiles nearest the room's centre, then the rewards on the free tiles nearest where Merlin
- * starts or arrives, at least REWARD_MIN_DISTANCE away from it.
+ * starts or arrives, at least REWARD_MIN_DISTANCE away from it; on a roguelite floor its start
+ * pickups instead, in front of him.
  */
-function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec[], options: FloorOptions): Placement[] {
+function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec[], edges: RoomEdges, options: FloorOptions): Placement[] {
   const u = theme.units
   const centre = { x: (ROOM_SIZE.x - 1) / 2, y: (ROOM_SIZE.y - 1) / 2 }
   const free = [...tiles].sort(byDistanceTo(centre))
@@ -488,9 +530,9 @@ function placeStartRoom(rng: GenRandom, theme: FloorTheme, room: Vec, tiles: Vec
   const music = take(u.startMusic, free[0]!)
   const arrival = arrivalTile(room, options, player?.tile)
   const farEnough = (t: Vec) => Math.max(Math.abs(t.x - arrival.x), Math.abs(t.y - arrival.y)) >= REWARD_MIN_DISTANCE
-  const rewardTiles = free.filter(farEnough).sort(byDistanceTo(arrival))
-  const rewards = startRewardKeys(rng, theme, options.spellScroll).slice(0, rewardTiles.length)
-    .map((key, i) => ({ key, room, tile: rewardTiles[i]! }))
+  const keys = options.startPickups ?? startRewardKeys(rng, theme, options.spellScroll)
+  const rewardTiles = options.startPickups ? startPickupTiles(free, arrival, edges) : free.filter(farEnough).sort(byDistanceTo(arrival))
+  const rewards = keys.slice(0, rewardTiles.length).map((key, i) => ({ key, room, tile: rewardTiles[i]! }))
   return [...(player ? [player] : []), music, ...rewards]
 }
 
@@ -515,12 +557,12 @@ function pickGroup<G extends UnitGroup>(rng: GenRandom, groups: readonly G[], ta
  * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
  * one faction or alliance.
  */
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, edges: RoomEdges, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)) && isSafe(t))
-  if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, options)
+  if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, edges, options)
   const keys: string[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
   const boss = cell.kind === 'boss' ? pickGroup(rng, u.bosses, takenLeaders) : null

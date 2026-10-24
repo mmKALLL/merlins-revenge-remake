@@ -1,10 +1,11 @@
 // Maps built in the browser from a seed instead of loaded from converted JSON. Their ids sit under
 // the "randomly_generated/" folder of the map index (tools/convert-assets.ts adds them): one per floor theme,
 // numbered in the tower's order so the map browser lists them by difficulty, then the tower and the
-// roguelite run (its first floor; main.ts builds the next ones).
+// roguelite run (its first floor, the starting kit in its start room; main.ts builds the next ones).
 import type { MapEntry } from '../data/map-tree'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import { startingKitPickups } from '../run/rewards'
 import { floorSteps, type EnergyOf } from './floor'
 import { ROGUELITE_FLOORS, firstBiome, rogueliteFloorMap } from './roguelite-biomes'
 import { runSteps, type Steps } from './steps'
@@ -29,7 +30,7 @@ function* mapOf(steps: Steps<{ map: MapDefinition }>): Steps<MapDefinition> {
 const KINDS: readonly GeneratedMapKind[] = [
   ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, steps: (seed: number, energyOf: EnergyOf) => mapOf(floorSteps(t, seed, energyOf)) })),
   { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, steps: (seed: number, energyOf: EnergyOf) => mapOf(towerSteps(seed, energyOf)) },
-  { id: ROGUELITE_MAP_ID, mapSize: ROGUELITE_FLOORS[0]![0]!.floorSize, steps: (seed: number, energyOf: EnergyOf) => rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf) },
+  { id: ROGUELITE_MAP_ID, mapSize: ROGUELITE_FLOORS[0]![0]!.floorSize, steps: (seed: number, energyOf: EnergyOf) => rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf, startingKitPickups(seed)) },
 ]
 
 export const GENERATED_MAPS: readonly MapEntry[] = KINDS.map((k) => ({ id: k.id, mapSize: { ...k.mapSize } }))
