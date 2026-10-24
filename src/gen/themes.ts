@@ -345,14 +345,21 @@ const THEMED_SPELL_BONUS = 3
 
 /**
  * A floor's start scroll list: every spell its objects tileset has a tile for (merlin4Objects has
- * no arctic blast or energy beam), the floor's themed spells weighted up by THEMED_SPELL_BONUS.
+ * no arctic blast or energy beam), the floor's themed spells weighted up by THEMED_SPELL_BONUS (a
+ * volley is themed where the floor's enemies fire its projectile). Owner: about half the scrolls are
+ * original spells and half volleys, so the volleys' weights are scaled to the originals' total.
  */
 function spellWeights(themed: Weighted<string>[], objectTiles: Record<string, number>): Weighted<string>[] {
-  return SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined).map((spell) => {
+  const weighted = SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined).map((spell) => {
     const own = themed.find((t) => t.value === spell)
-    return w(spell, own ? own.weight + THEMED_SPELL_BONUS : ANY_SPELL_WEIGHT)
+    return w<string>(spell, own ? own.weight + THEMED_SPELL_BONUS : ANY_SPELL_WEIGHT)
   })
+  const total = (volleys: boolean) => weighted.filter((s) => isVolley(s.value) === volleys).reduce((sum, s) => sum + s.weight, 0)
+  const volleyScale = total(false) / total(true)
+  return weighted.map((s) => (isVolley(s.value) ? w(s.value, s.weight * volleyScale) : s))
 }
+
+const isVolley = (spell: string): boolean => VOLLEY_SCROLLS.includes(spell)
 
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
@@ -516,7 +523,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('boltFan', 1), w('longbow', 1), w('acidSplash', 1), w('bunnyLob', 1)], MERLIN4_OBJECTS)),
+    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('boltFan', 1), w('acidSplash', 1)], MERLIN4_OBJECTS)),
   },
 }
 
@@ -746,7 +753,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
       spellWeights(
-        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('needleSpray', 1), w('skullToss', 1), w('poisonSmoke', 1), w('chillFlame', 1)],
+        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('arrowRain', 1), w('skullToss', 1), w('laserVolley', 1)],
         MERLIN_OPEN_OBJECTS
       )
     ),
@@ -848,7 +855,7 @@ export const DRAGON_CANYON: FloorTheme = {
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
-      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1), w('shurikenFan', 1), w('lavaLob', 1), w('dragonFire', 1), w('boulderLob', 1), w('darkRockBurst', 1)], MERLIN_OPEN_OBJECTS)
+      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1), w('dragonFire', 1), w('boulderLob', 1), w('darkRockBurst', 1), w('needleSpray', 1), w('acidSplash', 1)], MERLIN_OPEN_OBJECTS)
     ),
   },
 }
@@ -1002,7 +1009,7 @@ export const MAGIC_MAZE: FloorTheme = {
     bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('lightningFan', 1), w('frostBurst', 1), w('iceBoulderLob', 1), w('laserVolley', 1)], MERLIN_OPEN_OBJECTS),
+      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('poisonSmoke', 1), w('lightningFan', 1), w('longbow', 1), w('skullToss', 1), w('arrowRain', 1)], MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },

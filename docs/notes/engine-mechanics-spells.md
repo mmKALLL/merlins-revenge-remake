@@ -638,10 +638,7 @@ Remake decisions (owner, 2026-10-25):
 - Smoke is a blast as in the engine (no lingering cloud); the freeze blast and ice boulder freeze
   from their own payloads (no new code).
 - Object tiles: merlinOpenObjects 19, 20, 54-60, 100, 102, 109, 110 (slots 18 and 53 are `none` in
-  the key but have art on the sheet), merlin4Objects 181-193. Themed floors: longbow, acid and bunny
-  lob in the Goblin Forest; skull toss, poison smoke and blue flame in the Undead Marsh; dragon fire,
-  boulder lob and dark rock in the Dragon Canyon; lightning, frost burst, ice boulder and laser in the
-  Magic Maze. The scroll writings needed four new glyphs (D, I, c, g); the ice boulder's fly frame is
+  the key but have art on the sheet), merlin4Objects 181-193. Themed floors: see "Spell pools" below. The scroll writings needed four new glyphs (D, I, c, g); the ice boulder's fly frame is
   named `anm_iceboulder_*`, so the art tool matches it in any case.
 - `?map=test_maps/spell_test` (from `tools/make-spells-test-map.mjs`, which now also writes the
   layout that had been hand-edited): longbow, dragon fire and boulder lob left of the first batch in
@@ -651,3 +648,13 @@ Remake decisions (owner, 2026-10-25):
   fan 15-50, landed splash 15 ticks; laser 30% slower per laser (chargeSpeed 0.1556) and 7 at most (chargePerShot 6, full
   charge still at tier 18), damage x0.7 for the pierce (damageMultiplier 0.532, about 1.75x the
   quadranid's laser). Frost burst / ice boulder freezes and lightning's push stay original.
+- **Spell pools (owner, 2026-10-25):** every floor's start scroll pool holds every spell at weight 1
+  (themed ones +3), and the volleys' weights are scaled so they make up half the pool's weight, the
+  original spells the other half (`spellWeights` in `src/gen/themes.ts`). A volley is themed where the
+  floor's own enemies (units, dwellings and their residents, bosses) fire its projectile: arrow rain,
+  bolt fan, acid in the Goblin Forest; arrow rain, skull toss, laser in the Undead Marsh; dragon fire,
+  boulder lob, dark rock, needle spray, acid in the Dragon Canyon; bomb volley, thunder burst, pin
+  storm, poison smoke, lightning, longbow, skull toss, arrow rain in the Magic Maze. Bunny lob, blue
+  flame, frost burst, ice boulder, lava lob and shuriken fan have no floor whose enemies fire them.
+- **Dragon fire pierces (owner, 2026-10-25):** `#pierce: 2` like the laser, damage x0.7
+  (damageMultiplier 0.7).

@@ -9,6 +9,7 @@ import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudge
 import { edgeMismatches } from './edge-check'
 import { TOWER_FLOORS } from './tower'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
+import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
 import { GOLDEN_FORT, MAGIC_MAZE, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 /** The objects key as converted: the original symbols with the remake's objects (the volley scrolls) written in. */
@@ -449,6 +450,16 @@ describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => 
       const group = midbossGroups.find((g) => Object.entries(g.units).every(([k, n]) => countIn(midbossKeys, k) === n))
       expect(group, `seed ${seed}: midboss ${midbossKeys.join(' ')}`).toBeDefined()
       expect(leaderOf(group!), `seed ${seed}: ${group!.label}`).not.toBe(boss)
+    }
+  })
+})
+
+describe('spell scroll pools (owner rule)', () => {
+  it('weigh the original spells and the volleys about half and half on every floor', () => {
+    for (const theme of [...TOWER_THEMES, GOLDEN_FORT]) {
+      const scrolls = theme.units.startRewards.spellScrolls
+      const share = (volleys: boolean) => scrolls.filter((s) => VOLLEY_SCROLLS.includes(s.value) === volleys).reduce((sum, s) => sum + s.weight, 0)
+      expect(share(true)).toBeCloseTo(share(false))
     }
   })
 })

@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "dragon_fire",
 #volume: 60,
-#volley: [#chargePerShot: 5.4, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 1, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 80, #staggerTicks: 1, #speedJitter: 0.25]
+#volley: [#chargePerShot: 5.4, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 0.7, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 80, #staggerTicks: 1, #speedJitter: 0.25, #pierce: 2]
 ],
 #character: #dragonFire,
 #collectSound: "collect_powerup_01",
