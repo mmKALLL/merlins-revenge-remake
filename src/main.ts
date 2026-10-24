@@ -38,7 +38,7 @@ import { helpPanel } from './ui/help-panel'
 import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
 import { endRun, enterFloor, nextFloorPlan, startRun, type RunState } from './run/run'
 import { rewardPools, rollRewards, startingKit } from './run/rewards'
-import { floorPick, type PickOffer, type SpriteArt } from './ui/floor-pick'
+import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt } from './ui/floor-pick'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
 import { mapsPanel } from './ui/maps-panel'
 import { menuButton } from './ui/menu-button'
@@ -160,7 +160,7 @@ interface Shell {
   /** Back to the title screen (a roguelite run's death ends the run there). */
   quitToTitle: () => void
   /** Roguelite: pauses on the floor pick until the player has picked a biome and a reward (indices into the offer). */
-  pickFloor: (offer: PickOffer, art: SpriteArt) => Promise<{ biome: number; reward: number }>
+  pickFloor: (offer: PickOffer, art: PickArt) => Promise<{ biome: number; reward: number }>
 }
 
 /** A weapon's selector icon as a URL (the touch weapon button). */
@@ -168,6 +168,10 @@ const weaponIconUrl = (key: string): string => `${import.meta.env.BASE_URL}gener
 
 /** The pick screen draws the scrolls and potions this many times their size. */
 const PICK_ART_SCALE = 2
+/** The biome cards' enemy icons are drawn at the largest whole scale that fits this many px on their longer side (at least 1x). */
+const UNIT_ICON_PX = 48
+/** A unit's icon is the first frame of the first of these strips it has. */
+const UNIT_ICON_STRIPS = ['stand', 'altStand', 'walk']
 
 /** Roguelite: Merlin's starting kit (a new spell, a heal and potions), given at once on a run's first floor. */
 const withStartingKit = (s: SimState, run: RunState): SimState =>
@@ -285,6 +289,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     const tex = sprites[name]?.frames[anim]?.[0]
     return tex ? frameCanvas(tex, PICK_ART_SCALE) : null
   }
+  /** The biome cards' art: a unit's standing frame, scaled up to about UNIT_ICON_PX. */
+  const unitArt: UnitArt = (key) => {
+    const frames = sprites[defs[key]?.name ?? '']?.frames
+    const strip = frames && UNIT_ICON_STRIPS.find((s) => frames[s]?.length)
+    const tex = strip ? frames[strip]![0] : undefined
+    if (!tex) return null
+    return frameCanvas(tex, Math.max(1, Math.floor(UNIT_ICON_PX / Math.max(tex.frame.width, tex.frame.height))))
+  }
+  const pickArt: PickArt = { sprite: spriteArt, unit: unitArt }
   /**
    * Roguelite: Merlin has left the floor's exit. The game pauses on the pick screen; then the
    * picked biome's floor is built (the loading screen shows the progress), its fresh sim takes his
@@ -301,8 +314,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     const from = run
     buildingFloor = true
     const rewards = rollRewards(from.seed, plan.floor, rewardPools(plan.options), (scroll) => holdsScroll(sim, scroll))
-    const biomes = plan.options.map((b) => ({ name: b.name, foes: b.foes }))
-    const picked = await shell.pickFloor({ floorNumber: plan.floor + 1, biomes, rewards }, spriteArt)
+    const biomes = plan.options.map((b) => ({ name: b.name, showcase: b.showcase }))
+    const picked = await shell.pickFloor({ floorNumber: plan.floor + 1, biomes, rewards }, pickArt)
     if (run !== from) return // the run was restarted meanwhile
     const biome = plan.options[picked.biome]!
     const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf), {

@@ -1,6 +1,6 @@
 // The roguelite floor pick (docs/plans/2026-10-25-roguelite-mode-design.md, Floor end): one panel
 // where the player picks the next floor's biome and a reward. Every card shows what it holds: the
-// biome's name and foes, the spell's scroll and writing, the heal, the exact potions. The cards take
+// biome's name and a row of its enemies, the spell's scroll and writing, the heal, the exact potions. The cards take
 // no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or Tab and Enter, the
 // number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
@@ -10,8 +10,16 @@ import type { MenuPanel } from './overlay'
 
 /** A sprite frame as a canvas (the scrolls' and potions' 'stand' and 'writing'); null when it is missing. */
 export type SpriteArt = (sprite: string, anim: 'stand' | 'writing') => HTMLCanvasElement | null
+/** A unit's icon (its standing frame) by its actor key; null when it has no sprite. */
+export type UnitArt = (key: string) => HTMLCanvasElement | null
 
-export interface BiomeCard { name: string; foes: string }
+export interface PickArt {
+  sprite: SpriteArt
+  unit: UnitArt
+}
+
+/** A biome and the actor keys of the enemies its card shows (FloorTheme.showcase). */
+export interface BiomeCard { name: string; showcase: readonly string[] }
 
 export interface PickOffer {
   /** the floor about to start, 1 = the first */
@@ -25,7 +33,7 @@ export type OnPicked = (biome: number, reward: number) => void
 
 export interface FloorPick extends MenuPanel {
   /** Fills the panel with an offer (its art drawn by `art`) and starts its lock; the overlay shows it next. */
-  open(offer: PickOffer, art: SpriteArt, onPicked: OnPicked): void
+  open(offer: PickOffer, art: PickArt, onPicked: OnPicked): void
 }
 
 /** The potions' in-game names (their writing art), for the cards' labels. */
@@ -44,6 +52,28 @@ const wordsOf = (key: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 const potionName = (character: string): string => POTION_NAMES[character] ?? wordsOf(character)
+
+/** Units whose keys do not read as their names, for the biome cards' labels. */
+const UNIT_NAMES: Record<string, string> = {
+  scWarrior: 'Scarlet warrior',
+  scArcher: 'Scarlet archer',
+  scMonk: 'Scarlet monk',
+  kongFuChicken: 'Kung fu chicken',
+  hydra1: 'Hydra',
+  hydra3: 'Three-headed hydra',
+}
+const unitName = (key: string): string => UNIT_NAMES[key] ?? wordsOf(key)
+
+/** A biome card's row of enemy icons, each named on hover; a name stands in for a missing sprite. */
+function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
+  const row = el('span', 'pick-units')
+  for (const key of keys) {
+    const icon = art(key) ?? el('span', 'pick-detail', unitName(key))
+    icon.title = unitName(key)
+    row.append(icon)
+  }
+  return row
+}
 
 /** What a reward card says, for its label and screen readers. */
 function rewardLabel(r: RewardOption): string {
@@ -72,7 +102,7 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
     for (const c of cards) c.setAttribute('aria-disabled', String(locked))
   }
 
-  const open = (offer: PickOffer, art: SpriteArt, onPicked: OnPicked) => {
+  const open = (offer: PickOffer, art: PickArt, onPicked: OnPicked) => {
     window.clearTimeout(unlockTimer)
     heading.textContent = `On to floor ${offer.floorNumber}`
     const choosesBiome = offer.biomes.length > 1
@@ -89,14 +119,14 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
       onPicked(picked.biome, picked.reward)
     }
     const biomeCards = offer.biomes.map((b, i) => {
-      const card = pickCard(choosesBiome ? ++numberKey : null, [el('span', 'pick-title', b.name), el('span', 'pick-detail', b.foes)])
-      card.setAttribute('aria-label', `${b.name}: ${b.foes}`)
+      const card = pickCard(choosesBiome ? ++numberKey : null, [el('span', 'pick-title', b.name), showcaseRow(b.showcase, art.unit)])
+      card.setAttribute('aria-label', `${b.name}: ${b.showcase.map(unitName).join(', ')}`)
       if (choosesBiome) card.addEventListener('click', () => pick('biome', i, card))
       else markChosen(card)
       return card
     })
     const rewardCards = offer.rewards.map((r, i) => {
-      const card = pickCard(++numberKey, rewardContent(r, art))
+      const card = pickCard(++numberKey, rewardContent(r, art.sprite))
       card.setAttribute('aria-label', rewardLabel(r))
       card.addEventListener('click', () => pick('reward', i, card))
       return card
