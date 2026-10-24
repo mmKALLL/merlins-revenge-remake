@@ -942,6 +942,8 @@ export const DRAGON_CANYON: FloorTheme = {
       { key: 'kongFuChicken', weight: 2, tier: 'weak', faction: CANYON },
       { key: 'lizard', weight: 2, tier: 'weak', faction: CANYON },
       { key: 'plant', weight: 1.2, tier: 'mid', faction: CANYON },
+      // owner: a rare druid healing the canyon's monsters (dragons, golems)
+      { key: 'druid', weight: 0.3, tier: 'weak', maxPerRoom: 1, faction: CANYON },
       { key: 'boulderMonster', weight: 1.5, tier: 'mid', faction: CANYON },
       { key: 'lizardSoldier', weight: 1, tier: 'mid', faction: CANYON },
       { key: 'hydra1', weight: 0.8, tier: 'mid', faction: CANYON },
@@ -1175,6 +1177,7 @@ const TEAM_OF: Record<string, string> = {
   necromancer: 'undead',
   darkMage: 'undead',
   quadranid: 'monsters',
+  druid: 'monsters',
   cocoon: 'monsters',
   lizard: 'monsters',
   lizardSoldier: 'monsters',
@@ -1498,7 +1501,7 @@ export const HYDRA_MARSH: FloorTheme = {
       { key: 'plant', weight: 2, tier: 'mid', faction: JUNGLE },
       { key: 'quadranid', weight: 2, tier: 'mid', faction: JUNGLE },
       // owner: druids heal the jungle's monsters and hydras
-      { key: 'druid', weight: 1.5, tier: 'mid', maxPerRoom: 1, faction: JUNGLE },
+      { key: 'druid', weight: 1.5, tier: 'weak', maxPerRoom: 1, faction: JUNGLE },
       { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2, faction: JUNGLE },
       { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1, faction: JUNGLE },
       // owner: ninjas for the brawls, no ninja dwelling (mysterious cloud)
