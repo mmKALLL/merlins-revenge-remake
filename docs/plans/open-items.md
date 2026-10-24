@@ -13,7 +13,7 @@ Work top down; the sections below hold the details.
   - Projectile volley spells.
   - Less reel on Merlin: the same knockback, but more friction when he walks against his current
     movement vector.
-  - Scoring mode.
+  - Scoring mode (done 2026-10-25, in review; see Awaiting the owner's review).
   - Golden machine gun (see To do below).
   - The eight friendly wizards, as allies and as enemies.
   - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
@@ -74,9 +74,9 @@ Work top down; the sections below hold the details.
   Ulin, Verdanlin (`act_*InGame`, team aldevar, 200 HP, sprites in the cast dump; each casts one of
   Merlin's ported spells): as allies (wizardMaster / modSummonWizard, tower rewards) and as enemies
   (a palette swap at convert time, boss-level HP).
-- **Scoring mode.** Each room counts down from 9999 points to 0 over 200 seconds. The map's total is
-  shown bottom right, with the current room's points as a green `+1234` about 8 px to its right.
-  The map selector shows the top score for each map.
+- **Open-world score and an online leaderboard.** Scoring only counts room-by-room runs; a run
+  played in the continuous world shows no score. Later: a separate score for the continuous world
+  (it has no rooms to count down) and an online leaderboard per map.
 - **Save and load the state of a map.** Original: `saveMaster` (save/load menu options,
   `addSaveData`/`restoreFromSave` on every object). Builds on the snapshot code in `src/debug/`.
 
@@ -99,6 +99,14 @@ Work top down; the sections below hold the details.
 
 ## Awaiting the owner's review
 
+- Scoring (`docs/notes/engine-mechanics-hud.md` §5): each room counts down from 9999 over 200 s of
+  Merlin's time in it while uncleared and banks what is left when it clears; the map's total and the
+  room's green `+1234` sit at the right end of the strip below the room; the map selector shows each
+  map's best (localStorage, per map id; a death's partial run counts). To confirm: an empty room
+  paying its full 9999 at once (the start room included), the HUD placement (total left of the room
+  points, both ending at the room's right edge x 608), the open-world note, one best per generated
+  map id rather than per seed, and the total overlapping the debug readout's second line once it has
+  five or more digits (debug info only).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
   original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee

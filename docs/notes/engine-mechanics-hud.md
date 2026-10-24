@@ -76,3 +76,40 @@ leftwards. Both draw on `gGlobalDisplayLayer`, in the strip above the room, not 
   the medikit and potions at their marks.
 - **Remake:** the debug readout (Settings, Debug info) sits in the strip below the room, right of
   the health bar, in 8 px type.
+
+## 5. Scoring (remake feature, owner request)
+
+The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.score`):
+
+- Every room is worth up to 9999 points, counting down linearly to 0 over 200 seconds (6000 ticks):
+  `floor(9999 * (6000 - ticks) / 6000)`. The countdown counts the ticks Merlin spends in the room
+  while it is not clear, from his first entry (the start room at map start). A tick counts for the
+  room he was in at its start, if that room was not clear then, so the tick the exits open on still
+  counts. Leaving a room uncleared pauses its countdown (rooms mode only lets Merlin out of a
+  cleared room, so this happens only through a mode switch); coming back resumes it.
+- When the room is clear (`RoomState.clear`: its exits have opened, `objRoom.attemptOpenExits`),
+  its points left are banked into the map's total and its countdown stops. A room with no hostile
+  in it is clear as it activates, so it pays its full 9999 at once, the start room too: the engine
+  counts such a room as cleared (pRoomCleared), and the score follows it. Rooms never visited pay
+  nothing, even those the minimap counts as clear.
+- The count lives in the sim state (ticks per room), not wall-clock time, so replays and snapshots
+  (`src/debug/sim-snapshot.ts`, field `score`) agree; a snapshot from before scoring loads with no
+  score (`VOID_SCORE`).
+- The continuous world (`?camera=follow`, C, Settings camera) has no rooms to count down: starting a
+  map in it, or switching to it during a run, voids the run's score (`score.valid` false) until the
+  next run, and no best is recorded.
+- Best scores (`src/data/best-scores.ts`): localStorage `mr-remake.bestScores`, a table of map id
+  to points. The total is checked after every tick, so a run counts as it banks rooms: a run ended
+  by a death still sets the best if it is higher, and the restart begins at 0. A generated map keeps
+  one best for its id (`randomly_generated/...`), whatever the layout's seed. Blocked storage keeps
+  the bests for the page only.
+- HUD (`src/render/score-hud.ts`): monospace 11 px text (PIXEL_TEXT) in the 16 px strip below the
+  play view, at its right end. The current room's points (green, the health bar's rgb(0,200,0),
+  `+1234`) keep a slot as wide as `+9999` that ends at the play view's right edge (x 608, where
+  potionMaster right-aligns the potions in the strip above); the total (white) ends 8 px left of the
+  slot, so it stays put while the room counts down. The room points hide once the room is banked.
+  Right of 608 is only the 32 px margin, too narrow for `+9999` at a readable size, hence the total
+  on the left. A void run shows a grey `SCORE: — (OPEN WORLD)` there instead. With Debug info on,
+  a total of five or more digits can touch the end of the debug readout's second line.
+- Map selector (`src/ui/map-browser.ts`): each map row and favourite shows its best at the row's
+  end in green; the Maps panel redraws the lists each time it opens.
