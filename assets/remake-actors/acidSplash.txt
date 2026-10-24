@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "hydra1_fire",
 #volume: 40,
-#volley: [#chargePerShot: 5, #maxShots: 8, #rangeFactor: 1.5, #damageMultiplier: 1.68, #spread: #random, #spreadMinDeg: 25, #spreadMaxDeg: 60, #staggerTicks: 2, #speedJitter: 0.15]
+#volley: [#chargePerShot: 5, #maxShots: 8, #rangeFactor: 2.65, #damageMultiplier: 1.68, #spread: #random, #spreadMinDeg: 15, #spreadMaxDeg: 50, #staggerTicks: 2, #speedJitter: 0.15]
 ],
 #character: #acidSplash,
 #collectSound: "collect_powerup_01",

@@ -647,3 +647,6 @@ Remake decisions (owner, 2026-10-25):
   layout that had been hand-edited): longbow, dragon fire and boulder lob left of the first batch in
   the row below Merlin, dark rock, poison smoke, acid splash and lightning right of it; bunny lob,
   skull toss, frost burst, ice boulder, blue flame and laser in the top row.
+- **Acid and laser retune (owner, 2026-10-25):** acid rangeFactor 2.65 (about 255 px, almost 2x),
+  fan 15-50, landed splash 15 ticks; laser chargeSpeed x0.7 and 5 at most (chargePerShot 8.4, full
+  charge still at tier 18). Frost burst / ice boulder freezes and lightning's push stay original.

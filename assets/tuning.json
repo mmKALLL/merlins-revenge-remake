@@ -165,5 +165,8 @@
   },
   "blueFlame": {
     "landedTicks": 15
+  },
+  "acid": {
+    "landedTicks": 15
   }
 }

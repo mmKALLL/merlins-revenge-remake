@@ -21,14 +21,16 @@ second batch".
 
 Dropped: lizard and ostrich eggs (they hatch units: the open question below).
 
-Open questions for the owner:
-- Should the hatched units fight for Merlin, like a summon? (Eggs are not built until this is decided.)
-- Skull toss is built as a plain, solid volley (5 heads, power 1, 2.5x the thrower's damage). Anything sillier?
-- Acid and laser now differ by range (about 130 px against 450), fan (wide random against narrow
-  even) and the laser's pierce. Enough?
-- Frost burst and ice boulder keep the original freeze: about 6-12 s of halved speed per hit, far
-  longer than the blue flame's chill. Keep, or shorten (a volley `#chill`-style override would do it)?
-- Lightning's push is huge (power 3.5 at speed 16): enemies fly across the room. Intended?
+Owner's answers (2026-10-25):
+- Eggs: build them; the hatched units fight for Merlin (as allies, like a summon). Not built yet.
+- Frost burst and ice boulder keep the original freeze; lightning keeps its big push.
+- Acid: almost 2x the range (rangeFactor 2.65, about 255 px), fan 15-50 (was 25-60), and its landed
+  splash stays 15 ticks (was 30, `landedTicks` in `assets/tuning.json`).
+- Laser (pierce maybe OP): charge 30% slower (chargeSpeed 0.1815) and 5 at most (was 6), the full
+  charge still at tier 18 (chargePerShot 8.4).
+
+Open: skull toss is a plain, solid volley (5 heads, power 1, 2.5x the thrower's damage); anything
+sillier can come later.
 
 ## The draft (as reviewed)
 
