@@ -29,11 +29,14 @@ export const VOLLEY_SCROLL_ART: readonly VolleyScrollArt[] = [
 /** The plain scroll every volley scroll is recoloured from, and the icon whose disc is recoloured. */
 const BASE_SCROLL = 'sprites/healBlast/anm_healBlast_stand_1_01.png'
 const BASE_ICON = 'hud/weapon-selector/energyPulseSpell_ws.png'
-/** Where the mini projectile sits: the scroll's open face, the icon's disc (centre and the box it fits in). */
-const SCROLL_FACE = { cx: 9, cy: 8, w: 9, h: 7 }
-const ICON_DISC = { cx: 9, cy: 8, w: 8, h: 8 }
-/** A source pixel counts as drawn in a downscaled pixel when it covers this share of it. */
-const COVERAGE = 0.35
+/**
+ * Where the mini projectile sits: the scroll's open face, the icon's disc (centre and the box it fits
+ * in). The face's box reaches one px further left and up than its centre's right and bottom side.
+ */
+const SCROLL_FACE = { cx: 9, cy: 8, w: 10, h: 8, coverage: 0.25 }
+const ICON_DISC = { cx: 9, cy: 8, w: 8, h: 8, coverage: 0.35 }
+/** A projectile at least this much longer than tall is turned 45 degrees (pointing down-right) on the scroll, to fill its face. */
+const LONG_ASPECT = 1.5
 /** The scroll keeps its lightness when tinted: brightness x colour x this. */
 const TINT_LIFT = 1.1
 
@@ -69,10 +72,8 @@ function iconWithDisc(base: PNG, colour: Rgb): PNG {
   return out
 }
 
-interface Pixels { w: number; h: number; at: (x: number, y: number) => [number, number, number] | null }
-
-/** The frame's drawn pixels cut to their bounding box and shrunk (by area) to fit w x h. */
-function miniature(frame: PNG, fit: { w: number; h: number }): Pixels {
+/** The frame's drawn bounding box. */
+function drawnBox(frame: PNG): { left: number; top: number; right: number; bottom: number } {
   let [left, top, right, bottom] = [frame.width, frame.height, 0, 0]
   for (let y = 0; y < frame.height; y++) {
     for (let x = 0; x < frame.width; x++) {
@@ -83,6 +84,42 @@ function miniature(frame: PNG, fit: { w: number; h: number }): Pixels {
       bottom = Math.max(bottom, y + 1)
     }
   }
+  return { left, top, right, bottom }
+}
+
+/** The frame turned 45 degrees clockwise (a projectile pointing right then points down-right), nearest pixel. */
+function turned45(frame: PNG): PNG {
+  const side = Math.ceil((frame.width + frame.height) / Math.SQRT2) + 2
+  const out = new PNG({ width: side, height: side })
+  const [cx, cy] = [frame.width / 2, frame.height / 2]
+  const c = Math.SQRT1_2
+  for (let y = 0; y < side; y++) {
+    for (let x = 0; x < side; x++) {
+      // back through the inverse turn to the source pixel
+      const [dx, dy] = [x + 0.5 - side / 2, y + 0.5 - side / 2]
+      const sx = Math.floor(cx + dx * c + dy * c)
+      const sy = Math.floor(cy - dx * c + dy * c)
+      if (sx < 0 || sy < 0 || sx >= frame.width || sy >= frame.height) continue
+      frame.data.copy(out.data, (y * side + x) * 4, (sy * frame.width + sx) * 4, (sy * frame.width + sx) * 4 + 4)
+    }
+  }
+  return out
+}
+
+/** The projectile as painted on the scroll: a long one turned 45 degrees to use the face's diagonal. */
+function scrollPose(frame: PNG): PNG {
+  const box = drawnBox(frame)
+  return box.right - box.left >= LONG_ASPECT * (box.bottom - box.top) ? turned45(frame) : frame
+}
+
+interface Pixels { w: number; h: number; at: (x: number, y: number) => [number, number, number] | null }
+
+/**
+ * The frame's drawn pixels cut to their bounding box and shrunk (by area) to fit w x h; a downscaled
+ * pixel is drawn when its source pixels cover `coverage` of it (lower on the scroll keeps an arrow's 1 px shaft).
+ */
+function miniature(frame: PNG, fit: { w: number; h: number; coverage: number }): Pixels {
+  const { left, top, right, bottom } = drawnBox(frame)
   const sw = right - left
   const sh = bottom - top
   const k = Math.min(1, fit.w / sw, fit.h / sh)
@@ -103,7 +140,7 @@ function miniature(frame: PNG, fit: { w: number; h: number }): Pixels {
         for (let c = 0; c < 3; c++) sum[c]! += frame.data[o + c]!
       }
     }
-    if (drawn === 0 || drawn / cells < COVERAGE) return null
+    if (drawn === 0 || drawn / cells < fit.coverage) return null
     return [Math.round(sum[0]! / drawn), Math.round(sum[1]! / drawn), Math.round(sum[2]! / drawn)]
   }
   return { w, h, at }
@@ -206,7 +243,7 @@ export function writeVolleyScrollArt(assets: string): string[] {
     if (!existsSync(frameFile)) throw new Error(`volley ${art.key}: no fly frame ${frameFile}`)
     const frame = PNG.sync.read(readFileSync(frameFile))
     const scroll = tinted(base, art.colour)
-    paint(scroll, miniature(frame, SCROLL_FACE), SCROLL_FACE.cx, SCROLL_FACE.cy)
+    paint(scroll, miniature(scrollPose(frame), SCROLL_FACE), SCROLL_FACE.cx, SCROLL_FACE.cy)
     const ws = iconWithDisc(icon, art.colour)
     paint(ws, miniature(frame, ICON_DISC), ICON_DISC.cx, ICON_DISC.cy)
     const files: [string, PNG][] = [
