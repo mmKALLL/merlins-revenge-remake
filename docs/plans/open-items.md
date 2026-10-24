@@ -100,6 +100,11 @@ Work top down; the sections below hold the details.
 
 ## Player feedback
 
+- **No damage softlock (fixed 2026-10-25):** the owner's beta page paired the 02:51 deploy's code with
+  the 01:51 deploy's cached actors.json (no `minHurtboxPx`), so every hit area became NaN. The data
+  URLs now carry the build id (`__BUILD_ID__`, src/data/loaders.ts), and the page refuses to start on
+  data older than its code (`missingDefaultFields`).
+
 - **Bug (fixed, owner to confirm):** an enemy froze in place, unhittable and without a grave.
   Fixed paths: a reel-proof unit (tower, plant, skeleton head) killed mid-attack went back to
   `#walk` out of energy; units restored mid-attack by the C key slept on their attack strip; a

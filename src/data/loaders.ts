@@ -14,6 +14,9 @@ import type { MapEntry } from './map-tree'
 /** Converter output under public/, resolved against Vite's `base` so the build works from any path. */
 const GENERATED = `${import.meta.env.BASE_URL}generated/`
 
+/** A data URL with the build's id: a new deploy fetches its own data, never the browser's cached copy of an older one's. */
+const versioned = (url: string): string => `${url}${url.includes('?') ? '&' : '?'}v=${__BUILD_ID__}`
+
 export interface TilesetData {
   tileSize: { x: number; y: number }
   tilesPerRow: number
@@ -40,7 +43,7 @@ interface SpriteAtlas {
 export class MissingAssetError extends Error {}
 
 async function json<T>(url: string, check: (v: unknown) => v is T): Promise<T> {
-  const res = await fetch(url)
+  const res = await fetch(versioned(url))
   if (res.status === 404) throw new MissingAssetError(`${url} is missing (404); run pnpm assets:convert`)
   if (!res.ok) throw new Error(`failed to load ${url}: ${res.status}`)
   // The dev server answers unknown paths with the HTML index and status 200, so check the type too.
