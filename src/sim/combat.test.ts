@@ -264,6 +264,38 @@ describe('energy blast (combat notes §5)', () => {
     expect(releasedAt('shootNearest')).toEqual(near)
   })
 
+  describe('the nearest and farthest modes never aim at the mouse (remake, owner request)', () => {
+    const mouse = { x: 150, y: 220 }
+    const ahead = { x: 200, y: 144 } // 100 px ahead of Merlin at (100,144), facing right
+    const releasedAt = (s: SimState, shot: 'shootFarthest' | 'shootNearest') =>
+      stepSim(run(s, 3, { ...NO_INPUT, [shot]: true, mouseWorld: mouse }), { ...NO_INPUT, mouseWorld: mouse }).actors.find((x) => x.def === 'spell')!.targetPoint
+
+    it('fires straight ahead in a room without a hostile', () => {
+      const { s, enemyId } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+      const empty = { ...s, actors: s.actors.filter((a) => a.id !== enemyId) }
+      expect(releasedAt(empty, 'shootFarthest')).toEqual(ahead)
+      expect(releasedAt(empty, 'shootNearest')).toEqual(ahead)
+    })
+
+    it('in a continuous world fires at a hostile in the view, straight ahead while the only one is out of it', () => {
+      const s0 = createSim(grid(openMap([], { rooms: 4 })), defs, teams, anims, 1, { x: 100, y: 144 }, 'continuous')
+      const withEnemyAt = (pos: { x: number; y: number }): SimState => {
+        const [enemy, s1] = createActor(s0, 'goblinWarrior', pos)
+        return { ...s1, actors: [...s1.actors, { ...enemy, ...dummy }] }
+      }
+      const inView = { x: 400, y: 144 }
+      expect(releasedAt(withEnemyAt(inView), 'shootFarthest')).toEqual(inView)
+      expect(releasedAt(withEnemyAt({ x: 1500, y: 144 }), 'shootFarthest')).toEqual(ahead)
+      expect(releasedAt(withEnemyAt({ x: 1500, y: 144 }), 'shootNearest')).toEqual(ahead)
+    })
+
+    it('the mouse modes still fire at the mouse', () => {
+      const { s } = setup(WARRIOR, { x: 300, y: 144 }, { x: 100, y: 144 }, 1, dummy)
+      const s1 = stepSim(run(s, 3, { ...NO_INPUT, chargeHeld: true, mouseWorld: mouse }), { ...NO_INPUT, mouseWorld: mouse })
+      expect(s1.actors.find((x) => x.def === 'spell')!.targetPoint).toEqual(mouse)
+    })
+  })
+
   it('switching the Space mode mid-charge (F) keeps charging and releases at the new mode\'s target', () => {
     const near = { x: 200, y: 144 }
     const far = { x: 450, y: 200 }

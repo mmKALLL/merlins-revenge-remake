@@ -9,7 +9,7 @@ import { actorIn, sleeperIn, type Tick } from './tick-context'
 import { nearestHostileId, targetables } from './tick-ai'
 import { insideRect, viewRect, type Size } from './view'
 
-/** Release distance straight ahead when neither the mouse nor a hostile gives a target. */
+/** Release distance straight ahead when the aim's kind finds no target (no mouse position, no hostile in sight). */
 const AHEAD_PX = 100
 
 /** The input flag that holds each kind of charge; checked in this order when a charge starts. */
@@ -29,14 +29,14 @@ export function chargeKindFor(input: InputSnapshot): ChargeKind | null {
 
 /**
  * Where Merlin aims: the mouse (else straight ahead), the nearest hostile or the farthest hostile. In a continuous world (remake) only hostiles inside the play view count; in
- * rooms the room is the view. Without a hostile in sight every kind aims like the mouse.
+ * rooms the room is the view. Without a hostile in sight the nearest and farthest kinds aim
+ * straight ahead: the mouse is never their target (owner request).
  */
 export function aimPoint(t: Tick, p: ActorState, input: InputSnapshot, kind: ChargeKind | null, view: Size): Vec {
   const ahead = { x: p.pos.x + (p.facingLeft ? -AHEAD_PX : AHEAD_PX), y: p.pos.y }
-  const mouse = input.mouseWorld ?? ahead
-  if (kind === null || kind === 'mouse') return mouse
+  if (kind === null || kind === 'mouse') return input.mouseWorld ?? ahead
   const target = kind === 'farthest' ? farthestHostileOnScreen(t, p, view) : nearestHostileOnScreen(t, p, view)
-  return target ? { ...target.pos } : mouse
+  return target ? { ...target.pos } : ahead
 }
 
 /** A spell whose impact heals (the heal blast: #takeHeal). */
