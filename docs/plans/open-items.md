@@ -52,6 +52,13 @@ Work top down; the sections below hold the details.
 - **Low priority:** the energy -> health rename, random midbosses and bosses, Steve's lock-up, cutscenes,
   "army might be OP".
 
+## Random ideas (board, 2026-10-25)
+
+Credits screen (final_stand_2); a third biome per floor (unused signs in docs/notes/location-signs.json);
+Hades-like roguelite ideas; online leaderboard; enemy-only spell scrolls for Merlin; the Show army
+menu; the Morph spell; preview map ids for the new biomes; a debug key to jump to the next roguelite
+floor; roguelite snapshots that record the floor.
+
 ## To do
 
 - **Golden machine gun (pending reward).** `act_gmg` (an objScroll: `gmgOn` swaps the spell's
