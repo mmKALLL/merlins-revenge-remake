@@ -71,6 +71,7 @@ export type ActorMode =
   | 'die' | 'dead' | 'finish' | 'fly' | 'land' | 'explode'
   | 'collected' // a pickup showing its writing as it fades (objPowerUpWriting #writing)
   | 'fireBullets' // a released pulse or beam spell firing its bullets where it stands (modFireBullets)
+  | 'volley' // remake: a released volley spell firing its projectiles where it stands (src/sim/volley.ts)
   | 'primed' // an energy mine ready to go off (objMine)
   | 'beBuilt' // a building under construction (modConstruction): its strip only advances as it is built
   | 'build' // a builder at work (objAiCPUBuilder #build)
@@ -152,6 +153,10 @@ export interface ActorState {
   freezeTicks: number // modFreeze: frozen ticks left (walk speed halved); 0 = not frozen
   glowTeal: boolean // modFreeze: frozen by a glowTeal attack (drawn teal)
   beamFrom: Vec | null // a beam bullet: the spell it is stretched from (objBullet.setBeam)
+  /** remake: a released volley spell's projectiles, all and fired so far; null otherwise */
+  volley: { total: number; fired: number } | null
+  /** remake: a volley projectile hits the first hostile unit it touches, not only its target */
+  hitsFirstHostile: boolean
   /** modTeleport: an army unit arriving from the reserve or leaving for it; it acts as usual meanwhile, without tile collisions */
   teleport: 'in' | 'out' | null
   teleportAge: number // ticks into the teleport (TELEPORT_TICKS)

@@ -3,7 +3,7 @@
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
-import { MEDIKIT_OBJ_TYPE, MERLIN_SCROLLS, POTION_OBJ_TYPE, SCROLL_OBJ_TYPE } from './mr-pickup'
+import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLLS_WITH_ART, SCROLL_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'bullet' | 'explode' | 'none'
@@ -48,7 +48,9 @@ export interface AttackDef {
   payloadFunctionNonBlank: string[] // modSpellMultistage: the payload functions once a summon stage is reached (#same = payloadFunction, #none = nothing)
   residentTeamCategory: string | null // summon spells of team aldevar reserve slots on this team (modSpellMultistage.obtainPermissionOrHalt)
   chargeStartMax: number | null // calcAttackChargeStart: when set, the start is min(chargeStart, this) without mana_burst
-  releaseFunction: 'release' | 'fireBullets' // objSpell: fly to the target and explode, or stay and fire bullets (modFireBullets)
+  releaseFunction: 'release' | 'fireBullets' | 'volley' // objSpell: fly to the target and explode, or stay and fire bullets (modFireBullets); remake: fire a volley
+  /** remake: a volley spell's projectiles (releaseFunction #volley, src/sim/volley.ts); null for the engine's spells */
+  volley: VolleyDef | null
   chargePerUnit: number // modFireBullets: charge spent per bullet; depositMines: charge per mine
   fireDelay: number // modFireBullets: ticks between bullets (Counter length)
   beam: boolean // modFireBullets: performBeamAttack (a bullet at the target loc, stretched from the spell) instead of a fired bullet
@@ -60,6 +62,21 @@ export interface AttackDef {
   explodeSound: string | null // sound on spell impact
   volume: number // 0-255 volume of `sound` for melee and ranged attacks (structAttack #volume, default 150)
   chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
+}
+
+/**
+ * Remake volley spell (docs/notes/engine-mechanics-spells.md, Volley spells): on release the spell
+ * fires 1 + floor(charge / chargePerShot) of its attack's `bullet`, at most maxShots, toward the aim.
+ */
+export interface VolleyDef {
+  chargePerShot: number // charge each projectile after the first costs
+  maxShots: number // the most projectiles one volley fires (the charge max is held where it is reached)
+  rangeFactor: number // launch velocity x this: the caster's strength (#fullstrength) or distance / 10 (#proportional)
+  damageMultiplier: number // the projectiles' damage x this, on top of their own and Merlin's damageDealtMultiplier
+  staggerTicks: number // ticks between one projectile and the next
+  spreadMinDeg: number // total fan width at 1-2 projectiles
+  spreadMaxDeg: number // total fan width at maxShots, growing linearly in between
+  speedJitter: number // each projectile's speed x (1 +- up to this)
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -202,10 +219,10 @@ const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_
  * Whether an actor is drawn with its own atlas (`anm_<name>_*`). Abstract bases such as `bullet`
  * have a drawable objType but never set `#name`; only concrete actors that name themselves have art.
  * Pickups have no `#name`: a concrete one sets its `#character` (act_powerUp does not). Of the
- * scrolls only Merlin's, which the objects tilesets place, have art.
+ * scrolls only Merlin's, which the objects tilesets place, and the remake's volleys have art.
  */
 export function needsSprite(def: ActorDef): boolean {
-  if (def.objType === SCROLL_OBJ_TYPE) return MERLIN_SCROLLS.includes(def.key)
+  if (def.objType === SCROLL_OBJ_TYPE) return SCROLLS_WITH_ART.includes(def.key)
   if (PICKUP_OBJ_TYPES.has(def.objType)) return def.character !== null
   return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
 }
@@ -225,7 +242,11 @@ const ATTACK_DEFAULTS = {
   glowTeal: false, // not in structAttack; only the freezing attacks set it
   strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
   chargeFullTicks: null, // remake: no time cap on the charge, as in the engine
+  volley: null, // remake: no volley; the engine's spells fly, or fire bullets
 } as const
+
+/** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 3, spreadMaxDeg: 30, speedJitter: 0.05 }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -323,6 +344,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -505,6 +527,24 @@ function strikeCircleOf(a: Plain, ctx: string): AttackDef['strikeCircle'] {
   return { centre: vec(c, 'centre', ctx), radius: num(c, 'radius', ctx) }
 }
 
+/** Remake: the volley's fields over VOLLEY_DEFAULTS; required with releaseFunction #volley, null otherwise. */
+function volleyOf(a: Plain, ctx: string): VolleyDef | null {
+  const v = a['volley']
+  const volleyRelease = a['releaseFunction'] === 'volley'
+  if (v === null || v === undefined || v === 'none') return volleyRelease ? bad(ctx, 'attack.volley', 'a volley list with #releaseFunction #volley', v) : null
+  if (!isPlain(v)) return bad(ctx, 'attack.volley', 'a property list', v)
+  const f: Plain = { ...VOLLEY_DEFAULTS, ...v }
+  const c = `${ctx}: attack.volley`
+  return {
+    chargePerShot: num(f, 'chargePerShot', c), maxShots: num(f, 'maxShots', c), rangeFactor: num(f, 'rangeFactor', c),
+    damageMultiplier: num(f, 'damageMultiplier', c), staggerTicks: num(f, 'staggerTicks', c),
+    spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
+  }
+}
+
+/** objSpell's release: fly and explode, modFireBullets, or the remake's volley. */
+const releaseFunctionOf = (v: unknown): AttackDef['releaseFunction'] => (v === 'fireBullets' || v === 'volley' ? v : 'release')
+
 function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
   const a: Plain = { ...ATTACK_DEFAULTS, ...(rawAttack ?? {}) }
   if (a['idealAttackLoc'] === 'collisionLoc') a['idealAttackLoc'] = a['collisionLoc']
@@ -536,7 +576,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     payloadFunctionNonBlank: nonBlankPayload(symbolList(a, 'payloadFunctionNonBlank', ctx), symbolList(a, 'payloadFunction', ctx)),
     residentTeamCategory: strOrNull(a['residentTeamCategory']),
     chargeStartMax: a['chargeStartMax'] === 'none' ? null : num(a, 'chargeStartMax', ctx),
-    releaseFunction: a['releaseFunction'] === 'fireBullets' ? 'fireBullets' : 'release',
+    releaseFunction: releaseFunctionOf(a['releaseFunction']), volley: volleyOf(a, ctx),
     chargePerUnit: num(a, 'chargePerUnit', ctx), fireDelay: num(a, 'fireDelay', ctx),
     beam: a['beam'] === true, glowTeal: a['glowTeal'] === true, freezeMultiplier: num(a, 'freezeMultiplier', ctx),
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),

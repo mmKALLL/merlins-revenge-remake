@@ -165,6 +165,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     freezeTicks: 0,
     glowTeal: false,
     beamFrom: null,
+    volley: null,
+    hitsFirstHostile: false,
     teleport: null,
     teleportAge: 0,
   }
