@@ -129,8 +129,19 @@ export function iconStackPx(count: number): number {
   return icons === 0 ? 0 : ICON_PX + ICON_STEP * (icons - 1)
 }
 
-/** Remake: a volley spell's ball is at least as wide as its icon stack, so the icons sit inside it. */
-export const volleyBallPx = (ballPx: number, shown: number): number => (shown === 0 ? ballPx : Math.max(ballPx, iconStackPx(shown) + BALL_MARGIN))
+/**
+ * Remake: a volley spell's ball is at least as wide as its icon stack, so the icons sit inside it.
+ * `stackCount` may be fractional (the projectiles the charge is growing toward), so the ball grows
+ * smoothly while the icons themselves appear one by one.
+ */
+export function volleyBallPx(ballPx: number, stackCount: number): number {
+  if (stackCount <= 0) return ballPx
+  const icons = Math.min(stackCount, ICON_STACK_MAX)
+  return Math.max(ballPx, ICON_PX + ICON_STEP * (icons - 1) + BALL_MARGIN)
+}
+
+/** The projectile count a charge is growing toward, unrounded (1 at no charge, capped at maxShots). */
+export const smoothShots = (charge: number, v: VolleyDef): number => Math.min(v.maxShots, 1 + Math.max(0, charge) / v.chargePerShot)
 
 /** Projectiles a volley spell stands for: what its charge would fire, or once released what is left to fire; 0 for any other spell. */
 export function volleyShotsShown(mode: string, charge: number, v: VolleyDef | null, volley: { total: number; fired: number } | null): number {

@@ -10,7 +10,7 @@ import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { shotAngleDeg, volleyIconStack, volleyShots, volleySpreadDeg } from './volley'
+import { shotAngleDeg, smoothShots, volleyBallPx, volleyIconStack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
 const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, spread: 'random' }
@@ -184,3 +184,12 @@ describe('volleys in the sim', () => {
     expect(once).toBeCloseTo((1e6 - energyOf(s, id)) * 2)
   })
 })
+
+describe('the charging ball (remake)', () => {
+  it('grows smoothly with the charge while the icons step up one by one', () => {
+    const sizes = [0, 0.5, 1, 1.5, 1.99, 2.5, 3].map((charge) => volleyBallPx(0, smoothShots(charge, VOLLEY)))
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i]!).toBeGreaterThan(sizes[i - 1]!)
+    expect(volleyShots(1.99, VOLLEY)).toBe(1) // the icon count only steps at the threshold
+  })
+})
+

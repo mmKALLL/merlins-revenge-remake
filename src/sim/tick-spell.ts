@@ -23,7 +23,7 @@ import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-contex
 import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
-import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyBallPx, volleyLaunch, volleyShots, volleyShotsShown } from './volley'
+import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, smoothShots, turnAndScale, volleyBallPx, volleyLaunch, volleyShots, volleyShotsShown } from './volley'
 import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
@@ -44,7 +44,9 @@ export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef)
 /** The charging ball's diameter: charge x chargeSize, a volley's at least as wide as its icon stack (remake). */
 export function spellBallPx(spell: ActorState, casterAttack: AttackDef): number {
   const atk = spell.attack ?? casterAttack
-  return volleyBallPx(spell.charge * atk.chargeSize, volleyShotsShown(spell.mode, spell.charge, atk.volley, spell.volley))
+  // charging: the ball follows the charge smoothly; firing: it shrinks with the shots left
+  const stack = spell.mode === 'charge' && atk.volley ? smoothShots(spell.charge, atk.volley) : volleyShotsShown(spell.mode, spell.charge, atk.volley, spell.volley)
+  return volleyBallPx(spell.charge * atk.chargeSize, stack)
 }
 
 /**
