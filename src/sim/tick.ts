@@ -93,6 +93,7 @@ export function createSim(
     playerId: 0,
     restartRequested: false,
     mapComplete: false,
+    floorExited: false,
     pickups: NO_PICKUPS,
     arsenal: startingArsenal(defs['player']!),
     army: NO_ARMY,
@@ -194,11 +195,32 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   }
   p.prevPos = p.pos
   p.pos = loc
+  if (leftEndRoomUpward(t, p, cfg)) {
+    t.floorExited = true
+    t.events.push({ kind: 'floorExit' })
+  }
   p.vel = { x: pushed.wallX ? 0 : walkVel.x, y: pushed.wallY ? 0 : walkVel.y }
   const decayed = stepVelocity(knock, { x: 0, y: 0 }, 0, knockbackFriction(knock, dir, def))
   p.knockback = { x: pushed.wallX ? 0 : decayed.x, y: pushed.wallY ? 0 : decayed.y }
   faceAlong(p, dir.x)
   return room
+}
+
+/** How close (px) Merlin's collision rect must come to the map's top edge to count as leaving it. */
+const EXIT_MARGIN_PX = 2
+
+/**
+ * Remake (roguelite): Merlin, alive and with the exits open, pressed against the top edge of a
+ * markExit map's end room. The edge is the map's border (outside the map is solid, and a continuous
+ * world clamps to the map), so his rect stops at it and the margin catches him there.
+ */
+function leftEndRoomUpward(t: Tick, p: ActorState, cfg: SimConfig): boolean {
+  const s = t.s
+  const end = s.grid.map.endRoom
+  if (!s.grid.map.markExit || !end || t.floorExited || !s.exitsOpen || !isAlive(p)) return false
+  const here = s.grid.roomOfPoint(p.pos.x, p.pos.y)
+  if (here.x !== end.x || here.y !== end.y) return false
+  return p.pos.y + cfg.collisionRect.top < s.grid.roomRectPx(end).top + EXIT_MARGIN_PX
 }
 
 /**
@@ -369,6 +391,7 @@ function afterTick(t: Tick): SimState {
     arsenal: t.arsenal,
     army: t.army,
     restartRequested: t.restartRequested,
+    floorExited: t.floorExited,
   }
 }
 

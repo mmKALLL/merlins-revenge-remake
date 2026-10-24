@@ -31,6 +31,7 @@ export interface Tick {
   rng: Rng
   nextId: number
   restartRequested: boolean
+  floorExited: boolean
 }
 
 const workingCopy = (a: ActorState): ActorState => ({ ...a, ai: { ...a.ai } })
@@ -53,6 +54,7 @@ export function beginTick(s: SimState): Tick {
     rng: s.rng,
     nextId: s.nextId,
     restartRequested: s.restartRequested,
+    floorExited: s.floorExited,
   }
 }
 

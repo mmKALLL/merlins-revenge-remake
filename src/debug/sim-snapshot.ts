@@ -38,6 +38,7 @@ export interface SimSnapshot {
   playerId: number
   restartRequested: boolean
   mapComplete?: boolean // absent in snapshots made before map completion existed
+  floorExited?: boolean // absent in snapshots made before roguelite floors existed
   pickups?: PlayerPickups // absent in snapshots made before potions existed
   arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
   army?: ArmyReserve // likewise
@@ -111,6 +112,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     playerId: s.playerId,
     restartRequested: s.restartRequested,
     mapComplete: s.mapComplete,
+    floorExited: s.floorExited,
     pickups: s.pickups,
     arsenal: s.arsenal,
     army: s.army,
@@ -169,6 +171,7 @@ export function deserializeSim(
     playerId: snap.playerId,
     restartRequested: snap.restartRequested,
     mapComplete: snap.mapComplete ?? false,
+    floorExited: snap.floorExited ?? false,
     pickups: snap.pickups ?? NO_PICKUPS,
     arsenal: snap.arsenal ?? startingArsenal(defs['player']!),
     army: snap.army ?? NO_ARMY,

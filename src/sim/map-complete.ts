@@ -63,10 +63,11 @@ export function isEndRoom(s: SimState): boolean {
 /**
  * gameMaster.gameComplete, once: the `mapComplete` event for the presentation and
  * gGameCompleteSound. The engine then finishes every actor (finishGame); the port keeps them for
- * the fade out but stops their AI, casting and production (stepSim).
+ * the fade out but stops their AI, casting and production (stepSim). Remake: a roguelite floor
+ * (markExit) never completes; it ends when Merlin leaves its end room upward (floorExit).
  */
 export function completeMap(s: SimState): SimState {
-  if (s.mapComplete) return s
+  if (s.mapComplete || s.grid.map.markExit) return s
   return {
     ...s,
     mapComplete: true,

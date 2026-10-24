@@ -25,6 +25,8 @@ export interface MapDefinition {
   startRoom: Vec
   /** objMap.pEndRoom: clearing this room completes the map (gameMaster.teamDied); absent = #none */
   endRoom?: Vec
+  /** remake (roguelite floors): the end room is the floor's exit, left upward; its clearing never completes the map */
+  markExit?: boolean
   layers: LayerDefinition[]
   rooms: RoomDefinition[]
 }

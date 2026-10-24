@@ -185,6 +185,8 @@ export type SimEvent =
   | { kind: 'music'; track: string | null }
   /** the whole map cleared or the end room cleared (gameMaster.gameComplete); emitted once */
   | { kind: 'mapComplete' }
+  /** remake (roguelite): Merlin left a markExit map's end room through its top edge; emitted once */
+  | { kind: 'floorExit' }
 
 /** What potionMaster, modMedikit and modInvince keep for Merlin (engine-mechanics-potions.md). */
 export interface PlayerPickups {
@@ -221,6 +223,8 @@ export interface SimState {
   restartRequested: boolean
   /** gameMaster.gameComplete has run (map-complete.ts): units no longer act; the presentation takes over */
   mapComplete: boolean
+  /** remake (roguelite): Merlin has left the floor through its exit (the floorExit event) */
+  floorExited: boolean
   pickups: PlayerPickups
   arsenal: Arsenal // Merlin's weapons (modWeaponManager)
   army: ArmyReserve // armyMaster.pReserveArmy
