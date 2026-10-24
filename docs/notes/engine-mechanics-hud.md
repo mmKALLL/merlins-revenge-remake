@@ -132,3 +132,8 @@ The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.sco
   end in green, for the world mode of the player's current camera (`cfg.cameraMode`, which C and
   Settings camera keep current); the Maps panel redraws the lists each time it opens, so a camera
   change in Settings shows on the next opening.
+- **Difficulty (owner, 2026-10-25):** Settings, Difficulty: Hard (the game as tuned; the default),
+  Normal (Merlin's energy and maximum x1.25, 3 medikits at the start), Easy (x1.5, 9 medikits and 4
+  of each potion). A run takes the setting when it starts (`src/sim/difficulty.ts`); only Hard runs
+  count towards best scores and the roguelite statistics (an easier run's score is void, the grey
+  dash).

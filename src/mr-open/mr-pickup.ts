@@ -49,6 +49,9 @@ const POTION_EFFECTS: Record<string, { stat: PotionStat; inc: number }> = {
   walkSpeed: { stat: 'walkAcceleration', inc: 0.3 },
 }
 
+/** The potion characters, one per stat. */
+export const POTION_CHARACTERS: readonly string[] = Object.keys(POTION_EFFECTS)
+
 /** potionMaster's record of one potion character: how many Merlin has drunk (in order of the first). */
 export interface PotionCount { character: string; count: number }
 

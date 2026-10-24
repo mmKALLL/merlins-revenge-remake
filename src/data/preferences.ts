@@ -3,6 +3,7 @@
 // may be blocked; then a choice lasts for this page only.
 import { SPACE_MODES, type SpaceMode } from '../input/keyboard'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '../sim/difficulty'
 
 const ZOOM_KEY = 'mr-remake.zoom'
 const LAST_MAP_KEY = 'mr-remake.lastMap'
@@ -11,6 +12,7 @@ const RANDOM_MAPS_KEY = 'mr-remake.randomMaps'
 const DEBUG_INFO_KEY = 'mr-remake.debugInfo'
 const FRAME_RATE_KEY = 'mr-remake.frameRate'
 const SEED_IN_URL_KEY = 'mr-remake.seedInUrl'
+const DIFFICULTY_KEY = 'mr-remake.difficulty'
 
 /** Whether each run of a generated map (a restart too) gets a new layout, or keeps the one it has. */
 export const RANDOM_MAPS_MODES = ['newEachRun', 'sameLayout'] as const
@@ -86,3 +88,8 @@ export const saveDebugInfo = (on: boolean): void => write(DEBUG_INFO_KEY, on ? '
 export const loadLastMap = (): string | null => read(LAST_MAP_KEY) || null
 
 export const saveLastMap = (id: string): void => write(LAST_MAP_KEY, id)
+
+/** The stored difficulty, Hard when none (or an unknown one) is stored. */
+export const loadDifficulty = (): Difficulty => DIFFICULTIES.find((d) => d === read(DIFFICULTY_KEY)) ?? DEFAULT_DIFFICULTY
+
+export const saveDifficulty = (d: Difficulty): void => write(DIFFICULTY_KEY, d)

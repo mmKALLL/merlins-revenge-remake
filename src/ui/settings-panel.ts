@@ -5,6 +5,7 @@ import type { FrameRate, RandomMapsMode } from '../data/preferences'
 import type { SpaceMode } from '../input/keyboard'
 import type { CameraMode } from '../render/camera'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
+import type { Difficulty } from '../sim/difficulty'
 import { button, el, panel } from './dom'
 import type { MenuPanel } from './overlay'
 
@@ -23,6 +24,8 @@ export interface SettingsHost {
   setFrameRate(r: FrameRate): void
   debugInfo(): boolean // the fps / tick / room / position readout below the play view
   setDebugInfo(on: boolean): void
+  difficulty(): Difficulty // applies from the next run
+  setDifficulty(d: Difficulty): void
   resetRogueliteStats(): void
   resetBestScores(): void
   audio: AudioEngine
@@ -69,6 +72,35 @@ function choiceRow<T>(parent: HTMLElement, label: string, choices: Choice<T>[], 
 
 const ON_OFF: Choice<boolean>[] = [{ value: true, label: 'on' }, { value: false, label: 'off' }]
 
+const DIFFICULTY_CHOICES: Choice<Difficulty>[] = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'hard', label: 'Hard' },
+]
+
+/** The line under the difficulty choice: what it changes. */
+const DIFFICULTY_NOTES: Record<Difficulty, string> = {
+  hard: 'Only runs on Hard count towards best scores and statistics.',
+  normal: 'Start with +25% max HP and 3 medikits. Scores and statistics are not counted.',
+  easy: 'Start with +50% max HP, 9 medikits and 4 of each potion. Scores and statistics are not counted.',
+}
+
+/** The difficulty choice with its note underneath; the change applies from the next run. */
+function difficultyRow(parent: HTMLElement, get: () => Difficulty, set: (d: Difficulty) => void): () => void {
+  const note = el('p', 'hint setting-note')
+  const paintNote = () => { note.textContent = `${DIFFICULTY_NOTES[get()]} Applies from the next run.` }
+  const paintChoice = choiceRow(parent, 'Difficulty', DIFFICULTY_CHOICES, get, (d) => {
+    set(d)
+    paintNote()
+  })
+  parent.appendChild(note)
+  paintNote()
+  return () => {
+    paintChoice()
+    paintNote()
+  }
+}
+
 /** A button that runs `reset` once the player confirms `question`. */
 function resetRow(parent: HTMLElement, label: string, question: string, reset: () => void): void {
   const row = el('div', 'setting')
@@ -106,6 +138,7 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
   const { root, body } = panel('Settings', back)
   const { audio } = host
   const repaint = [
+    difficultyRow(body, host.difficulty, host.setDifficulty),
     choiceRow(body, 'Pixel size', ZOOM_SETTINGS.map(zoomChoice), host.zoom, host.setZoom),
     choiceRow(body, 'Camera', [
       { value: 'room', label: 'Single room', title: 'Room by room, as in the original' },

@@ -7,7 +7,7 @@ import { ARMY_SUMMON } from './mr-open/mr-army'
 import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
-import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
+import { framesPerSecond, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
 import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
 import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
@@ -28,6 +28,7 @@ import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting }
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
 import { carryOver, withFullEnergy } from './sim/carry-over'
+import { countsForRecords, withDifficultyDefs, withDifficultyStart, type Difficulty } from './sim/difficulty'
 import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
 import { collectedScrolls, holdsScroll } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
@@ -154,6 +155,8 @@ interface Shell {
   running: () => boolean
   /** Whether a restart of a generated map builds a new layout (Settings, Random maps). */
   newLayoutEachRun: () => boolean
+  /** The difficulty setting; a run takes it when it starts. */
+  difficulty: () => Difficulty
   /** Frames a second to draw (Settings, Frame rate); null: every display refresh. */
   targetFps: () => number | null
   /** The on-screen touch controls, when shown (their weapon button shows the current weapon). */
@@ -168,6 +171,8 @@ interface Shell {
   recordRunStart: () => void
   /** Roguelite: counts a run's end on `floor` (0 = the first) and gives the statistics with it. */
   recordRunEnd: (floor: number, won: boolean) => RogueliteStats
+  /** Roguelite: the statistics as they stand (a run that does not count leaves them unchanged). */
+  rogueliteStats: () => RogueliteStats
   /** Roguelite: pauses on the run summary (its spells drawn by `art`) until New run or Main menu. */
   showRunSummary: (summary: RunSummary, art: SpriteArt) => void
 }
@@ -258,10 +263,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     return { grid, startPos: findStartPos(grid, playerTile) }
   }
   let world = worldOf(map)
-  let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
+  // the run's difficulty, taken from the setting as each run starts: Merlin's energy, his head start, and whether it counts
+  let runDifficulty = shell.difficulty()
+  const runDefs = () => withDifficultyDefs(defs, runDifficulty)
+  const firstSim = (runSim: number, startPos: Vec, mode: WorldMode) => withDifficultyStart(createSim(world.grid, runDefs(), teams, anims, runSim, startPos, mode), runDifficulty)
+  const recordsCount = () => countsForRecords(runDifficulty)
+  let sim = firstSim(seed, world.startPos, worldModeFor(cfg.cameraMode))
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
   let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
-  if (run) shell.recordRunStart()
+  if (run && recordsCount()) shell.recordRunStart()
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -288,12 +298,13 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       world = worldOf(mapFor(pageSeed))
       scene.invalidateTiles()
     }
+    runDifficulty = shell.difficulty()
     if (run) {
       run = startRun(pageSeed)
-      shell.recordRunStart()
+      if (recordsCount()) shell.recordRunStart()
     }
     buildingFloor = false
-    sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
+    sim = firstSim(runSeed, world.startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }
@@ -344,7 +355,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     run = enterFloor(from, plan.floor, biome)
     world = worldOf(next)
     scene.invalidateTiles()
-    const fresh = createSim(world.grid, defs, teams, anims, plan.seed, world.startPos, worldModeFor(scene.cameraMode))
+    const fresh = createSim(world.grid, runDefs(), teams, anims, plan.seed, world.startPos, worldModeFor(scene.cameraMode))
     const carried = carryOver(sim, fresh)
     sim = arrivalHeals(reward) ? withFullEnergy(carried) : carried
     audio.handle(sim.events) // the new floor's start music
@@ -354,7 +365,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   let endedStats: RogueliteStats | null = null
   const finishRun = (from: RunState, status: 'won' | 'dead') => {
     run = endRun(from, status)
-    endedStats = shell.recordRunEnd(from.floor, status === 'won')
+    endedStats = recordsCount() ? shell.recordRunEnd(from.floor, status === 'won') : shell.rogueliteStats()
   }
   /** Roguelite: the summary of the run that has ended, over the original's credits music after a win (owner); a death's fades the music out. */
   const showRunSummary = () => {
@@ -543,6 +554,7 @@ function main(): void {
   let game: Game | null = null
   let zoom: ZoomSetting = loadZoom(DEFAULT_ZOOM)
   let randomMaps = loadRandomMaps('newEachRun')
+  let difficulty = loadDifficulty()
   let frameRate = loadFrameRate('60')
   const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const pickPanel = floorPick()
@@ -565,6 +577,7 @@ function main(): void {
     input,
     running: () => game !== null && simRuns(state),
     newLayoutEachRun: () => randomMaps === 'newEachRun',
+    difficulty: () => difficulty,
     targetFps: () => framesPerSecond(frameRate),
     touch: touchControls,
     loading,
@@ -581,6 +594,7 @@ function main(): void {
     }),
     recordRunStart: () => void updateStats(withRunStarted),
     recordRunEnd: (floor, won) => updateStats((s) => withRunEnded(s, floor, won)),
+    rogueliteStats: () => rogueliteStats,
     showRunSummary: (summary, art) => {
       summaryPanel.open(summary, art)
       dispatch({ kind: 'runEnded' })
@@ -627,6 +641,11 @@ function main(): void {
       setRandomMaps: (m) => {
         randomMaps = m
         saveRandomMaps(m)
+      },
+      difficulty: () => difficulty,
+      setDifficulty: (d) => {
+        difficulty = d
+        saveDifficulty(d)
       },
       seedInUrl: () => seedInUrl,
       setSeedInUrl: (on) => {
