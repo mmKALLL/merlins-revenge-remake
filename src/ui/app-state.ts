@@ -14,7 +14,7 @@ export type AppAction =
   | { kind: 'play' } // title -> playing (a game has started)
   | { kind: 'pause' } // playing -> the in-game menu (Esc, ☰; gameMaster.escapePressed)
   | { kind: 'resume' } // the in-game menu -> playing
-  | { kind: 'quit' } // the in-game menu -> title
+  | { kind: 'quit' } // the in-game menu, or a roguelite run's end -> title
   | { kind: 'open'; panel: Panel } // a sub-panel of the current menu
   | { kind: 'back' } // Esc in a menu: a sub-panel -> its menu; the in-game menu -> playing
 
@@ -32,7 +32,7 @@ export function nextAppState(s: AppState, a: AppAction): AppState {
     case 'resume':
       return s.screen === 'paused' ? PLAYING : s
     case 'quit':
-      return s.screen === 'paused' ? TITLE : s
+      return s.screen === 'title' ? s : TITLE
     case 'open':
       return s.screen === 'playing' ? s : { ...s, panel: a.panel }
     case 'back':

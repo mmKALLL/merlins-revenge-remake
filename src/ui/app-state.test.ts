@@ -11,6 +11,7 @@ describe('app state', () => {
     expect(paused).toEqual({ screen: 'paused', panel: 'main' })
     expect(nextAppState(paused, { kind: 'resume' })).toEqual(PLAYING)
     expect(nextAppState(paused, { kind: 'quit' })).toEqual(TITLE)
+    expect(nextAppState(PLAYING, { kind: 'quit' })).toEqual(TITLE) // a roguelite run's death
   })
 
   it('Esc backs out of a sub-panel, then resumes from the in-game menu', () => {
@@ -31,7 +32,7 @@ describe('app state', () => {
     expect(nextAppState(TITLE, { kind: 'pause' })).toEqual(TITLE)
     expect(nextAppState(TITLE, { kind: 'resume' })).toEqual(TITLE)
     expect(nextAppState(PLAYING, { kind: 'open', panel: 'maps' })).toEqual(PLAYING)
-    expect(nextAppState(PLAYING, { kind: 'quit' })).toEqual(PLAYING)
+    expect(nextAppState(TITLE, { kind: 'quit' })).toEqual(TITLE)
     expect(nextAppState(PLAYING, { kind: 'play' })).toEqual(PLAYING)
   })
 

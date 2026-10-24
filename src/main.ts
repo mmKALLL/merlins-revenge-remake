@@ -14,7 +14,8 @@ import { browserStore } from './data/favourites'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { energyLookup, type EnergyOf } from './gen/floor'
-import { currentMapId, generateMap, generateMapSteps, isGeneratedMapId } from './gen/generated-maps'
+import { ROGUELITE_MAP_ID, currentMapId, generateMap, generateMapSteps, isGeneratedMapId } from './gen/generated-maps'
+import { rogueliteFloorMap } from './gen/roguelite-biomes'
 import { runStepsAsync } from './gen/steps'
 import type { Vec } from './mr-open/mr-geometry'
 import { GAME_SCREEN } from './mr-open/mr-hud'
@@ -24,6 +25,7 @@ import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
+import { carryOver } from './sim/carry-over'
 import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
@@ -31,7 +33,8 @@ import { PLAY_VIEW } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
 import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
 import { helpPanel } from './ui/help-panel'
-import { loadingScreen } from './ui/loading-screen'
+import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
+import { endRun, enterFloor, nextFloorPlan, startRun, type RunState } from './run/run'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
 import { mapsPanel } from './ui/maps-panel'
 import { menuButton } from './ui/menu-button'
@@ -148,6 +151,10 @@ interface Shell {
   targetFps: () => number | null
   /** The on-screen touch controls, when shown (their weapon button shows the current weapon). */
   touch: TouchControls | null
+  /** The loading screen, shown again while a roguelite run builds its next floor. */
+  loading: LoadingScreen
+  /** Back to the title screen (a roguelite run's death ends the run there). */
+  quitToTitle: () => void
 }
 
 /** A weapon's selector icon as a URL (the touch weapon button). */
@@ -225,6 +232,9 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   }
   let world = worldOf(map)
   let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
+  // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
+  let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
+  let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
   let pageSeed = seed
@@ -243,14 +253,53 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
     const newLayout = loaded === null && shell.newLayoutEachRun()
     runSeed = seedChoice === 'same' && !newLayout ? pageSeed : nextRunSeed(runSeed)
-    if (newLayout) {
-      pageSeed = runSeed
+    if (newLayout) pageSeed = runSeed
+    // a roguelite run starts again on its first floor, whichever floor it had reached
+    if (newLayout || run) {
       world = worldOf(mapFor(pageSeed))
       scene.invalidateTiles()
     }
+    if (run) run = startRun(pageSeed)
+    buildingFloor = false
     sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
+  }
+  /**
+   * Roguelite: Merlin has left the floor's exit. The next floor is built (the loading screen shows
+   * the progress) and its fresh sim takes his record over; after the last floor the run is won.
+   * Slice 1 takes each floor's first biome; the pick screen comes in slice 2.
+   */
+  const advanceFloor = async (): Promise<void> => {
+    if (!run) return
+    const plan = nextFloorPlan(run)
+    if (plan === 'won') {
+      run = endRun(run, 'won')
+      ending = startEndSequence()
+      return
+    }
+    const from = run
+    const biome = plan.options[0]!
+    buildingFloor = true
+    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf), {
+      onProgress: (f) => shell.loading.update('Building the next floor', f),
+      pause: nextFrame,
+      sliceMs: BUILD_SLICE_MS,
+    })
+    shell.loading.hide()
+    if (run !== from) return // the run was restarted meanwhile
+    run = enterFloor(from, plan.floor, biome)
+    world = worldOf(next)
+    scene.invalidateTiles()
+    sim = carryOver(sim, createSim(world.grid, defs, teams, anims, plan.seed, world.startPos, worldModeFor(scene.cameraMode)))
+    audio.handle(sim.events) // the new floor's start music
+    buildingFloor = false
+  }
+  /** Roguelite: a death ends the run; there is no restart of the floor. */
+  const endRunInDeath = () => {
+    if (run?.status !== 'playing') return
+    run = endRun(run, 'dead')
+    shell.quitToTitle()
   }
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
@@ -329,7 +378,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     if (input.takeCameraToggle()) setCamera(scene.cameraMode === 'room' ? 'follow' : 'room')
     if (input.takeMiniMapToggle()) scene.toggleMiniMap()
     if (input.takeWeaponSelector()) scene.openWeaponSelector(pointerStage() ?? playerStage(), sim.tick)
-    for (let i = 0; i < ticks; i++) {
+    for (let i = 0; i < ticks && !buildingFloor; i++) {
       if (ending) {
         const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
         ending = r.seq
@@ -342,8 +391,18 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       audio.handle(sim.events) // every tick stepped this frame, not just the last
       recordBest()
       if (sim.mapComplete) ending = startEndSequence()
-      // the player died: start the map again with the loaded assets and a fresh seed
-      if (sim.restartRequested) restart()
+      if (run && sim.events.some((e) => e.kind === 'floorExit')) {
+        advanceFloor().catch((e: unknown) => showError(e, mapId))
+        break
+      }
+      if (sim.restartRequested) {
+        if (run) {
+          endRunInDeath()
+          break
+        }
+        // the player died: start the map again with the loaded assets and a fresh seed
+        restart()
+      }
     }
     scene.musicTrack = audio.track
     scene.draw(sim, alpha, fps, mouse, pointerStage())
@@ -407,6 +466,11 @@ function main(): void {
     newLayoutEachRun: () => randomMaps === 'newEachRun',
     targetFps: () => framesPerSecond(frameRate),
     touch: touchControls,
+    loading,
+    quitToTitle: () => {
+      rememberParam('map', null) // a reload shows the title screen too
+      dispatch({ kind: 'quit' })
+    },
   }
 
   const back = () => dispatch({ kind: 'back' })
@@ -423,10 +487,7 @@ function main(): void {
         game?.restart('same')
         dispatch({ kind: 'resume' })
       },
-      quit: () => {
-        rememberParam('map', null) // a reload shows the title screen too
-        dispatch({ kind: 'quit' })
-      },
+      quit: shell.quitToTitle,
     }, () => game?.mapId ?? ''),
     maps: mapsPanel(mapToPlay(), back, scoreModeShown),
     settings: settingsPanel({
