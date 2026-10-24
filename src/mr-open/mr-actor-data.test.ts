@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { resolveActors, type Plain } from './mr-actor-data'
+import { missingDefaultFields, resolveActors, type Plain } from './mr-actor-data'
 
 function loadFiles(): Record<string, string> {
   const out: Record<string, string> = {}
@@ -138,5 +138,15 @@ describe('resolveActors', () => {
   it('accepts CRLF line endings', () => {
     const d = resolveActors({ x: '[#name: "act_x", #type: #field]\r\n[\r\n#objType: #objBullet,\r\n#name: "x"\r\n]\r\n' })
     expect(d['x']!.objType).toBe('objBullet')
+  })
+})
+
+describe('missingDefaultFields (stale converted data)', () => {
+  it('finds no missing field on a resolved definition, and names a default field an older one lacks', () => {
+    const defs = resolveActors({ 'act_actor.txt': '[#name: "act_actor", #type: #field]\n[#objType: #objActor]' })
+    const def = Object.values(defs)[0]!
+    expect(missingDefaultFields(def)).toEqual([])
+    const { minHurtboxPx: _gone, ...older } = def
+    expect(missingDefaultFields(older as typeof def)).toEqual(['minHurtboxPx'])
   })
 })

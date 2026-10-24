@@ -5,28 +5,27 @@ import type { MenuPanel } from './overlay'
 
 type Line = [keys: string, action: string]
 
+// owner: the game is meant for kids, so each line says what a key does in a few words
 const KEYBOARD: Line[] = [
-  ['WASD / arrow keys', 'move'],
-  ['E or left mouse button', 'hold to charge the current spell, release to fire at the mouse (a sword or punch swings while held)'],
-  ['Space', 'hold to charge, release to fire at the nearest enemy'],
-  ['1-9', 'pick the first to ninth spell or weapon Merlin holds (the sword and the energy punch count; the punch does not), in the order collected'],
-  ['Q', 'show the weapon palettes at the mouse for 2 s: spells above, punch and sword below; click one to pick it'],
-  ['F', 'switch what Space fires at between the nearest and the farthest enemy (Settings also offers the mouse cursor)'],
-  ['C', 'switch between the room camera and the follow camera'],
-  ['N', 'hide or show the mini-map (bottom right, shown while no enemy is near)'],
-  ['Esc', 'menu (pauses the game)'],
-  ['Enter', 'play the map again after it is complete'],
-  ['R', 'summon the whole reserve army at the nearest enemy (at the mouse in the mouse cursor Space mode); with the army out, send it all back into the reserve once no enemy is left near'],
-  ['K / M', 'debug cheats: kill the enemies on screen / one more medikit'],
+  ['WASD / arrows', 'walk'],
+  ['E / left click', 'charge and fire at the mouse'],
+  ['Space', 'charge and fire at enemies'],
+  ['F', 'nearest or farthest enemy'],
+  ['1-9', 'pick a spell'],
+  ['Q', 'show all spells'],
+  ['R', 'call or send home your army'],
+  ['C', 'switch camera'],
+  ['N', 'hide or show the map'],
+  ['Esc', 'pause menu'],
 ]
 
 const TOUCH: Line[] = [
-  ['Left half', 'press anywhere and drag to walk in that direction'],
-  ['Yellow button', 'hold to charge, let go to fire at the nearest enemy (or what the target button or Settings chose; the mouse mode aims at the nearest enemy without a mouse)'],
-  ['NEAR / FAR', 'tap to switch the yellow button between the nearest and the farthest enemy on screen'],
-  ['Weapon button', 'shows the current weapon; tap for the next one'],
-  ['Blue army button', 'as R: summon the whole reserve army at the nearest enemy; with the army out and no enemy left near, send it all back'],
-  ['☰', 'menu (pauses the game)'],
+  ['Left side', 'drag to walk'],
+  ['Yellow button', 'hold, then let go to fire'],
+  ['NEAR / FAR', 'nearest or farthest enemy'],
+  ['Weapon button', 'next spell'],
+  ['Blue button', 'call or send home your army'],
+  ['☰', 'pause menu'],
 ]
 
 function controls(title: string, lines: Line[]): HTMLElement {
@@ -39,9 +38,7 @@ function controls(title: string, lines: Line[]): HTMLElement {
 
 export function helpPanel(touch: boolean, back: () => void): MenuPanel {
   const { root, body } = panel('How to play', back)
-  const goal = el('p', '', 'Clear each room of enemies to open its exits; green exit arrows lead to rooms with no enemies left, red ones to rooms that still have some. ' +
-    'The map is complete once every room is clear. The bar at the bottom left is Merlin\'s health; ' +
-    'the map starts again when it runs out.')
+  const goal = el('p', '', 'Defeat the enemies in every room. Don\'t let your health bar run out!')
   const sections = [controls('Touch', TOUCH), controls('Keyboard and mouse', KEYBOARD)]
   body.append(goal, ...(touch ? sections : sections.reverse()))
   return { root }

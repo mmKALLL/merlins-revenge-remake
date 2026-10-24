@@ -36,7 +36,9 @@ export function titleScreen(actions: TitleActions): TitleScreen {
   credits.append(
     "Merlin's Revenge and the Merlin Open engine by Steve Riddett, ",
     link('The Metal Box', 'https://www.themetalbox.com'),
-    ', released under the GNU GPL. This browser remake is a port of that engine.',
+    ', released under the GNU GPL.',
+    document.createElement('br'),
+    'This browser remake is a port of that engine.',
   )
   root.append(
     titleHeading(),

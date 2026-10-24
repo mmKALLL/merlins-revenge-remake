@@ -1,7 +1,7 @@
 // Loads public/generated JSON and PNG (produced by tools/convert-assets.ts) into typed structures
 // and PixiJS textures. Tile and frame textures are sub-rectangles of one shared sheet texture.
 import { Assets, Rectangle, Texture } from 'pixi.js'
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import { missingDefaultFields, type ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { GOLDEN_MACHINE_GUN, SCROLLS_WITH_ART } from '../mr-open/mr-pickup'
@@ -124,7 +124,10 @@ export async function loadMap(id: string): Promise<MapDefinition> {
 /** Resolved actor definitions keyed by act_<key> name (tools/convert-assets.ts). */
 export async function loadActors(): Promise<Record<string, ActorDef>> {
   const actors = await json(`${GENERATED}actors.json`, isActors)
-  if (!actors['player']) throw new Error(`${GENERATED}actors.json has no "player" definition`)
+  const player = actors['player']
+  if (!player) throw new Error(`${GENERATED}actors.json has no "player" definition`)
+  const missing = missingDefaultFields(player)
+  if (missing.length > 0) throw new Error(`${GENERATED}actors.json is older than the game code (no ${missing.join(', ')}): run pnpm assets:convert and reload`)
   return actors
 }
 

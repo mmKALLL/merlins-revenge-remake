@@ -668,6 +668,15 @@ function naturalRawAttack(r: Plain, overlay: unknown, weapon: string | null): Pl
 }
 
 /**
+ * The fields every resolved definition has (the '*' defaults) that `def` lacks: converted data older
+ * than the code (public/generated not yet rebuilt by pnpm assets:convert), whose missing remake
+ * fields would read as undefined and turn hit areas or damage into NaN.
+ */
+export function missingDefaultFields(def: ActorDef): string[] {
+  return Object.keys(OBJECT_DEFAULTS['*']!).filter((k) => !(k in def))
+}
+
+/**
  * files: actor key (e.g. "goblinWarrior") -> raw text of act_<key>.txt.
  * tuning: optional deep overlay per actor key. Everything but `attack` is merged into the resolved
  * properties before the weapon is derived (so an overlay can swap `weapon`); `attack` is then merged

@@ -1,7 +1,8 @@
 // The menu overlay (#menu): shows one panel at a time over the page, moves the focus into it, and
-// lets the up and down arrow keys step between its controls (Tab works as usual). It scrolls like
+// lets the arrow keys or WASD step between its controls: up/left back, down/right on (Tab works as usual). It scrolls like
 // a normal page, also on phones. A panel with its own navigation takes the keys first (preventDefault).
 import { el } from './dom'
+import { navDirection } from './grid-nav'
 
 export interface MenuPanel {
   root: HTMLElement
@@ -9,8 +10,8 @@ export interface MenuPanel {
 }
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), a[href]'
-/** Controls that use the arrow keys themselves. */
-const keepsArrows = (t: EventTarget | null): boolean => t instanceof HTMLInputElement
+/** Controls that use the arrow (and letter) keys themselves: sliders and text fields, not checkboxes. */
+const keepsArrows = (t: EventTarget | null): boolean => t instanceof HTMLInputElement && t.type !== 'checkbox'
 
 export class MenuOverlay<K extends string> {
   private readonly root = el('div')
@@ -42,12 +43,13 @@ export class MenuOverlay<K extends string> {
   }
 
   private arrowKeys(e: KeyboardEvent): void {
-    if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.defaultPrevented || keepsArrows(e.target) || this.shown === null) return
+    const dir = navDirection(e)
+    if (dir === null || e.defaultPrevented || keepsArrows(e.target) || this.shown === null) return
     const items = [...this.panels[this.shown].root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((i) => i.offsetParent !== null)
     if (items.length === 0) return
     e.preventDefault()
     const at = items.indexOf(document.activeElement as HTMLElement)
-    const step = e.key === 'ArrowDown' ? 1 : -1
+    const step = dir === 'down' || dir === 'right' ? 1 : -1
     items[at < 0 ? 0 : (at + step + items.length) % items.length]!.focus()
   }
 }
