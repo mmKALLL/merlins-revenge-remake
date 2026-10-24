@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "quadranid_fire",
 #volume: 40,
-#volley: [#chargePerShot: 8.4, #maxShots: 5, #rangeFactor: 2, #damageMultiplier: 0.76, #spread: #even, #spreadMinDeg: 6, #spreadMaxDeg: 16, #staggerTicks: 1, #speedJitter: 0, #pierce: 2]
+#volley: [#chargePerShot: 6, #maxShots: 7, #rangeFactor: 2, #damageMultiplier: 0.76, #spread: #even, #spreadMinDeg: 6, #spreadMaxDeg: 16, #staggerTicks: 1, #speedJitter: 0, #pierce: 2]
 ],
 #character: #laserVolley,
 #collectSound: "collect_powerup_01",
