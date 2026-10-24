@@ -23,7 +23,7 @@ import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-contex
 import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
-import { shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyLaunch, volleyShots } from './volley'
+import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyBallPx, volleyLaunch, volleyShots, volleyShotsShown } from './volley'
 import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
@@ -38,7 +38,13 @@ export const EXPLODE_TICKS = 8
 export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
   const at = chargeLoc(caster.pos, def, caster.facingLeft)
   spell.prevPos = spell.pos
-  spell.pos = { x: at.x, y: at.y - (spell.charge * (spell.attack ?? def.attack).chargeSize) / 2 }
+  spell.pos = { x: at.x, y: at.y - spellBallPx(spell, def.attack) / 2 }
+}
+
+/** The charging ball's diameter: charge x chargeSize, a volley's at least as wide as its icon stack (remake). */
+export function spellBallPx(spell: ActorState, casterAttack: AttackDef): number {
+  const atk = spell.attack ?? casterAttack
+  return volleyBallPx(spell.charge * atk.chargeSize, volleyShotsShown(spell.mode, spell.charge, atk.volley, spell.volley))
 }
 
 /**
@@ -184,9 +190,10 @@ function stepVolley(t: Tick, spell: ActorState): void {
 }
 
 /**
- * One projectile of a volley: the attack's bullet launched toward the release aim (volleyLaunch),
- * turned to its place in the fan and its speed jittered. It carries the bullet's attack with the
- * volley's damageMultiplier and hits the first hostile unit it touches.
+ * One projectile of a volley: the attack's bullet launched toward the release aim (volleyLaunch;
+ * one that explodes on landing only as fast as lands it on the aim), turned to its place in the fan
+ * and its speed jittered. It carries the bullet's attack with the volley's damageMultiplier and the
+ * spell's hit roles (dwellings too), and hits the first hostile unit it touches.
  */
 function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: VolleyDef, strength: number): void {
   const bulletDef = atk.bullet ? t.s.defs[atk.bullet] : undefined
@@ -194,9 +201,11 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const [angleU, r1] = nextRandom(t.rng)
   const [speedU, r2] = nextRandom(r1)
   t.rng = r2
-  const base = volleyLaunch(spell.pos, spell.targetPoint, strength, atk.firingType, volley)
-  const vel = turnAndScale(base, shotAngleDeg(spell.volley!.fired, spell.volley!.total, volley, angleU), shotSpeedFactor(volley, speedU))
-  const attack = { ...bulletDef.attack, damageMultiplier: bulletDef.attack.damageMultiplier * volley.damageMultiplier }
+  const launch = volleyLaunch(spell.pos, spell.targetPoint, strength, atk.firingType, volley)
+  const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(spell.pos, spell.targetPoint, launch, bulletDef.friction) : launch
+  const { fired, total } = spell.volley!
+  const vel = turnAndScale(base, shotAngleDeg(fired, total, volley, angleU), shotSpeedFactor(fired, volley, speedU))
+  const attack = { ...bulletDef.attack, hits: atk.hits, damageMultiplier: bulletDef.attack.damageMultiplier * volley.damageMultiplier }
   spawn(t, bulletDef.key, spell.pos, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true })
   playSound(t, atk.sound, atk.volume)
 }
