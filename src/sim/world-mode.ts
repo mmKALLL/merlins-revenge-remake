@@ -10,8 +10,8 @@ import { EMPTY_ROOM, withExitsEvaluated } from './tick'
 /** The same state played the other way: room by room, or as one continuous world. */
 export function switchWorldMode(s: SimState, mode: WorldMode): SimState {
   if (s.worldMode === mode) return s
-  // the continuous world voids the run's score (score.ts)
-  return mode === 'continuous' ? { ...toContinuous(s), score: VOID_SCORE } : toRooms(s)
+  // a run played in both modes has no score (score.ts)
+  return { ...(mode === 'continuous' ? toContinuous(s) : toRooms(s)), score: VOID_SCORE }
 }
 
 /**
