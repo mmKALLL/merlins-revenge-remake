@@ -71,7 +71,7 @@ export function runSummary(actions: RunSummaryActions, now: () => number = () =>
       ...fact('Floors reached', `${s.floorsReached} of ${ROGUELITE_FLOOR_COUNT}`),
       ...fact('Score', s.score === null ? 'none (camera switched)' : `${s.score} (best ${s.bestScore})`),
       ...fact('Time', s.time),
-      ...fact('Biomes', s.biomes.join(' → ')),
+      ...fact('Route', s.biomes.join(' → ')),
     )
     spells.replaceChildren(...(s.spells.length === 0 ? [el('span', 'hint', 'None')] : s.spells.map((scroll) => spellCard(scroll, art))))
     stats.replaceChildren(statsPanel(s.stats))
