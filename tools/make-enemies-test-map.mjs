@@ -16,13 +16,13 @@ const active = (room) =>
   })
 const objects = (placed) => grid((c, r) => placed.find((p) => p.c === c && p.r === r)?.id ?? 0)
 // merlin4Objects key indices
-const PLAYER = 1, GOBLIN_HUT = 20, GOBLIN_MAGE_HUT = 23, GOBLIN_MAGE = 24, BOW_ORC = 66, SWORD_ORC = 68, ORC_HOUSE = 69
+const PLAYER = 1, GOBLIN_HUT = 20, GOBLIN_MAGE_HUT = 23, GOBLIN_MAGE = 24, BOW_ORC = 66, SWORD_ORC = 68, ORC_HOUSE = 69, BABY_OSTRICH = 98
 const MUSIC_WOODS = 78, MUSIC_LAST_STAND = 77
 const rooms = [
   // goblin mages: two in the open, a mage hut in the far corner
   { num: 1, objs: [{ c: 2, r: 2, id: MUSIC_WOODS }, { c: 3, r: 5, id: PLAYER }, { c: 12, r: 3, id: GOBLIN_MAGE }, { c: 13, r: 7, id: GOBLIN_MAGE }, { c: 16, r: 5, id: GOBLIN_MAGE_HUT }] },
-  // orcs: two archers and a fighter
-  { num: 2, objs: [{ c: 13, r: 3, id: BOW_ORC }, { c: 14, r: 7, id: BOW_ORC }, { c: 11, r: 5, id: SWORD_ORC }] },
+  // orcs: two archers and a fighter; a baby ostrich (team monsters, who leave the orcs alone)
+  { num: 2, objs: [{ c: 13, r: 3, id: BOW_ORC }, { c: 14, r: 7, id: BOW_ORC }, { c: 11, r: 5, id: SWORD_ORC }, { c: 8, r: 7, id: BABY_OSTRICH }] },
   // a goblin hut (archers and warriors)
   { num: 3, objs: [{ c: 14, r: 5, id: GOBLIN_HUT }] },
   // the orc house (on team goblins in the data; bow and sword orcs)
