@@ -1,0 +1,38 @@
+[#name: "act_frostBurst", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #freezeBlast,
+#chargeColour: rgb(150,220,240),
+#chargeSize: 0.625,
+#chargeSpeed: 0.1778,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.2858,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #frostBurst,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "spell_release",
+#volume: 80,
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 2, #damageMultiplier: 1.24, #spread: #random, #spreadMinDeg: 20, #spreadMaxDeg: 42, #staggerTicks: 4, #speedJitter: 0.05]
+],
+#character: #frostBurst,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

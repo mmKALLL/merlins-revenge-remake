@@ -1,0 +1,38 @@
+[#name: "act_boulderLob", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #boulder,
+#chargeColour: rgb(160,140,110),
+#chargeSize: 0.625,
+#chargeSpeed: 0.2222,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.6667,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #boulderLob,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "boulder_fire",
+#volume: 100,
+#volley: [#chargePerShot: 12, #maxShots: 4, #rangeFactor: 1.5, #damageMultiplier: 1.25, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 60, #staggerTicks: 5, #speedJitter: 0.1]
+],
+#character: #boulderLob,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

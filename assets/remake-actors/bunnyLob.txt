@@ -1,0 +1,38 @@
+[#name: "act_bunnyLob", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #fangBunnyBabyBullet,
+#chargeColour: rgb(240,150,200),
+#chargeSize: 0.938,
+#chargeSpeed: 0.1481,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.1334,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #bunnyLob,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "fangBunnyBaby_fire",
+#volume: 40,
+#volley: [#chargePerShot: 4, #maxShots: 8, #rangeFactor: 1.25, #damageMultiplier: 1, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 70, #staggerTicks: 2, #speedJitter: 0.25]
+],
+#character: #bunnyLob,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

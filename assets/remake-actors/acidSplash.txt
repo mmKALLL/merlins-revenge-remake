@@ -1,0 +1,38 @@
+[#name: "act_acidSplash", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #acid,
+#chargeColour: rgb(190,230,60),
+#chargeSize: 0.75,
+#chargeSpeed: 0.1852,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.6667,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #acidSplash,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "hydra1_fire",
+#volume: 40,
+#volley: [#chargePerShot: 5, #maxShots: 8, #rangeFactor: 1.5, #damageMultiplier: 1.68, #spread: #random, #spreadMinDeg: 25, #spreadMaxDeg: 60, #staggerTicks: 2, #speedJitter: 0.15]
+],
+#character: #acidSplash,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]
