@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FavouritesStore } from './favourites'
 import {
-  loadRogueliteStats, NO_ROGUELITE_STATS, ROGUELITE_STATS_KEY, saveRogueliteStats, winRatio, withRunEnded, withRunStarted, type RogueliteStats,
+  loadRogueliteStats, NO_ROGUELITE_STATS, ROGUELITE_STATS_KEY, saveRogueliteStats, winRatio, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats,
 } from './roguelite-stats'
 
 const LAST_FLOOR = 3
@@ -39,10 +39,16 @@ describe('roguelite statistics', () => {
     expect(win(abandoned)).toMatchObject({ runs: 3, wins: 3, streak: 1, bestStreak: 2 })
   })
 
-  it('counts each finished run on its furthest floor', () => {
+  it('counts each death on its floor, and a win only as a win (not on the last floor)', () => {
     const s = win(death(death(death(NO_ROGUELITE_STATS, 0), 2), 0))
-    expect(s.floorsReached).toEqual([2, 0, 1, 1])
+    expect(s.floorsReached).toEqual([2, 0, 1, 0])
+    expect(s.wins).toBe(1)
     expect(winRatio(NO_ROGUELITE_STATS)).toBe(0)
+  })
+
+  it('a reset clears everything but a run in progress', () => {
+    const s = withRunStarted(death(win(NO_ROGUELITE_STATS), 1))
+    expect(withStatsReset(s)).toEqual({ ...NO_ROGUELITE_STATS, inProgress: true })
   })
 
   it('round-trips through storage; blocked or foreign storage gives none without throwing', () => {

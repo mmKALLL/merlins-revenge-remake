@@ -1,6 +1,6 @@
 // The roguelite statistics as shown on the run summary and under the title screen's Roguelite
 // button (docs/plans/2026-10-25-roguelite-mode-design.md, Statistics): the runs, wins and win
-// ratio, the streaks, and a small bar chart of the floors the finished runs reached.
+// ratio, the streaks, and a small bar chart of the floors the runs died on, with the wins beside them.
 import { winRatio, type RogueliteStats } from '../data/roguelite-stats'
 import { ROGUELITE_FLOOR_COUNT } from '../run/run'
 import { el } from './dom'
@@ -9,9 +9,15 @@ const PERCENT = 100
 /** The tallest bar of the floors chart (px). */
 const BAR_MAX_PX = 48
 
-/** Finished runs per furthest floor, one count for every floor of a run. */
+/** Runs that died on each floor, one count for every floor of a run. */
 const floorCounts = (stats: RogueliteStats): number[] =>
   Array.from({ length: ROGUELITE_FLOOR_COUNT }, (_, i) => stats.floorsReached[i] ?? 0)
+
+/** The chart's columns: each floor's deaths, then the wins (owner: a win is not counted on the last floor). */
+const chartColumns = (stats: RogueliteStats): { label: string; count: number; title: string }[] => [
+  ...floorCounts(stats).map((n, i) => ({ label: `F${i + 1}`, count: n, title: `${n} ${n === 1 ? 'run' : 'runs'} ended on floor ${i + 1}` })),
+  { label: 'Win', count: stats.wins, title: `${stats.wins} ${stats.wins === 1 ? 'win' : 'wins'}` },
+]
 
 /** The totals in two short lines: the runs, wins and ratio; the streak and the best. */
 export function statsLines(stats: RogueliteStats): string[] {
@@ -21,29 +27,29 @@ export function statsLines(stats: RogueliteStats): string[] {
 }
 
 /**
- * The furthest floor of each finished run, one bar per floor with its count over it; the bars share
- * one scale, the largest count filling the chart's height.
+ * The furthest floor of each finished run: one bar per floor for the runs that died there, then one
+ * for the wins, each with its count over it; the bars share one scale, the largest filling the height.
  */
 export function floorsChart(stats: RogueliteStats): HTMLElement {
   const chart = el('div', 'floors-chart')
   chart.setAttribute('role', 'img')
-  const counts = floorCounts(stats)
-  const most = Math.max(1, ...counts)
-  chart.setAttribute('aria-label', `Furthest floor reached: ${counts.map((n, i) => `floor ${i + 1}, ${n}`).join('; ')}`)
-  counts.forEach((n, i) => {
+  const columns = chartColumns(stats)
+  const most = Math.max(1, ...columns.map((c) => c.count))
+  chart.setAttribute('aria-label', `Furthest floor reached: ${columns.map((c) => `${c.label}, ${c.count}`).join('; ')}`)
+  for (const c of columns) {
     const column = el('div', 'floors-column')
-    column.title = `${n} ${n === 1 ? 'run' : 'runs'} ended on floor ${i + 1}`
+    column.title = c.title
     const bar = el('div', 'floors-bar')
-    bar.style.height = `${Math.round((n / most) * BAR_MAX_PX)}px`
-    column.append(el('span', 'floors-count', String(n)), bar, el('span', 'floors-label', `F${i + 1}`))
+    bar.style.height = `${Math.round((c.count / most) * BAR_MAX_PX)}px`
+    column.append(el('span', 'floors-count', String(c.count)), bar, el('span', 'floors-label', c.label))
     chart.append(column)
-  })
+  }
   return chart
 }
 
-/** The finished runs by their furthest floor, as a compact line: Furthest: F1 2 · F2 0 · ... */
+/** The finished runs by their furthest floor, as a compact line: Furthest: F1 2 · F2 0 · ... · Win 1 */
 export const floorsLine = (stats: RogueliteStats): string =>
-  `Furthest: ${floorCounts(stats).map((n, i) => `F${i + 1} ${n}`).join(' · ')}`
+  `Furthest: ${chartColumns(stats).map((c) => `${c.label} ${c.count}`).join(' · ')}`
 
 /** The totals over the floors chart. */
 export function statsPanel(stats: RogueliteStats): HTMLElement {

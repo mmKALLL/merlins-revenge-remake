@@ -11,7 +11,7 @@ export interface RogueliteStats {
   /** finished runs: deaths and wins, not abandoned ones */
   runs: number
   wins: number
-  /** by floor (0 = the first): the finished runs whose furthest floor it was */
+  /** by floor (0 = the first): the runs that died on it (wins are counted in `wins` only) */
   floorsReached: number[]
   streak: number
   bestStreak: number
@@ -25,11 +25,11 @@ export const NO_ROGUELITE_STATS: RogueliteStats = { runs: 0, wins: 0, floorsReac
 export const withRunStarted = (stats: RogueliteStats): RogueliteStats =>
   ({ ...stats, streak: stats.inProgress ? 0 : stats.streak, inProgress: true })
 
-/** A run ends on `floor` (0 = the first), in a win or a death. */
+/** A run ends on `floor` (0 = the first), in a win or a death; a death is counted on its floor. */
 export function withRunEnded(stats: RogueliteStats, floor: number, won: boolean): RogueliteStats {
   const floorsReached = [...stats.floorsReached]
   while (floorsReached.length <= floor) floorsReached.push(0)
-  floorsReached[floor]!++
+  if (!won) floorsReached[floor]!++
   const streak = won ? stats.streak + 1 : 0
   return {
     runs: stats.runs + 1,
@@ -40,6 +40,9 @@ export function withRunEnded(stats: RogueliteStats, floor: number, won: boolean)
     inProgress: false,
   }
 }
+
+/** The statistics cleared (Settings); a run in progress stays in progress, so its end still counts. */
+export const withStatsReset = (stats: RogueliteStats): RogueliteStats => ({ ...NO_ROGUELITE_STATS, inProgress: stats.inProgress })
 
 /** Wins per finished run, 0-1; 0 before the first. */
 export const winRatio = (stats: RogueliteStats): number => (stats.runs === 0 ? 0 : stats.wins / stats.runs)

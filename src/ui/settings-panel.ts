@@ -23,6 +23,8 @@ export interface SettingsHost {
   setFrameRate(r: FrameRate): void
   debugInfo(): boolean // the fps / tick / room / position readout below the play view
   setDebugInfo(on: boolean): void
+  resetRogueliteStats(): void
+  resetBestScores(): void
   audio: AudioEngine
 }
 
@@ -66,6 +68,16 @@ function choiceRow<T>(parent: HTMLElement, label: string, choices: Choice<T>[], 
 }
 
 const ON_OFF: Choice<boolean>[] = [{ value: true, label: 'on' }, { value: false, label: 'off' }]
+
+/** A button that runs `reset` once the player confirms `question`. */
+function resetRow(parent: HTMLElement, label: string, question: string, reset: () => void): void {
+  const row = el('div', 'setting')
+  const b = button(label, () => {
+    if (window.confirm(question)) reset()
+  })
+  row.append(b)
+  parent.appendChild(row)
+}
 
 /** A volume slider (0-100) with a mute box; returns its repaint. */
 function volumeRow(parent: HTMLElement, label: string, volume: () => number, setVolume: (v: number) => void, on: () => boolean, setOn: (on: boolean) => void): () => void {
@@ -117,5 +129,7 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
     volumeRow(body, 'Music', () => audio.current.musicVolume, (v) => audio.setMusicVolume(v), () => audio.current.music, (on) => audio.setMusic(on)),
     volumeRow(body, 'Sound effects', () => audio.current.effectsVolume, (v) => audio.setEffectsVolume(v), () => audio.current.effects, (on) => audio.setEffects(on)),
   ]
+  resetRow(body, 'Reset roguelite statistics', 'Reset the roguelite statistics (runs, wins, streaks)? This cannot be undone.', host.resetRogueliteStats)
+  resetRow(body, 'Reset scores', 'Reset the best scores of every map? This cannot be undone.', host.resetBestScores)
   return { root, onShow: () => { for (const r of repaint) r() } }
 }

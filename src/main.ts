@@ -9,8 +9,8 @@ import {
 } from './data/loaders'
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
-import { loadBestScores, saveBestScores, withRunScore } from './data/best-scores'
-import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, type RogueliteStats } from './data/roguelite-stats'
+import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
+import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
 import { browserStore } from './data/favourites'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
@@ -197,6 +197,8 @@ interface Game {
   restart(seedChoice: 'same' | 'fresh'): void
   /** Switches the camera, and the world mode with it, between ticks. */
   setCamera(camera: CameraMode): void
+  /** Forgets the best scores held in memory after Settings reset them, so a run cannot write them back. */
+  forgetBestScores(): void
 }
 
 /**
@@ -492,7 +494,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     scene.present()
   }
   requestAnimationFrame(frame)
-  return { mapId, scene, restart, setCamera }
+  const forgetBestScores = () => { bests = NO_BEST_SCORES }
+  return { mapId, scene, restart, setCamera, forgetBestScores }
 }
 
 /** Replaces the page with the error, keeping a map browser so another map can be picked. */
@@ -638,6 +641,11 @@ function main(): void {
         saveDebugInfo(on)
         rememberParam('debug', null) // the stored choice holds from now on, over a reload too
         game?.scene.setDebugInfo(on)
+      },
+      resetRogueliteStats: () => void updateStats(withStatsReset),
+      resetBestScores: () => {
+        saveBestScores(browserStore, NO_BEST_SCORES)
+        game?.forgetBestScores()
       },
       audio,
     }, back),

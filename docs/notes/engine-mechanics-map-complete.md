@@ -228,3 +228,7 @@ has no such mode; these are remake decisions.
   statistics for the page only. They show on the summary (a line and a bar chart per floor) and
   under the title screen's Roguelite button, which starts a run of
   `randomly_generated/tower-roguelite` in a fresh page (a fresh seed).
+- **Stats chart and resets (owner, 2026-10-25):** the furthest-floor chart counts deaths per floor and
+  has a separate Win bar (a win is not counted on floor 4). Settings has Reset roguelite statistics
+  and Reset scores, each after a confirm; a run in progress stays in progress, and the game forgets
+  its in-memory bests so a run cannot write the cleared ones back.
