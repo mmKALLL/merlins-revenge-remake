@@ -654,8 +654,11 @@ Remake decisions (owner, 2026-10-25):
   floor's own enemies (units, dwellings and their residents, bosses) fire its projectile: arrow rain,
   bolt fan, acid in the Goblin Forest; arrow rain, skull toss, laser in the Undead Marsh; dragon fire,
   boulder lob, dark rock, needle spray, acid in the Dragon Canyon; bomb volley, thunder burst, pin
-  storm, poison smoke, lightning, longbow, skull toss, arrow rain in the Magic Maze. Bunny lob, blue
-  flame, frost burst, ice boulder, lava lob and shuriken fan have no floor whose enemies fire them.
+  storm, poison smoke, lightning, longbow, skull toss, arrow rain in the Magic Maze. The roguelite
+  biomes: arrow rain, needle spray, bunny lob, shuriken fan in the Deep Forest; acid, laser, needle
+  spray in the Hydra Marsh; boulder lob, dark rock, lava lob, ice boulder, lightning in Golem
+  Mountain; longbow, bomb volley, thunder burst, pin storm, poison smoke, shuriken fan, lava lob in
+  the Golden Palace. Only blue flame and frost burst have no floor whose enemies fire them.
 - **Dragon fire pierces (owner, 2026-10-25):** `#pierce: 2` like the laser, damage x0.7
   (damageMultiplier 0.7).
 - **Golem lobs stronger (owner, 2026-10-25):** boulder lob and ice boulder x1.6 (damageMultiplier

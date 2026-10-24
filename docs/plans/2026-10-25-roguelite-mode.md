@@ -298,6 +298,19 @@ two-biome floor with a temporary table). Deviations from the steps below:
 
 ## Slice 3: the four new biomes
 
+**Done (2026-10-24).** Task 10 implemented and checked in muted headless Chrome (a run through Deep
+Forest, Hydra Marsh, Golem Mountain and Golden Palace; the pick screen at 1280x720, 844x390 and
+390x844 with no horizontal scroll). Deviations from the steps below:
+- The new biomes are `ROGUELITE_THEMES` (no generated map ids of their own); the theme tests run
+  over `THEMES` and them. A shared `biomePlan` builds their room plans.
+- All four are on the merlinOpen tiles (it holds every unit they need); the low-res "dark" pines
+  and trees (102, 92) fail the sharp-tiles test, so the Deep Forest is darker by its ground and its
+  eyed trees.
+- The biome cards show enemy icons (`FloorTheme.showcase`, which replaces `foes`), owner request.
+- Small changes to the drafts: shuriken ninjas are the ninjas' weak unit (so ninja rooms can fill
+  weak draws), ice rocks are weak in Golem Mountain, and the Golden Palace's "hostile palace guards"
+  are four guard factions in rooms of their own.
+
 ### Task 10: Deep Forest, Hydra Marsh, Golem Mountain, Golden Palace
 
 **Files:** modify `src/gen/themes.ts` (new `FloorTheme`s), `src/gen/roguelite-biomes.ts` (two per floor).

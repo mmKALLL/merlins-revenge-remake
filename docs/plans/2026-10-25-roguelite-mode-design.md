@@ -19,7 +19,8 @@ The Sorcerer's Tower (one stacked map) stays as it is.
   - The game pauses on a pick screen. The player picks the **next floor's biome** (one of 2) and a
     **reward** (one of 3) on the same screen, by keyboard, touch or click.
   - The choices become selectable 0.8 s after the screen opens, to prevent misclicks. Every option
-    shows what it holds: the biome's name and enemies, the spell itself, the exact potions.
+    shows what it holds: the biome's name and a row of its enemies' icons, the spell itself, the
+    exact potions.
   - Play continues on the new floor as soon as both choices are made. There is no way back to the
     previous floor.
 - **Run end.**
@@ -49,26 +50,63 @@ other reward type goes to the owner first.
 
 A new biome is data: a `FloorTheme` on an existing tileset with its own enemy list, room plan,
 dwellings, bosses and themed spells. Enemies may appear in several biomes where they fit, since
-theme and variety matter more than exclusivity. The drafts below are for the owner to review.
+theme and variety matter more than exclusivity. The owner approved the drafts as drafted; this is
+what was built (slice 3, `src/gen/themes.ts`). Each uses the tower floors' room plan (a midboss
+corner of generators, a "numerous weak" corner) on the merlinOpen tiles, its floor's level for the
+HP budgets, and shows 4 enemies on its pick card.
 
-- **Deep Forest** (forest tiles, denser woods, darker decorations).
-  - Weak: goblin warriors, bats, goblin archers.
-  - Mid: goblin heroes, goblin mages, plants, fang bunnies.
-  - Strong: tree-dwelling producers (bat trees, goblin mage huts), ninjas.
-  - Bosses: a fang bunny warren, a goblin hero war band.
-- **Hydra Marsh** (marsh tiles, more water).
-  - Weak: lizards, bats, cocoons.
+- **Deep Forest** (floor 1; dark grass, pines and green trees with many eyed "haunted" trees,
+  ferns and reeds; denser thickets and tree lines; music Woods of Evil).
+  - Weak: goblin warriors, goblin archers, bats; shuriken ninjas.
+  - Mid: goblin heroes, goblin mages, plants, fang bunny babies (2 a room), fang bunnies (1 a room).
+  - Strong: ninjas (2 a room). Dwellings: goblin huts (weak); bat trees, goblin mage huts and the
+    ninjas' mysterious clouds (strong, 1 a room).
+  - Midboss: a ninja hideout (a cloud, a ninja, a shuriken ninja) or a bat roost. Weak corner:
+    goblin raiders or a fang bunny litter.
+  - Bosses: a fang bunny warren (the portal and a fang bunny), a goblin hero war band (3 heroes,
+    3 warriors, a mage).
+  - Themed spells: army summon, mines, pulse, sword, heal; arrow rain, needle spray, bunny lob,
+    shuriken fan.
+- **Hydra Marsh** (floor 2; swamp ground with puddles everywhere, reed lines, swamp trees, ferns
+  and wet blue rocks; music Last Stand). No factions: its teams leave each other alone.
+  - Weak: lizards, bats. Dwellings: cocoons, bat trees.
   - Mid: lizard soldiers, plants, quadranids.
-  - Strong: hydras 1-3.
-  - Bosses: a hydra nest, a lizard war party.
-- **Golem Mountain** (canyon tiles, more rock).
-  - Weak: boulder monsters.
-  - Mid: dark golems, lava golems, ice rocks, vulture guards.
-  - Strong: double dark golems, four-armed golems.
-  - Dwellings: boulder caves and dark caves.
-  - Bosses: a golem forge, a vulture eyrie.
-- **Golden Palace** (golden palace tiles). The Golden Fort's mixed peaceful alliances become hostile
-  palace guards, sized to the floor-4 budget.
+  - Strong: hydras (2 a room), hydra 2s (1 a room); the hydra 3 leads the nest.
+  - Midboss: a quadranid hive or a bat roost. Weak corner: a lizard pack or a plant bed.
+  - Bosses: a hydra nest (hydra 3, hydra, 2 plants), a lizard war party (3 soldiers, 3 lizards).
+  - Themed spells: mines, arctic blast, C blast, pulse, heal, monster summon; acid, laser, needle
+    spray.
+- **Golem Mountain** (floor 3; grey stone ground, boulders, crags, dark and blue rocks and ice;
+  more and bigger rock patches, long walls and baffles; music Baroque Rock Techno).
+  - Weak: boulder monsters, ice rocks (moved from mid: 350 energy, a boulder monster's match).
+  - Mid: dark golems, vulture guards, lava golems (2 a room each).
+  - Strong: double dark golems, four-armed golems (1 a room each).
+  - Dwellings: boulder caves (weak), dark caves (strong, 1 a room).
+  - The lava golems are Scarlet's team, who brawl with the monsters' golems, so they hold rooms of
+    their own (with ice rocks, who leave both alone).
+  - Midboss: a golem quarry or fire and ice (2 lava golems, 2 ice rocks). Weak corner: boulder
+    rollers or an ice field.
+  - Bosses: a golem forge (four-armed golem, dark cave, 2 boulder monsters), a vulture eyrie
+    (3 vultures, 2 boulder monsters).
+  - Themed spells: energy beam, punch, arctic blast, C blast, sword; boulder lob, dark rock, lava
+    lob, ice boulder, lightning.
+- **Golden Palace** (floor 4; the Golden Fort's tiles and room shapes; music Electronic Merlin).
+  The fort's peaceful alliances of every floor's enemies become four hostile guard factions, each
+  holding rooms of its own (the usual 15 % of rooms mix them, and they brawl):
+  - Scarlet's guard: Scarlet warriors and archers (weak), Scarlet monks (mid), lava golems (strong).
+  - The dojo: karate guys, kung fu chickens (weak), speedy guys (mid), dojos.
+  - Ninjas: shuriken ninjas (weak), ninjas (mid), mysterious clouds.
+  - Court mages: bomb mages, thunder monks (weak), shrouders (mid), magic portals.
+  - Midboss: a golem guard (2 lava golems, a monk) or a ninja ambush. Weak corner: a palace guard
+    or dojo students.
+  - Bosses: Scarlet's throne (Scarlet, 2 warriors, 2 archers, a lava golem), dojo masters (3 speedy
+    guys, 2 karate guys, a dojo), court mages (2 shrouders, 2 bomb mages, 2 thunder monks, a portal).
+  - Themed spells: energy beam, punch, monster summon, C blast, army summon; longbow, bomb volley,
+    thunder burst, pin storm, poison smoke, shuriken fan, lava lob.
+
+Every unit of the drafts runs in the sim (checked: each one moves, fires or releases units). Left out:
+the fire lizard and fire dragon (the lizard's and the dragon's sprites, untinted) and the lava dark
+golem (the lava golem's twin, with no objects tile).
 
 ## Arrival
 

@@ -157,7 +157,19 @@ has no such mode; these are remake decisions.
   number keys, arrows or Tab and Enter, a tap or a click pick, and the floor is built as soon as
   both picks are made. The in-game menu cannot open while picking (Esc and the menu button do
   nothing), so the pick is never lost. Cards show the scroll's and potions' own `stand` and
-  `writing` frames (their in-game names: Max Blast, Quick Blast, Faster Charge, Speed Up).
+  `writing` frames (their in-game names: Max Blast, Quick Blast, Faster Charge, Speed Up). A biome
+  card shows its name over a row of 3-4 enemy icons (`FloorTheme.showcase`): each unit's first
+  `stand` frame (else `altStand`, `walk`) at the whole scale nearest 48 px, shrunk by the page to
+  one row; the card's label names them.
+- **Biomes** (`ROGUELITE_FLOORS` in `src/gen/roguelite-biomes.ts`). Each floor offers its tower
+  floor and one of the run's own biomes (`ROGUELITE_THEMES` in `src/gen/themes.ts`, no generated
+  map ids of their own): Goblin Forest or Deep Forest, Undead Marsh or Hydra Marsh, Dragon Canyon
+  or Golem Mountain, Magic Maze or Golden Palace. The new biomes are merlinOpen themes with the
+  tower floors' room plan (`biomePlan`), their own enemies, groups, bosses and themed spells; the
+  final lists are in the design doc's Biomes section. Factions keep teams that hate each other
+  apart: Deep Forest's ninjas and Golem Mountain's lava golems (team scarlet) hold rooms of their
+  own, and the Golden Palace's guards keep to Scarlet's, the dojo's, the ninjas' or the mages'
+  rooms (the usual 15 % of normal rooms mix them).
 - **Safe arrival** (owner rule; `FloorOptions.safeArrivalTiles`, `SAFE_ARRIVAL_TILES = 3` in
   `src/gen/roguelite.ts`). On a roguelite floor no unit or dwelling stands within 3 tiles (taxicab)
   of Merlin's start tile. The generator lays out the start room first so the other rooms know his

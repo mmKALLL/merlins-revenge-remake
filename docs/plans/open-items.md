@@ -25,8 +25,10 @@ Work top down; the sections below hold the details.
       5 potions of two types). A wizard ally in lieu of a spell is an idea; run any other reward
       types past the owner. Owner to decide: whether roguelite floors still place the usual
       start-room pickups (3 potions, a medikit and a scroll) on top of the rewards.
-    - **Alternative biomes:** 2-3 per floor with different enemy groups, e.g. deep forest; cave or
-      hydra marsh; fortress or golem mountain; golden palace.
+    - Slice 3 (the new biomes) done 2026-10-24: two biomes per floor (Goblin Forest or Deep
+      Forest, Undead Marsh or Hydra Marsh, Dragon Canyon or Golem Mountain, Magic Maze or Golden
+      Palace); the pick screen's biome cards show 4 enemy icons each. Owner to review the built
+      enemy lists (design doc, Biomes) and the Golden Palace reading of "hostile palace guards".
     - Slice 4 (location sign and safe arrival) done 2026-10-24: each floor's start room has a
       wooden board (the original sign art, its writing wiped) with the biome's name, off every
       exit's band and keeping the room connected; no unit or dwelling within 3 tiles (taxicab) of
