@@ -17,6 +17,8 @@ export interface SettingsHost {
   setSpaceMode(m: SpaceMode): void
   randomMaps(): RandomMapsMode
   setRandomMaps(m: RandomMapsMode): void
+  seedInUrl(): boolean // whether a generated map's seed goes into the page URL, to share or reload the layout
+  setSeedInUrl(on: boolean): void
   frameRate(): FrameRate
   setFrameRate(r: FrameRate): void
   debugInfo(): boolean // the fps / tick / room / position readout below the play view
@@ -96,6 +98,7 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
       { value: 'sameLayout', label: 'Same layout', title: 'Restarts keep the layout (Play from the title still builds a new one)' },
     ], host.randomMaps, host.setRandomMaps),
+    choiceRow(body, 'Seed in URL', ON_OFF, host.seedInUrl, host.setSeedInUrl),
     choiceRow(body, 'Frame rate', [
       { value: '60', label: '60 fps', title: 'Draws 60 frames a second, blending between the 30 game ticks' },
       { value: 'display', label: 'Display rate', title: 'Draws at every refresh of the display (120 Hz and up on some screens)' },

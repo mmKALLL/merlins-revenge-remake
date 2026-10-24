@@ -14,7 +14,8 @@ rooms (the sketch has 4x4).
   map from the menu drops the seed, so it is a new floor each time. Settings, Random maps: on New
   each run (default) every restart (after a death, after map complete, Restart map) regenerates
   the map from a fresh seed (`nextRunSeed`), rebuilds the grid and start position and updates
-  `?seed=`; Same layout only reseeds the sim on the same layout. The seed also seeds the sim. Every
+  `?seed=`; Same layout only reseeds the sim on the same layout. Settings, Seed in URL (on by
+  default; owner, 2026-10-25): off keeps `?seed=` out of the URL. The seed also seeds the sim. Every
   theme is listed in the converted maps index (`GENERATED_MAPS` in `src/gen/generated-maps.ts`), so
   the Maps menu offers `randomly_generated/1-goblin-forest`, `randomly_generated/2-undead-marsh`, `randomly_generated/3-dragon-canyon`
   `randomly_generated/4-magic-maze` and `randomly_generated/5-golden-fort` (numbered by difficulty, so the browser lists them in that order; the fort is not part of the tower), then

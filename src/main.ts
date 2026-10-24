@@ -7,7 +7,7 @@ import { ARMY_SUMMON } from './mr-open/mr-army'
 import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
-import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
+import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
 import { loadBestScores, saveBestScores, withRunScore } from './data/best-scores'
 import { browserStore } from './data/favourites'
@@ -75,9 +75,20 @@ function rememberParam(name: string, value: string | null): void {
   history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`)
 }
 
+/** Whether generated maps put their seed into the URL (a setting, on by default). */
+let seedInUrl = loadSeedInUrl()
+/** The current generated layout's seed, null before one is built. */
+let layoutSeedShown: number | null = null
+
+/** Records a generated layout's seed, in the URL too while seedInUrl is on. */
+function rememberSeed(layoutSeed: number): void {
+  layoutSeedShown = layoutSeed
+  rememberParam('seed', seedInUrl ? String(layoutSeed) : null)
+}
+
 /** A generated map for a seed; the seed goes into the URL (no reload) so the layout can be shared. */
 function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf): MapDefinition {
-  rememberParam('seed', String(layoutSeed))
+  rememberSeed(layoutSeed)
   return generateMap(mapId, layoutSeed, energyOf)
 }
 
@@ -87,7 +98,7 @@ const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimation
 
 /** generatedMapWithSeedInUrl, pausing now and then so the loading screen shows the progress (0..1); the same map. */
 function buildGeneratedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf, onProgress: (fraction: number) => void): Promise<MapDefinition> {
-  rememberParam('seed', String(layoutSeed))
+  rememberSeed(layoutSeed)
   return runStepsAsync(generateMapSteps(mapId, layoutSeed, energyOf), { onProgress, pause: nextFrame, sliceMs: BUILD_SLICE_MS })
 }
 
@@ -439,6 +450,12 @@ function main(): void {
       setRandomMaps: (m) => {
         randomMaps = m
         saveRandomMaps(m)
+      },
+      seedInUrl: () => seedInUrl,
+      setSeedInUrl: (on) => {
+        seedInUrl = on
+        saveSeedInUrl(on)
+        if (layoutSeedShown !== null) rememberSeed(layoutSeedShown)
       },
       frameRate: () => frameRate,
       setFrameRate: (r) => {

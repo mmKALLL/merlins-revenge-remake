@@ -10,6 +10,7 @@ const SPACE_MODE_KEY = 'mr-remake.spaceMode'
 const RANDOM_MAPS_KEY = 'mr-remake.randomMaps'
 const DEBUG_INFO_KEY = 'mr-remake.debugInfo'
 const FRAME_RATE_KEY = 'mr-remake.frameRate'
+const SEED_IN_URL_KEY = 'mr-remake.seedInUrl'
 
 /** Whether each run of a generated map (a restart too) gets a new layout, or keeps the one it has. */
 export const RANDOM_MAPS_MODES = ['newEachRun', 'sameLayout'] as const
@@ -62,6 +63,11 @@ export const loadFrameRate = (fallback: FrameRate): FrameRate =>
   FRAME_RATES.find((r) => r === read(FRAME_RATE_KEY)) ?? fallback
 
 export const saveFrameRate = (r: FrameRate): void => write(FRAME_RATE_KEY, r)
+
+/** Whether a generated map's seed goes into the page URL (on unless turned off). */
+export const loadSeedInUrl = (): boolean => read(SEED_IN_URL_KEY) !== 'off'
+
+export const saveSeedInUrl = (on: boolean): void => write(SEED_IN_URL_KEY, on ? 'on' : 'off')
 
 /**
  * Whether the debug readout shows: the `debug` URL parameter when given (`?debug` or `?debug=1` on,
