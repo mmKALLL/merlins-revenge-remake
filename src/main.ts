@@ -27,7 +27,7 @@ import { frameCanvas } from './render/dom-sprite'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
-import { carryOver } from './sim/carry-over'
+import { carryOver, withFullEnergy } from './sim/carry-over'
 import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
 import { collectedScrolls, holdsScroll } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
@@ -39,7 +39,7 @@ import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, ty
 import { helpPanel } from './ui/help-panel'
 import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
 import { endRun, enterFloor, nextFloorPlan, runTimeText, startRun, visitedBiomeNames, type RunState } from './run/run'
-import { rewardPickups, rewardPools, rollRewards } from './run/rewards'
+import { arrivalHeals, rewardPickups, rewardPools, rollRewards } from './run/rewards'
 import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt } from './ui/floor-pick'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
 import { runSummary, type RunSummary } from './ui/run-summary'
@@ -328,7 +328,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     const picked = await shell.pickFloor({ floorNumber: plan.floor + 1, biomes, rewards }, pickArt)
     if (run !== from) return // the run was restarted meanwhile
     const biome = plan.options[picked.biome]!
-    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf, rewardPickups(rewards[picked.reward]!)), {
+    const reward = rewards[picked.reward]!
+    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf, rewardPickups(reward)), {
       onProgress: (f) => shell.loading.update('Building the next floor', f),
       pause: nextFrame,
       sliceMs: BUILD_SLICE_MS,
@@ -339,7 +340,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     world = worldOf(next)
     scene.invalidateTiles()
     const fresh = createSim(world.grid, defs, teams, anims, plan.seed, world.startPos, worldModeFor(scene.cameraMode))
-    sim = carryOver(sim, fresh)
+    const carried = carryOver(sim, fresh)
+    sim = arrivalHeals(reward) ? withFullEnergy(carried) : carried
     audio.handle(sim.events) // the new floor's start music
     buildingFloor = false
   }

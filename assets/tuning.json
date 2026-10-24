@@ -8,6 +8,7 @@
     "damageDealtMultiplier": 2,
     "explosionsLinger": true,
     "medikitRestRate": 3,
+    "medikitPickupEnergy": 0,
     "activationAttackGraceTicks": 24,
     "frictionReelAgainstWalk": {
       "x": 30,

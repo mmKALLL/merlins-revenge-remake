@@ -20,11 +20,11 @@ describe('potions', () => {
 
 describe('medikits', () => {
   it('a medikit goes into stock and restores 25 at once; a maxikit restores full energy', () => {
-    const kit = collectMedikit(NO_MEDIKITS, 'medikit', 100, 200)
+    const kit = collectMedikit(NO_MEDIKITS, 'medikit', 100, 200, 25)
     expect(kit.energy).toBe(125)
     expect(medikitsHeld(kit.medikits)).toBe(1)
-    expect(collectMedikit(NO_MEDIKITS, 'medikit', 190, 200).energy).toBe(200)
-    const maxi = collectMedikit(NO_MEDIKITS, 'maxikit', 30, 200)
+    expect(collectMedikit(NO_MEDIKITS, 'medikit', 190, 200, 25).energy).toBe(200)
+    const maxi = collectMedikit(NO_MEDIKITS, 'maxikit', 30, 200, 25)
     expect(maxi).toEqual({ medikits: NO_MEDIKITS, energy: 200 })
   })
 

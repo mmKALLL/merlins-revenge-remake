@@ -143,7 +143,7 @@ describe('roguelite start pickups', () => {
     }
   }
 
-  it('lays out the starting kit on the first floor: a scroll, a medikit (no maxikit) and 5 potions of 2 types', () => {
+  it('lays out the starting kit on the first floor: a scroll, a medikit and 5 potions of 2 types', () => {
     for (const seed of SEEDS) {
       const kit = startingKitPickups(seed)
       const theme = firstBiome(seed)

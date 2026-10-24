@@ -81,24 +81,24 @@ export function startingKit(runSeed: number, pools: RewardPools): RewardOption[]
   return [...(spell ? [spell] : []), { kind: 'heal' }, potionSplit(rng, pools, KIT_POTIONS)]
 }
 
-/** The maxikit's object key (its #character: full energy, not stocked). */
-const MAXIKIT = 'maxikit'
-
-/** The pickups (object keys) a reward is laid out as: its scroll, a maxikit and a medikit, or each potion. */
+/**
+ * The pickups (object keys) a reward is laid out as: its scroll, a medikit (the heal's full energy
+ * comes on arrival, `arrivalHeals`, so nothing is worth leaving for later), or each potion.
+ */
 export function rewardPickups(reward: RewardOption): string[] {
   switch (reward.kind) {
     case 'spell': return [reward.scroll]
-    case 'heal': return [MAXIKIT, MEDIKIT_CHARACTER]
+    case 'heal': return [MEDIKIT_CHARACTER]
     case 'potions': return reward.potions.flatMap(({ character, count }) => Array<string>(count).fill(character))
   }
 }
 
-/** A kit reward's pickups: the heal is only its medikit, since Merlin starts at full energy (owner: no full heal there). */
-const kitPickups = (reward: RewardOption): string[] => (reward.kind === 'heal' ? [MEDIKIT_CHARACTER] : rewardPickups(reward))
-
 /** The pickups of the run's starting kit, for its first floor's start room: from the run seed alone. */
 export const startingKitPickups = (runSeed: number): string[] =>
-  startingKit(runSeed, rewardPools([firstBiome(runSeed)])).flatMap(kitPickups)
+  startingKit(runSeed, rewardPools([firstBiome(runSeed)])).flatMap(rewardPickups)
 
 /** The potions a reward holds in all. */
 export const potionTotal = (potions: readonly PotionCount[]): number => potions.reduce((sum, p) => sum + p.count, 0)
+
+/** Whether a reward heals Merlin to full energy as he arrives on the floor (the heal). */
+export const arrivalHeals = (reward: RewardOption): boolean => reward.kind === 'heal'

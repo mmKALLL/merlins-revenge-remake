@@ -20,3 +20,9 @@ export function carryOver(prev: SimState, next: SimState): SimState {
     actors: next.actors.map((a) => (a.id === next.playerId ? { ...a, energy } : a)),
   }
 }
+
+/** Merlin at full energy (the roguelite heal reward, on arriving on the floor). */
+export function withFullEnergy(s: SimState): SimState {
+  const maxEnergy = s.defs['player']!.maxEnergy
+  return { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: maxEnergy } : a)) }
+}

@@ -169,4 +169,6 @@ engine default 1), so it heals three times as fast between fights.
 (modInvince.pulseWhite -> modColourTransform: an objTransColor from white to his normal colour and
 back, 0 -> 100 at speed 10, so ten ticks each way): a colour matrix blends his sprite toward white
 (`pulseWhiteness` in `src/render/pickups.ts`). Until then the remake pulsed his alpha instead.
-
+- **Medikit pickup heals nothing at once (owner, 2026-10-25):** `player.medikitPickupEnergy` 0 in
+  `assets/tuning.json` (engine 25, medikitCollected's increaseEnergy(25)); the kit still goes into
+  stock and heals over time. Potions keep their +25.

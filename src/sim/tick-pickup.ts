@@ -72,7 +72,8 @@ export function potionCollected(t: Tick, p: ActorState, character: string): void
 /** objPlayerMerlinCharacter.medikitCollected(medType): the temporary invincibility, then the kit (collectMedikit). */
 export function medikitCollected(t: Tick, p: ActorState, character: string | null): void {
   startTempInvince(t)
-  const healed = collectMedikit(t.pickups.medikits, character, p.energy, defOf(t.s, p).maxEnergy)
+  const def = defOf(t.s, p)
+  const healed = collectMedikit(t.pickups.medikits, character, p.energy, def.maxEnergy, def.medikitPickupEnergy)
   t.pickups = { ...t.pickups, medikits: healed.medikits }
   p.energy = healed.energy
 }

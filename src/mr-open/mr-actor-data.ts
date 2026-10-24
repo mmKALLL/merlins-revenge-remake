@@ -205,6 +205,7 @@ export interface ActorDef {
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
+  medikitPickupEnergy: number // the player: energy a collected medikit restores at once (it also goes into stock); 25 = engine
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   explosionsLinger: boolean // remake, the player: his bullets' and mines' blasts also hit units that enter them until the explode strip ends; false = engine (one tick)
@@ -330,6 +331,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     explosionsLinger: false, // a blast hits on its first tick only, as in the engine
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
     medikitRestRate: 1, // the medikit heals at the same rate in and out of battle, as in the engine
+    medikitPickupEnergy: 25, // medikitCollected's increaseEnergy(25), as in the engine
     keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
@@ -362,7 +364,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce',
 ]) {
@@ -743,6 +745,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       explosionsLinger: bool(r, 'explosionsLinger', ctx),
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
       medikitRestRate: num(r, 'medikitRestRate', ctx),
+      medikitPickupEnergy: num(r, 'medikitPickupEnergy', ctx),
       keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),
