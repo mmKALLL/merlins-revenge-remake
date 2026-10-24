@@ -5,11 +5,9 @@ import { floorSeed } from '../gen/roguelite-biomes'
 import { GenRandom } from '../gen/random'
 import type { FloorTheme, Weighted } from '../gen/themes'
 import type { PotionCount } from '../mr-open/mr-pickup'
+import type { RewardOption } from '../sim/rewards'
 
-export type RewardOption =
-  | { kind: 'spell'; scroll: string }
-  | { kind: 'heal' }
-  | { kind: 'potions'; potions: PotionCount[] }
+export type { RewardOption }
 
 /** What a floor's rewards are drawn from: its biomes' start scrolls and potions. */
 export interface RewardPools { spellScrolls: Weighted<string>[]; potions: Weighted<string>[] }
