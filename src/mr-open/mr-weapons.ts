@@ -57,8 +57,16 @@ export function nthSpell(arsenal: Arsenal, num: number): string | null {
   return weaponsIn(arsenal, 'magic')[num - 1]?.key ?? null
 }
 
-/** Remake (the touch selector): the weapon after the current one in arsenal order, wrapping. */
-export function nextWeapon(arsenal: Arsenal): string {
+/**
+ * Remake (the touch selector): the weapon after the current one in arsenal order, wrapping, passing
+ * over `skipped` (Merlin's punch: the energy blast is always there; owner request).
+ */
+export function nextWeapon(arsenal: Arsenal, skipped: string): string {
   const i = arsenal.weapons.findIndex((w) => w.key === arsenal.current)
-  return arsenal.weapons[(i + 1) % arsenal.weapons.length]?.key ?? arsenal.current
+  const n = arsenal.weapons.length
+  for (let step = 1; step <= n; step++) {
+    const key = arsenal.weapons[(i + step) % n]!.key
+    if (key !== skipped) return key
+  }
+  return arsenal.current
 }

@@ -14,15 +14,15 @@ import type { Tick } from './tick-context'
 import { startTempInvince } from './tick-pickup'
 
 /** The weapon the player picked this tick: a spell key, a palette click, or (touch) the next weapon. */
-function chosenWeapon(t: Tick, input: InputSnapshot): string | null {
+function chosenWeapon(t: Tick, p: ActorState, input: InputSnapshot): string | null {
   if (input.selectWeapon !== null) return input.selectWeapon
   if (input.selectSpell !== null) return nthSpell(t.arsenal, input.selectSpell)
-  return input.cycleWeapon ? nextWeapon(t.arsenal) : null
+  return input.cycleWeapon ? nextWeapon(t.arsenal, defOf(t.s, p).naturalAttack.name) : null
 }
 
 /** objAiPlayer.interpretGameKeys -> selectSpell / displayWeaponSelector's commandIssued: setCurrentWeapon. */
 export function stepWeaponChoice(t: Tick, p: ActorState, input: InputSnapshot): void {
-  const key = chosenWeapon(t, input)
+  const key = chosenWeapon(t, p, input)
   const slot = key === null ? undefined : weaponOf(t.arsenal, key)
   if (!slot || slot.key === t.arsenal.current) return
   equip(t, p, slot.key, slot.attack)

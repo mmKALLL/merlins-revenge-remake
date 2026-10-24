@@ -9,7 +9,7 @@ import { roomKey, TICKS_PER_SECOND, type SimState } from './state'
 import { exitsOpenFor } from './tick-combat'
 
 export const ROOM_POINTS_MAX = 9999
-const ROOM_COUNTDOWN_SECONDS = 200
+const ROOM_COUNTDOWN_SECONDS = 80
 export const ROOM_COUNTDOWN_TICKS = ROOM_COUNTDOWN_SECONDS * TICKS_PER_SECOND
 
 export interface RoomScore {

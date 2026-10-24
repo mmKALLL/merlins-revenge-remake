@@ -581,6 +581,8 @@ splash.
   icons, then jump). The pin icon sits 1 px higher. To try: `launchFrom` (#caster, the default now)
   starts the projectiles at Merlin's attack point instead of the ball (#spell). Bombs fan to 90 degrees; lava
   lobs fly 1.2x further (rangeFactor 2.9).
+- **Touch weapon button skips the punch (owner, 2026-10-25):** the energy blast is always held, so
+  the button's cycle (`nextWeapon`) passes over Merlin's natural attack; Q's palettes still offer it.
 - **Heal blast aim (owner, 2026-10-25):** fired by a Space mode (nearest or farthest, and the touch
   button), a healing spell (`#takeHeal`) flies to Merlin's nearest ally in sight, else to Merlin himself
   (`spellAimPoint`); aimed by the mouse it goes to the mouse as before.

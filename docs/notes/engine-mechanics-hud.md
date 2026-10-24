@@ -83,7 +83,8 @@ leftwards. Both draw on `gGlobalDisplayLayer`, in the strip above the room, not 
 The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.score`):
 
 - Every room with something to clear is worth up to 9999 points, counting down linearly to 0 over
-  200 seconds (6000 ticks): `floor(9999 * (6000 - ticks) / 6000)`. The countdown counts the ticks
+  80 seconds (2400 ticks; 200 s until the owner asked for 2.5x faster, 2026-10-25):
+  `floor(9999 * (2400 - ticks) / 2400)`. The countdown counts the ticks
   Merlin spends in the room while it is not clear, from his first entry (the start room at map
   start). A tick counts for the room he was in at its start, if that room was not clear then, so the
   tick the exits open on still counts. Leaving a room uncleared pauses its countdown (rooms mode only

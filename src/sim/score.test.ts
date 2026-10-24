@@ -34,9 +34,8 @@ const steps = (s: SimState, n: number): SimState => {
 }
 
 describe('room points', () => {
-  it('count down linearly from 9999 to 0 over 200 seconds', () => {
+  it('count down linearly from 9999 to 0 over ROOM_COUNTDOWN_TICKS', () => {
     expect(roomPoints(0)).toBe(ROOM_POINTS_MAX)
-    expect(ROOM_COUNTDOWN_TICKS).toBe(200 * 30)
     expect(roomPoints(ROOM_COUNTDOWN_TICKS / 2)).toBe(Math.floor(ROOM_POINTS_MAX / 2))
     expect(roomPoints(ROOM_COUNTDOWN_TICKS - 1)).toBeGreaterThan(0)
     expect(roomPoints(ROOM_COUNTDOWN_TICKS)).toBe(0)

@@ -98,7 +98,7 @@ Work top down; the sections below hold the details.
 
 ## Awaiting the owner's review
 
-- Scoring (`docs/notes/engine-mechanics-hud.md` §5): each room counts down from 9999 over 200 s of
+- Scoring (`docs/notes/engine-mechanics-hud.md` §5): each room counts down from 9999 over 80 s of
   Merlin's time in it while uncleared and banks what is left when it clears; the map's total and the
   room's green `+1234` sit at the right end of the strip below the room; the map selector shows each
   map's best (localStorage, per map id; a death's partial run counts). Owner's first review applied

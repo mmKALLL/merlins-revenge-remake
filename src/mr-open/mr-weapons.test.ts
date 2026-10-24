@@ -28,8 +28,9 @@ describe('weapons', () => {
     expect(nthSpell(held, 3)).toBeNull()
   })
 
-  it('the touch weapon button steps through every weapon and wraps', () => {
-    expect(nextWeapon(held)).toBe('punch')
-    expect(nextWeapon({ ...held, current: 'punch' })).toBe('energyBlast')
+  it('the touch weapon button steps through every weapon but the skipped one (the punch) and wraps', () => {
+    expect(nextWeapon(held, 'punch')).toBe('energyBlast')
+    expect(nextWeapon({ ...held, current: 'energyBlast' }, 'punch')).toBe('merlinSword')
+    expect(nextWeapon({ ...held, current: 'punch' }, 'punch')).toBe('energyBlast')
   })
 })
