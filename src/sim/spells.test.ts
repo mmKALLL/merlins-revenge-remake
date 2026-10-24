@@ -48,7 +48,7 @@ const ofDef = (s: SimState, def: string): ActorState[] => s.actors.filter((a) =>
 const aimAt = (at: { x: number; y: number }): InputSnapshot => ({ ...NO_INPUT, chargeHeld: true, mouseWorld: at })
 
 describe("Merlin's weapons", () => {
-  it('a scroll gives its weapon, selected at once, with +25 energy and its writing; the spell keys pick the n-th spell', () => {
+  it('a scroll gives its weapon, selected at once, with +25 energy and its writing; the number keys pick the n-th weapon but the punch', () => {
     let s = world({ cBlast: 5, merlinSword: 7 })
     const hurt = { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: 100 } : a)) }
     s = stepUntil(hurt, RIGHT, (n) => n.arsenal.weapons.length === 3)
@@ -59,11 +59,13 @@ describe("Merlin's weapons", () => {
     s = stepUntil(s, RIGHT, (n) => n.arsenal.weapons.length === 4)
     expect(s.arsenal.weapons.map((w) => w.key)).toEqual(['punch', 'energyBlast', 'cBlast', 'merlinSword'])
     expect(s.arsenal.current).toBe('merlinSword')
-    // #spell2 is the second spell: the punch and the sword are no spells
+    // remake: the number keys count the sword too, only the punch has none
     s = stepSim(s, { ...NO_INPUT, selectSpell: 2 })
     expect(s.arsenal.current).toBe('cBlast')
     s = stepSim(s, { ...NO_INPUT, selectSpell: 3 })
-    expect(s.arsenal.current).toBe('cBlast')
+    expect(s.arsenal.current).toBe('merlinSword')
+    s = stepSim(s, { ...NO_INPUT, selectSpell: 4 })
+    expect(s.arsenal.current).toBe('merlinSword')
     s = stepSim(s, { ...NO_INPUT, selectWeapon: 'punch' })
     expect(s.arsenal.current).toBe('punch')
   })

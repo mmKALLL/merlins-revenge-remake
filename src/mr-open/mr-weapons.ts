@@ -1,6 +1,6 @@
 // Port of modWeaponManager for Merlin (docs/notes/engine-mechanics-spells.md §2): the weapons he
 // holds by symbol in the order they were added (initNaturalAttack, initStartingWeapon, addWeapon
-// from scrolls), the current one, and selectSpell's numbering of the spells (getWeapons(#magic)).
+// from scrolls), the current one, and selectSpell's numbering of the weapon keys (remake: melee too).
 import type { ActorDef, AttackDef } from './mr-actor-data'
 
 export interface WeaponSlot {
@@ -26,11 +26,13 @@ export type WeaponGroup = 'magic' | 'nonMagic'
 /** modWeaponManager.weaponIsOfType. */
 export const weaponGroupOf = (a: AttackDef): WeaponGroup => (a.animType === 'magic' ? 'magic' : 'nonMagic')
 
+/** modWeaponManager.initNaturalAttack: only the natural attack (Merlin's punch), current. */
+export const naturalArsenal = (def: ActorDef): Arsenal => addWeapon(NO_ARSENAL, def.naturalAttack.name, def.naturalAttack)
+
 /** modWeaponManager.start: the natural attack (Merlin's punch), then the starting weapon, which is current. */
 export function startingArsenal(def: ActorDef): Arsenal {
-  let arsenal = addWeapon(NO_ARSENAL, def.naturalAttack.name, def.naturalAttack)
-  if (def.weapon !== null) arsenal = addWeapon(arsenal, def.weapon, def.attack)
-  return arsenal
+  const arsenal = naturalArsenal(def)
+  return def.weapon === null ? arsenal : addWeapon(arsenal, def.weapon, def.attack)
 }
 
 /**
@@ -52,9 +54,13 @@ export const currentAttack = (arsenal: Arsenal): AttackDef | undefined => weapon
 /** modWeaponManager.getWeapons(type): the group's weapons in arsenal order. */
 export const weaponsIn = (arsenal: Arsenal, group: WeaponGroup): WeaponSlot[] => arsenal.weapons.filter((w) => weaponGroupOf(w.attack) === group)
 
-/** modWeaponManager.selectSpell(num): the num-th spell (1-based), or null when there are fewer. */
-export function nthSpell(arsenal: Arsenal, num: number): string | null {
-  return weaponsIn(arsenal, 'magic')[num - 1]?.key ?? null
+/**
+ * modWeaponManager.selectSpell(num): the num-th spell (1-based), or null when there are fewer.
+ * Remake (owner request): the number keys count the melee weapons too (the sword, the energy
+ * punch), in the order Merlin took them: every weapon but the natural attack `natural`.
+ */
+export function nthSpell(arsenal: Arsenal, num: number, natural: string): string | null {
+  return arsenal.weapons.filter((w) => w.key !== natural)[num - 1]?.key ?? null
 }
 
 /**

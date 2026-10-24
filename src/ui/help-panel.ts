@@ -9,7 +9,7 @@ const KEYBOARD: Line[] = [
   ['WASD / arrow keys', 'move'],
   ['E or left mouse button', 'hold to charge the current spell, release to fire at the mouse (a sword or punch swings while held)'],
   ['Space', 'hold to charge, release to fire at the nearest enemy'],
-  ['1-9', 'pick the first to ninth spell Merlin has collected (spell scrolls lie on some maps)'],
+  ['1-9', 'pick the first to ninth spell or weapon Merlin holds (the sword and the energy punch count; the punch does not), in the order collected'],
   ['Q', 'show the weapon palettes at the mouse for 2 s: spells above, punch and sword below; click one to pick it'],
   ['F', 'switch what Space fires at between the nearest and the farthest enemy (Settings also offers the mouse cursor)'],
   ['C', 'switch between the room camera and the follow camera'],
