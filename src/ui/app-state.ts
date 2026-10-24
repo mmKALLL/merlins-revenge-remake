@@ -81,5 +81,6 @@ export const simRuns = (s: AppState): boolean => s.screen === 'playing'
 /** What the screen pauses of the sound: nothing while playing; the floor pick keeps the music (owner request); every other screen all of it. */
 export function audioPause(s: AppState): AudioPause {
   if (simRuns(s)) return 'none'
-  return s.screen === 'picking' ? 'effects' : 'all'
+  // the roguelite's floor pick and run summary keep the music (the summary plays its own: main.ts)
+  return s.screen === 'picking' || s.screen === 'summary' ? 'effects' : 'all'
 }

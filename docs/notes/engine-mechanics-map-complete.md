@@ -238,3 +238,7 @@ has no such mode; these are remake decisions.
   has a separate Win bar (a win is not counted on floor 4). Settings has Reset roguelite statistics
   and Reset scores, each after a confirm; a run in progress stays in progress, and the game forgets
   its in-memory bests so a run cannot write the cleared ones back.
+- **Credits music on a win (owner, 2026-10-25):** a won run's summary plays final_stand_2 (the
+  original's credits music, unused in Merlin Open; `CREDITS_MUSIC` in `src/main.ts`), the summary
+  keeping the music running like the floor pick; a death's summary fades the music out. The title's
+  Roguelite entry shows only runs, wins and the win ratio.

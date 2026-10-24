@@ -172,6 +172,9 @@ interface Shell {
   showRunSummary: (summary: RunSummary, art: SpriteArt) => void
 }
 
+/** The original's credits music (final_stand_2: unused in Merlin Open), played on a won roguelite run's summary. */
+const CREDITS_MUSIC = 'final_stand_2_v1'
+
 /** A weapon's selector icon as a URL (the touch weapon button). */
 const weaponIconUrl = (key: string): string => `${import.meta.env.BASE_URL}generated/hud/weapon-selector/${key}_ws.png`
 
@@ -353,11 +356,12 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     run = endRun(from, status)
     endedStats = shell.recordRunEnd(from.floor, status === 'won')
   }
-  /** Roguelite: the summary of the run that has ended. */
+  /** Roguelite: the summary of the run that has ended, over the original's credits music after a win (owner); a death's fades the music out. */
   const showRunSummary = () => {
     const ended = run
     const stats = endedStats
     if (!ended || ended.status === 'playing' || !stats) return
+    audio.playMusic(ended.status === 'won' ? CREDITS_MUSIC : null)
     shell.showRunSummary({
       won: ended.status === 'won',
       floorsReached: ended.floor + 1,
