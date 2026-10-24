@@ -31,6 +31,19 @@ reward. The run ends in a win or a death, with stats.
 
 ## Slice 1: carry-over and floor flow
 
+**Done (2026-10-24).** Tasks 1-6 implemented and checked in muted headless Chrome (floors 1-4 with
+the record carried, the win, a death back to the title). Deviations from the steps below:
+- `markExit` came with Task 1: `floorExit` fires only on a `markExit` map, and `completeMap` skips
+  such maps, so a cleared floor never plays the original end.
+- The exit test uses Merlin's collision rect against the end room's top (`roomRectPx(end).top`); the
+  grid has no `mapTop`. The arsenal needs no `equip`: the player's attack is derived from
+  `arsenal.current` (`playerStatsOf`), and his cooldown starts at 0 on the new floor.
+- `rogueliteFloor` returns the `GeneratedFloor` (the tests need `floorIsConnected`);
+  `rogueliteFloorMap(biome, runSeed, floor, energyOf)` in `roguelite-biomes.ts` gives the map.
+  `ROGUELITE_MAP_ID` lives in `generated-maps.ts` with the other ids.
+- `run.ts` adds `enterFloor` and `endRun`. The `quit` app action now also applies while playing
+  (a roguelite death goes to the title).
+
 ### Task 1: the `floorExit` event
 
 **Files:**

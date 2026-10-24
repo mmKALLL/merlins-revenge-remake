@@ -17,6 +17,8 @@ Work top down; the sections below hold the details.
   - Golden machine gun (see To do below).
   - The eight friendly wizards, as allies and as enemies.
   - **A proper roguelite mode**, selectable from the main menu or `randomly_generated/tower-roguelite`:
+    - Slice 1 (carry-over and floor flow) done 2026-10-24: floors one at a time, the exit room in
+      yellow, Merlin's record carried over; plan `docs/plans/2026-10-25-roguelite-mode.md`.
     - **Floor rewards:** at the very start and at each floor start, the player picks one of three:
       a new random spell; a full heal plus one medikit; or 4-5 random potions split randomly
       between two types. Keyboard or touch/click, each option previewing its contents, selectable

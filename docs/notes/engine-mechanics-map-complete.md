@@ -112,3 +112,28 @@ the stage rect (x 32-608, y 112-288 on the 640x320 screen) and the title positio
   (`gGameOverScript = #cut_scene_to_play_when_wasted`, then reload), in-game scripts
   (`scr_stones*`, played on the map with speech bubbles above heads: `#ingame` speech mode), the
   credits screen after the end scene, and skipping (`scriptCancelled`).
+
+## 4. Roguelite mode (remake)
+
+A roguelite run (`?map=randomly_generated/tower-roguelite`; design in
+`docs/plans/2026-10-25-roguelite-mode-design.md`) plays its floors one map at a time. The original
+has no such mode; these are remake decisions.
+
+- **markExit.** `MapDefinition.markExit` marks a roguelite floor. Its end room is the floor's exit:
+  `completeMap` never runs on such a map, so clearing the end room or the whole floor plays no
+  end_level sound and starts no end sequence. The mini-map shows the exit room in yellow.
+- **floorExit.** The generator opens the exit room's top edge (`src/gen/roguelite.ts`). When Merlin,
+  alive and with the exits open, presses against that edge (his collision rect within
+  `EXIT_MARGIN_PX` of the map's top; outside the map is solid and a continuous world clamps to it),
+  the sim sets `floorExited` and emits `{ kind: 'floorExit' }` once (`stepPlayerMove`).
+- **Carry-over** (`src/sim/carry-over.ts`). The next floor's sim is a fresh `createSim` of its map
+  with Merlin's record copied over: energy, the potions drunk (his potion upgrades), medikits
+  (including a heal in progress), the arsenal and current weapon, the reserve army, the score's
+  total and `runTicks` (the run's time; `tick` restarts per map, as its timers read it). Everything
+  else starts fresh: rooms, graves, sleepers, the mini-map and the temporary invincibility. A voided
+  score stays void.
+- **Floor flow** (`src/run/run.ts`, `src/main.ts`). Each floor's map is built on the tower tilesets
+  from the run seed and the floor number (`floorSeed`), so the page's tilesets never change.
+  Leaving floor 4 wins the run (the map-complete end sequence for now); a death ends the run and
+  goes back to the title screen instead of restarting. Restart from the menu starts a new run on
+  floor 1.

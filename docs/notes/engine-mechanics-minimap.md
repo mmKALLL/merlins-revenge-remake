@@ -137,4 +137,7 @@ images (`miniClear.tif`, `miniCurr.tif`, `miniFriendly.bmp`, `miniInfest.tif`,
 - **N hides or shows the mini-map** (render-only; the original has no key). It is still bound to
   nav mode when shown.
 - Generated maps work like any other map: every room of the grid gets a cell.
+- **Roguelite exit room.** On a roguelite floor (`MapDefinition.markExit`) the end room's cell is
+  `'exit'`, drawn with miniSpecial's yellow bevel whatever stands in it, so the way out is always
+  visible. Merlin's own room still shows `#cur`. See engine-mechanics-map-complete.md §4.
 - On touch devices in landscape the semi-transparent blast button lies over the same corner.
