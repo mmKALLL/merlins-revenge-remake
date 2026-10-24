@@ -168,6 +168,8 @@ export function createActor(s: SimState, defKey: string, pos: Vec): [ActorState,
     volley: null,
     explosionHitIds: null,
     hitsFirstHostile: false,
+    piercesLeft: 0,
+    piercedIds: [],
     teleport: null,
     teleportAge: 0,
   }

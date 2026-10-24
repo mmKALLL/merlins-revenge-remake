@@ -209,7 +209,7 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const { fired, total } = spell.volley!
   const vel = turnAndScale(base, shotAngleDeg(fired, total, volley, angleU), shotSpeedFactor(fired, volley, speedU))
   const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley)
-  spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true })
+  spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true, piercesLeft: volley.pierce })
   playSound(t, atk.sound, atk.volume)
 }
 

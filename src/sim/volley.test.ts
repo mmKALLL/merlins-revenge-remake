@@ -1,6 +1,6 @@
 // Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): the count from the
 // charge and its cap by the charge max, the fan, the stagger, first-hostile hits (dwellings too), the
-// landing of exploding projectiles on the aim, the damage and the chill.
+// landing of exploding projectiles on the aim, the damage, the chill and the pierce.
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
@@ -13,7 +13,7 @@ import { createSim, stepSim } from './tick'
 import { iconStackPx, shotAngleDeg, volleyBallPx, volleyIconCount, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0 }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0 }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
@@ -196,6 +196,25 @@ describe('volleys in the sim', () => {
     s = release(s, ONE_SHOT_TICKS)
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(once).toBeCloseTo((1e6 - energyOf(s, id)) * 2)
+  })
+
+  it('a piercing projectile flies on through `pierce` hostiles, hitting each once, and stops at the next', () => {
+    const lineHit = (pierce: number): number[] => {
+      let s = world(scrollAttack({ spreadMinDeg: 0, pierce }))
+      const ids: number[] = []
+      for (const dx of [40, 60, 80]) {
+        let id: number
+        ;[s, id] = withDummy(s, PLAYER.x + dx)
+        ids.push(id)
+      }
+      s = release(s, ONE_SHOT_TICKS)
+      for (let i = 0; i < 40; i++) s = stepSim(s, aim)
+      return ids.map((id) => 1e6 - energyOf(s, id))
+    }
+    const [first, second, third] = lineHit(1)
+    expect(second).toBeGreaterThan(0)
+    expect(third).toBe(0)
+    expect(first).toBeCloseTo(lineHit(0)[0]!) // hit once, as a projectile that stops there
   })
 
   it('a chilling volley freezes what it hits, glowing teal; a plain one does not', () => {

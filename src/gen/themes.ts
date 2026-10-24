@@ -1002,7 +1002,7 @@ export const MAGIC_MAZE: FloorTheme = {
     bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('lightningFan', 1), w('frostBurst', 1), w('iceBoulderLob', 1)], MERLIN_OPEN_OBJECTS),
+      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('lightningFan', 1), w('frostBurst', 1), w('iceBoulderLob', 1), w('laserVolley', 1)], MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },

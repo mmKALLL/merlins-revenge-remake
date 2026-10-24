@@ -38,6 +38,7 @@ export const VOLLEY_SCROLL_ART: readonly VolleyScrollArt[] = [
   { key: 'frostBurst', name: 'Frost Burst', projectile: 'freezeBlast', colour: { r: 150, g: 220, b: 240 } },
   { key: 'iceBoulderLob', name: 'Ice Boulder', projectile: 'iceBoulder', colour: { r: 110, g: 170, b: 210 } },
   { key: 'chillFlame', name: 'Blue Flame', projectile: 'blueFlame', colour: { r: 80, g: 120, b: 250 } },
+  { key: 'laserVolley', name: 'Laser', projectile: 'laser', colour: { r: 250, g: 80, b: 120 } },
 ]
 
 /** The plain scroll every volley scroll is recoloured from, and the icon whose disc is recoloured. */

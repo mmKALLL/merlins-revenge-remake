@@ -301,9 +301,18 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   const atk = withOwnerDamage(t, a, bulletAttackOf(a, def))
   const scaled = applyHit(t, target, push, atk.damageMultiplier)
   applyPayload(t, target, scaled, atk)
+  if (pierceThrough(a, target.id)) return
   // #bulletCollidedWithTarget: explode (modExploder) or die
   if (def.explodeEvents.includes('bulletCollidedWithTarget')) explodeBullet(t, a, def)
   else t.removed.add(a.id)
+}
+
+/** Remake (volley #pierce): a projectile with pierces left flies on through the unit it hit, which it does not hit again. */
+function pierceThrough(a: ActorState, victimId: number): boolean {
+  if (a.piercesLeft <= 0) return false
+  a.piercesLeft--
+  a.piercedIds = [...a.piercedIds, victimId]
+  return true
 }
 
 /** The bullet's attack: a volley projectile's own copy (its damageMultiplier and hit roles), else its definition's. */
@@ -318,11 +327,12 @@ function targetTouched(t: Tick, a: ActorState): ActorState | undefined {
 
 /**
  * Remake (volley projectiles): the first living hated unit of a role the bullet hits that it
- * touches; when it touches several on one tick, the one nearest to where it was the tick before.
+ * touches and has not pierced; when it touches several on one tick, the one nearest to where it was the tick before.
  */
 function firstHostileTouched(t: Tick, a: ActorState, def: ActorDef): ActorState | undefined {
   const rect = rectAt(a.pos, collisionRectFor(t.s, a))
-  const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), bulletAttackOf(a, def).hits).filter((v) => bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
+  const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), bulletAttackOf(a, def).hits)
+    .filter((v) => !a.piercedIds.includes(v.id) && bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
   return touched.sort((p, q) => distance(p.pos, a.prevPos) - distance(q.pos, a.prevPos))[0]
 }
 
