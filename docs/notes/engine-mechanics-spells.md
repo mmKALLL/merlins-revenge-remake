@@ -261,31 +261,41 @@ override them by key like any actor. Rules: `src/sim/volley.ts`; firing: `stepVo
 `src/render/volley-icons.ts`; art: `tools/volley-scroll-art.ts` (run by `tools/copy-assets.ts`).
 
 - **Fields.** `attack.releaseFunction #volley` with `attack.volley` (engine default null:
-  `chargePerShot`, `maxShots`, `rangeFactor`, `damageMultiplier`, `staggerTicks` 2, `spreadMinDeg` 3,
-  `spreadMaxDeg` 30, `speedJitter` 0.05), the projectile in `attack.bullet`, the launch in
+  `chargePerShot`, `maxShots`, `rangeFactor`, `damageMultiplier`, `staggerTicks` 2, `spreadMinDeg` 10,
+  `spreadMaxDeg` 32, `speedJitter` 0.05, `spread` #random or #even), the projectile in `attack.bullet`, the launch in
   `attack.firingType`, the charge in the usual `chargeSpeed` / `chargeMaxModifier` / `chargeMaxBasic`.
 - **Count.** A volley released at charge c fires `min(maxShots, 1 + floor(c / chargePerShot))`. The
   charge max is the engine's (`mana_capacity x chargeMaxModifier + chargeMaxBasic`), held at
   `(maxShots - 1) x chargePerShot` (`chargeLimits`), so Max Blast potions unlock the higher counts.
-  The data puts every volley's full count at capacity 20 (thunder burst: 24) and one level every 4
-  ticks for the small projectiles, 6 for bombs and lava, 15 for thunder (at Merlin's flow 3).
+  The full count's capacity and the charge speed per spell are in the retune and tweak tables
+  below (Volley retune, Volley tweaks).
 - **Release.** The spell stays where it was released and fires one projectile every `staggerTicks`
   (the first at once) toward the aim at the release, shrinking by `chargePerShot` each; then it is
   gone. Each launch is `performRangedAttack`'s #fullstrength (Merlin's strength 8) or #proportional
   (distance / 10) velocity times `rangeFactor`, turned into its place in the fan: the fan's total
-  width is `spreadMinDeg` at 1-2 projectiles growing linearly to `spreadMaxDeg` at `maxShots`, cut
-  into equal slots swept from one side to the other with a random point in each; the speed is
-  jittered by up to +-`speedJitter`. The range follows from the speed and the bullet's own friction.
+  width is `spreadMinDeg` at 1-2 projectiles growing linearly to `spreadMaxDeg` at `maxShots`. An
+  #even fan (needles, shurikens) spaces them equally from one edge to the other; a #random one (the
+  rest) sends the first exactly at the aim and every later one at a random angle anywhere in the
+  fan. The speed is jittered by up to +-`speedJitter` (not a random fan's first). The range follows
+  from the speed and the bullet's own friction; a projectile that explodes on landing
+  (`#bulletLanded` in its explodeEvents: bombs, thunder, lava) is launched only as fast as lands it
+  on the aim (`launchToLand`: the largest speed whose friction flight stalls short of the aim),
+  never faster than the spell's own launch, so out of range it falls short.
 - **Hits.** Enemy bullets still collide only with their target. A volley projectile has no target:
-  it hits the first living hated unit (of its `hits` roles) its collision rect touches, the nearest
+  it hits the first living hated unit of the spell's `hits` roles (members and buildings: every
+  bullet's own data only hits #teamMembers, so dwellings were missed) its collision rect touches, the nearest
   to where it was a tick before when it touches several, with the bullet's usual hit (contact push
   twice; an #explode bullet explodes there as it does now). It carries a copy of the bullet's attack
   with `damageMultiplier x volley.damageMultiplier`, and Merlin's `damageDealtMultiplier` (2) applies
   as to all he deals (`withOwnerDamage`).
 - **Icons.** While charging and firing, the projectiles the spell stands for are drawn over it as
-  mini projectiles (the bullet's first fly frame, at most 8 px), each five as one icon with a 5.
+  mini projectiles (the bullet's first fly frame, at most 8 px) stacked diagonally, each 3 px right
+  of and above the one before, one per projectile up to five; at six or more a small black "+"
+  stands right of the stack. The ball is at least the stack's size plus 2 px (`volleyBallPx`), and
+  each spell's `chargeSize` makes it 30 px at its full count.
 - **Scrolls.** Art made at copy time from original members: the plain healBlast scroll tinted to the
-  volley's colour with a mini projectile on it, the energy pulse's `_ws` icon with its disc recoloured
+  volley's colour with a mini projectile on it (fit to 10 x 8 px, a projectile 1.5x longer than tall
+  turned 45 degrees to point down-right, thin lines kept by a lower coverage threshold), the energy pulse's `_ws` icon with its disc recoloured
   and the projectile on it, and the name in a pixel font drawn after the writings (2 px stems, 1 px
   bars, black outline, the writings' orange-to-yellow rows). Object tiles: merlinOpenObjects' empty
   slots 31-37 and 40 (painted with the scroll), merlin4Objects 173-180 past its key
@@ -517,4 +527,30 @@ a fire.
 
 Damage is per direct hit summed over all projectiles (every one hitting); bombs, thunder and lava also
 splash.
+
+### Volley tweaks (owner, after playing, 2026-10-25)
+
+- **Spread:** wider fans (10 degrees at 1-2 projectiles up to 32 at the full count) and a per-spell
+  `spread`: #even for needle spray and shuriken fan, #random for the rest (first shot exactly at the
+  aim, no jitter; later ones anywhere in the fan).
+- **Exploding projectiles land on the aim** (thunder overshot by far): see Release above. Only
+  exploding ones; the others keep flying past the aim.
+- **Dwellings:** volley projectiles hit with the spell's `hits` (the skeleton dwelling was immune to
+  needles).
+- **Slower charge:** `chargeSpeed` x 0.4 for all but needle spray and arrow rain (the light, fast
+  ones; dragon fire to join them). Ticks from the first charge to the max at Merlin's start
+  (capacity 13, flow 3, 30 ticks a second) and to the full count:
+
+| Spell | Charge per tick | Max at cap 13 | Ticks to max (cap 13) | Ticks to full count |
+|---|---|---|---|---|
+| Arrow rain | 2.0 | 52 (7 shots) | 25 (0.8 s) | 35 |
+| Needle spray | 1.5 | 39 (7) | 25 (0.8 s) | 35 |
+| Shuriken fan | 0.8 | 44.6 (6) | 54 (1.8 s) | 89 |
+| Pin storm | 0.75 | 41.8 (6) | 54 (1.8 s) | 89 |
+| Bolt fan | 0.55 | 42.9 (8) | 76 (2.5 s) | 88 |
+| Lava lob | 0.43 | 33.8 (6) | 76 (2.5 s) | 88 |
+| Bomb volley | 0.2 | 15.6 (6) | 73 (2.4 s) | 85 |
+| Thunder burst | 0.48 | 33.4 (2) | 68 (2.3 s) | 110 |
+
+- **Icons and ball, scroll art:** see Icons and Scrolls above.
 
