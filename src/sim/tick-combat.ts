@@ -14,7 +14,7 @@ import { explodeWithCharge, type SplashVictim } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { isDead, reelFinished, regenStep, resolveHit, stallStep } from '../mr-open/mr-take-hit'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
-import { armedDefOf, collisionRectFor, defOf, isAlive, isBullet, isCharacter, isUnit, spriteRectFor } from './actors'
+import { armedDefOf, collisionRectFor, defOf, hurtRectFor, hurtSpriteRectFor, isAlive, isBullet, isCharacter, isUnit } from './actors'
 import { onFreshFrame } from './anim'
 import { spreadVec } from './rng'
 import type { ActorState, SimState } from './state'
@@ -198,7 +198,7 @@ export function stepAttackFrames(t: Tick): void {
 function performAttack(t: Tick, a: ActorState, def: ActorDef, target: ActorState): void {
   const atk = def.attack
   if (atk.type === 'melee') {
-    if (meleeHits(a.pos, def, a.facingLeft, spriteRectFor(t.s, target))) applyPayload(t, target, meleePush(def, a.facingLeft), atk)
+    if (meleeHits(a.pos, def, a.facingLeft, hurtSpriteRectFor(t.s, target))) applyPayload(t, target, meleePush(def, a.facingLeft), atk)
   } else if (atk.type === 'ranged' && atk.bullet) {
     fireBullet(t, a, def, atk.bullet, target.pos, target.id)
   } else {
@@ -322,7 +322,7 @@ const bulletAttackOf = (a: ActorState, def: ActorDef): AttackDef => a.attack ?? 
 function targetTouched(t: Tick, a: ActorState): ActorState | undefined {
   const seen = a.targetId === null ? undefined : (actorIn(t, a.targetId) ?? sleeperIn(t, a.targetId))
   if (!seen || !isAlive(seen)) return undefined
-  return bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), seen.pos, collisionRectFor(t.s, seen)) ? seen : undefined
+  return bulletHits(rectAt(a.pos, collisionRectFor(t.s, a)), seen.pos, hurtRectFor(t.s, seen)) ? seen : undefined
 }
 
 /**
@@ -332,7 +332,7 @@ function targetTouched(t: Tick, a: ActorState): ActorState | undefined {
 function firstHostileTouched(t: Tick, a: ActorState, def: ActorDef): ActorState | undefined {
   const rect = rectAt(a.pos, collisionRectFor(t.s, a))
   const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), bulletAttackOf(a, def).hits)
-    .filter((v) => !a.piercedIds.includes(v.id) && bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
+    .filter((v) => !a.piercedIds.includes(v.id) && bulletHits(rect, v.pos, hurtRectFor(t.s, v)))
   return touched.sort((p, q) => distance(p.pos, a.prevPos) - distance(q.pos, a.prevPos))[0]
 }
 
@@ -355,7 +355,7 @@ function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number):
 
 /** calcCollisionVectSpell of an #explode bullet on one unit (no push when outside the blast). */
 function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: ActorState): Vec {
-  const r = spriteRectFor(t.s, victim)
+  const r = hurtSpriteRectFor(t.s, victim)
   const ex = explodeWithCharge(bullet.pos, def.attack.explodeCharge, def.attack, [{ id: victim.id, pos: victim.pos, radius: (r.right - r.left) / 2 }])
   return ex.pushes[0]?.push ?? { x: 0, y: 0 }
 }
@@ -408,7 +408,7 @@ export function lingerExplosion(t: Tick, a: ActorState): void {
  */
 export function splashVictims(t: Tick, teams: string[], hits: string[]): SplashVictim[] {
   return hatedUnits(t, teams, hits).map((v) => {
-    const r = spriteRectFor(t.s, v)
+    const r = hurtSpriteRectFor(t.s, v)
     return { id: v.id, pos: v.pos, radius: (r.right - r.left) / 2 }
   })
 }

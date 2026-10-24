@@ -7,7 +7,7 @@ import { cooldownReady, meleeHits, meleePush, resetCooldown } from '../mr-open/m
 import type { Vec } from '../mr-open/mr-geometry'
 import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
-import { defOf, isAlive, isUnit, playerStatsOf, spriteRectFor } from './actors'
+import { defOf, hurtSpriteRectFor, isAlive, isUnit, playerStatsOf } from './actors'
 import { onFreshFrame } from './anim'
 import { aimPoint, chargeKindFor, isHeld, spellAimPoint } from './player-aim'
 import { ATTACK_STRIPS, type ActorState, type AttackStrip, type ChargeKind, type InputSnapshot } from './state'
@@ -146,7 +146,7 @@ function impactMelee(t: Tick, p: ActorState, def: ActorDef): void {
     (v) => !t.removed.has(v.id) && isUnit(t.s, v) && isAlive(v) && hated.includes(v.team) && def.attack.hits.includes(defOf(t.s, v).teamRole),
   )
   for (const v of candidates) {
-    if (!meleeHits(p.pos, def, p.facingLeft, spriteRectFor(t.s, v))) continue
+    if (!meleeHits(p.pos, def, p.facingLeft, hurtSpriteRectFor(t.s, v))) continue
     const victim = hitTargetIn(t, v.id)
     if (victim) applyPayload(t, victim, push, withOwnerDamage(t, p, def.attack))
   }

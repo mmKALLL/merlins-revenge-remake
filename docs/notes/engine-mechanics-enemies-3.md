@@ -129,3 +129,23 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   instead (`src/gen/themes.ts`): over 200 seeds the average per maze floor goes 3.64 -> 2.80 (-23 %),
   nearly all of it in the court, which loses one or two regulars.
 
+## Remake decisions: small lizards and plants (owner request, 2026-10-25)
+
+- **Small lizards (`lizard`, the baby flamethrower) -30 % energy, twice the reel friction.**
+  `assets/tuning.json`: `lizard.energy` 100 -> 70 (`maxEnergy #auto` follows), `frictionReel`
+  point(10,10) (inherited from `act_CPUCharacter`) -> point(20,20), so a hit slides one about half as
+  far (reel friction is the percent of speed lost per tick, `engine-mechanics-combat.md` section 6).
+  `fireLizard` (the same unit on team scarlet) is placed by no generated floor and keeps its data.
+  More of them per room only where a room draws to an HP budget (`hpBudget`: the biomes' "numerous
+  weak" corner, the Golden Fort): the other draws place a fixed count of units whatever their energy.
+  Over 200 seeds per floor: Hydra Marsh 20.1 -> 23.2 lizards, Dragon Canyon 7.2 -> 7.4, Woods of
+  Mourning 3.2 -> 3.2, Golden Fort 1.3 -> 1.4. No `maxPerRoom` caps them.
+- **Least hit area (`minHurtboxPx`, ActorDef, engine default 0).** The plant's stand frame (its seed,
+  7x10 px, reg (4,-2)) gives it the fixed collision rect (-3,3)-(2,11), 5x8 px, for its whole life
+  (`collisionRectType #fixed`, see `collisionRectFor`), and the 7x10 sprite rect for melee and
+  blasts (12x10 at the first frame of its shooting strip). With `minHurtboxPx` a unit's hit area is
+  grown about its centre to at least that width and height: the victim's collision rect a bullet
+  tests (`hurtRectFor`), and the sprite rect melee strikes and explosions test and take their radius
+  from (`hurtSpriteRectFor`). Wall collision, pickups and AI ranges keep the engine rect; the axe's
+  landing splash keeps the engine's reg-point distance. `plant.minHurtboxPx` is 12.
+

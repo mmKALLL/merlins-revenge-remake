@@ -298,6 +298,27 @@ export function collisionRectFor(s: SimState, actor: ActorState): CollisionRect 
   return k === 1 ? r : { left: r.left * k, top: r.top * k, right: r.right * k, bottom: r.bottom * k }
 }
 
+/** A rect grown about its centre, on each axis narrower than `min`, to `min`. */
+export function grownToAtLeast(r: Rect, min: number): Rect {
+  const grow = (lo: number, hi: number): [number, number] => {
+    const extra = Math.max(0, min - (hi - lo)) / 2
+    return [lo - extra, hi + extra]
+  }
+  const [left, right] = grow(r.left, r.right)
+  const [top, bottom] = grow(r.top, r.bottom)
+  return { left, top, right, bottom }
+}
+
+/** Remake (minHurtboxPx): the collision rect a bullet tests its victim against, grown to the unit's least hit area. */
+export function hurtRectFor(s: SimState, actor: ActorState): CollisionRect {
+  return grownToAtLeast(collisionRectFor(s, actor), defOf(s, actor).minHurtboxPx)
+}
+
+/** Remake (minHurtboxPx): the sprite rect melee strikes and blasts test, grown to the unit's least hit area. */
+export function hurtSpriteRectFor(s: SimState, actor: ActorState): Rect {
+  return grownToAtLeast(spriteRectFor(s, actor), defOf(s, actor).minHurtboxPx)
+}
+
 /** Sprite bounding rect at the actor's position (objGameObject.getRect / SpriteGetRect), from the current strip's frame size. */
 export function spriteRectFor(s: SimState, actor: ActorState): Rect {
   const strip = stripFor(s, actor)
