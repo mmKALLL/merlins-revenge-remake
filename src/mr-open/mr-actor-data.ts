@@ -203,6 +203,7 @@ export interface ActorDef {
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
+  explosionsLinger: boolean // remake, the player: his bullets' and mines' blasts also hit units that enter them until the explode strip ends; false = engine (one tick)
   /** a spell scroll: units put into the reserve army when Merlin collects it (owner request: the army summon's starting army); {} = engine */
   startingArmy: Record<string, number>
   /**
@@ -321,6 +322,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     activationAttackGraceTicks: 0, // units attack as soon as they are active, as in the engine
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
+    explosionsLinger: false, // a blast hits on its first tick only, as in the engine
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
     medikitRestRate: 1, // the medikit heals at the same rate in and out of battle, as in the engine
     keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
@@ -354,7 +356,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread',
 ]) {
@@ -731,6 +733,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       activationAttackGraceTicks: num(r, 'activationAttackGraceTicks', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
+      explosionsLinger: bool(r, 'explosionsLinger', ctx),
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
       medikitRestRate: num(r, 'medikitRestRate', ctx),
       keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),

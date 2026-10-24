@@ -210,3 +210,27 @@ describe('the charging ball (remake)', () => {
   })
 })
 
+
+describe("Merlin's lingering blasts (remake, explosionsLinger)", () => {
+  /** Damage to a unit that steps into a bomb's blast a few ticks after it went off; `merlins`: the bomb is Merlin's. */
+  const lateDamage = (merlins: boolean): number => {
+    let s = world(scrollAttack())
+    s = { ...s, defs: { ...s.defs, player: { ...s.defs['player']!, explosionsLinger: true } } }
+    const at = { x: PLAYER.x + 120, y: SPELL_Y }
+    const player = s.actors.find((a) => a.id === s.playerId)!
+    const [bomb, after] = createActor(s, 'bomb', at)
+    const owned = { ...bomb, mode: 'fly' as const, ownerId: merlins ? s.playerId : null, team: player.team }
+    s = { ...after, actors: [...after.actors, owned] }
+    for (let i = 0; i < 4; i++) s = stepSim(s, NO_INPUT) // it stalls at once and explodes
+    expect(s.actors.find((a) => a.id === owned.id)?.mode).toBe('explode')
+    let id: number
+    ;[s, id] = withDummy(s, at.x)
+    s = stepSim(s, NO_INPUT)
+    return 1e6 - energyOf(s, id)
+  }
+
+  it("hits a unit that enters Merlin's blast while it plays; an enemy's blast is over after its first tick", () => {
+    expect(lateDamage(true)).toBeGreaterThan(0)
+    expect(lateDamage(false)).toBe(0)
+  })
+})

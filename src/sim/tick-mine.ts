@@ -7,14 +7,17 @@ import { defOf, isMine } from './actors'
 import type { ActorState } from './state'
 import { actorIn, type Tick } from './tick-context'
 import { nearestHostileId } from './tick-ai'
-import { explodeBullet } from './tick-combat'
+import { explodeBullet, lingerExplosion } from './tick-combat'
 
 export function stepMines(t: Tick): void {
   for (const a of t.actors) {
     if (t.removed.has(a.id) || !isMine(t.s, a)) continue
     if (a.mode === 'stand') prime(a)
     else if (a.mode === 'primed') watch(t, a)
-    else if (a.mode === 'explode' && a.animLooped) t.removed.add(a.id) // #explodeFin, dieOnExplode
+    else if (a.mode === 'explode') {
+      lingerExplosion(t, a)
+      if (a.animLooped) t.removed.add(a.id) // #explodeFin, dieOnExplode
+    }
   }
 }
 

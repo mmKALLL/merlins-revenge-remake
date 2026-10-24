@@ -123,13 +123,18 @@ export function applyHit(t: Tick, victim: ActorState, push: Vec, attackerMultipl
   return hit.push
 }
 
+/** Merlin, when `source` is him or a bullet, spell or mine of his; undefined otherwise. */
+function merlinBehind(t: Tick, source: ActorState): ActorState | undefined {
+  const merlins = source.id === t.s.playerId || (!isUnit(t.s, source) && source.ownerId === t.s.playerId)
+  return merlins ? actorIn(t, t.s.playerId) : undefined
+}
+
 /**
  * Remake (owner request): Merlin's `damageDealtMultiplier` multiplies the damage of everything he deals, his
  * swings and spells and the bullets and mines his spells leave (owned by him), but not his allies'.
  */
 export function withOwnerDamage(t: Tick, source: ActorState, atk: AttackDef): AttackDef {
-  const merlins = source.id === t.s.playerId || (!isUnit(t.s, source) && source.ownerId === t.s.playerId)
-  const player = merlins ? actorIn(t, t.s.playerId) : undefined
+  const player = merlinBehind(t, source)
   const scale = player ? defOf(t.s, player).damageDealtMultiplier : 1
   return scale === 1 ? atk : { ...atk, damageMultiplier: atk.damageMultiplier * scale }
 }
@@ -260,6 +265,7 @@ export function stepBullets(t: Tick): void {
       reincarnate(t, a, defOf(t.s, a)) // objBullet #land fin (flamingRock leaves a fire)
     } else if (a.mode === 'explode') {
       // modExploder.updateExplode: until the explode strip has looped, then #explodeFin -> dead
+      lingerExplosion(t, a)
       a.age++
       const hasStrip = t.s.anims[defOf(t.s, a).name]?.['explode'] !== undefined
       if (hasStrip ? a.animLooped : a.age >= BULLET_EXPLODE_TICKS) t.removed.add(a.id)
@@ -358,11 +364,31 @@ export function explodeBullet(t: Tick, a: ActorState, def: ActorDef): void {
     const victim = hitTargetIn(t, id)
     if (victim) applyPayload(t, victim, push, dealt)
   }
+  const player = merlinBehind(t, a)
+  a.explosionHitIds = player && defOf(t.s, player).explosionsLinger ? ex.pushes.map((p) => p.id) : null
   t.events.push({ kind: 'explode', pos: a.pos, radius: ex.radius })
   a.mode = 'explode'
   a.vel = { x: 0, y: 0 }
   a.prevPos = a.pos
   a.age = 0
+}
+
+/**
+ * Remake (explosionsLinger): while Merlin's blast plays its explode strip, a unit that enters it is
+ * hit as on the first tick; each unit once per blast.
+ */
+export function lingerExplosion(t: Tick, a: ActorState): void {
+  const hitIds = a.explosionHitIds
+  if (!hitIds) return
+  const atk = bulletAttackOf(a, defOf(t.s, a))
+  const newcomers = splashVictims(t, hatedTeams(a.team, t.s.teams), atk.hits).filter((v) => !hitIds.includes(v.id))
+  const ex = explodeWithCharge(a.pos, atk.explodeCharge, atk, newcomers)
+  const dealt = withOwnerDamage(t, a, atk)
+  for (const { id, push } of ex.pushes) {
+    hitIds.push(id)
+    const victim = hitTargetIn(t, id)
+    if (victim) applyPayload(t, victim, push, dealt)
+  }
 }
 
 /**

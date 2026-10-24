@@ -154,6 +154,8 @@ export interface ActorState {
   beamFrom: Vec | null // a beam bullet: the spell it is stretched from (objBullet.setBeam)
   /** remake: a released volley spell's projectiles, all and fired so far; null otherwise */
   volley: { total: number; fired: number } | null
+  /** remake: a lingering blast of Merlin's (explosionsLinger): the units it has hit; null for any other */
+  explosionHitIds: number[] | null
   /** remake: a volley projectile hits the first hostile unit it touches, not only its target */
   hitsFirstHostile: boolean
   /** modTeleport: an army unit arriving from the reserve or leaving for it; it acts as usual meanwhile, without tile collisions */
