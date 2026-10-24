@@ -10,11 +10,11 @@
 #bullet: #fangBunnyBabyBullet,
 #chargeColour: rgb(240,150,200),
 #chargeSize: 0.938,
-#chargeSpeed: 0.1481,
+#chargeSpeed: 0.2666,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
-#chargeMaxModifier: 2.1334,
+#chargeMaxModifier: 4.8,
 #chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
 #collisionLoc: point(0,-8),
 #cooldown: 30,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "fangBunnyBaby_fire",
 #volume: 40,
-#volley: [#chargePerShot: 4, #maxShots: 8, #rangeFactor: 1.25, #damageMultiplier: 1, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 70, #staggerTicks: 2, #speedJitter: 0.25]
+#volley: [#chargePerShot: 4, #maxShots: 18, #rangeFactor: 1.25, #damageMultiplier: 1, #spread: #random, #spreadMinDeg: 30, #spreadMaxDeg: 70, #staggerTicks: 2, #speedJitter: 0.25]
 ],
 #character: #bunnyLob,
 #collectSound: "collect_powerup_01",

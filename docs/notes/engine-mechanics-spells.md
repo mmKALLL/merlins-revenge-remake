@@ -660,3 +660,6 @@ Remake decisions (owner, 2026-10-25):
   (damageMultiplier 0.7).
 - **Golem lobs stronger (owner, 2026-10-25):** boulder lob and ice boulder x1.6 (damageMultiplier
   2), dark rock x1.4 (3.64).
+- **Bunny lob, many more (owner, 2026-10-25):** 18 at most (was 8), still full at tier 15
+  (chargeMaxModifier 4.8, chargePerShot 4); chargeSpeed x1.8 (2.25x for the count, 20% slower), so
+  each spark charges 25% slower than before and the full volley takes 1.25x as long.
