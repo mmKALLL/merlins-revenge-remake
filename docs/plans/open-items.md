@@ -23,8 +23,11 @@ Work top down; the sections below hold the details.
       the next biome and one of three rewards (a new spell, a full heal plus a medikit, or 4-5
       potions of two types), locked for 0.8 s; the run starts with the full kit (a spell, the heal,
       5 potions of two types). A wizard ally in lieu of a spell is an idea; run any other reward
-      types past the owner. Owner to decide: whether roguelite floors still place the usual
-      start-room pickups (3 potions, a medikit and a scroll) on top of the rewards.
+      types past the owner.
+    - Rewards as pickups done 2026-10-25 (owner decision): the picked reward and floor 1's kit stand
+      as pickups in a row in front of Merlin in the start room (a scroll; a maxikit and a medikit;
+      the potions), off the sign and the doorways; roguelite floors drop the usual start-room
+      pickups (the side corner potions stay). Awaits the owner's review.
     - **Alternative biomes:** 2-3 per floor with different enemy groups, e.g. deep forest; cave or
       hydra marsh; fortress or golem mountain; golden palace.
     - Slice 4 (location sign and safe arrival) done 2026-10-24: each floor's start room has a
