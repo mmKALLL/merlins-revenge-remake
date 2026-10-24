@@ -66,19 +66,25 @@ HP budgets, and shows 4 enemies on its pick card.
 
 - **Deep Forest** (floor 1; dark grass, pines and green trees with many eyed "haunted" trees,
   ferns and reeds; denser thickets and tree lines; music Woods of Evil).
-  - Weak: goblin warriors, goblin archers, bats; shuriken ninjas.
-  - Mid: goblin heroes, goblin mages, plants, fang bunny babies (2 a room), fang bunnies (1 a room).
-  - Strong: ninjas (2 a room). Dwellings: goblin huts (weak); bat trees, goblin mage huts and the
+  - Weak: goblin warriors, goblin archers (half their first weights, owner 2026-10-25), lizards,
+    quadranids, druids (1 a room; healers with no attack), bugs (5 a room; energy 4, they swarm);
+    shuriken ninjas.
+  - Mid: goblin heroes, goblin mages (twice their first weight), plants, fang bunny babies (2 a
+    room), fang bunnies (1 a room).
+  - Strong: ninjas (2 a room). Dwellings: goblin huts (weak); cocoons, goblin mage huts and the
     ninjas' mysterious clouds (strong, 1 a room).
-  - Midboss: a ninja hideout (a cloud, a ninja, a shuriken ninja) or a bat roost. Weak corner:
+  - Midboss: a ninja hideout (a cloud, a ninja, a shuriken ninja) or a critter nest. Weak corner:
     goblin raiders or a fang bunny litter.
+  - Brawls: the woods against the ninjas.
   - Bosses: a fang bunny warren (the portal and a fang bunny), a goblin hero war band (3 heroes,
     3 warriors, a mage).
   - Themed spells: army summon, mines, pulse, sword, heal; arrow rain, needle spray, bunny lob,
     shuriken fan.
 - **Hydra Marsh** (floor 2; swamp ground with puddles everywhere, reed lines, swamp trees, ferns
-  and wet blue rocks; music Last Stand). No factions: its teams leave each other alone.
+  and wet blue rocks; music Last Stand). One faction (`jungle`): its teams leave each other alone.
   - Weak: lizards, bats. Dwellings: cocoons, bat trees.
+  - Brawls only (owner, 2026-10-25): shuriken ninjas (weak), ninjas (mid), sword ninjas (strong),
+    no mysterious clouds; they fight the jungle's units.
   - Mid: lizard soldiers, plants, quadranids.
   - Strong: hydras (2 a room), hydra 2s (1 a room); the hydra 3 leads the nest.
   - Midboss: a quadranid hive or a bat roost. Weak corner: a lizard pack or a plant bed.
@@ -92,7 +98,8 @@ HP budgets, and shows 4 enemies on its pick card.
   - Strong: double dark golems, four-armed golems (1 a room each).
   - Dwellings: boulder caves (weak), dark caves (strong, 1 a room).
   - The lava golems are Scarlet's team, who brawl with the monsters' golems, so they hold rooms of
-    their own (with ice rocks, who leave both alone).
+    their own (with ice rocks, who leave both alone). Brawls: golems vs lava, rarer than elsewhere
+    (about 7 % of normal rooms), since the lava side has no weak units.
   - Midboss: a golem quarry or fire and ice (2 lava golems, 2 ice rocks). Weak corner: boulder
     rollers or an ice field.
   - Bosses: a golem forge (four-armed golem, dark cave, 2 boulder monsters), a vulture eyrie
@@ -101,7 +108,8 @@ HP budgets, and shows 4 enemies on its pick card.
     lob, ice boulder, lightning.
 - **Golden Palace** (floor 4; the Golden Fort's tiles and room shapes; music Electronic Merlin).
   The fort's peaceful alliances of every floor's enemies become four hostile guard factions, each
-  holding rooms of its own (the usual 15 % of rooms mix them, and they brawl):
+  holding rooms of its own (brawl rooms, about 15 % of normal rooms, pit two of them against each
+  other; Scarlet's guard and the dojo leave each other alone):
   - Scarlet's guard: Scarlet warriors and archers (weak), Scarlet monks (mid), lava golems (strong).
   - The dojo: karate guys, kung fu chickens (weak), speedy guys (mid), dojos.
   - Ninjas: shuriken ninjas (weak), ninjas (mid), mysterious clouds.
@@ -112,6 +120,12 @@ HP budgets, and shows 4 enemies on its pick card.
     guys, 2 karate guys, a dojo), court mages (2 shrouders, 2 bomb mages, 2 thunder monks, a portal).
   - Themed spells: energy beam, punch, monster summon, C blast, army summon; longbow, bomb volley,
     thunder burst, pin storm, poison smoke, shuriken fan, lava lob.
+
+The tower floors used as biome A gained rivals for their brawl rooms (owner, 2026-10-25; brawl-only
+units, never in a room of one faction): East Woods gets skeleton warriors and skeleton archers
+against its goblins, orcs and bats (no skeleton dwellings or summoners); Caves of Fire gets shuriken
+ninjas (weak), ninjas and sword ninjas (mid), no mysterious clouds. Brawl rooms are described in
+`2026-09-28-random-floor-design.md` (Owner decision 2026-10-25).
 
 Every unit of the drafts runs in the sim (checked: each one moves, fires or releases units). Left out:
 the fire lizard and fire dragon (the lizard's and the dragon's sprites, untinted) and the lava dark

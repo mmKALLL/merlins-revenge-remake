@@ -487,7 +487,8 @@ they stay out of it.
 
 - **Mixed rooms:** each normal room (not the start, midboss or boss) rolls `mixedFactionChance`
   (0.15), separately from the wildcard roll, to draw from every faction at once, so rival teams share
-  the room and brawl. The golden fort keeps its peaceful alliances (0).
+  the room and brawl. The golden fort keeps its peaceful alliances (0). Replaced by brawl rooms
+  (2026-10-25, below): drawing from every faction often still gave one team.
 - **Fewer walls:** the forest's patches and long walls (patches 3-6, size 2-7, long wall 35 %) and the
   canyon's baffles (1 thick, reach 50-75 %) are trimmed: interior wall share 16.5 % -> 14.5 % in the
   forest and 17.1 % -> 15.2 % in the canyon (100 seeds).
@@ -542,4 +543,51 @@ placement mechanism was needed.
 The exit (boss) room no longer switches to Last Stand on any random map: each floor plays its biome's
 start-room track throughout, in the tower and on the single maps. The map-complete jingle still plays
 on a win.
+
+## Owner decision (2026-10-25): brawl rooms of two rival teams
+
+Measured before (60 floors per theme, share of normal rooms holding teams where one hates another):
+goblin-forest 0 %, dragon-canyon 0 %, hydra-marsh 0 %, golem-mountain 2.5 %, deep-forest 6.4 %,
+magic-maze 12.8 %, golden-palace 12.8 %, undead-marsh 14.4 %. Three themes had no rival teams at all,
+and a mixed room drawing from every faction by weight often still held one team.
+
+- **Brawl rooms** (`floor.ts` `rollBrawl`): a normal room that rolls `mixedFactionChance` takes a pair
+  of rival factions from the theme's `UnitTuning.rivals`, at random among the pairs whose factions
+  both have choices for some draw of the room. With a group, the pair must hold the group's faction
+  (a group without a faction keeps its room out of brawls). Each unit of the room's draws goes to
+  the side with fewer units so far (the group's on its side), or to the other side when that side
+  has nothing for the draw (no dwellings, or not the draw's tier), and takes only choices of its
+  side's faction. A brawl whose draws left one side empty is placed as a normal room. Midboss, boss
+  and alliance rooms (the fort) never brawl; with no fitting pair the roll does nothing.
+- **Rivals:** factions whose teams hate each other both ways (`hatedTeams`, the first-priority
+  hates); `floor.test.ts` checks that each theme declares exactly those pairs. Undead marsh: undead
+  vs critters. Maze: alliance vs undead, Scarlet and monsters; undead vs monsters; Scarlet vs monsters
+  (undead and Scarlet leave each other alone). Golden palace: every pair of Scarlet, dojo, ninjas and
+  mages but Scarlet vs dojo. Golem mountain: golems vs lava. The forest, canyon, jungle and woods
+  against the ninjas or the undead, below.
+- **Brawl-only choices** (`EnemyChoice.brawlOnly`): rivals for themes without any, taken only on a
+  brawl's side, never in a room of one faction (and left out of the fort's every-theme tables). The
+  themes' other choices got one faction each (`forest`, `canyon`, `jungle`), as their teams leave
+  each other alone.
+  - East Woods (goblin-forest): skeleton warriors and skeleton archers (team undead, weak, weight 1
+    each; merlin4Objects 26 and 28); no dwellings or summoners.
+  - Caves of Fire (dragon-canyon): shuriken ninjas (weak), ninjas and sword ninjas (mid, at most 2
+    a room); no mysterious cloud.
+  - West Jungle (hydra-marsh): shuriken ninjas (weak), ninjas (mid), sword ninjas (strong), the last
+    two at most 2 a room; no mysterious cloud.
+- **Starting sides** (remake): each side gathers around a point a quarter of the way in from one end
+  of the room's long axis (x; `BRAWL_SIDE_AT` 0.25, so x 4.25 and 12.75 of 0-17, the side to the
+  left drawn at random), taking the free unit tiles nearest it with each distance blurred by up to
+  `BRAWL_SPREAD` 3 tiles. The tiles are the room's usual unit tiles, so the edge margin, openings,
+  reserved tiles and the roguelite safe-arrival radius all hold. `Placement.side` marks the brawl's units.
+- **Woods of Mourning (deep-forest):** goblin warriors 4 -> 2 and goblin archers 3 -> 1.5, goblin mages
+  1.5 -> 3, plus druids (team monsters, weak, weight 1, at most 1 a room: a healer of monsters,
+  goblins and swamp with no attack of its own) and bugs (team monsters, energy 4, weak, weight 2.5,
+  at most 5 a room, so several come at once but never a flood). Over 60 floors a floor holds about
+  5.7 bugs and 1.9 druids.
+- **Measured after** (same measure; `brawls` are rooms with both sides placed): goblin-forest 12.5 %,
+  undead-marsh 17.5 %, dragon-canyon 14.4 %, magic-maze 12.5 %, deep-forest 13.6 %, hydra-marsh 16.4 %,
+  golem-mountain 6.7 %, golden-palace 11.4 %, golden-fort 0 %. Golem mountain stays low: its lava side
+  has only the mid lava golem, so rooms of weak draws cannot brawl. A brawl averages about 4 units on
+  one side and 3 on the other; each side's centre sits about 4.2 tiles from the room's middle.
 

@@ -121,6 +121,13 @@ Work top down; the sections below hold the details.
 
 ## Awaiting the owner's review
 
+- Brawl rooms and biome enemies (2026-10-25; `docs/plans/2026-09-28-random-floor-design.md`, Owner
+  decision 2026-10-25): a brawl room pits two rival factions, grouped a quarter of the way in from
+  each end of the room; brawl-only skeletons in East Woods and ninjas in Caves of Fire and West
+  Jungle; Woods of Mourning with half the goblin fighters, twice the goblin mages, druids and bugs;
+  a baby ostrich in the enemies test map's second room. Brawls are now 11-18 % of normal rooms
+  per theme, but about 7 % in Remorseless Mountains (its lava side has no weak units; owner to
+  decide whether it needs one).
 - Roguelite mode, all five slices (`docs/plans/2026-10-25-roguelite-mode.md`; the engine notes'
   map-complete §4): four floors with carry-over, the pick screen, rewards as pickups, the new
   biomes and their signs, and the run summary with statistics and the title's Roguelite entry. To
