@@ -9,7 +9,7 @@
 #animType: #magic,
 #bullet: #archerArrow,
 #chargeColour: rgb(215,175,110),
-#chargeSize: 0.222,
+#chargeSize: 0.417,
 #chargeSpeed: 0.667,
 #chargeStart: 0,
 #chargeMax: 999,

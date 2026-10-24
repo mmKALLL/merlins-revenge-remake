@@ -145,7 +145,7 @@
       /* the right-hand buttons: the blast button in the corner, the target button above it, the
          weapon and army buttons in a column to its left */
       #touch {
-        --blast: 176px; --target-w: 64px; --target-h: 36px; --gap: 12px;
+        --blast: 176px; --target-w: 77px; --target-h: 43px; --gap: 12px; --target-gap: 18px;
         --edge: calc(24px + env(safe-area-inset-right)); --low: calc(24px + 1em + env(safe-area-inset-bottom));
         --column: calc(var(--edge) + var(--blast) + var(--gap));
       }
@@ -157,10 +157,10 @@
       #touch-blast.active { background: rgba(255, 200, 0, 0.45); }
       /* what the blast button aims at (Near / Far); a tap toggles it */
       #touch-target {
-        position: absolute; right: calc(var(--edge) + (var(--blast) - var(--target-w)) / 2); bottom: calc(var(--low) + var(--blast) + var(--gap));
+        position: absolute; right: calc(var(--edge) + (var(--blast) - var(--target-w)) / 2); bottom: calc(var(--low) + var(--blast) + var(--target-gap));
         width: var(--target-w); height: var(--target-h); border-radius: calc(var(--target-h) / 2); pointer-events: auto; touch-action: none;
         display: flex; align-items: center; justify-content: center; box-sizing: border-box;
-        font: bold 13px/1 var(--font); color: rgba(255, 230, 150, 0.9); letter-spacing: 0.05em;
+        font: bold 15px/1 var(--font); color: rgba(255, 230, 150, 0.9); letter-spacing: 0.05em;
         background: rgba(0, 0, 0, 0.35); border: 2px solid rgba(255, 200, 0, 0.45);
       }
       /* the current weapon's icon; a tap steps to the next weapon */
@@ -183,9 +183,8 @@
         html.touch-controls[data-screen='playing'] body { padding-bottom: 40vh; }
         #touch {
           top: auto; height: 40vh; background: #0a0a0a; border-top: 1px solid #222;
-          --edge: calc(32px + env(safe-area-inset-right)); --gap: 16px; --low: calc(50% - var(--blast) / 2 + 1em);
+          --edge: calc(32px + env(safe-area-inset-right)); --gap: 16px; --target-gap: 12px; --low: calc(50% - var(--blast) / 2 + 1em);
         }
-        #touch-target { bottom: calc(var(--low) + var(--blast) + 8px); }
         #touch-weapon { bottom: calc(50% + 8px + 1em); }
         #touch-army { bottom: calc(50% - 72px + 1em); }
         /* the ☰ button moves off the game into the band's top right corner, above the blast button */

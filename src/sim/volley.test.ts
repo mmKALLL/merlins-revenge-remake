@@ -1,5 +1,6 @@
 // Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): the count from the
-// charge and its cap by the charge max, the fan, the stagger, first-hostile hits and the damage.
+// charge and its cap by the charge max, the fan, the stagger, first-hostile hits (dwellings too), the
+// landing of exploding projectiles on the aim and the damage.
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
@@ -9,10 +10,10 @@ import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { shotAngleDeg, volleyIconGroups, volleyShots, volleySpreadDeg } from './volley'
+import { shotAngleDeg, volleyIconStack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 3, spreadMaxDeg: 30, speedJitter: 0.05 }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, spread: 'random' }
 
 describe('volley rules', () => {
   it('fires one projectile, one more per chargePerShot of charge, at most maxShots', () => {
@@ -26,25 +27,40 @@ describe('volley rules', () => {
     expect(volleyShots(chargeLimits(merlin(9)).max, attack.volley)).toBeLessThan(volleyShots(chargeLimits(merlin(15)).max, attack.volley))
   })
 
-  it('fans the projectiles evenly inside the spread, which grows from the narrowest at 1-2 to the widest at maxShots', () => {
+  it('widens the fan from the narrowest at 1-2 projectiles to the widest at maxShots', () => {
     const v = { ...VOLLEY, maxShots: 10 }
     expect(volleySpreadDeg(1, v)).toBe(v.spreadMinDeg)
     expect(volleySpreadDeg(2, v)).toBe(v.spreadMinDeg)
     expect(volleySpreadDeg(6, v)).toBeGreaterThan(v.spreadMinDeg)
     expect(volleySpreadDeg(10, v)).toBe(v.spreadMaxDeg)
-    for (const count of [1, 3, 10]) {
-      const half = volleySpreadDeg(count, v) / 2
-      const angles = Array.from({ length: count }, (_, i) => [0, 0.5, 0.999].map((u) => shotAngleDeg(i, count, v, u))).flat()
-      for (const a of angles) expect(Math.abs(a)).toBeLessThanOrEqual(half)
-    }
-    // swept from one side to the other: each projectile's slot after the one before
-    expect(shotAngleDeg(1, 3, v, 0)).toBeGreaterThanOrEqual(shotAngleDeg(0, 3, v, 0.999))
   })
 
-  it('shows a group icon per five projectiles and one per projectile left', () => {
-    expect(volleyIconGroups(3)).toEqual([1, 1, 1])
-    expect(volleyIconGroups(7)).toEqual([5, 1, 1])
-    expect(volleyIconGroups(10)).toEqual([5, 5])
+  it('a random fan sends the first projectile exactly at the aim and the others anywhere inside it', () => {
+    const v = { ...VOLLEY, maxShots: 10 }
+    for (const count of [1, 3, 10]) {
+      const half = volleySpreadDeg(count, v) / 2
+      for (const u of [0, 0.3, 0.999]) expect(shotAngleDeg(0, count, v, u)).toBe(0)
+      for (let i = 1; i < count; i++) for (const u of [0, 0.5, 0.999]) expect(Math.abs(shotAngleDeg(i, count, v, u))).toBeLessThanOrEqual(half)
+    }
+    expect(shotAngleDeg(1, 3, v, 0)).not.toBe(shotAngleDeg(1, 3, v, 0.999))
+  })
+
+  it('an even fan spaces the projectiles equally from one edge to the other, whatever the roll', () => {
+    const v: VolleyDef = { ...VOLLEY, maxShots: 10, spread: 'even' }
+    expect(shotAngleDeg(0, 1, v, 0.7)).toBe(0)
+    const count = 5
+    const angles = Array.from({ length: count }, (_, i) => shotAngleDeg(i, count, v, Math.random()))
+    const half = volleySpreadDeg(count, v) / 2
+    expect(angles[0]).toBeCloseTo(-half)
+    expect(angles[count - 1]).toBeCloseTo(half)
+    const gaps = angles.slice(1).map((a, i) => a - angles[i]!)
+    for (const g of gaps) expect(g).toBeCloseTo(gaps[0]!)
+  })
+
+  it('stacks one icon per projectile up to five, and a "+" for more', () => {
+    expect(volleyIconStack(3)).toEqual({ icons: 3, more: false })
+    expect(volleyIconStack(5)).toEqual({ icons: 5, more: false })
+    expect(volleyIconStack(6)).toEqual({ icons: 5, more: true })
   })
 })
 
@@ -78,9 +94,9 @@ function world(attack: AttackDef): SimState {
   return { ...s, arsenal: addWeapon(s.arsenal, SCROLL, attack) }
 }
 
-/** A stationary goblin that cannot die, at `x` on the spell's line. */
-function withDummy(s: SimState, x: number): [SimState, number] {
-  const [d, after] = createActor(s, 'dummy', { x, y: SPELL_Y })
+/** A stationary goblin that cannot die (or another unit `key`), at `x` on the spell's line. */
+function withDummy(s: SimState, x: number, key = 'dummy'): [SimState, number] {
+  const [d, after] = createActor(s, key, { x, y: SPELL_Y })
   return [{ ...after, actors: [...after.actors, d] }, d.id]
 }
 
@@ -116,6 +132,34 @@ describe('volleys in the sim', () => {
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(energyOf(s, near)).toBeLessThan(1e6)
     expect(energyOf(s, far)).toBe(1e6)
+  })
+
+  it('a projectile hits a dwelling too (the spell\'s hit roles, not the bullet\'s own)', () => {
+    let s = world(scrollAttack())
+    let dwelling: number
+    ;[s, dwelling] = withDummy(s, PLAYER.x + 50, 'skeletonDwelling')
+    const before = energyOf(s, dwelling)
+    s = release(s, 1)
+    for (let i = 0; i < 40; i++) s = stepSim(s, aim)
+    expect(energyOf(s, dwelling)).toBeLessThan(before)
+  })
+
+  it('the first projectile that explodes on landing lands on the aim when the aim is in range', () => {
+    const bombs = { ...engineDefs['bombVolley']!.attack, chargeSpeed: 1, chargeMaxModifier: 1, chargeMaxBasic: 0 }
+    for (const dist of [40, 70]) {
+      const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + dist, y: SPELL_Y } }
+      let s = world(bombs)
+      s = stepSim(s, { ...at, chargeHeld: true })
+      s = stepSim(s, at)
+      let landed: { x: number; y: number } | undefined
+      for (let i = 0; i < 60 && !landed; i++) {
+        s = stepSim(s, at)
+        landed = s.actors.find((a) => a.def === 'bomb' && a.mode === 'explode')?.pos
+      }
+      expect(landed).toBeDefined()
+      // the spell stands a little above the charge loc; the aim is level with the charge loc
+      expect(Math.abs(landed!.x - at.mouseWorld!.x)).toBeLessThan(6)
+    }
   })
 
   it("deals the bullet's damage times Merlin's damageDealtMultiplier and the volley's damageMultiplier", () => {

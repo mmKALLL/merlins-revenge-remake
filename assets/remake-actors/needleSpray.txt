@@ -9,7 +9,7 @@
 #animType: #magic,
 #bullet: #needle,
 #chargeColour: rgb(160,225,150),
-#chargeSize: 0.296,
+#chargeSize: 0.556,
 #chargeSpeed: 0.5,
 #chargeStart: 0,
 #chargeMax: 999,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 6, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 0.49]
+#volley: [#chargePerShot: 6, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 0.49, #spread: #even]
 ],
 #character: #needleSpray,
 #collectSound: "collect_powerup_01",

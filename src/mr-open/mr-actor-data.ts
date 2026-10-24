@@ -68,6 +68,9 @@ export interface AttackDef {
  * Remake volley spell (docs/notes/engine-mechanics-spells.md, Volley spells): on release the spell
  * fires 1 + floor(charge / chargePerShot) of its attack's `bullet`, at most maxShots, toward the aim.
  */
+/** How a volley spreads its projectiles over the fan. */
+export type VolleySpread = 'even' | 'random'
+
 export interface VolleyDef {
   chargePerShot: number // charge each projectile after the first costs
   maxShots: number // the most projectiles one volley fires (the charge max is held where it is reached)
@@ -76,6 +79,7 @@ export interface VolleyDef {
   staggerTicks: number // ticks between one projectile and the next
   spreadMinDeg: number // total fan width at 1-2 projectiles
   spreadMaxDeg: number // total fan width at maxShots, growing linearly in between
+  spread: VolleySpread // even: equally spaced; random: the first at the aim, the others anywhere in the fan
   speedJitter: number // each projectile's speed x (1 +- up to this)
 }
 
@@ -248,7 +252,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 3, spreadMaxDeg: 30, speedJitter: 0.05 }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, spread: 'random' }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -347,7 +351,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'spread',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -542,7 +546,13 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     chargePerShot: num(f, 'chargePerShot', c), maxShots: num(f, 'maxShots', c), rangeFactor: num(f, 'rangeFactor', c),
     damageMultiplier: num(f, 'damageMultiplier', c), staggerTicks: num(f, 'staggerTicks', c),
     spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
+    spread: volleySpreadOf(f['spread'], c),
   }
+}
+
+/** Remake: a volley's #spread, #even or #random. */
+function volleySpreadOf(v: unknown, ctx: string): VolleySpread {
+  return v === 'even' || v === 'random' ? v : bad(ctx, 'spread', '#even or #random', v)
 }
 
 /** objSpell's release: fly and explode, modFireBullets, or the remake's volley. */

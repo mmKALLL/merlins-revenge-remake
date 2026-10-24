@@ -8,7 +8,7 @@ import type { LayerName } from '../mr-open/mr-map-format'
 import { payloadFor, stageNumber } from '../mr-open/mr-spell'
 import { isPickup, isSpell, isStepped, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
-import { EXPLODE_TICKS } from '../sim/tick-spell'
+import { EXPLODE_TICKS, spellBallPx } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import type { EndSequenceView } from '../cutscene/end-sequence'
@@ -425,14 +425,14 @@ export class Scene {
   }
 
   /**
-   * The white disc scaled to the charge and tinted with the attack's chargeColour, fading out while
+   * The white disc scaled to the charge (spellBallPx) and tinted with the attack's chargeColour, fading out while
    * it explodes. The spell carries its caster's attack (objSpell.setSpellProperties); the sim already
    * multiplied `charge` by chargeExplodeFactor when it switched to explode.
    */
   private styleSpell(spr: Sprite, a: ActorState, def: ActorDef, tex: Texture): void {
     const atk = a.attack ?? def.attack
     const exploding = a.mode === 'explode'
-    const size = exploding ? a.charge : a.charge * atk.chargeSize
+    const size = exploding ? a.charge : spellBallPx(a, def.attack)
     const k = size / tex.width
     spr.scale.set(k, k)
     const c = atk.chargeColour

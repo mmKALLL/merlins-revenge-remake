@@ -1,5 +1,5 @@
 // The Maps menu's browser: one folder of the map list at a time. Folders open in place; a map
-// reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed. Each map row
+// reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed and touch. Each map row
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
 // A map's best score (remake scoring) in the world mode of the player's camera shows at the end of its row.
 import { loadBestScores, type ScoreTable } from '../data/best-scores'
@@ -14,11 +14,15 @@ const FAVOURITES_ID = 'favourites'
 const STAR_ON = '★'
 const STAR_OFF = '☆'
 
-/** The page URL that starts a map: the other query parameters stay, except the seed (a random floor gets a fresh one). */
+/**
+ * The page URL that starts a map: the other query parameters stay, except the seed (a random floor
+ * gets a fresh one) and touch (a forced touch layout is for one page; the next one detects the device again).
+ */
 export const mapUrl = (id: string): string => {
   const q = new URLSearchParams(location.search)
   q.set('map', id)
   q.delete('seed')
+  q.delete('touch')
   return `?${q.toString()}${location.hash}`
 }
 

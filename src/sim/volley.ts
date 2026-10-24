@@ -2,7 +2,9 @@
 // fan of an enemy's projectiles when released, one more for every chargePerShot of charge. The rules
 // here are pure; tick-spell.ts fires the shots and tick-combat.ts lets them hit the first hostile.
 import type { VolleyDef } from '../mr-open/mr-actor-data'
+import { bulletStalled } from '../mr-open/mr-bullet'
 import type { Vec } from '../mr-open/mr-geometry'
+import { stepVelocity } from '../mr-open/mr-movement'
 
 /** Keeps a charge sitting exactly on a threshold (the charge max) from rounding down a projectile. */
 const THRESHOLD_EPSILON = 1e-9
@@ -27,18 +29,21 @@ export function volleySpreadDeg(count: number, v: VolleyDef): number {
 }
 
 /**
- * The angle (degrees off the aim) of projectile `index` of `count`: the fan is cut into `count`
- * equal slots swept from one side to the other, and the projectile takes a random point of its own
- * slot (`u` in [0, 1)), so the fan stays even and inside +-spread / 2.
+ * The angle (degrees off the aim) of projectile `index` of `count`. An #even fan spaces them equally
+ * from one side to the other (one alone flies at the aim). A #random one sends the first straight at
+ * the aim and every other one at a random angle inside the fan (`u` in [0, 1)).
  */
 export function shotAngleDeg(index: number, count: number, v: VolleyDef, u: number): number {
   const spread = volleySpreadDeg(count, v)
-  const slot = spread / count
-  return -spread / 2 + slot * (index + u)
+  if (v.spread === 'even') return count === 1 ? 0 : -spread / 2 + (spread * index) / (count - 1)
+  return index === 0 ? 0 : (u - 0.5) * spread
 }
 
-/** A projectile's speed factor, 1 +- speedJitter (`u` in [0, 1)). */
-export const shotSpeedFactor = (v: VolleyDef, u: number): number => 1 + (u * 2 - 1) * v.speedJitter
+/** Whether projectile `index` flies exactly at the aim: the first of a #random fan, which keeps its speed too. */
+const fliesTrue = (index: number, v: VolleyDef): boolean => v.spread === 'random' && index === 0
+
+/** A projectile's speed factor, 1 +- speedJitter (`u` in [0, 1)); 1 for one that flies true. */
+export const shotSpeedFactor = (index: number, v: VolleyDef, u: number): number => (fliesTrue(index, v) ? 1 : 1 + (u * 2 - 1) * v.speedJitter)
 
 /** Whether projectile number `fired` (0-based) is due `age` ticks after the release: one every staggerTicks, the first at once. */
 export const shotDue = (age: number, fired: number, v: VolleyDef): boolean => age >= fired * v.staggerTicks
@@ -56,6 +61,46 @@ export function volleyLaunch(from: Vec, aim: Vec, strength: number, firingType: 
   return { x: (dx / d) * speed, y: (dy / d) * speed }
 }
 
+/** Bisection steps when solving for a landing speed (far below a pixel). */
+const LANDING_SEARCH_STEPS = 40
+/** A flight longer than this counts as never landing (a bullet without friction). */
+const MAX_FLIGHT_TICKS = 1000
+
+/**
+ * How far a bullet launched at `vel` flies before it lands: objMoveXY's friction each tick, then
+ * the move, until objBullet.checkStalled (skipped on its first frame) finds both axes slow;
+ * Infinity when it never does.
+ */
+export function landingTravel(vel: Vec, friction: Vec): number {
+  let v = vel
+  let x = 0
+  let y = 0
+  for (let tick = 0; tick < MAX_FLIGHT_TICKS; tick++) {
+    v = stepVelocity(v, { x: 0, y: 0 }, 0, friction)
+    x += v.x
+    y += v.y
+    if (tick > 0 && bulletStalled(v)) return Math.hypot(x, y)
+  }
+  return Infinity
+}
+
+/**
+ * Remake: a launch that explodes on landing is slowed so it lands on `aim` (the largest speed along
+ * `launch` whose landing travel is not past the aim), never faster than `launch` itself (the spell's range).
+ */
+export function launchToLand(from: Vec, aim: Vec, launch: Vec, friction: Vec): Vec {
+  const dist = Math.hypot(aim.x - from.x, aim.y - from.y)
+  if (landingTravel(launch, friction) <= dist) return launch
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < LANDING_SEARCH_STEPS; i++) {
+    const mid = (lo + hi) / 2
+    if (landingTravel({ x: launch.x * mid, y: launch.y * mid }, friction) <= dist) lo = mid
+    else hi = mid
+  }
+  return { x: launch.x * lo, y: launch.y * lo }
+}
+
 /** `vel` turned by `deg` degrees and scaled by `factor`. */
 export function turnAndScale(vel: Vec, deg: number, factor: number): Vec {
   const a = (deg * Math.PI) / 180
@@ -64,14 +109,28 @@ export function turnAndScale(vel: Vec, deg: number, factor: number): Vec {
   return { x: (vel.x * c - vel.y * s) * factor, y: (vel.x * s + vel.y * c) * factor }
 }
 
-/** Projectiles one group icon stands for over a charging volley. */
-export const ICON_GROUP = 5
+/** The most mini projectiles stacked over a charging volley; more show as a "+" beside the stack. */
+export const ICON_STACK_MAX = 5
+/** The longest side of a mini projectile, in game px. */
+export const ICON_PX = 8
+/** Each stacked icon sits this many px right of and above the one before. */
+export const ICON_STEP = 3
+/** Room around the stack inside the spell's ball. */
+const BALL_MARGIN = 2
 
-/** The charge icons for `count` projectiles: a group icon per ICON_GROUP, then one per projectile left (7 -> [5, 1, 1]). */
-export function volleyIconGroups(count: number): number[] {
-  const groups = Math.floor(count / ICON_GROUP)
-  return [...Array<number>(groups).fill(ICON_GROUP), ...Array<number>(count - groups * ICON_GROUP).fill(1)]
+/** The stacked icons for `count` projectiles (at most ICON_STACK_MAX) and whether a "+" stands for the rest. */
+export function volleyIconStack(count: number): { icons: number; more: boolean } {
+  return { icons: Math.min(count, ICON_STACK_MAX), more: count > ICON_STACK_MAX }
 }
+
+/** The side of the square the stacked icons for `count` projectiles cover (0 for none). */
+export function iconStackPx(count: number): number {
+  const { icons } = volleyIconStack(count)
+  return icons === 0 ? 0 : ICON_PX + ICON_STEP * (icons - 1)
+}
+
+/** Remake: a volley spell's ball is at least as wide as its icon stack, so the icons sit inside it. */
+export const volleyBallPx = (ballPx: number, shown: number): number => (shown === 0 ? ballPx : Math.max(ballPx, iconStackPx(shown) + BALL_MARGIN))
 
 /** Projectiles a volley spell stands for: what its charge would fire, or once released what is left to fire; 0 for any other spell. */
 export function volleyShotsShown(mode: string, charge: number, v: VolleyDef | null, volley: { total: number; fired: number } | null): number {

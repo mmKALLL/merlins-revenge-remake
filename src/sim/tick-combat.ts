@@ -300,7 +300,7 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   else t.removed.add(a.id)
 }
 
-/** The bullet's attack: a volley projectile's own copy (its damageMultiplier), else its definition's. */
+/** The bullet's attack: a volley projectile's own copy (its damageMultiplier and hit roles), else its definition's. */
 const bulletAttackOf = (a: ActorState, def: ActorDef): AttackDef => a.attack ?? def.attack
 
 /** objBullet.checkCollisionWithTarget: the bullet's target, when it touches it (a target that fell asleep while the bullet flew included). */
@@ -316,7 +316,7 @@ function targetTouched(t: Tick, a: ActorState): ActorState | undefined {
  */
 function firstHostileTouched(t: Tick, a: ActorState, def: ActorDef): ActorState | undefined {
   const rect = rectAt(a.pos, collisionRectFor(t.s, a))
-  const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits).filter((v) => bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
+  const touched = hatedUnits(t, hatedTeams(a.team, t.s.teams), bulletAttackOf(a, def).hits).filter((v) => bulletHits(rect, v.pos, collisionRectFor(t.s, v)))
   return touched.sort((p, q) => distance(p.pos, a.prevPos) - distance(q.pos, a.prevPos))[0]
 }
 
@@ -327,7 +327,7 @@ function firstHostileTouched(t: Tick, a: ActorState, def: ActorDef): ActorState 
  * as on contact).
  */
 function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number): void {
-  for (const v of hatedUnits(t, hatedTeams(a.team, t.s.teams), def.attack.hits)) {
+  for (const v of hatedUnits(t, hatedTeams(a.team, t.s.teams), bulletAttackOf(a, def).hits)) {
     // modSplashDamage.calcAttackHitSplash: the unit's reg point within `radius` of the axe
     if (distance(v.pos, a.pos) >= radius) continue
     const victim = hitTargetIn(t, v.id)

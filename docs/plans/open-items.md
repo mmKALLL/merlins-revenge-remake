@@ -112,8 +112,12 @@ Work top down; the sections below hold the details.
   `assets/remake-actors/`; test map `?map=test_maps/spell_test`, the row below Merlin): all eight
   (with needle spray). To decide: the projectiles' damage (2.5x the enemy shot, every one), the
   charge per level (one rule from damage) and the capacity where the most projectiles are reached
-  (20; thunder 24), the ranges, the themed floors, the scroll and writing art, the icons (groups of
-  five), whether a volley should re-aim at the mouse as it fires (now it keeps the release aim).
+  (20; thunder 24), the ranges, the themed floors, the scroll and writing art, the icons (stacked,
+  "+" past five), whether a volley should re-aim at the mouse as it fires (now it keeps the release
+  aim). Tweaks of 2026-10-25 (branch `volley-tweaks-2`, to review): slower charge but for needles
+  and arrows, even fans for needles/shurikens and random ones (first at the aim) for the rest,
+  exploding projectiles land on the aim, volleys hit dwellings; touch controls only on touch-only
+  devices.
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
   original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
