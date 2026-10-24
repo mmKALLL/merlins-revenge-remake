@@ -67,3 +67,21 @@ describe('mini-map (continuous world)', () => {
     expect(miniMapCells(s)).toEqual([['cur', 'inf']])
   })
 })
+
+describe('mini-map (roguelite exit)', () => {
+  const marked = (m: MapDefinition): MapDefinition => ({ ...m, endRoom: { x: m.mapSize.x, y: 1 }, markExit: true })
+
+  it('shows a markExit map\'s end room as the exit, whatever stands in it', () => {
+    expect(miniMapCells(sim(marked(map([[], [GOBLIN], [GOBLIN]]))))).toEqual([['cur', 'inf', 'exit']])
+    expect(miniMapCells(sim(marked(map([[], [GOBLIN]])), 'continuous'))).toEqual([['clr', 'exit']])
+  })
+
+  it('marks Merlin\'s room #cur even in the exit room', () => {
+    const m = { ...map([[], [GOBLIN]]), endRoom: { x: 1, y: 1 }, markExit: true }
+    expect(miniMapCells(sim(m))).toEqual([['cur', 'inf']])
+  })
+
+  it('an original map never shows an exit', () => {
+    expect(miniMapCells(sim({ ...map([[], []]), endRoom: { x: 2, y: 1 } }))).toEqual([['cur', 'clr']])
+  })
+})

@@ -17,11 +17,19 @@ import { roomKey, type SimState } from './state'
  */
 export const miniMapShown = (s: SimState): boolean => s.navMode && !s.mapComplete
 
-/** Every room's cell, `cells[y - 1][x - 1]` for room (x, y). */
+/**
+ * Every room's cell, `cells[y - 1][x - 1]` for room (x, y). Remake (roguelite): a markExit map's end
+ * room shows as the exit unless Merlin stands in it.
+ */
 export function miniMapCells(s: SimState): MiniMapCell[][] {
   const statusOf = s.worldMode === 'continuous' ? liveRoomStatuses(s) : (room: Vec) => roomsModeCell(s, room)
-  const { mapSize } = s.grid.map
-  return Array.from({ length: mapSize.y }, (_, y) => Array.from({ length: mapSize.x }, (_, x) => statusOf({ x: x + 1, y: y + 1 })))
+  const { mapSize, endRoom, markExit } = s.grid.map
+  const exit = markExit ? endRoom : undefined
+  const cellOf = (room: Vec): MiniMapCell => {
+    const cell = statusOf(room)
+    return exit && cell !== 'cur' && room.x === exit.x && room.y === exit.y ? 'exit' : cell
+  }
+  return Array.from({ length: mapSize.y }, (_, y) => Array.from({ length: mapSize.x }, (_, x) => cellOf({ x: x + 1, y: y + 1 })))
 }
 
 /**

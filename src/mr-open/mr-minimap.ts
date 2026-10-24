@@ -4,8 +4,11 @@
 import type { Vec } from './mr-geometry'
 import type { MiniMapStatus } from './mr-map-clear'
 
-/** A cell of the map: a room's status, or #cur for the current room (modMiniMap.getMiniMapData). */
-export type MiniMapCell = MiniMapStatus | 'cur'
+/**
+ * A cell of the map: a room's status, or #cur for the current room (modMiniMap.getMiniMapData);
+ * remake: 'exit' for a roguelite floor's exit room.
+ */
+export type MiniMapCell = MiniMapStatus | 'cur' | 'exit'
 
 export interface MiniMapBorder { left: number; top: number; right: number; bottom: number }
 
@@ -60,6 +63,8 @@ export const CELL_IMAGES: Record<MiniMapCell, CellImage> = {
   fre: bevelledCell(0x3c3bff, 0x1e1e80),
   spe: bevelledCell(0xffff00, 0xff9a00),
   cur: solidCell(CURRENT_COLOUR),
+  // remake (roguelite): the exit room in miniSpecial's yellow bevel
+  exit: bevelledCell(0xffff00, 0xff9a00),
 }
 
 /** modMiniMap.drawMap: the map image's size, cells plus border, in map image px. */
