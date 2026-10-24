@@ -12,11 +12,12 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
 import { chargeVolume } from '../mr-open/mr-sound'
 import {
-  armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, stageNumber,
+  armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, sendsAlliesHome, stageNumber,
 } from '../mr-open/mr-spell'
 import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
 import { spellAimPoint } from './player-aim'
+import { armyMembersInPlay, summonWholeReserve } from './tick-army'
 import { nextRandom, randomInt, roughly, spreadVec } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
@@ -298,6 +299,16 @@ function depositMines(t: Tick, spell: ActorState, atk: AttackDef): void {
  * explosion. impactAttack calls the payload functions (the stage's, once a summon stage is
  * reached); then doExplodeFunction summons or lays mines.
  */
+/**
+ * Remake (blankSummonsReserve, owner request): a blank army summon (it sends allies home) of Merlin's
+ * lands with none of his army in play, so it summons the whole reserve there instead, as R does.
+ */
+function blankSummonsReserve(t: Tick, spell: ActorState, atk: AttackDef): boolean {
+  if (!atk.blankSummonsReserve || !sendsAlliesHome(spell.charge, atk) || spell.ownerId !== t.s.playerId) return false
+  const owner = actorIn(t, spell.ownerId)
+  return owner !== undefined && isAlive(owner) && armyMembersInPlay(t, owner).length === 0
+}
+
 function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
@@ -309,6 +320,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
   const ex = explode(spell.pos, spell.charge, atk, victims)
   const payloadFunctions = payloadFunctionsFor(spell.charge, atk)
+  const summonsReserve = blankSummonsReserve(t, spell, atk)
   // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
   const caster = t.actors.find((c) => c.id === spell.ownerId)
   const spread = caster ? defOf(t.s, caster).knockbackSpreadDeg : 0
@@ -323,6 +335,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   playSound(t, atk.explodeSound, explodeVolume)
   // the summon is the payload selected while charging; the mines go by the charge after the factor
   if (atk.explodeFunction === SUMMON_UNIT) summonPayload(t, spell, atk)
+  if (summonsReserve) summonWholeReserve(t, actorIn(t, spell.ownerId!)!, spell.pos)
   spell.charge *= atk.chargeExplodeFactor
   if (atk.explodeFunction === DEPOSIT_MINES) depositMines(t, spell, atk)
   spell.mode = 'explode'

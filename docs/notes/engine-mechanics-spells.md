@@ -672,3 +672,8 @@ Remake decisions (owner, 2026-10-25):
 - **Charge icon rows (owner, 2026-10-25):** up to 10 icons, 5 per diagonal row; each next row starts
   over at the first icon's place shifted +2 x, +1 y (`ICON_ROW_SHIFT`), the box centred on the ball;
   the skull icons sit 1 px further right (`ICON_NUDGE`).
+- **Blank army summon calls the reserve (owner, 2026-10-25):** with `attack.blankSummonsReserve`
+  (`assets/tuning.json`, armySummon; engine false), a blank army summon of Merlin's that lands while
+  none of his army is in play summons the whole reserve where it lands, as R does (`summonWholeReserve`).
+  R itself and the charged summon stages are unchanged; `player.armyKeySummons` (engine true) can turn
+  R's summon off if insta-summon is banned later (R still sends the army back).

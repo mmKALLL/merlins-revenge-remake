@@ -67,8 +67,9 @@ export function stepArmyKey(t: Tick, input: InputSnapshot, view: Size): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   const inPlay = armyMembersInPlay(t, p)
-  if (inPlay.length === 0) summonWholeReserve(t, p, summonPoint(t, p, input, view))
-  else if (fightOver(t)) for (const a of inPlay) teleportOut(t, a)
+  if (inPlay.length === 0) {
+    if (defOf(t.s, p).armyKeySummons) summonWholeReserve(t, p, summonPoint(t, p, input, view))
+  } else if (fightOver(t)) for (const a of inPlay) teleportOut(t, a)
 }
 
 function summonPoint(t: Tick, p: ActorState, input: InputSnapshot, view: Size): Vec {
@@ -89,7 +90,7 @@ export function nearestAllyOnScreen(t: Tick, p: ActorState, view: Size): ActorSt
 }
 
 /** Merlin's living army members (his armyMembers types on his team) in the tick that can still teleport out. */
-function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
+export function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
   const types = defOf(t.s, p).armyMembers
   const canGo = (a: ActorState) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out' && defOf(t.s, a).teleportable
   return t.actors.filter((a) => !t.removed.has(a.id) && canGo(a))
@@ -101,7 +102,7 @@ function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
  * (summonArmy sets locv twice and never loch). A solid tile refuses the unit (actorMaster.newActor
  * returns #none) and summonArmy stops there (`exit`).
  */
-function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
+export function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
   const types = autoSummonTypes(teamSlotsFree(t, p.team), defOf(t.s, p).armyMembers, (typ) => reserveCount(t.army, p.team, typ))
   for (const typ of types) {
     const [r, rng] = randomInt(t.rng, AUTO_SUMMON_JITTER)
@@ -123,6 +124,7 @@ export function armyKeyAction(s: SimState): 'summon' | 'sendBack' | null {
   const types = s.defs[p.def]?.armyMembers ?? []
   const inPlay = s.actors.some((a) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out')
   if (inPlay) return (s.worldMode === 'rooms' ? s.exitsOpen : s.navMode) ? 'sendBack' : null
-  return types.some((typ) => reserveCount(s.army, p.team, typ) > 0) ? 'summon' : null
+  const summons = s.defs[p.def]?.armyKeySummons ?? true
+  return summons && types.some((typ) => reserveCount(s.army, p.team, typ) > 0) ? 'summon' : null
 }
 

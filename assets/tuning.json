@@ -98,6 +98,9 @@
     "energy": 120
   },
   "armySummon": {
+    "attack": {
+      "blankSummonsReserve": true
+    },
     "startingArmy": {
       "warrior": 2,
       "archer": 2,

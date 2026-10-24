@@ -19,6 +19,7 @@ export interface AttackDef {
   /** remake: a melee hit lands on every target whose sprite rect meets this circle (centre from the reg point, x mirrored); null = the engine's strike point */
   strikeCircle: { centre: Vec; radius: number } | null
   chargeFullTicks: number | null // remake: the charge max is also capped at chargeStart + the charge speed x this many ticks (a faster charger reaches a bigger blast); null = engine
+  blankSummonsReserve: boolean // remake (army summon): a blank blast with no army ally in play summons the whole reserve where it lands, as R does; false = engine
   /** a point for the player's natural punch (act_player); a number everywhere else */
   reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
   cooldown: number // counter length between attacks; advanced per tick by agility/dexterity/mana_regeneration
@@ -206,6 +207,7 @@ export interface ActorDef {
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
   medikitPickupEnergy: number // the player: energy a collected medikit restores at once (it also goes into stock); 25 = engine
+  armyKeySummons: boolean // the player: R summons the whole reserve when no army member is in play; true = engine (modAutoSummon)
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   explosionsLinger: boolean // remake, the player: his bullets' and mines' blasts also hit units that enter them until the explode strip ends; false = engine (one tick)
@@ -260,6 +262,7 @@ const ATTACK_DEFAULTS = {
   glowTeal: false, // not in structAttack; only the freezing attacks set it
   strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
   chargeFullTicks: null, // remake: no time cap on the charge, as in the engine
+  blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
 } as const
 
@@ -332,6 +335,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     frozenAttackSlowdown: 3, // remake (owner request): frozen units attack at a third of the speed
     medikitRestRate: 1, // the medikit heals at the same rate in and out of battle, as in the engine
     medikitPickupEnergy: 25, // medikitCollected's increaseEnergy(25), as in the engine
+    armyKeySummons: true, // the #army key summons the reserve, as in the engine
     keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
@@ -364,7 +368,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce',
 ]) {
@@ -592,6 +596,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     collisionLoc: vec(a, 'collisionLoc', ctx), idealAttackLoc: vec(a, 'idealAttackLoc', ctx),
     strikeCircle: strikeCircleOf(a, ctx),
     chargeFullTicks: a['chargeFullTicks'] === null ? null : num(a, 'chargeFullTicks', ctx),
+    blankSummonsReserve: bool(a, 'blankSummonsReserve', ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),
     damageMultiplier: num(a, 'damageMultiplier', ctx),
@@ -746,6 +751,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
       medikitRestRate: num(r, 'medikitRestRate', ctx),
       medikitPickupEnergy: num(r, 'medikitPickupEnergy', ctx),
+      armyKeySummons: bool(r, 'armyKeySummons', ctx),
       keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),

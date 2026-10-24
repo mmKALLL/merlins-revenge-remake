@@ -142,6 +142,29 @@ describe('the army summon spell released blank (remake)', () => {
   it('at a summon stage flies at the mouse as before', () => {
     expect(release(withAllies({ warrior: 1 }), 30).at).toEqual(MOUSE)
   })
+
+  it('with no army in play summons the whole reserve where it lands, when blankSummonsReserve is set', () => {
+    const landed = (flag: boolean): ActorState[] => {
+      let s = world('rooms', { warrior: 2, archer: 1 })
+      s = { ...s, arsenal: addWeapon(s.arsenal, 'armySummon', { ...defs['armySummon']!.attack, blankSummonsReserve: flag }) }
+      s = release(s, 2).before
+      let blastAt: Vec | undefined
+      for (let i = 0; i < 90 && allies(s).length === 0; i++) {
+        s = stepSim(s, { ...NO_INPUT, mouseWorld: MOUSE })
+        blastAt = s.actors.find((a) => a.def === 'spell' && a.mode === 'explode')?.pos ?? blastAt
+      }
+      return allies(s).filter((a) => blastAt !== undefined && Math.abs(a.pos.x - blastAt.x) < 1)
+    }
+    expect(landed(true)).toHaveLength(3) // teleporting in at the blast
+    expect(landed(false)).toHaveLength(0)
+  })
+
+  it('R summons nothing when the player\'s armyKeySummons is off', () => {
+    const s0 = world('rooms', { warrior: 2 })
+    const off = { ...s0, defs: { ...s0.defs, player: { ...s0.defs['player']!, armyKeySummons: false } } }
+    expect(allies(stepSim(off, R))).toHaveLength(0)
+    expect(armyKeyAction(off)).toBeNull()
+  })
 })
 
 describe('armyKeyAction: when R (and the touch army button) would act', () => {
