@@ -3,6 +3,7 @@
 // weapons and the current one, the reserve army, the run's score and its time. Everything else
 // belongs to the floor's map and starts fresh: graves, sleepers, room states, the mini-map, the
 // map's tick (its timers read it) and his temporary invincibility.
+import { naturalArsenal } from '../mr-open/mr-weapons'
 import { playerOf } from './actors'
 import { VOID_SCORE } from './score'
 import type { SimState } from './state'
@@ -25,4 +26,12 @@ export function carryOver(prev: SimState, next: SimState): SimState {
 export function withFullEnergy(s: SimState): SimState {
   const maxEnergy = s.defs['player']!.maxEnergy
   return { ...s, actors: s.actors.map((a) => (a.id === s.playerId ? { ...a, energy: maxEnergy } : a)) }
+}
+
+/**
+ * Owner: Merlin starts a roguelite run with only his natural attack (the punch); the energy blast,
+ * his starting weapon elsewhere, is one of the run's scrolls (src/run/rewards.ts).
+ */
+export function withRunStartArsenal(s: SimState): SimState {
+  return { ...s, arsenal: naturalArsenal(s.defs['player']!) }
 }

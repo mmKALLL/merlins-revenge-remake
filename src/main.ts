@@ -27,7 +27,7 @@ import { frameCanvas } from './render/dom-sprite'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
-import { carryOver, withFullEnergy } from './sim/carry-over'
+import { carryOver, withFullEnergy, withRunStartArsenal } from './sim/carry-over'
 import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
 import { collectedScrolls, holdsScroll } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
@@ -255,10 +255,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     return { grid, startPos: findStartPos(grid, playerTile) }
   }
   let world = worldOf(map)
-  let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
   let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
   if (run) shell.recordRunStart()
+  /** A fresh sim of the current world: a roguelite run's first floor without the starting weapon. */
+  const startSim = (simSeed: number, worldMode: WorldMode): SimState => {
+    const fresh = createSim(world.grid, defs, teams, anims, simSeed, world.startPos, worldMode)
+    return run ? withRunStartArsenal(fresh) : fresh
+  }
+  let sim = startSim(seed, worldModeFor(cfg.cameraMode))
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -290,7 +295,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       shell.recordRunStart()
     }
     buildingFloor = false
-    sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
+    sim = startSim(runSeed, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }

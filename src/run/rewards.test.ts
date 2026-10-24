@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { ROGUELITE_FLOORS } from '../gen/roguelite-biomes'
 import { pickUnlocked, PICK_LOCK_MS } from './pick'
-import { potionTotal, rewardPickups, rewardPools, rollRewards, startingKit, type RewardOption } from './rewards'
+import { ENERGY_BLAST, potionTotal, RESERVED_WEAPONS, rewardPickups, rewardPools, rollRewards, startingKit, type RewardOption } from './rewards'
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1)
 const POOLS = ROGUELITE_FLOORS.map(rewardPools)
@@ -15,6 +15,12 @@ const potionsOf = (options: RewardOption[]) => {
   return p.potions
 }
 const spellOf = (options: RewardOption[]) => options.find((o) => o.kind === 'spell')
+const scrollOf = (options: RewardOption[]) => {
+  const spell = spellOf(options)
+  return spell?.kind === 'spell' ? spell.scroll : null
+}
+const MANY_SEEDS = Array.from({ length: 2000 }, (_, i) => i + 1)
+const MELEE = ['merlinSword', 'energyPunch']
 
 describe('roguelite rewards', () => {
   it('never offers a spell Merlin holds', () => {
@@ -52,6 +58,32 @@ describe('roguelite rewards', () => {
       expect(new Set(potions.map((p) => p.character)).size).toBe(2)
       expect(potionTotal(potions)).toBe(5)
     }
+  })
+
+  it('keeps the reserved weapons out of the spell pools, the energy blast in at an unthemed spell\'s weight', () => {
+    for (const [floor, pools] of POOLS.entries()) {
+      const biomes = ROGUELITE_FLOORS[floor]!.length
+      expect(pools.spellScrolls.filter((s) => RESERVED_WEAPONS.includes(s.value))).toEqual([])
+      expect(pools.spellScrolls.find((s) => s.value === ENERGY_BLAST)?.weight).toBe(biomes)
+      // the golden machine gun waits for its port
+      expect(pools.reservedWeapons).toEqual(MELEE.map((value) => ({ value, weight: 2 * biomes })))
+    }
+  })
+
+  it('never gives a reserved weapon in the starting kit, nor the heal blast; the energy blast can be the kit\'s spell', () => {
+    const kits = MANY_SEEDS.map((seed) => scrollOf(startingKit(seed, POOLS[0]!)))
+    expect(kits.filter((s) => s !== null && (RESERVED_WEAPONS.includes(s) || s === 'healBlast'))).toEqual([])
+    expect(kits).toContain(ENERGY_BLAST)
+  })
+
+  it('offers a reserved melee weapon in place of the spell only while Merlin lacks it', () => {
+    const offered = (holds: (k: string) => boolean) => MANY_SEEDS.map((seed) => scrollOf(rollRewards(seed, 1, POOLS[1]!, holds)))
+    const lacking = offered(holdsNothing)
+    for (const weapon of MELEE) expect(lacking).toContain(weapon)
+    expect(lacking).toContain(ENERGY_BLAST)
+    const swordHeld = offered((k) => k === 'merlinSword')
+    expect(swordHeld).not.toContain('merlinSword')
+    expect(swordHeld).toContain('energyPunch')
   })
 
   it('rolls the same rewards for the same seed and floor', () => {
