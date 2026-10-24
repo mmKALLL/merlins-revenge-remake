@@ -1,11 +1,13 @@
-// Engine data for integration tests: assets/actors (the remake's detour and idle wander off), the converted teams
+// Engine data for integration tests: assets/actors and assets/remake-actors (the remake's detour and idle wander off), the converted teams
 // and the converted atlases in public/generated/sprites (pnpm assets:convert). Node only.
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolveActors, type ActorDef } from '../mr-open/mr-actor-data'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from './state'
 
-const actorFiles = Object.fromEntries(readdirSync('assets/actors').map((f) => [f.replace(/\.txt$/, ''), readFileSync(`assets/actors/${f}`, 'utf8')]))
+const filesIn = (dir: string): [string, string][] => readdirSync(dir).filter((f) => f.endsWith('.txt')).map((f) => [f.replace(/\.txt$/, ''), readFileSync(`${dir}/${f}`, 'utf8')])
+// the original actors and the remake's own (the volley spells)
+const actorFiles = Object.fromEntries([...filesIn('assets/actors'), ...filesIn('assets/remake-actors')])
 // engine data; the remake's detour and idle wander are off
 export const defs: Record<string, ActorDef> = resolveActors(actorFiles, {
   player: { weapon: 'energyBlast' },

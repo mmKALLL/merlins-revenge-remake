@@ -1,0 +1,38 @@
+[#name: "act_thunderBurst", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #thunderBlast,
+#chargeColour: rgb(250,225,90),
+#chargeSize: 0.296,
+#chargeSpeed: 0.4,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.25,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #thunderBurst,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "spell_release",
+#volume: 120,
+#volley: [#chargePerShot: 18, #maxShots: 4, #rangeFactor: 1.25, #damageMultiplier: 1.3]
+],
+#character: #thunderBurst,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

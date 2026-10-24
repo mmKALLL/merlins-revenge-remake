@@ -5,7 +5,7 @@ import { chargeAfterBullet, fireBulletsPeriod, mineCount } from './mr-mine'
 import { armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFunctionsFor, releaseVelocity } from './mr-spell'
 
 const energyBlast: AttackDef = {
-  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null, chargeFullTicks: null,
+  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null, chargeFullTicks: null, volley: null,
   reach: 9999, cooldown: 30, power: 0.75, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 200, b: 0 }, spellSpeed: 20, limitMagic: false, sound: null, releaseSound: 'spell_release', explodeSound: 'spell_explode',

@@ -5,7 +5,8 @@
 // against the tile keys.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { LayerName } from '../mr-open/mr-map-format'
-import { GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
+import { GOLDEN_MACHINE_GUN, VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
+import { REMAKE_OBJECT_TILES } from './remake-object-tiles'
 
 export interface Weighted<T> {
   value: T
@@ -334,6 +335,7 @@ export const SPELL_SCROLLS = [
   'arcticBlast',
   'energyBeamSpell',
   'merlinSword',
+  ...VOLLEY_SCROLLS, // remake (owner request): the volley spells
 ] as const
 
 /** Owner: any spell can come up on any floor at this weight; the floor's own spells weigh more. */
@@ -395,6 +397,7 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   healBlast: 101,
   energyPunch: 103,
   monsterSummon: 104,
+  ...REMAKE_OBJECT_TILES['merlin4Objects'], // the volley spells' scrolls
 }
 
 export const MERLIN4_TILESETS: Record<LayerName, string> = {
@@ -513,7 +516,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1)], MERLIN4_OBJECTS)),
+    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('boltFan', 1)], MERLIN4_OBJECTS)),
   },
 }
 
@@ -582,6 +585,7 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   energyBeamSpell: 30,
   gmg: 38,
   merlinSword: 39,
+  ...REMAKE_OBJECT_TILES['merlinOpenObjects'], // the volley spells' scrolls
 }
 
 export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
@@ -742,7 +746,7 @@ export const UNDEAD_MARSH: FloorTheme = {
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
       spellWeights(
-        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1)],
+        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('needleSpray', 1)],
         MERLIN_OPEN_OBJECTS
       )
     ),
@@ -844,7 +848,7 @@ export const DRAGON_CANYON: FloorTheme = {
     ],
     potions: POTION_WEIGHTS,
     startRewards: startRewards(
-      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1)], MERLIN_OPEN_OBJECTS)
+      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1), w('shurikenFan', 1), w('lavaLob', 1)], MERLIN_OPEN_OBJECTS)
     ),
   },
 }
@@ -998,7 +1002,7 @@ export const MAGIC_MAZE: FloorTheme = {
     bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1)], MERLIN_OPEN_OBJECTS),
+      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1)], MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },

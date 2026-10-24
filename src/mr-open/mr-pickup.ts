@@ -19,6 +19,17 @@ export const MERLIN_SCROLLS: readonly string[] = [
   'arcticBlast', 'energyBeamSpell', 'merlinSword', 'energyBlast', GOLDEN_MACHINE_GUN,
 ]
 
+/**
+ * Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): scrolls of the remake's
+ * own data (assets/remake-actors), whose art tools/copy-assets.ts paints from the original members.
+ */
+export const VOLLEY_SCROLLS: readonly string[] = [
+  'bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBurst', 'pinStorm', 'lavaLob', 'needleSpray',
+]
+
+/** Every scroll with art: Merlin's from the cast, then the remake's. */
+export const SCROLLS_WITH_ART: readonly string[] = [...MERLIN_SCROLLS, ...VOLLEY_SCROLLS]
+
 /** objPlayerMerlinCharacter pBonusEnergy: energy every potion and a medikit restore at once. */
 export const BONUS_ENERGY = 25
 /** modInvince pTempInvinceTime 200: CounterOnce over [1, 200] finishes 199 ticks after a reset. */

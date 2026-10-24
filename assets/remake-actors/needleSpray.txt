@@ -1,0 +1,38 @@
+[#name: "act_needleSpray", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #needle,
+#chargeColour: rgb(160,225,150),
+#chargeSize: 0.296,
+#chargeSpeed: 0.5,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 2.7,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #needleSpray,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "goblin_fire",
+#volume: 80,
+#volley: [#chargePerShot: 6, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 1.2]
+],
+#character: #needleSpray,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

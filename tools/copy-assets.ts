@@ -6,6 +6,7 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { GOLDEN_MACHINE_GUN, MERLIN_SCROLLS } from '../src/mr-open/mr-pickup'
+import { writeVolleyScrollArt } from './volley-scroll-art'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const ARCHIVE = join(ROOT, 'assets-mr-original/merlin_open_30_speedy_and _tvs')
@@ -301,6 +302,10 @@ for (const [key, { glyph, at }] of Object.entries(SCROLL_LETTERS)) {
   writeFileSync(file, PNG.sync.write(scroll))
   console.log(`${file.slice(ROOT.length)}  <- ${key} scroll letter`)
 }
+
+// Remake (owner request): the volley spells' scrolls, writings and weapon icons, painted from the
+// members copied above (tools/volley-scroll-art.ts).
+for (const file of writeVolleyScrollArt(ASSETS)) console.log(`${file.slice(ROOT.length)}  <- volley scroll art`)
 
 /** The darkest opaque pixel of an image (a scroll's outline), as RGBA. */
 function outlineColour(png: PNG): [number, number, number, number] {

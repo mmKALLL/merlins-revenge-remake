@@ -1,0 +1,38 @@
+[#name: "act_arrowRain", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#attack:
+[
+#animframe: #none,
+#animType: #magic,
+#bullet: #archerArrow,
+#chargeColour: rgb(215,175,110),
+#chargeSize: 0.222,
+#chargeSpeed: 0.667,
+#chargeStart: 0,
+#chargeMax: 999,
+#chargeMaxBasic: 0,
+#chargeMaxModifier: 3.6,
+#chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
+#collisionLoc: point(0,-8),
+#cooldown: 30,
+#firingType: #fullstrength,
+#hits: [#teamMembers, #teamBuildings],
+#limitMagic: true,
+#name: #arrowRain,
+#power: 1,
+#reach: 9999,
+#releaseFunction: #volley,
+#releaseSound: "spell_release",
+#sound: "goblin_fire",
+#volume: 100,
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 1.4]
+],
+#character: #arrowRain,
+#collectSound: "collect_powerup_01",
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 0
+]

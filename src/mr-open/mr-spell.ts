@@ -4,6 +4,7 @@
 // #magic (circle-vs-circle splash with linear falloff).
 import type { Vec } from './mr-geometry'
 import type { ActorDef, AttackDef } from './mr-actor-data'
+import { volleyFullCharge } from '../sim/volley'
 
 export interface ChargeLimits {
   start: number
@@ -15,7 +16,8 @@ export interface ChargeLimits {
  * Charge counter parameters for a caster. `magicLimitPercent` is magicLimitMaster.getMagicLimit (only
  * with limitMagic). calcAttackChargeStart ends with `chargeStart = min(pChargeStart, chargeStartMax)`:
  * with a chargeStartMax (the summons) the start is the attack's own, mana_burst left out.
- * Remake: with a `chargeFullTicks` the max is also what the charge reaches in that many ticks.
+ * Remake: with a `chargeFullTicks` the max is also what the charge reaches in that many ticks; a
+ * volley's max stops where it fires its most projectiles.
  */
 export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeLimits {
   const a = caster.attack
@@ -25,6 +27,7 @@ export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeL
   const speed = a.chargeSpeedMax === null ? flow : Math.min(flow, a.chargeSpeedMax)
   const start = a.chargeStartMax === null ? Math.min(a.chargeStart + caster.mana_burst, max) : Math.min(a.chargeStart, a.chargeStartMax)
   if (a.chargeFullTicks !== null) max = Math.min(max, start + speed * a.chargeFullTicks)
+  if (a.volley !== null) max = Math.min(max, volleyFullCharge(a.volley))
   return { start, max, speed }
 }
 

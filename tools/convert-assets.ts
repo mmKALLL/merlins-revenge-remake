@@ -18,7 +18,7 @@ import { combineTilesets } from './combined-tileset'
 import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
 import { buildPlaceholderTileset, TILES_PER_ROW } from './placeholder-tileset'
-import { withDerivedTiles } from './derived-tiles'
+import { withDerivedTiles, withRemakeObjectTiles } from './derived-tiles'
 import { tileCapacity, tilesPerRow, usesWhiteTransparency, whiteToAlpha } from './tileset-sheet'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -126,9 +126,9 @@ function convertTileSets(maps: ConvertedMap[]): Map<string, ArtTileset> {
     const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', file), 'utf8'))
     const name = stripTxt(file)
     converted.add(name)
-    const symbols = [...key.symbols]
     const sheetPath = join(ASSETS, 'tilesets', `${name}.png`)
-    const sheet = existsSync(sheetPath) ? withDerivedTiles(name, readPng(sheetPath), key.tileSize) : undefined
+    const original = existsSync(sheetPath) ? withDerivedTiles(name, readPng(sheetPath), key.tileSize) : undefined
+    const { symbols, sheet } = withRemakeObjectTiles(name, key.symbols, original, key.tileSize, standFrame)
     if (!sheet) placeholders.add(name)
     const perRow = sheet ? tilesPerRow(sheet.width, key.tileSize.x) : TILES_PER_ROW
     const capacity = sheet ? tileCapacity(sheet.width, sheet.height, key.tileSize) : 0
@@ -143,6 +143,12 @@ function convertTileSets(maps: ConvertedMap[]): Map<string, ArtTileset> {
   warnMapsUsing(maps, (n) => !converted.has(n), 'tilesets with no key file in assets/tile-keys (the page will not load them)')
   warnMapsUsing(maps, (n) => placeholders.has(n), 'tilesets with no sheet in assets/tilesets (drawn with placeholder art)')
   return withArt
+}
+
+/** An object's stand frame (assets/sprites/<symbol>/anm_<symbol>_stand_1_01.png), white made transparent; undefined without one. */
+function standFrame(symbol: string): RgbaImage | undefined {
+  const path = join(ASSETS, 'sprites', symbol, `anm_${symbol}_stand_1_01.png`)
+  return existsSync(path) ? whiteToAlpha(readPng(path)) : undefined
 }
 
 /** tilesets/<name>.json and .png; real art is see-through where white, except on the Passive base layer. */
@@ -196,10 +202,22 @@ function readTuning(): Record<string, Plain> {
   return parsed as Record<string, Plain>
 }
 
+/**
+ * The original actor files (assets/actors) and the remake's own (assets/remake-actors: the volley
+ * spells' scrolls), which must not reuse an original's key.
+ */
+function actorFiles(): Record<string, string> {
+  const original = readTxtDir('actors')
+  const remake = readTxtDir('remake-actors')
+  const clash = Object.keys(remake).filter((k) => original[k] !== undefined)
+  if (clash.length > 0) throw new Error(`assets/remake-actors: ${clash.join(', ')} already in assets/actors`)
+  return { ...original, ...remake }
+}
+
 /** actor definitions resolved through their inheritance chain, with assets/tuning.json overlaid */
 function convertActors(): Record<string, ActorDef> {
   const tuning = readTuning()
-  const actors = withPortedResidents(resolveActors(readTxtDir('actors'), tuning))
+  const actors = withPortedResidents(resolveActors(actorFiles(), tuning))
   writeFileSync(join(OUT, 'actors.json'), JSON.stringify(actors))
   console.log(`actors: ${Object.keys(actors).length} resolved (${Object.keys(tuning).length} tuned)`)
   // a bullet without an actor file cannot be spawned yet; energyBlastBullet is not copied in this slice

@@ -10,7 +10,7 @@ Work top down; the sections below hold the details.
 - **High priority:** (done 2026-10-25: one music track per biome on every random map.)
 - **Medium priority:**
   - The victory jingle does not play on winning a map if music was already playing.
-  - Projectile volley spells.
+  - Projectile volley spells (done on branch `volley-spells`, awaiting review; see below).
   - Less reel on Merlin: the same knockback, but more friction when he walks against his current
     movement vector.
   - Scoring mode (done 2026-10-25, in review; see Awaiting the owner's review).
@@ -63,11 +63,6 @@ Work top down; the sections below hold the details.
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
-- **Projectile volley spells.** One more enemy projectile per charge level (like monster summon's
-  stages); spread ~3 deg at level 1 up to ~30 deg, some speed jitter, and a per-projectile range
-  factor (orc bolts and bombs short, arrows mid, shurikens / thunder bolts / pins long). Candidates:
-  bomb volley, bolt fan, arrow rain, shuriken fan, thunder burst, pin storm, lava lob. Prototype the
-  bomb volley first.
 - **Enemy-only spell scrolls for Merlin.** Dark blast, goblin / Scarlet / skeleton / undead summon:
   the mechanics work (enemies cast them), so it is mostly data.
 - **The eight friendly wizards.** Amotonlin, Berlin, Flaetorlin, Foelin, Garonlin, Prestotolin,
@@ -107,6 +102,12 @@ Work top down; the sections below hold the details.
   points, both ending at the room's right edge x 608), the open-world note, one best per generated
   map id rather than per seed, and the total overlapping the debug readout's second line once it has
   five or more digits (debug info only).
+- Volley spells (`docs/notes/engine-mechanics-spells.md`, Volley spells; data in
+  `assets/remake-actors/`; test map `?map=test_maps/spell_test`, the row below Merlin): all eight
+  (with needle spray). To decide: the projectiles' damage (2.5x the enemy shot, every one), the
+  charge per level (one rule from damage) and the capacity where the most projectiles are reached
+  (20; thunder 24), the ranges, the themed floors, the scroll and writing art, the icons (groups of
+  five), whether a volley should re-aim at the mouse as it fires (now it keeps the release aim).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the
   original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
