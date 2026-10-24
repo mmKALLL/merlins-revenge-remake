@@ -126,6 +126,9 @@ has no such mode; these are remake decisions.
   alive and with the exits open, presses against that edge (his collision rect within
   `EXIT_MARGIN_PX` of the map's top; outside the map is solid and a continuous world clamps to it),
   the sim sets `floorExited` and emits `{ kind: 'floorExit' }` once (`stepPlayerMove`).
+  The opening has exit arrows like an exit to a neighbouring room (`isFloorExit` in
+  `src/sim/exit-arrows.ts`: beyond the map edge counts as open, so the room's own top tiles shape
+  the strip), green (nothing waits beyond), drawn while the exits are open.
 - **Carry-over** (`src/sim/carry-over.ts`). The next floor's sim is a fresh `createSim` of its map
   with Merlin's record copied over: energy, the potions drunk (his potion upgrades), medikits
   (including a heal in progress), the arsenal and current weapon, the reserve army, the score's
@@ -168,8 +171,11 @@ has no such mode; these are remake decisions.
 - **Pick screen** (`src/ui/floor-pick.ts`, the `picking` app screen). Leaving a floor's exit pauses
   the sim on one panel: the next floor's biome (a lone biome is shown chosen) and a reward. The
   cards take no pick for `PICK_LOCK_MS` (800 ms, `pickUnlocked`) and are dimmed until then; the
-  number keys, arrows or Tab and Enter, a tap or a click pick, and the floor is built as soon as
-  both picks are made. The in-game menu cannot open while picking (Esc and the menu button do
+  number keys, a tap or a click pick, or Enter/Space on the focused card, and the floor is built as
+  soon as both picks are made. The arrows or WASD move the focus (`src/ui/grid-nav.ts`): up and down
+  between the Next floor and Reward rows, left and right within a row, wrapping; Tab works as usual.
+  The music plays on while picking (`audioPause`: `'effects'`, owner request); the effects are
+  silenced. Every other menu, the run summary included, suspends all sound. The in-game menu cannot open while picking (Esc and the menu button do
   nothing), so the pick is never lost. Cards show the scroll's and potions' own `stand` and
   `writing` frames (their in-game names: Max Blast, Quick Blast, Faster Charge, Speed Up). A biome
   card shows its name over a row of 3-4 enemy icons (`FloorTheme.showcase`): each unit's first
@@ -216,7 +222,7 @@ has no such mode; these are remake decisions.
   of the weapons Merlin holds beyond his starting ones, `collectedScrolls`, drawn as on the pick
   screen) and the biomes visited by their sign names, then the statistics. New run and Main menu
   take no press for `PICK_LOCK_MS` after it opens (dimmed until then), so a key held from play
-  skips nothing; no menu or Esc leaves it. New run always draws a fresh seed (whatever the Random
+  skips nothing; no menu or Esc leaves it. W and S step between them like the arrows. New run always draws a fresh seed (whatever the Random
   maps setting); Main menu goes to the title. The best score keeps recording per tick for the
   roguelite map id, so a run's total counts as before.
 - **Statistics** (`src/data/roguelite-stats.ts`, localStorage `mr-remake.rogueliteStats`): runs,

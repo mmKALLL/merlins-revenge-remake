@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState } from './app-state'
+import { audioPause, nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState } from './app-state'
 
 const run = (s: AppState, ...actions: AppAction[]): AppState => actions.reduce(nextAppState, s)
 
@@ -57,6 +57,14 @@ describe('app state', () => {
     expect(visiblePanel(picking)).toBe('floorPick')
     expect(run(picking, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'settings' })).toEqual(picking)
     expect(nextAppState(picking, { kind: 'picked' })).toEqual(PLAYING)
+  })
+
+  it('keeps the music on the floor pick only; every other menu pauses all sound', () => {
+    expect(audioPause(PLAYING)).toBe('none')
+    expect(audioPause(nextAppState(PLAYING, { kind: 'pick' }))).toBe('effects')
+    expect(audioPause(nextAppState(PLAYING, { kind: 'pause' }))).toBe('all')
+    expect(audioPause(nextAppState(PLAYING, { kind: 'runEnded' }))).toBe('all')
+    expect(audioPause(TITLE)).toBe('all')
   })
 
   it('a run end shows the summary, which no menu or Esc can leave; New run plays on, Main menu quits', () => {

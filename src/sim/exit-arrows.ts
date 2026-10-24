@@ -32,7 +32,7 @@ export function exitArrowsFor(s: SimState): ExitArrow[] {
     const neighbour = { x: s.room.x + step.x, y: s.room.y + step.y }
     mine[edge] = edgeTiles(s, s.room, edge)
     const exists = s.grid.roomExists(neighbour)
-    theirs[edge] = exists ? edgeTiles(s, neighbour, FACING[edge]) : []
+    theirs[edge] = exists ? edgeTiles(s, neighbour, FACING[edge]) : isFloorExit(s, edge) ? openBeyond(mine[edge]) : []
     hostiles[edge] = exists && roomHostile(s, neighbour)
   }
   const { roomSize } = s.grid.map
@@ -41,6 +41,18 @@ export function exitArrowsFor(s: SimState): ExitArrow[] {
   return exitArrowsForRoom(mine, theirs, hostiles, { x: TILE_PX, y: TILE_PX }, image)
     .map((a) => ({ ...a, pos: { x: origin.left + a.pos.x, y: origin.top + a.pos.y } }))
 }
+
+/**
+ * Remake (roguelite): the top edge of a markExit map's end room leads off the floor, so it has
+ * arrows like an exit to a neighbour: green (nothing waits beyond) and open with the other exits.
+ */
+function isFloorExit(s: SimState, edge: Edge): boolean {
+  const end = s.grid.map.endRoom
+  return edge === 'top' && !!s.grid.map.markExit && !!end && end.x === s.room.x && end.y === s.room.y
+}
+
+/** Open tiles facing an edge that leads off the map, so only the room's own tiles shape the arrows. */
+const openBeyond = (edge: readonly ExitTile[]): ExitTile[] => edge.map(() => 'none')
 
 /** objTileLayer.getEdgeTiles + getScreenExitsForEdge: the room's first/last column or row, top to bottom or left to right. */
 function edgeTiles(s: SimState, room: Vec, edge: Edge): ExitTile[] {

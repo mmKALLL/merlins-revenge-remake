@@ -6,6 +6,7 @@ import type { RogueliteStats } from '../data/roguelite-stats'
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
 import { ROGUELITE_FLOOR_COUNT } from '../run/run'
 import { button, el, menuList, panel } from './dom'
+import { focusInRows } from './grid-nav'
 import { scrollArt, wordsOf, type SpriteArt } from './floor-pick'
 import type { MenuPanel } from './overlay'
 import { statsPanel } from './roguelite-stats-view'
@@ -56,6 +57,10 @@ export function runSummary(actions: RunSummaryActions, now: () => number = () =>
     root.classList.toggle('locked', locked)
     for (const b of [newRun, mainMenu]) b.setAttribute('aria-disabled', String(locked))
   }
+  // W and S step between the buttons like the arrows (capture phase: ahead of the overlay's arrow keys)
+  document.addEventListener('keydown', (e) => {
+    if (!root.hidden) focusInRows([[newRun], [mainMenu]], e)
+  }, true)
   body.append(outcome, facts, el('h3', '', 'Spells collected'), spells, el('h3', '', 'Statistics'), stats, menuList(newRun, mainMenu))
 
   const open = (s: RunSummary, art: SpriteArt) => {

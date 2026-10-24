@@ -4,6 +4,8 @@
 // too, with no menu reachable from it, so the pick is never lost; so does the run's end, on its
 // summary, until New run or Main menu. Pure, so the transitions can be tested.
 
+import type { AudioPause } from '../audio/audio'
+
 export type Screen = 'title' | 'playing' | 'paused' | 'picking' | 'summary'
 export type Panel = 'main' | 'maps' | 'settings' | 'help'
 
@@ -75,3 +77,9 @@ export function visiblePanel(s: AppState): PanelKey | null {
 
 /** The simulation (and the end sequence) advances only while playing with no menu open. */
 export const simRuns = (s: AppState): boolean => s.screen === 'playing'
+
+/** What the screen pauses of the sound: nothing while playing; the floor pick keeps the music (owner request); every other screen all of it. */
+export function audioPause(s: AppState): AudioPause {
+  if (simRuns(s)) return 'none'
+  return s.screen === 'picking' ? 'effects' : 'all'
+}

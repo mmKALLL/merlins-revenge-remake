@@ -53,6 +53,17 @@ describe('exitArrowsFor', () => {
     expect([...rows]).toEqual([1, 3, 4, 6, 7, 8, 9])
   })
 
+  it("lines the open top tiles of a markExit map's end room, the floor exit, and not of another room", () => {
+    const solidTop: [number, number, number][] = Array.from({ length: 18 }, (_, i) => [1, i + 1, 1] as [number, number, number])
+      .filter(([, col]) => col < 5 || col > 7)
+    const map = { ...twoRooms([], solidTop), endRoom: { x: 1, y: 1 }, markExit: true }
+    const top = exitArrowsFor(sim(map)).filter((a) => a.edge === 'top')
+    expect(top.map((a) => a.pos.x)).toEqual(Array.from({ length: 6 }, (_, i) => 128 + i * 16))
+    expect(top.every((a) => a.pos.y === 0 && a.colour === 'grn')).toBe(true)
+    expect(exitArrowsFor({ ...sim(map), exitsOpen: false })).toEqual([])
+    expect(exitArrowsFor(sim({ ...map, markExit: false })).filter((a) => a.edge === 'top')).toEqual([])
+  })
+
   it('draws nothing while the exits are shut or in a continuous world', () => {
     const s = sim(twoRooms([]))
     expect(exitArrowsFor({ ...s, exitsOpen: false })).toEqual([])
