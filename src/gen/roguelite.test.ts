@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { roomXYToNum } from '../mr-open/mr-map-format'
 import { pageDefs } from '../debug/snapshot-test-data'
 import type { Vec } from '../mr-open/mr-geometry'
-import { ROOM_SIZE, energyLookup, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
+import { ROOM_SIZE, energyLookup, inDoorway, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
 import { ROGUELITE_MAP_ID, generateMap, isGeneratedMapId } from './generated-maps'
 import { floodOpen } from './grid'
 import { inOpeningBand, signTiles } from './location-sign'
@@ -12,19 +12,19 @@ import { SAFE_ARRIVAL_TILES, rogueliteFloor } from './roguelite'
 import { ROGUELITE_FLOORS, firstBiome, floorSeed, rogueliteFloorMap } from './roguelite-biomes'
 import { runSteps } from './steps'
 import type { FloorTheme } from './themes'
+import { rewardPickups, rewardPools, rollRewards, startingKitPickups } from '../run/rewards'
 
 const energyOf = energyLookup(pageDefs)
 const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1)
 const ARRIVAL_SEEDS = Array.from({ length: 50 }, (_, i) => i * 7919 + 1)
 const BIOMES = [...new Set(ROGUELITE_FLOORS.flat())]
 const sameVec = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y
+const sorted = (keys: readonly string[]) => [...keys].sort()
 
-/** Merlin and the start room's pickups: what may stand near his arrival. */
-function friendlyKeys(theme: FloorTheme): Set<string> {
-  const u = theme.units
-  const r = u.startRewards
-  return new Set([u.player, u.startMusic, 'medikit', ...r.potions.map((p) => p.value), ...r.spellScrolls.map((s) => s.value), ...r.extras])
-}
+/** Merlin, the start music and the start room's pickups: what may stand near his arrival. */
+const friendlyKeys = (theme: FloorTheme, pickups: readonly string[]): Set<string> => new Set([theme.units.player, theme.units.startMusic, ...pickups])
+/** Some pickups for the floors whose pickups are not under test. */
+const SOME_PICKUPS = ['maxikit', 'medikit']
 
 const playerOf = (floor: GeneratedFloor, theme: FloorTheme) => floor.placements.find((p) => p.key === theme.units.player)!
 
@@ -33,7 +33,7 @@ describe('roguelite floor', () => {
     it(`${theme.id}: connected, its exit room open at the top and marked`, () => {
       const isSolid = themeIsSolid(theme)
       for (const seed of SEEDS) {
-        const floor = runSteps(rogueliteFloor(theme, seed, energyOf))
+        const floor = runSteps(rogueliteFloor(theme, seed, energyOf, SOME_PICKUPS))
         expect(floor.map.markExit).toBe(true)
         expect(floorIsConnected(floor, isSolid), `seed ${seed}`).toBe(true)
         const exit = floor.map.rooms.find((r) => r.num === roomXYToNum(exitRoom(theme.floorSize), floor.map.mapSize))!
@@ -53,7 +53,7 @@ describe('roguelite run map', () => {
     expect(isGeneratedMapId(ROGUELITE_MAP_ID)).toBe(true)
     const seed = 7
     expect(ROGUELITE_FLOORS[0]).toContain(firstBiome(seed))
-    expect(generateMap(ROGUELITE_MAP_ID, seed, energyOf)).toEqual(runSteps(rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf)))
+    expect(generateMap(ROGUELITE_MAP_ID, seed, energyOf)).toEqual(runSteps(rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf, startingKitPickups(seed))))
   })
 
   it('gives each floor of a run its own seed', () => {
@@ -64,11 +64,14 @@ describe('roguelite run map', () => {
 
 describe.each(BIOMES)('roguelite arrival: $name', (theme) => {
   const isSolid = themeIsSolid(theme)
-  const floors = ARRIVAL_SEEDS.map((seed) => ({ seed, floor: runSteps(rogueliteFloor(theme, seed, energyOf)) }))
+  const floors = ARRIVAL_SEEDS.map((seed) => {
+    const pickups = startingKitPickups(seed)
+    return { seed, pickups, floor: runSteps(rogueliteFloor(theme, seed, energyOf, pickups)) }
+  })
 
   it(`places no unit within ${SAFE_ARRIVAL_TILES} tiles of Merlin`, () => {
-    const friendly = friendlyKeys(theme)
-    for (const { seed, floor } of floors) {
+    for (const { seed, pickups, floor } of floors) {
+      const friendly = friendlyKeys(theme, pickups)
       const at = worldTile(playerOf(floor, theme))
       const near = floor.placements.filter((p) => {
         const t = worldTile(p)
@@ -101,6 +104,54 @@ describe.each(BIOMES)('roguelite arrival: $name', (theme) => {
         for (let x = 0; x < ROOM_SIZE.x; x++) {
           const i = (origin.y + y) * size.x + origin.x + x
           if (!isSolid(room.layers.backgroundActive![y]![x]!)) expect(reach[i], `seed ${seed} tile ${x},${y}`).toBe(true)
+        }
+      }
+    }
+  })
+})
+
+describe('roguelite start pickups', () => {
+  /** The start room's placements besides Merlin and the start music. */
+  const startPickupsOf = (floor: GeneratedFloor, theme: FloorTheme) =>
+    floor.placements.filter((p) => sameVec(p.room, floor.map.startRoom) && p.key !== theme.units.player && p.key !== theme.units.startMusic)
+
+  /** Throws unless the start room holds exactly `pickups`, off the sign, the doorways and Merlin's tile. */
+  function expectLaidOut(floor: GeneratedFloor, theme: FloorTheme, pickups: readonly string[], label: string) {
+    const placed = startPickupsOf(floor, theme)
+    expect(sorted(placed.map((p) => p.key)), label).toEqual(sorted(pickups))
+    const edges = floor.edges[`${floor.map.startRoom.x},${floor.map.startRoom.y}`]!
+    const sign = signTiles(floor.map.locationSign!)
+    const merlin = playerOf(floor, theme).tile
+    for (const p of placed) {
+      expect(inDoorway(edges, p.tile), label).toBe(false)
+      expect(sign.some((t) => sameVec(t, p.tile)), label).toBe(false)
+      expect(sameVec(p.tile, merlin), label).toBe(false)
+    }
+  }
+
+  it('lays out the starting kit on the first floor: a scroll, a maxikit, a medikit and 5 potions of 2 types', () => {
+    for (const seed of SEEDS) {
+      const kit = startingKitPickups(seed)
+      const theme = firstBiome(seed)
+      const potions = kit.filter((k) => theme.units.startRewards.potions.some((p) => p.value === k))
+      expect(potions, `seed ${seed}`).toHaveLength(5)
+      expect(new Set(potions).size, `seed ${seed}`).toBe(2)
+      expect(kit.filter((k) => !potions.includes(k)).sort(), `seed ${seed}`).toEqual(sorted(['maxikit', 'medikit', kit[0]!]))
+      expect(theme.units.startRewards.spellScrolls.map((s) => s.value), `seed ${seed}`).toContain(kit[0])
+      expectLaidOut(runSteps(rogueliteFloor(theme, floorSeed(seed, 0), energyOf, kit)), theme, kit, `seed ${seed}`)
+    }
+  })
+
+  it('lays out each reward of the later floors and none of the theme\'s start rewards', () => {
+    for (const [floor, biomes] of ROGUELITE_FLOORS.entries()) {
+      if (floor === 0) continue
+      for (const seed of SEEDS.slice(0, 5)) {
+        for (const reward of rollRewards(seed, floor, rewardPools(biomes), () => false)) {
+          for (const theme of biomes) {
+            const pickups = rewardPickups(reward)
+            const label = `floor ${floor} seed ${seed} ${theme.id} ${reward.kind}`
+            expectLaidOut(runSteps(rogueliteFloor(theme, floorSeed(seed, floor), energyOf, pickups)), theme, pickups, label)
+          }
         }
       }
     }

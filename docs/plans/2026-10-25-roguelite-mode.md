@@ -249,6 +249,10 @@ two-biome floor with a temporary table). Deviations from the steps below:
 - The heal is a maxikit then a medikit (`medikitCollected(null)`, then `(#medikit)`).
 - `FloorTheme.foes` (a few words on its enemies) is new, for the biome cards.
 - The pick lock is `pickUnlocked` in `src/run/pick.ts`; the app screen is `picking` (no menu).
+- Later (owner decision, 2026-10-25): rewards and the kit are pickups in the start room, not given
+  at once. `applyReward` is gone; `RewardOption` moved to `src/run/rewards.ts`, with
+  `rewardPickups` and `startingKitPickups`; `rogueliteFloor` / `rogueliteFloorMap` take the
+  pickups (`FloorOptions.startPickups`), and the generated map id builds floor 1 with the kit.
 
 ### Task 7: reward rolls (pure)
 

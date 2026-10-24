@@ -39,7 +39,7 @@ export const TOWER_TILESET_PARTS: readonly TowerTilesetPart[] = [
  * merlinOpen's tile, so the player is on the key's first `player` tile, where the page looks for
  * the start position.
  */
-function towerObjectTile(key: string): number {
+export function towerObjectTile(key: string): number {
   for (const part of TOWER_TILESET_PARTS) {
     const index = part.objectTiles[key]
     if (index !== undefined) return part.offset + index

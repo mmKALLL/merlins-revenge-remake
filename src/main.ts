@@ -15,7 +15,7 @@ import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { energyLookup, type EnergyOf } from './gen/floor'
 import { ROGUELITE_MAP_ID, currentMapId, generateMap, generateMapSteps, isGeneratedMapId } from './gen/generated-maps'
-import { firstBiome, rogueliteFloorMap } from './gen/roguelite-biomes'
+import { rogueliteFloorMap } from './gen/roguelite-biomes'
 import { runStepsAsync } from './gen/steps'
 import type { Vec } from './mr-open/mr-geometry'
 import { GAME_SCREEN } from './mr-open/mr-hud'
@@ -27,7 +27,7 @@ import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting }
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
 import { carryOver } from './sim/carry-over'
-import { applyReward, holdsScroll } from './sim/rewards'
+import { holdsScroll } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
@@ -37,7 +37,7 @@ import { nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, ty
 import { helpPanel } from './ui/help-panel'
 import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
 import { endRun, enterFloor, nextFloorPlan, startRun, type RunState } from './run/run'
-import { rewardPools, rollRewards, startingKit } from './run/rewards'
+import { rewardPickups, rewardPools, rollRewards } from './run/rewards'
 import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt } from './ui/floor-pick'
 import { mapUrl, setupMapBrowser } from './ui/map-browser'
 import { mapsPanel } from './ui/maps-panel'
@@ -173,10 +173,6 @@ const UNIT_ICON_PX = 48
 /** A unit's icon is the first frame of the first of these strips it has. */
 const UNIT_ICON_STRIPS = ['stand', 'altStand', 'walk']
 
-/** Roguelite: Merlin's starting kit (a new spell, a heal and potions), given at once on a run's first floor. */
-const withStartingKit = (s: SimState, run: RunState): SimState =>
-  startingKit(run.seed, rewardPools([firstBiome(run.seed)]), (scroll) => holdsScroll(s, scroll)).reduce(applyReward, s)
-
 /** A map's world grid and where the player starts on it. */
 interface World { grid: WorldGrid; startPos: Vec }
 
@@ -251,7 +247,6 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   let sim = createSim(world.grid, defs, teams, anims, seed, world.startPos, worldModeFor(cfg.cameraMode))
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
   let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
-  if (run) sim = withStartingKit(sim, run)
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -280,8 +275,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     if (run) run = startRun(pageSeed)
     buildingFloor = false
     sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
-    if (run) sim = withStartingKit(sim, run)
-    audio.handle(sim.events) // the start room's music again
+      audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence() : null
   }
   /** The pick screen's art: a sprite's first frame of an animation. */
@@ -300,8 +294,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const pickArt: PickArt = { sprite: spriteArt, unit: unitArt }
   /**
    * Roguelite: Merlin has left the floor's exit. The game pauses on the pick screen; then the
-   * picked biome's floor is built (the loading screen shows the progress), its fresh sim takes his
-   * record over and he gets the picked reward. After the last floor the run is won.
+   * picked biome's floor is built with the picked reward as pickups in its start room (the loading
+   * screen shows the progress) and its fresh sim takes his record over. After the last floor the run is won.
    */
   const advanceFloor = async (): Promise<void> => {
     if (!run) return
@@ -318,7 +312,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     const picked = await shell.pickFloor({ floorNumber: plan.floor + 1, biomes, rewards }, pickArt)
     if (run !== from) return // the run was restarted meanwhile
     const biome = plan.options[picked.biome]!
-    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf), {
+    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf, rewardPickups(rewards[picked.reward]!)), {
       onProgress: (f) => shell.loading.update('Building the next floor', f),
       pause: nextFrame,
       sliceMs: BUILD_SLICE_MS,
@@ -329,7 +323,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     world = worldOf(next)
     scene.invalidateTiles()
     const fresh = createSim(world.grid, defs, teams, anims, plan.seed, world.startPos, worldModeFor(scene.cameraMode))
-    sim = applyReward(carryOver(sim, fresh), rewards[picked.reward]!)
+    sim = carryOver(sim, fresh)
     audio.handle(sim.events) // the new floor's start music
     buildingFloor = false
   }

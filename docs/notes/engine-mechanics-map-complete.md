@@ -137,20 +137,34 @@ has no such mode; these are remake decisions.
   Leaving floor 4 wins the run (the map-complete end sequence for now); a death ends the run and
   goes back to the title screen instead of restarting. Restart from the menu starts a new run on
   floor 1.
-- **Rewards** (`src/run/rewards.ts`, `src/sim/rewards.ts`). Rolled from the run seed and the floor
+- **Rewards** (`src/run/rewards.ts`; `holdsScroll` in `src/sim/rewards.ts`). Rolled from the run seed and the floor
   (`floorSeed`, salted apart from the layout): a new spell by the floor's start-scroll weights
   (`startRewards.spellScrolls`) less the scrolls Merlin holds (by the scroll's `#character`, as
   `collectScroll` adds it), dropped when he holds them all; a full heal and a medikit; 4-5 potions
   (uniform) of 2 types drawn by the potion weights without repeats, the first type's count uniform
   over 1..n-1, so every split is equally likely. The pick screen shows its rewards before the biome
   is picked, so they draw from the next floor's biome options with their weights added up.
-  `applyReward` gives a reward between ticks through the pickups' own code: `collectScroll` (the
-  weapon, current at once, its `startingArmy`, +25 energy), the heal as a maxikit then a medikit
-  (`medikitCollected`), each potion as `potionCollected` (+25 energy). Each starts the pickup's
-  temporary invincibility.
+- **Rewards as pickups** (owner decision, 2026-10-25). A picked reward is not given to Merlin: it
+  stands as ordinary pickups in the next floor's start room (`rewardPickups`, passed to
+  `rogueliteFloor` as `FloorOptions.startPickups`), and he collects them as any pickup, with their
+  sounds, writing and temporary invincibility. A spell is its scroll; the heal a maxikit (full
+  energy, not stocked) and a medikit; potions each potion rolled. A roguelite floor's start room
+  places none of the theme's start rewards (the 3 potions, medikit and scroll); the side corner
+  rooms' potions stay. A pickup from another biome's pools takes its tower objects tile.
+- **Pickup layout** (`startPickupTiles` in `src/gen/floor.ts`). The pickups fill the free unit
+  tiles of the row 2 below Merlin (in front of him; the sign stands 2 above) from the middle
+  outwards, left first, then the row between, within 2 tiles to either side (10 tiles, the kit's 8
+  fit); past those, the free tiles nearest him. They never take his tile or the sign's (the board
+  stands off every placement), and keep out of the doorways: an opening's band within 4 tiles of
+  its edge (`inDoorway`; `DOORWAY_DEPTH`), taken only when nothing else is free. The whole band, as
+  the sign keeps out of it, would leave too few tiles: a side and a top opening often cover
+  Merlin's row and column. The layout draws nothing from the floor's random numbers, so the floor
+  is the same whichever reward was picked.
 - **Starting kit.** A run's first floor (a random floor-1 biome) starts with a spell, the heal and
-  exactly 5 potions of 2 types from that biome's pools, given at once with no pick; Restart starts
-  a new run with its kit.
+  exactly 5 potions of 2 types from that biome's pools, with no pick, laid out as pickups the same
+  way. The kit comes from the run seed alone (`startingKitPickups`; Merlin starts a run holding no
+  scroll's spell), so the map id `randomly_generated/tower-roguelite` builds floor 1 with it in
+  `generateMap`; Restart starts a new run with its kit.
 - **Pick screen** (`src/ui/floor-pick.ts`, the `picking` app screen). Leaving a floor's exit pauses
   the sim on one panel: the next floor's biome (a lone biome is shown chosen) and a reward. The
   cards take no pick for `PICK_LOCK_MS` (800 ms, `pickUnlocked`) and are dimmed until then; the
