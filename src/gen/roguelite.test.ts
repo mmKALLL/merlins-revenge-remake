@@ -8,13 +8,12 @@ import { ROGUELITE_MAP_ID, generateMap, isGeneratedMapId } from './generated-map
 import { rogueliteFloor } from './roguelite'
 import { ROGUELITE_FLOORS, firstBiome, floorSeed, rogueliteFloorMap } from './roguelite-biomes'
 import { runSteps } from './steps'
-import { TOWER_FLOORS } from './tower'
 
 const energyOf = energyLookup(pageDefs)
 const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1)
 
 describe('roguelite floor', () => {
-  for (const theme of TOWER_FLOORS) {
+  for (const theme of ROGUELITE_FLOORS.flat()) {
     it(`${theme.id}: connected, its exit room open at the top and marked`, () => {
       const isSolid = themeIsSolid(theme)
       for (const seed of SEEDS) {

@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { PNG } from 'pngjs'
 import { describe, expect, it } from 'vitest'
-import { THEMES, type FloorTheme } from './themes'
+import { ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
 
 const TILE = 32
 /** A tile is low-res when aligned 2x2 blocks match this much more often than offset ones. */
@@ -48,7 +48,7 @@ function activeTiles(theme: FloorTheme): number[] {
 }
 
 describe('random floors use sharp tiles', () => {
-  it.each(THEMES.map((t) => [t.name, t] as const))('%s places no low-resolution obstacle tile', (_name, theme) => {
+  it.each([...THEMES, ...ROGUELITE_THEMES].map((t) => [t.name, t] as const))('%s places no low-resolution obstacle tile', (_name, theme) => {
     const low = lowResTiles(theme.tileSets.backgroundActive)
     expect(activeTiles(theme).filter((i) => low.has(i))).toEqual([])
   })

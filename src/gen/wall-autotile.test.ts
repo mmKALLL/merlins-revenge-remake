@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Cell } from './grid'
-import { THEMES, type WallAutotile } from './themes'
+import { ROGUELITE_THEMES, THEMES, type WallAutotile } from './themes'
 import { autotileChoices, wallNeighbours } from './wall-autotile'
 
 const W = Cell.Wall
@@ -33,7 +33,7 @@ describe('wall autotiling', () => {
   })
 
   it('ends every theme table with a rule for any wall', () => {
-    for (const theme of THEMES) {
+    for (const theme of [...THEMES, ...ROGUELITE_THEMES]) {
       if (theme.wallAutotile) expect(theme.wallAutotile.at(-1)!.when, theme.id).toEqual({})
     }
   })

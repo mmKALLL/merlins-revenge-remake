@@ -1,16 +1,20 @@
 // The roguelite run's floors (docs/plans/2026-10-25-roguelite-mode-design.md, Biomes): for each floor
 // from the bottom, the biomes it may be. Every biome draws from the tower tilesets, so the page's
-// tilesets never change between floors. The new biomes join each floor's list in a later slice.
+// tilesets never change between floors. Each floor offers its tower floor and one of the run's own biomes.
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import type { EnergyOf } from './floor'
 import { GenRandom } from './random'
 import { rogueliteFloor } from './roguelite'
 import type { Steps } from './steps'
-import { DRAGON_CANYON, GOBLIN_FOREST, MAGIC_MAZE, UNDEAD_MARSH, type FloorTheme } from './themes'
+import { DEEP_FOREST, DRAGON_CANYON, GOBLIN_FOREST, GOLDEN_PALACE, GOLEM_MOUNTAIN, HYDRA_MARSH, MAGIC_MAZE, UNDEAD_MARSH, type FloorTheme } from './themes'
 import { inTowerTilesets } from './tower-tilesets'
 
-export const ROGUELITE_FLOORS: readonly (readonly FloorTheme[])[] = [[GOBLIN_FOREST], [UNDEAD_MARSH], [DRAGON_CANYON], [MAGIC_MAZE]]
-  .map((biomes) => biomes.map(inTowerTilesets))
+export const ROGUELITE_FLOORS: readonly (readonly FloorTheme[])[] = [
+  [GOBLIN_FOREST, DEEP_FOREST],
+  [UNDEAD_MARSH, HYDRA_MARSH],
+  [DRAGON_CANYON, GOLEM_MOUNTAIN],
+  [MAGIC_MAZE, GOLDEN_PALACE],
+].map((biomes) => biomes.map(inTowerTilesets))
 
 /** Mixes the floor number into the run seed, so each floor's seed is its own. */
 const FLOOR_SEED_MIX = 0x9e3779b9

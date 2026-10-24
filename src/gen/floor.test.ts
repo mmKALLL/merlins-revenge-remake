@@ -10,7 +10,12 @@ import { edgeMismatches } from './edge-check'
 import { TOWER_FLOORS } from './tower'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
-import { GOLDEN_FORT, MAGIC_MAZE, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
+import { GOLDEN_FORT, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
+
+/** Every theme: the generated maps' and the roguelite run's own biomes. */
+const ALL_THEMES: readonly FloorTheme[] = [...THEMES, ...ROGUELITE_THEMES]
+/** Whether the theme is a generated map of its own (the roguelite biomes are not). */
+const hasMapId = (theme: FloorTheme) => THEMES.includes(theme)
 
 /** The objects key as converted: the original symbols with the remake's objects (the volley scrolls) written in. */
 const key = (name: string) => {
@@ -31,10 +36,11 @@ const planRooms = (theme: FloorTheme) => theme.units.roomPlan.flatMap((row, r) =
 /** Where each theme's generators gather (the owner's plan, flipped for the marsh and the maze). */
 const GENERATOR_HALF: Record<string, 'topLeft' | 'bottomRight'> = {
   'goblin-forest': 'topLeft', 'undead-marsh': 'topLeft', 'dragon-canyon': 'topLeft', 'magic-maze': 'topLeft',
+  'deep-forest': 'topLeft', 'hydra-marsh': 'topLeft', 'golem-mountain': 'topLeft', 'golden-palace': 'topLeft',
 }
 const drawsOf = (spec: DrawSpec | undefined): TierDraw[] => (spec === undefined ? [] : Array.isArray(spec) ? spec.map((o) => o.value) : [spec])
 
-describe.each(THEMES)('random floor: $name', (theme) => {
+describe.each(ALL_THEMES)('random floor: $name', (theme) => {
   const active = key(theme.tileSets.backgroundActive)
   const objects = key(theme.tileSets.objects)
   const isSolid = (i: number) => active.isSolid(i)
@@ -55,7 +61,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 
   it('is the same map for the same seed', () => {
     expect(generateFloor(theme, 1234, energyOf)).toEqual(generateFloor(theme, 1234, energyOf))
-    expect(generateMap(floorMapId(theme), 99, energyOf)).toEqual(generateMap(floorMapId(theme), 99, energyOf))
+    if (hasMapId(theme)) expect(generateMap(floorMapId(theme), 99, energyOf)).toEqual(generateMap(floorMapId(theme), 99, energyOf))
     expect(generateFloor(theme, 1, energyOf)).not.toEqual(generateFloor(theme, 2, energyOf))
   })
 
@@ -314,7 +320,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     expect(map.endRoom).toEqual(exitRoom(size))
     expect(map.rooms.map((r) => r.num)).toEqual(Array.from({ length: size.x * size.y }, (_, i) => i + 1))
     expect(map.layers.map((l) => l.tileSet)).toEqual(Object.values(theme.tileSets))
-    expect(isGeneratedMapId(floorMapId(theme))).toBe(true)
+    if (hasMapId(theme)) expect(isGeneratedMapId(floorMapId(theme))).toBe(true)
   })
 
   it('generates a floor well under 100 ms', () => {
@@ -336,6 +342,18 @@ describe.each(THEMES)('random floor: $name', (theme) => {
     const keys = [u.player, u.startMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
       ...[...groupRooms.flatMap(([, groups]) => groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
+  })
+
+  it('shows 3-4 of its own enemies on its biome card, each with actor data', () => {
+    const u = theme.units
+    const placeable = new Set([...u.enemies, ...u.dwellings].map((c) => c.key))
+    for (const g of [...groupRooms.flatMap(([, groups]) => groups), ...u.bosses]) for (const k of Object.keys(g.units)) placeable.add(k)
+    expect(theme.showcase.length).toBeGreaterThanOrEqual(3)
+    expect(theme.showcase.length).toBeLessThanOrEqual(4)
+    for (const k of theme.showcase) {
+      expect(placeable.has(k), k).toBe(true)
+      expect(pageDefs[k], k).toBeDefined()
+    }
   })
 })
 
@@ -457,7 +475,7 @@ describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => 
 
 describe('spell scroll pools (owner rule)', () => {
   it('weigh the original spells and the volleys about half and half on every floor', () => {
-    for (const theme of [...TOWER_THEMES, GOLDEN_FORT]) {
+    for (const theme of ALL_THEMES) {
       const scrolls = theme.units.startRewards.spellScrolls
       const share = (volleys: boolean) => scrolls.filter((s) => VOLLEY_SCROLLS.includes(s.value) === volleys).reduce((sum, s) => sum + s.weight, 0)
       expect(share(true)).toBeCloseTo(share(false))

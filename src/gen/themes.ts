@@ -245,8 +245,8 @@ export interface StartRewards {
 export interface FloorTheme {
   id: string
   name: string
-  /** who the player meets there, in a few words (the roguelite pick screen's biome cards) */
-  foes: string
+  /** 3-4 enemy keys that show who the player meets there (the roguelite pick screen's biome cards) */
+  showcase: readonly string[]
   /** the floor's number, as in its map id and its place in the tower (1 = Goblin Forest); scales HP budgets */
   level: number
   /** rooms across and down */
@@ -473,7 +473,7 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
 export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'Goblin Forest',
-  foes: 'Goblins, orcs and bats',
+  showcase: ['goblinWarrior', 'goblinArcher', 'swordOrc', 'bat'],
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN4_TILESETS,
@@ -572,6 +572,19 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   bat: 138,
   lizardSoldier: 142,
   plant: 147,
+  // the roguelite biomes' units
+  hydra2: 122,
+  iceRock: 108,
+  shurikenNinja: 111,
+  ninja: 112,
+  mysteriousCloud: 113,
+  speedyGuy: 115,
+  fangBunnyBaby: 143,
+  fangBunny: 144,
+  fangBunnyPortal: 145,
+  lavaGolem: 155,
+  musicLastStand: 176,
+  musicWoodsOfEvil: 177,
   scWarrior: 151,
   scArcher: 152,
   scMonk: 153,
@@ -647,7 +660,27 @@ const VINE_POT = 78
 const SKULL = 80
 const ROCK_HEAP = 90
 const STONE_BOULDER = 111
+// greenery (rows 4 and 9-12): trees, pines, reeds and ferns
+const GREEN_TREE = 35
+const GREEN_BUSH_TREE = 38
+const WHITE_REEDS = 84
+const GRASSY_REEDS = 85
+const TANGLED_TREE = 87
+const LEAFY_GREEN_TREE = 91
+const DENSE_REEDS = 94
+const EYE_PLANT = 95
+const TALL_REEDS = 96
+const FERNS = 97
+const GREEN_PINES = 101
+const LOG = 107
+// blue, white and icy rocks (rows 10-12)
+const SNOW_ROCK = 100
+const BLUE_ROCK = 108
+const BLUE_ROCKS = 109
+const ICE_CRYSTAL = 110
+const WHITE_ROCK = 118
 // walkable (#none)
+const YELLOW_SPRIG = 81
 const GOLD_COINS = 60
 const LITTLE_PLANT = 70
 const GREY_PEBBLES = 79
@@ -661,6 +694,10 @@ const MUD_STONES = 9
 /** Remake tile: the cracked grey stone (25) re-coloured to a soft red sandstone (tools/derived-tiles.ts). */
 const RED_SANDSTONE = 37
 const BLUE_COBBLES = 35
+const MOSS = 21
+const DARK_GRASS = 22
+const SWAMP = 23
+const GREY_STONE = 25
 
 /**
  * The forest's plan (regular enemies grow along x, generators along y; the tower mirrors this floor
@@ -699,7 +736,7 @@ const UNDEAD_MARSH_PLAN: RoomPlan = [
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Undead Marsh',
-  foes: 'Skeletons, ghosts and quadranids',
+  showcase: ['skeletonWarrior', 'greyGhost', 'skeletonGiant', 'quadranid'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -801,7 +838,7 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
 export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
   name: 'Dragon Canyon',
-  foes: 'Fighters, lizards and dragons',
+  showcase: ['karateGuy', 'lizard', 'dragon', 'darkGolem'],
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -954,7 +991,7 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
   name: 'Magic Maze',
-  foes: 'Mages, scarlet guards and the undead',
+  showcase: ['bombMage', 'scWarrior', 'necromancer', 'darkMage'],
   level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1165,7 +1202,7 @@ const GOLD_WALLS: WallAutotile = [
 export const GOLDEN_FORT: FloorTheme = {
   id: 'golden-fort',
   name: 'Golden Fort',
-  foes: 'Foes of every floor, in alliances',
+  showcase: ['swordOrc', 'necromancer', 'dragon', 'bombMage'],
   level: 5,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1212,3 +1249,329 @@ export const GOLDEN_FORT: FloorTheme = {
 
 /** Every generated floor: the tower's four, then the Golden Fort (a floor of its own). */
 export const THEMES: readonly FloorTheme[] = [...TOWER_THEMES, GOLDEN_FORT]
+
+// ---- the roguelite biomes (docs/plans/2026-10-25-roguelite-mode-design.md, Biomes; merlinOpen tilesets) ----
+
+/**
+ * The tower floors' plan with a biome's own groups: generators toward the midboss corner (farY),
+ * regular enemies toward the "numerous weak" corner (farX), the centre balancing the two.
+ */
+const biomePlan = (midbossGroups: UnitGroup[], weakCornerGroups: UnitGroup[]): RoomPlan => [
+  [
+    midboss(midbossGroups, { regulars: n(0, 2, WEAK) }),
+    normal({ producers: n(4, 6, WEAK), regulars: n(0, 2, WEAK) }),
+    boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
+  ],
+  [
+    normal({ producers: n(2, 3, WEAK), regulars: n(0, 2, WEAK) }),
+    normal({ producers: FEW_WEAK_OR_ONE_STRONG, regulars: n(1, 3, MOSTLY_STRONG), extras: n(1, 2, WEAK) }),
+    normal({ regulars: n(4, 5, STRONG_MID), extras: WEAK_SPRINKLE }),
+  ],
+  [START, normal({ regulars: n(2, 3, WEAK) }), normal({ groups: weakCornerGroups, regulars: NUMEROUS_WEAK })],
+]
+
+/** Every unit key the biomes place, besides the tower floors' (merlinOpen's goblins included). */
+const BIOME_OBJECTS: Record<string, number> = { ...MERLIN_OPEN_OBJECTS, ...MERLIN_OPEN_GOBLIN_OBJECTS }
+
+/**
+ * Deep Forest's factions: the ninjas hate the goblins, bats, plants and fang bunnies (and they the
+ * ninjas), so the ninjas hold rooms of their own.
+ */
+const WOODS = 'woods'
+const NINJAS = 'ninjas'
+
+export const DEEP_FOREST: FloorTheme = {
+  id: 'deep-forest',
+  name: 'Deep Forest',
+  showcase: ['goblinHero', 'fangBunny', 'ninja', 'plant'],
+  level: 1,
+  floorSize: DEFAULT_FLOOR_SIZE,
+  tileSets: MERLIN_OPEN_TILESETS,
+  objectTiles: BIOME_OBJECTS,
+  ground: [w(DARK_GRASS, 20), w(MOSS, 2)],
+  wall: [w(GREEN_PINES, 5), w(EYED_TREE, 1), w(EYED_TREE_B, 1), w(GREEN_TREE, 1)],
+  longWall: [w(GREEN_PINES, 4), w(EYED_TREE, 1)],
+  materials: [
+    { name: 'deep woods', weight: 7, tiles: [w(GREEN_PINES, 4), w(LEAFY_GREEN_TREE, 2), w(GREEN_TREE, 1), w(GREEN_BUSH_TREE, 1), w(TANGLED_TREE, 1)] },
+    { name: 'undergrowth', weight: 2, tiles: [w(FERNS, 2), w(TALL_REEDS, 1), w(EYE_PLANT, 1), w(GRASSY_REEDS, 1)] },
+    { name: 'haunted trees', weight: 2, tiles: [w(EYED_TREE, 2), w(EYED_TREE_B, 2), w(EYED_SHRUB, 1), w(EYED_SHRUB_B, 1)] },
+  ],
+  stumps: [w(LOG, 2), w(EYED_SHRUB, 1)],
+  decorations: [w(LITTLE_PLANT, 3), w(DARK_PEBBLES, 1), w(YELLOW_SPRIG, 0.5)],
+  // denser than the Goblin Forest: more and bigger thickets, and tree lines cutting in
+  shape: {
+    patches: [4, 7],
+    patchSize: [3, 8],
+    smoothSteps: 1,
+    birth: 5,
+    cuts: { chance: 0.4, extraChance: 0.2, turnChance: 0.5, gapChance: 0.6, gapWidth: [2, 3], wobbleChance: 0.3 },
+    longWallChance: 0.3,
+    longWallSide: [6, 9],
+    longWallEnd: [3, 5],
+    stumpChance: 0.015,
+    decorationChance: 0.035,
+    minOpenShare: 0.5,
+  },
+  edges: { extraOpenChance: 0.7, sideOpening: [3, 5], endOpening: [4, 7], openingDepth: 2 },
+  units: {
+    player: 'player',
+    startMusic: 'musicWoodsOfEvil',
+    roomPlan: biomePlan(
+      [
+        { label: 'ninja hideout', units: { mysteriousCloud: 1, ninja: 1, shurikenNinja: 1 }, faction: NINJAS },
+        { label: 'bat roost', units: { batTree: 2, bat: 2 }, faction: WOODS },
+      ],
+      [
+        { label: 'goblin raiders', units: { goblinWarrior: 3, goblinArcher: 2 }, faction: WOODS },
+        { label: 'fang bunny litter', units: { fangBunnyBaby: 3 }, faction: WOODS },
+      ]
+    ),
+    wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
+    enemies: [
+      { key: 'goblinWarrior', weight: 4, tier: 'weak', faction: WOODS },
+      { key: 'goblinArcher', weight: 3, tier: 'weak', faction: WOODS },
+      { key: 'bat', weight: 2, tier: 'weak', faction: WOODS },
+      { key: 'goblinHero', weight: 1.5, tier: 'mid', faction: WOODS },
+      { key: 'goblinMage', weight: 1.5, tier: 'mid', faction: WOODS },
+      { key: 'plant', weight: 1.5, tier: 'mid', faction: WOODS },
+      { key: 'fangBunnyBaby', weight: 1, tier: 'mid', maxPerRoom: 2, faction: WOODS },
+      { key: 'fangBunny', weight: 0.6, tier: 'mid', maxPerRoom: 1, faction: WOODS },
+      // the shuriken ninjas are the ninjas' weak ones, so their rooms can fill a weak draw
+      { key: 'shurikenNinja', weight: 0.5, tier: 'weak', maxPerRoom: 2, faction: NINJAS },
+      { key: 'ninja', weight: 1, tier: 'strong', maxPerRoom: 2, faction: NINJAS },
+    ],
+    dwellings: [
+      { key: 'goblinHut', weight: 2, tier: 'weak', faction: WOODS },
+      { key: 'batTree', weight: 1, tier: 'strong', faction: WOODS },
+      { key: 'goblinMageHut', weight: 1, tier: 'strong', faction: WOODS },
+      { key: 'mysteriousCloud', weight: 0.5, tier: 'strong', maxPerRoom: 1, faction: NINJAS },
+    ],
+    bosses: [
+      { label: 'fang bunny warren', units: { fangBunnyPortal: 1, fangBunny: 1 }, faction: WOODS, boss: 'fangBunny' },
+      { label: 'goblin hero war band', units: { goblinHero: 3, goblinWarrior: 3, goblinMage: 1 }, faction: WOODS, boss: 'goblinHero' },
+    ],
+    potions: POTION_WEIGHTS,
+    startRewards: startRewards(
+      spellWeights([w('armySummon', 2), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('needleSpray', 1), w('bunnyLob', 1), w('shurikenFan', 1)], BIOME_OBJECTS)
+    ),
+  },
+}
+
+export const HYDRA_MARSH: FloorTheme = {
+  id: 'hydra-marsh',
+  name: 'Hydra Marsh',
+  showcase: ['lizard', 'quadranid', 'plant', 'hydra3'],
+  level: 2,
+  floorSize: DEFAULT_FLOOR_SIZE,
+  tileSets: MERLIN_OPEN_TILESETS,
+  objectTiles: BIOME_OBJECTS,
+  ground: [w(SWAMP, 10), w(MOSS, 1)],
+  wall: [w(TALL_REEDS, 3), w(DENSE_REEDS, 2), w(GRASSY_REEDS, 2), w(TANGLED_TREE, 2), w(LEAFY_GREEN_TREE, 1)],
+  longWall: [w(TALL_REEDS, 3), w(DENSE_REEDS, 2), w(GRASSY_REEDS, 1)],
+  materials: [
+    { name: 'reeds', weight: 5, tiles: [w(WHITE_REEDS, 1), w(GRASSY_REEDS, 2), w(DENSE_REEDS, 2), w(TALL_REEDS, 2)] },
+    { name: 'swamp trees', weight: 3, tiles: [w(TANGLED_TREE, 2), w(LEAFY_GREEN_TREE, 1), w(GREEN_BUSH_TREE, 1)] },
+    { name: 'ferns', weight: 2, tiles: [w(FERNS, 2), w(EYE_PLANT, 1)] },
+    { name: 'wet rocks', weight: 1, tiles: [w(BLUE_ROCK, 1), w(BLUE_ROCKS, 1), w(STONE_BOULDER, 1)] },
+  ],
+  stumps: [w(LOG, 1), w(EYE_PLANT, 1)],
+  // more water: puddles everywhere
+  decorations: [w(PUDDLE, 6), w(LITTLE_PLANT, 1)],
+  shape: {
+    patches: [2, 4],
+    patchSize: [2, 6],
+    smoothSteps: 1,
+    birth: 5,
+    cuts: { chance: 0.6, extraChance: 0.3, turnChance: 0.5, gapChance: 0.65, gapWidth: [2, 3], wobbleChance: 0.3 },
+    longWallChance: 0,
+    longWallSide: [6, 9],
+    longWallEnd: [3, 5],
+    stumpChance: 0.012,
+    decorationChance: 0.1,
+    minOpenShare: 0.5,
+  },
+  edges: { extraOpenChance: 0.6, sideOpening: [3, 4], endOpening: [3, 6], openingDepth: 2 },
+  units: {
+    player: 'player',
+    startMusic: 'musicLastStand',
+    roomPlan: biomePlan(
+      [
+        { label: 'quadranid hive', units: { cocoon: 2, quadranid: 2 } },
+        { label: 'bat roost', units: { batTree: 2, bat: 2 } },
+      ],
+      [
+        { label: 'lizard pack', units: { lizard: 4 } },
+        { label: 'plant bed', units: { plant: 3, lizard: 1 } },
+      ]
+    ),
+    wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
+    // monsters, the swamp's hydras and plants, and the cave's bats leave each other alone: no factions
+    enemies: [
+      { key: 'lizard', weight: 4, tier: 'weak' },
+      { key: 'bat', weight: 2, tier: 'weak' },
+      { key: 'lizardSoldier', weight: 1.5, tier: 'mid' },
+      { key: 'plant', weight: 2, tier: 'mid' },
+      { key: 'quadranid', weight: 2, tier: 'mid' },
+      { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2 },
+      { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1 },
+    ],
+    dwellings: [
+      { key: 'cocoon', weight: 2, tier: 'weak' },
+      { key: 'batTree', weight: 1, tier: 'weak' },
+    ],
+    bosses: [
+      { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2 }, boss: 'hydra3' },
+      { label: 'lizard war party', units: { lizardSoldier: 3, lizard: 3 }, boss: 'lizardSoldier' },
+    ],
+    potions: POTION_WEIGHTS,
+    startRewards: startRewards(
+      spellWeights([w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('energyPulseSpell', 1), w('healBlast', 1), w('monsterSummon', 1), w('acidSplash', 1), w('laserVolley', 1), w('needleSpray', 1)], BIOME_OBJECTS)
+    ),
+  },
+}
+
+/** Golem Mountain's factions: the lava golems are Scarlet's, who brawl with the monsters' golems; the ice rocks leave both alone. */
+const GOLEMS = 'golems'
+const LAVA = 'lava'
+
+export const GOLEM_MOUNTAIN: FloorTheme = {
+  id: 'golem-mountain',
+  name: 'Golem Mountain',
+  showcase: ['boulderMonster', 'iceRock', 'lavaGolem', 'fourArmGolem'],
+  level: 3,
+  floorSize: DEFAULT_FLOOR_SIZE,
+  tileSets: MERLIN_OPEN_TILESETS,
+  objectTiles: BIOME_OBJECTS,
+  ground: [w(GREY_STONE)],
+  wall: [w(STONE_BOULDER, 6), w(GREY_CRAG, 2), w(DARK_ROCK, 1)],
+  longWall: [w(STONE_BOULDER, 5), w(GREY_BOULDER, 1), w(GREY_CRAG, 1)],
+  materials: [
+    { name: 'rocks', weight: 6, tiles: [w(GREY_BOULDER, 3), w(GREY_CRAG, 2), w(ROCK_SPIRE, 1), w(ROCK_HEAP, 1), w(STONE_BOULDER, 1)] },
+    { name: 'dark rocks', weight: 3, tiles: [w(DARK_ROCK, 2), w(BLUE_ROCKS, 1)] },
+    { name: 'ice', weight: 1.5, tiles: [w(ICE_CRYSTAL, 2), w(SNOW_ROCK, 1), w(WHITE_ROCK, 1)] },
+    { name: 'blue rocks', weight: 1, tiles: [w(BLUE_ROCK, 1), w(BLUE_ROCKS, 1)] },
+  ],
+  stumps: [w(ROCK_SPIRE, 2), w(ROCK_HEAP, 1)],
+  decorations: [w(GREY_PEBBLES, 2), w(DARK_PEBBLES, 2)],
+  // rockier than the Dragon Canyon: more and bigger rock patches, long walls as well as baffles
+  shape: {
+    patches: [3, 5],
+    patchSize: [3, 7],
+    smoothSteps: 1,
+    birth: 5,
+    baffles: { chance: 0.5, count: [1, 2], reach: [0.5, 0.7], verticalChance: 0.5, thickness: [1, 2] },
+    longWallChance: 0.3,
+    longWallSide: [6, 9],
+    longWallEnd: [3, 5],
+    stumpChance: 0.015,
+    decorationChance: 0.04,
+    minOpenShare: 0.5,
+  },
+  edges: { extraOpenChance: 0.7, sideOpening: [3, 5], endOpening: [4, 7], openingDepth: 2 },
+  units: {
+    player: 'player',
+    startMusic: 'musicBaroqueRockTechno',
+    roomPlan: biomePlan(
+      [
+        { label: 'golem quarry', units: { boulderCave: 1, boulderMonster: 2 }, faction: GOLEMS },
+        { label: 'fire and ice', units: { lavaGolem: 2, iceRock: 2 }, faction: LAVA },
+      ],
+      [
+        { label: 'boulder rollers', units: { boulderMonster: 4 }, faction: GOLEMS },
+        { label: 'ice field', units: { iceRock: 4 } },
+      ]
+    ),
+    wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
+    enemies: [
+      { key: 'boulderMonster', weight: 4, tier: 'weak', faction: GOLEMS },
+      // the ice rock (350) is about a boulder monster's match (300), so it joins the weak ones
+      { key: 'iceRock', weight: 2, tier: 'weak' },
+      { key: 'darkGolem', weight: 1.5, tier: 'mid', maxPerRoom: 2, faction: GOLEMS },
+      { key: 'vultureGuard', weight: 1, tier: 'mid', maxPerRoom: 2, faction: GOLEMS },
+      { key: 'lavaGolem', weight: 1, tier: 'mid', maxPerRoom: 2, faction: LAVA },
+      { key: 'doubleDarkGolem', weight: 1, tier: 'strong', maxPerRoom: 1, faction: GOLEMS },
+      { key: 'fourArmGolem', weight: 1, tier: 'strong', maxPerRoom: 1, faction: GOLEMS },
+    ],
+    dwellings: [
+      { key: 'boulderCave', weight: 1, tier: 'weak', faction: GOLEMS },
+      { key: 'darkCave', weight: 1, tier: 'strong', maxPerRoom: 1, faction: GOLEMS },
+    ],
+    bosses: [
+      { label: 'golem forge', units: { fourArmGolem: 1, darkCave: 1, boulderMonster: 2 }, faction: GOLEMS, boss: 'fourArmGolem' },
+      { label: 'vulture eyrie', units: { vultureGuard: 3, boulderMonster: 2 }, faction: GOLEMS, boss: 'vultureGuard' },
+    ],
+    potions: POTION_WEIGHTS,
+    startRewards: startRewards(
+      spellWeights([w('energyBeamSpell', 2), w('energyPunch', 2), w('arcticBlast', 2), w('cBlast', 1), w('merlinSword', 1), w('boulderLob', 1), w('darkRockBurst', 1), w('lavaLob', 1), w('iceBoulderLob', 1), w('lightningFan', 1)], BIOME_OBJECTS)
+    ),
+  },
+}
+
+/** The palace guards' factions, each in rooms of its own (they hate each other, but for Scarlet's and the dojo's). */
+const SCARLET = 'scarlet'
+const DOJO = 'dojo'
+const MAGES = 'mages'
+
+/**
+ * The Golden Fort's palace on floor 4: its tiles and room shapes, but the rooms of a tower floor
+ * (midboss, boss, the floor-4 budgets) held by hostile palace guards instead of the fort's peaceful
+ * alliances of every floor's enemies.
+ */
+export const GOLDEN_PALACE: FloorTheme = {
+  ...GOLDEN_FORT,
+  id: 'golden-palace',
+  name: 'Golden Palace',
+  showcase: ['scArcher', 'karateGuy', 'shrouder', 'lavaGolem'],
+  level: 4,
+  objectTiles: BIOME_OBJECTS,
+  units: {
+    player: 'player',
+    startMusic: 'musicElectronicMerlin',
+    roomPlan: biomePlan(
+      [
+        { label: 'golem guard', units: { lavaGolem: 2, scMonk: 1 }, faction: SCARLET },
+        { label: 'ninja ambush', units: { mysteriousCloud: 1, ninja: 2, shurikenNinja: 2 }, faction: NINJAS },
+      ],
+      [
+        { label: 'palace guard', units: { scWarrior: 2, scArcher: 2 }, faction: SCARLET },
+        { label: 'dojo students', units: { karateGuy: 3, kongFuChicken: 2 }, faction: DOJO },
+      ]
+    ),
+    wildcardChance: WILDCARD_CHANCE,
+    mixedFactionChance: MIXED_FACTION_CHANCE,
+    enemies: [
+      { key: 'scWarrior', weight: 3, tier: 'weak', faction: SCARLET },
+      { key: 'scArcher', weight: 3, tier: 'weak', faction: SCARLET },
+      { key: 'scMonk', weight: 1, tier: 'mid', faction: SCARLET, producer: true },
+      { key: 'lavaGolem', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: SCARLET },
+      { key: 'karateGuy', weight: 3, tier: 'weak', faction: DOJO },
+      { key: 'kongFuChicken', weight: 2, tier: 'weak', faction: DOJO },
+      { key: 'speedyGuy', weight: 2, tier: 'mid', faction: DOJO },
+      { key: 'shurikenNinja', weight: 1.5, tier: 'weak', faction: NINJAS },
+      { key: 'ninja', weight: 1.5, tier: 'mid', faction: NINJAS },
+      { key: 'bombMage', weight: 2, tier: 'weak', faction: MAGES },
+      { key: 'thunderMonk', weight: 2, tier: 'weak', faction: MAGES },
+      { key: 'shrouder', weight: 2, tier: 'mid', faction: MAGES },
+    ],
+    dwellings: [
+      { key: 'dojo', weight: 1, tier: 'weak', faction: DOJO },
+      { key: 'magicPortal', weight: 1, tier: 'weak', faction: MAGES },
+      { key: 'mysteriousCloud', weight: 1, tier: 'mid', maxPerRoom: 1, faction: NINJAS },
+    ],
+    bosses: [
+      { label: "Scarlet's throne", units: { scarletInGame: 1, scWarrior: 2, scArcher: 2, lavaGolem: 1 }, faction: SCARLET, boss: 'scarletInGame' },
+      { label: 'dojo masters', units: { speedyGuy: 3, karateGuy: 2, dojo: 1 }, faction: DOJO, boss: 'speedyGuy' },
+      { label: 'court mages', units: { shrouder: 2, bombMage: 2, thunderMonk: 2, magicPortal: 1 }, faction: MAGES, boss: 'shrouder' },
+    ],
+    potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
+    startRewards: startRewards(
+      spellWeights([w('energyBeamSpell', 2), w('energyPunch', 2), w('monsterSummon', 2), w('cBlast', 1), w('armySummon', 1), w('longbow', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('poisonSmoke', 1), w('shurikenFan', 1), w('lavaLob', 1)], BIOME_OBJECTS)
+    ),
+  },
+}
+
+/** The roguelite run's own biomes (not generated maps of their own), one per floor from the bottom. */
+export const ROGUELITE_THEMES: readonly FloorTheme[] = [DEEP_FOREST, HYDRA_MARSH, GOLEM_MOUNTAIN, GOLDEN_PALACE]
