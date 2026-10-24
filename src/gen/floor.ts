@@ -508,7 +508,6 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
       for (let i = 0; i < n; i++) take()
     }
   }
-  if (boss) keys.push(u.exitMusic)
   return [...fixed, ...keys.slice(0, tiles.length).map((key, i) => ({ key, room, tile: tiles[i]! }))]
 }
 

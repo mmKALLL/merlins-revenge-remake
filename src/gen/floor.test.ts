@@ -100,7 +100,9 @@ describe.each(THEMES)('random floor: $name', (theme) => {
       const start = f.placements.filter((p) => sameRoom(p.room, startRoom(size))).map((p) => p.key)
       expect(start.filter((k) => !rewardKeys.has(k)).sort()).toEqual([theme.units.player, theme.units.startMusic].sort())
       const exitUnits = f.placements.filter((p) => sameRoom(p.room, exitRoom(size)))
-      expect(exitUnits.some((p) => p.key !== theme.units.exitMusic)).toBe(true)
+      expect(exitUnits.length).toBeGreaterThan(0)
+      // owner: one track per biome, no separate boss music
+      expect(exitUnits.filter((p) => p.key.startsWith('music'))).toEqual([])
     }
   })
 
@@ -172,7 +174,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   it('leaves a room with an `alone` group to that group (and its potions)', () => {
     const u = theme.units
     const potionKeys = new Set(u.potions.map((p) => p.value))
-    const music = new Set([u.startMusic, u.exitMusic])
+    const music = new Set([u.startMusic])
     const rooms: [Vec, UnitGroup[]][] = [...groupRooms, [exitRoom(size), u.bosses]]
     const countsOf = (keys: string[]) => {
       const counts = new Map<string, number>()
@@ -239,7 +241,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
 
     it('fills a budget room, group included, to its budget within its counts, unless its free tiles run out', () => {
       const budgeted = planRooms(theme).flatMap(({ room, cell }) => [cell.regulars, cell.mixed].flatMap(drawsOf).filter((d) => d.hpBudget).map((d) => ({ room, draw: d })))
-      const notUnits = new Set([...u.potions.map((p) => p.value), u.startMusic, u.exitMusic])
+      const notUnits = new Set([...u.potions.map((p) => p.value), u.startMusic])
       const aloneGroups = u.bosses.filter((g) => g.alone).map((g) => JSON.stringify(Object.entries(g.units).sort()))
       const countsOf = (keys: string[]) => JSON.stringify(Object.entries(Object.fromEntries(keys.map((k) => [k, keys.filter((x) => x === k).length]))).sort())
       for (const { room, draw } of budgeted) {
@@ -325,7 +327,7 @@ describe.each(THEMES)('random floor: $name', (theme) => {
   it('names object tiles by their key symbols, for every unit it can place', () => {
     for (const [symbol, index] of Object.entries(theme.objectTiles)) expect(objects.symbols[index - 1]).toBe(symbol)
     const u = theme.units
-    const keys = [u.player, u.startMusic, u.exitMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
+    const keys = [u.player, u.startMusic, ...u.enemies.map((c) => c.key), ...u.dwellings.map((c) => c.key),
       ...[...groupRooms.flatMap(([, groups]) => groups), ...u.bosses].flatMap((g) => Object.keys(g.units)), ...u.potions.map((p) => p.value), ...rewardKeys]
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
   })

@@ -195,7 +195,6 @@ export type RoomPlan = readonly (readonly RoomPlanCell[])[]
 export interface UnitTuning {
   player: string
   startMusic: string
-  exitMusic: string
   /** what each room holds */
   roomPlan: RoomPlan
   /**
@@ -382,7 +381,6 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   mageOrc: 67,
   swordOrc: 68,
   orcHouse: 69,
-  musicLastStand: 77,
   musicWoodsOfEvil: 78,
   manaCapacity: 13,
   manaBurst: 14,
@@ -492,7 +490,6 @@ export const GOBLIN_FOREST: FloorTheme = {
   units: {
     player: 'player',
     startMusic: 'musicWoodsOfEvil',
-    exitMusic: 'musicLastStand',
     roomPlan: GOBLIN_FOREST_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
@@ -565,7 +562,6 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   scWarrior: 151,
   scArcher: 152,
   scMonk: 153,
-  musicLastStand: 176,
   musicBaroqueRock: 178,
   musicBaroqueRockTechno: 179,
   musicElectronicMerlin: 180,
@@ -719,7 +715,6 @@ export const UNDEAD_MARSH: FloorTheme = {
   units: {
     player: 'player',
     startMusic: 'musicBaroqueRock',
-    exitMusic: 'musicLastStand',
     roomPlan: UNDEAD_MARSH_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
@@ -822,7 +817,6 @@ export const DRAGON_CANYON: FloorTheme = {
   units: {
     player: 'player',
     startMusic: 'musicBaroqueRockTechno',
-    exitMusic: 'musicLastStand',
     roomPlan: DRAGON_CANYON_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
@@ -975,7 +969,6 @@ export const MAGIC_MAZE: FloorTheme = {
   units: {
     player: 'player',
     startMusic: 'musicElectronicMerlin',
-    exitMusic: 'musicLastStand',
     roomPlan: MAGIC_MAZE_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
@@ -1186,7 +1179,6 @@ export const GOLDEN_FORT: FloorTheme = {
   units: {
     player: 'player',
     startMusic: 'musicElectronicMerlin',
-    exitMusic: 'musicLastStand',
     roomPlan: GOLDEN_FORT_PLAN,
     wildcardChance: 0,
     mixedFactionChance: 0, // its alliances already mix peaceful teams

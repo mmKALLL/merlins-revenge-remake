@@ -535,3 +535,10 @@ placement mechanism was needed.
   mage 48. 171 floors have a wizard in one of the two rooms, 34 both. On average the midboss room
   holds 4.2 units and the exit room 9.6. Seeds with each: 23758 (Ochre midboss, Scarlet boss),
   87110 (Ochre boss), 1 (Scarlet's court midboss).
+
+## Owner decision (2026-10-25): one track per biome
+
+The exit (boss) room no longer switches to Last Stand on any random map: each floor plays its biome's
+start-room track throughout, in the tower and on the single maps. The map-complete jingle still plays
+on a win.
+

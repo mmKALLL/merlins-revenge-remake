@@ -7,7 +7,7 @@ Update this file when an item is done or added. Rules for how to work: `CLAUDE.m
 
 Work top down; the sections below hold the details.
 
-- **High priority:** Sorcerer's Tower: one music track per biome, no separate boss music.
+- **High priority:** (done 2026-10-25: one music track per biome on every random map.)
 - **Medium priority:**
   - The victory jingle does not play on winning a map if music was already playing.
   - Projectile volley spells.
