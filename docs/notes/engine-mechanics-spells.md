@@ -677,3 +677,53 @@ Remake decisions (owner, 2026-10-25):
   none of his army is in play summons the whole reserve where it lands, as R does (`summonWholeReserve`).
   R itself and the charged summon stages are unchanged; `player.armyKeySummons` (engine true) can turn
   R's summon off if insta-summon is banned later (R still sends the army back).
+
+### Retune (owner, 2026-10-25, round 4)
+
+- **Range:** every volley's `rangeFactor` x1.2. Friction is a share of the speed, so the landing
+  travel (`landingTravel`, the most an exploding projectile can reach too) grows by 1.21-1.26x.
+- **Piercing:** lightning, blue flame, shuriken fan and longbow get `#pierce: 2` (as laser and dragon
+  fire) at 0.7x their `damageMultiplier`; their charge speed stays (blue flame: below). Laser and
+  dragon fire keep their damage and charge.
+- **The rest:** `damageMultiplier` x1.2 and `chargeSpeed` x1.2 (about 17 % less time to the full
+  count; `chargeMaxModifier` unchanged, so every full count stays at its capacity tier).
+- **Blue flame** freezes about 3 s a hit: `#chill` 9 (was 4) gives 92 frozen ticks for a flame hitting
+  an inertia-0 target 48 px away (push 2.5 x 9 x 4 + 1), about 75 at 100 px and 59 at 160 px (the
+  flame slows); a unit with inertia i is frozen (100 - i) % of that. It charges 1.3x faster.
+- **Bunny lob's sparks** lie on the ground 15 ticks after landing (`fangBunnyBabyBullet.landedTicks`
+  in `assets/tuning.json`, as laser, fire ball, blue flame and acid; the fang bunny baby's own shots
+  too).
+- **Charge icons:** rows of five up to the volley's `maxShots` (bunny lob's 18: four rows), each
+  next row shifted +2 x, +1 y; no other cap. The ball still holds every stack (`fullBallPx`).
+- The push of a non-exploding projectile (and so its damage and a chill's freeze) is its speed at
+  the hit times its power, so the faster launch adds to the hit too: measured one-projectile damage
+  (Merlin's, inertia-0 target 48 px away, as above) rises about 1.4-1.5x for the 1.2x spells, about
+  0.85x for the new piercers, and 1.2-1.25x for laser and dragon fire (more for high-friction
+  bullets; exploding ones' blasts do not depend on the speed).
+
+| Spell | Range px | damageMultiplier | chargeSpeed | Pierce | One hit at 48 px |
+|---|---|---|---|---|---|
+| Acid splash | 256 -> 313 | 1.68 -> 2.016 | 0.1852 -> 0.2222 | 0 | 296 -> 426 |
+| Arrow rain | 153 -> 190 | 2.195 -> 2.634 | 0.667 -> 0.8004 | 0 | 107 -> 154 |
+| Bolt fan | 116 -> 145 | 1.3 -> 1.56 | 0.2288 -> 0.2746 | 0 | 90 -> 137 |
+| Bomb volley (explodes) | 92 -> 112 | 2.7 -> 3.24 | 0.0838 -> 0.1006 | 0 | 111 -> 137 |
+| Boulder lob | 212 -> 263 | 2 -> 2.4 | 0.2222 -> 0.2666 | 0 | 167 -> 241 |
+| Bunny lob | 193 -> 240 | 1 -> 1.2 | 0.2666 -> 0.3199 | 0 | 49 -> 73 |
+| Blue flame | 240 -> 299 | 1.09 -> 0.763 | 0.1852 -> 0.2408 | 0 -> 2 | 133 -> 117 |
+| Dark rock (explodes) | 162 -> 199 | 3.64 -> 4.368 | 0.1389 -> 0.1667 | 0 | 299 -> 538 |
+| Dragon fire | 193 -> 240 | 0.7 | 0.5 | 2 | 29 -> 36 |
+| Frost burst (explodes) | 454 -> 558 | 1.24 -> 1.488 | 0.1778 -> 0.2134 | 0 | 87 -> 101 |
+| Ice boulder | 212 -> 263 | 2 -> 2.4 | 0.1778 -> 0.2134 | 0 | 167 -> 241 |
+| Laser | 454 -> 558 | 0.532 | 0.1556 | 2 | 96 -> 115 |
+| Lava lob (explodes) | 192 -> 233 | 1.9 -> 2.28 | 0.18 -> 0.216 | 0 | 219 -> 284 |
+| Lightning | 454 -> 558 | 1.2 -> 0.84 | 0.1667 | 0 -> 2 | 245 -> 212 |
+| Longbow | 342 -> 419 | 0.94 -> 0.658 | 0.2667 | 0 -> 2 | 305 -> 257 |
+| Needle spray | 161 -> 199 | 1.225 -> 1.47 | 0.5 -> 0.6 | 0 | 73 -> 105 |
+| Pin storm | 162 -> 199 | 0.27 -> 0.324 | 0.3125 -> 0.375 | 0 | 94 -> 151 |
+| Poison smoke (explodes) | 295 -> 373 | 1.6 -> 1.92 | 0.162 -> 0.1944 | 0 | 122 -> 147 |
+| Shuriken fan | 991 -> 1229 | 0.85 -> 0.595 | 0.5006 | 0 -> 2 | 98 -> 83 |
+| Skull toss | 259 -> 324 | 1.03 -> 1.236 | 0.1852 -> 0.2222 | 0 | 124 -> 184 |
+| Thunder burst (explodes) | 608 -> 743 | 1.3 -> 1.56 | 0.2 -> 0.24 | 0 | 187 -> 209 |
+
+Range is `landingTravel` at Merlin's strength 8 x `rangeFactor`; an exploding projectile lands on
+the aim within it.
