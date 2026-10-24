@@ -566,4 +566,6 @@ splash.
 - **Shuriken fan** charges 1.5x faster; **lava lob** flies about twice as far (`rangeFactor` 2.5).
 - **Charge icons:** no "+" for more than five projectiles.
 - The scroll art tool also reads original gfx BMP fly frames (the goblin arrow has no cast PNG).
+- **Damage buff back (owner, 2026-10-25):** every volley's `damageMultiplier` doubled, so each
+  projectile hits about 2x the enemy's own shot (bombs 3x, arrow rain's goblin arrows as before x2).
 

@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 6, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 0.49, #spread: #even]
+#volley: [#chargePerShot: 6, #maxShots: 10, #rangeFactor: 2, #damageMultiplier: 0.98, #spread: #even]
 ],
 #character: #needleSpray,
 #collectSound: "collect_powerup_01",

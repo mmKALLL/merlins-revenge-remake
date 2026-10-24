@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 120,
-#volley: [#chargePerShot: 18, #maxShots: 4, #rangeFactor: 1.25, #damageMultiplier: 0.52, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 18, #maxShots: 4, #rangeFactor: 1.25, #damageMultiplier: 1.04, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #thunderBurst,
 #collectSound: "collect_powerup_01",

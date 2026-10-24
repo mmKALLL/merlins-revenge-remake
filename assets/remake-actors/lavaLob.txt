@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 6.5, #maxShots: 7, #rangeFactor: 2.5, #damageMultiplier: 0.76, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 6.5, #maxShots: 7, #rangeFactor: 2.5, #damageMultiplier: 1.52, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #lavaLob,
 #collectSound: "collect_powerup_01",
