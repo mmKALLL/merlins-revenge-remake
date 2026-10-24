@@ -63,6 +63,11 @@ Work top down; the sections below hold the details.
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete sequence (`src/cutscene/`); what a full system needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
+- **Turret summon.** A charge ladder of the original's stationary units fighting for Merlin: skeleton
+  head -> plant -> goblin tower -> dwarf tower (monster summon's stage mechanism).
+- **Chain beam.** Chain lightning on the energy beam's assets: damage from the charge size; it hits
+  the first enemy, then jumps to a new nearby enemy at 0.6x the damage each hop, until a hit would deal
+  under ~30.
 - **Enemy-only spell scrolls for Merlin.** Dark blast, goblin / Scarlet / skeleton / undead summon:
   the mechanics work (enemies cast them), so it is mostly data.
 - **The eight friendly wizards.** Amotonlin, Berlin, Flaetorlin, Foelin, Garonlin, Prestotolin,
