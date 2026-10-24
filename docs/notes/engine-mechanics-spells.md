@@ -493,3 +493,28 @@ a fire.
 - The monster summon reaches only its first stage (the summoned goblin archer) at the start:
   chargeMax = capacity 10 x 1.2 = 12; the warrior (15) needs capacity 12.5, about four Max Blast
   potions.
+
+### Volley retune (owner, 2026-10-25)
+
+- **Full count by tier:** easy volleys reach their full count at Max Blast capacity 15 (bombs, bolts,
+  lava), mid at 18 (arrows, needles), hard at 21 (shurikens, pins, thunder); Merlin starts at 13, each
+  Max Blast potion adds 0.75. Each file's `chargeMaxModifier` is set so `capacity x modifier` reaches
+  `(maxShots - 1) x chargePerShot` at its tier (rounded up).
+- **No damage buff:** each projectile now hits about as hard as the enemy's own shot, Merlin's 2x
+  included (the volley `damageMultiplier` divided by the old ~2.5 ratio); bombs hit 1.5x the enemy
+  bomb.
+
+| Spell | Max | Start (cap 13) | +4 Max Blast (cap 16) | Full (cap) |
+|---|---|---|---|---|
+| Bomb volley | 7 | 6 shots, ~156 | 7, ~182 | 15 |
+| Bolt fan | 10 | 8, ~280 | 10, ~350 | 15 |
+| Lava lob | 7 | 6, ~246 | 7, ~287 | 15 |
+| Arrow rain | 10 | 7, ~273 | 9, ~351 | 18 |
+| Needle spray | 10 | 7, ~196 | 9, ~252 | 18 |
+| Shuriken fan | 10 | 6, ~228 | 7, ~266 | 21 |
+| Pin storm | 10 | 6, ~216 | 7, ~252 | 21 |
+| Thunder burst | 4 | 2, ~140 | 3, ~210 | 21 |
+
+Damage is per direct hit summed over all projectiles (every one hitting); bombs, thunder and lava also
+splash.
+

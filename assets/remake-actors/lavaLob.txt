@@ -14,7 +14,7 @@
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
-#chargeMaxModifier: 1.95,
+#chargeMaxModifier: 2.6,
 #chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
 #collisionLoc: point(0,-8),
 #cooldown: 30,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 6.5, #maxShots: 7, #rangeFactor: 1.25, #damageMultiplier: 1.9]
+#volley: [#chargePerShot: 6.5, #maxShots: 7, #rangeFactor: 1.25, #damageMultiplier: 0.76]
 ],
 #character: #lavaLob,
 #collectSound: "collect_powerup_01",

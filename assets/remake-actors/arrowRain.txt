@@ -14,7 +14,7 @@
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
-#chargeMaxModifier: 3.6,
+#chargeMaxModifier: 4.0,
 #chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
 #collisionLoc: point(0,-8),
 #cooldown: 30,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 100,
-#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 1.4]
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.25, #damageMultiplier: 0.549]
 ],
 #character: #arrowRain,
 #collectSound: "collect_powerup_01",

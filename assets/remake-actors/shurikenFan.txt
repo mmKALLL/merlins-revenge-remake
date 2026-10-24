@@ -14,7 +14,7 @@
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,
-#chargeMaxModifier: 3.6,
+#chargeMaxModifier: 3.4286,
 #chargeVolumeMap: [#vol: [10,255], #charge: [1,100]],
 #collisionLoc: point(0,-8),
 #cooldown: 30,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.85]
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.34]
 ],
 #character: #shurikenFan,
 #collectSound: "collect_powerup_01",
