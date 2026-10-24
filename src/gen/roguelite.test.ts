@@ -143,14 +143,14 @@ describe('roguelite start pickups', () => {
     }
   }
 
-  it('lays out the starting kit on the first floor: a scroll, a maxikit, a medikit and 5 potions of 2 types', () => {
+  it('lays out the starting kit on the first floor: a scroll, a medikit (no maxikit) and 5 potions of 2 types', () => {
     for (const seed of SEEDS) {
       const kit = startingKitPickups(seed)
       const theme = firstBiome(seed)
       const potions = kit.filter((k) => theme.units.startRewards.potions.some((p) => p.value === k))
       expect(potions, `seed ${seed}`).toHaveLength(5)
       expect(new Set(potions).size, `seed ${seed}`).toBe(2)
-      expect(kit.filter((k) => !potions.includes(k)).sort(), `seed ${seed}`).toEqual(sorted(['maxikit', 'medikit', kit[0]!]))
+      expect(kit.filter((k) => !potions.includes(k)).sort(), `seed ${seed}`).toEqual(sorted(['medikit', kit[0]!]))
       expect(theme.units.startRewards.spellScrolls.map((s) => s.value), `seed ${seed}`).toContain(kit[0])
       expectLaidOut(runSteps(rogueliteFloor(theme, floorSeed(seed, 0), energyOf, kit)), theme, kit, `seed ${seed}`)
     }

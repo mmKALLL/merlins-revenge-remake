@@ -39,8 +39,8 @@ The Sorcerer's Tower (one stacked map) stays as it is.
 The rolls are deterministic from the run seed. **Placed as pickups** (owner decision, 2026-10-25):
 the picked reward, and on floor 1 the whole starting kit, stands as ordinary pickups in the next
 floor's start room, in a row in front of Merlin (off his tile, the sign and the doorways), and he
-collects them himself: a spell as its scroll, the heal as a maxikit and a medikit, the potions one
-by one. Roguelite floors place none of the usual start-room pickups (3 potions, a medikit and a
+collects them himself: a spell as its scroll, the heal as a maxikit and a medikit (the starting kit's
+heal only a medikit: Merlin starts at full energy; owner, 2026-10-25), the potions one by one. Roguelite floors place none of the usual start-room pickups (3 potions, a medikit and a
 scroll); the side corner rooms' potions stay. A wizard ally in place of a spell is a later idea. Any
 other reward type goes to the owner first.
 

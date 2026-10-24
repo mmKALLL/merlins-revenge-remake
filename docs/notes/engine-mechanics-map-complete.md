@@ -147,7 +147,8 @@ has no such mode; these are remake decisions.
   stands as ordinary pickups in the next floor's start room (`rewardPickups`, passed to
   `rogueliteFloor` as `FloorOptions.startPickups`), and he collects them as any pickup, with their
   sounds, writing and temporary invincibility. A spell is its scroll; the heal a maxikit (full
-  energy, not stocked) and a medikit; potions each potion rolled. A roguelite floor's start room
+  energy, not stocked) and a medikit, the starting kit's only the medikit (owner: no full heal at
+  the start); potions each potion rolled. A roguelite floor's start room
   places none of the theme's start rewards (the 3 potions, medikit and scroll); the side corner
   rooms' potions stay. A pickup from another biome's pools takes its tower objects tile.
 - **Pickup layout** (`startPickupTiles` in `src/gen/floor.ts`). The pickups fill the free unit

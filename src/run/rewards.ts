@@ -93,9 +93,12 @@ export function rewardPickups(reward: RewardOption): string[] {
   }
 }
 
+/** A kit reward's pickups: the heal is only its medikit, since Merlin starts at full energy (owner: no full heal there). */
+const kitPickups = (reward: RewardOption): string[] => (reward.kind === 'heal' ? [MEDIKIT_CHARACTER] : rewardPickups(reward))
+
 /** The pickups of the run's starting kit, for its first floor's start room: from the run seed alone. */
 export const startingKitPickups = (runSeed: number): string[] =>
-  startingKit(runSeed, rewardPools([firstBiome(runSeed)])).flatMap(rewardPickups)
+  startingKit(runSeed, rewardPools([firstBiome(runSeed)])).flatMap(kitPickups)
 
 /** The potions a reward holds in all. */
 export const potionTotal = (potions: readonly PotionCount[]): number => potions.reduce((sum, p) => sum + p.count, 0)
