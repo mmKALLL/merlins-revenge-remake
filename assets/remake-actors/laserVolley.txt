@@ -10,7 +10,7 @@
 #bullet: #laser,
 #chargeColour: rgb(250,80,120),
 #chargeSize: 0.714,
-#chargeSpeed: 0.1815,
+#chargeSpeed: 0.1556,
 #chargeStart: 0,
 #chargeMax: 999,
 #chargeMaxBasic: 0,

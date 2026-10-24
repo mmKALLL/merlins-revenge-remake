@@ -26,7 +26,7 @@ Owner's answers (2026-10-25):
 - Frost burst and ice boulder keep the original freeze; lightning keeps its big push.
 - Acid: almost 2x the range (rangeFactor 2.65, about 255 px), fan 15-50 (was 25-60), and its landed
   splash stays 15 ticks (was 30, `landedTicks` in `assets/tuning.json`).
-- Laser: charge 30% slower (chargeSpeed 0.1815) and 7 at most (was 6; the owner first wrote 20%
+- Laser: each laser charges 30% slower than the first build (chargeSpeed 0.1556) and 7 at most (was 6; the owner first wrote 20%
   fewer, then meant more), the full charge still at tier 18 (chargePerShot 6).
 
 Open: skull toss is a plain, solid volley (5 heads, power 1, 2.5x the thrower's damage); anything
