@@ -19,11 +19,16 @@ const chartColumns = (stats: RogueliteStats): { label: string; count: number; ti
   { label: 'Win', count: stats.wins, title: `${stats.wins} ${stats.wins === 1 ? 'win' : 'wins'}` },
 ]
 
+/** The runs, wins and win ratio in one short line. */
+export function runsLine(stats: RogueliteStats): string {
+  if (stats.runs === 0) return 'No runs finished yet'
+  return `Runs ${stats.runs} · Wins ${stats.wins} (${Math.round(winRatio(stats) * PERCENT)}%)`
+}
+
 /** The totals in two short lines: the runs, wins and ratio; the streak and the best. */
-export function statsLines(stats: RogueliteStats): string[] {
-  if (stats.runs === 0) return [stats.streak > 0 ? `Win streak ${stats.streak}` : 'No runs finished yet']
-  const ratio = Math.round(winRatio(stats) * PERCENT)
-  return [`Runs ${stats.runs} · Wins ${stats.wins} (${ratio}%)`, `Win streak ${stats.streak} · best ${stats.bestStreak}`]
+function statsLines(stats: RogueliteStats): string[] {
+  if (stats.runs === 0) return [stats.streak > 0 ? `Win streak ${stats.streak}` : runsLine(stats)]
+  return [runsLine(stats), `Win streak ${stats.streak} · best ${stats.bestStreak}`]
 }
 
 /**
@@ -46,10 +51,6 @@ export function floorsChart(stats: RogueliteStats): HTMLElement {
   }
   return chart
 }
-
-/** The finished runs by their furthest floor, as a compact line: Furthest: F1 2 · F2 0 · ... · Win 1 */
-export const floorsLine = (stats: RogueliteStats): string =>
-  `Furthest: ${chartColumns(stats).map((c) => `${c.label} ${c.count}`).join(' · ')}`
 
 /** The totals over the floors chart. */
 export function statsPanel(stats: RogueliteStats): HTMLElement {
