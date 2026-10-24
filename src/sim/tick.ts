@@ -150,6 +150,16 @@ export function withExitsEvaluated(s: SimState): SimState {
   return exitsOpen ? checkMapCleared(next) : next
 }
 
+/**
+ * The knockback's friction per axis: frictionReel, or (remake, owner request) the stronger
+ * frictionReelAgainstWalk on an axis where Merlin walks against the slide, so steering back cuts it short.
+ */
+function knockbackFriction(knock: Vec, dir: Vec, def: ActorDef): Vec {
+  const against = (k: number, d: number) => k * d < 0
+  const strong = def.frictionReelAgainstWalk ?? def.frictionReel
+  return { x: against(knock.x, dir.x) ? strong.x : def.frictionReel.x, y: against(knock.y, dir.y) ? strong.y : def.frictionReel.y }
+}
+
 /** 1. The player's own movement (objMoveXY.update -> collisions -> exit test); returns the room after the move. */
 function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const s = t.s
@@ -180,7 +190,7 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   p.prevPos = p.pos
   p.pos = loc
   p.vel = { x: pushed.wallX ? 0 : walkVel.x, y: pushed.wallY ? 0 : walkVel.y }
-  const decayed = stepVelocity(knock, { x: 0, y: 0 }, 0, def.frictionReel)
+  const decayed = stepVelocity(knock, { x: 0, y: 0 }, 0, knockbackFriction(knock, dir, def))
   p.knockback = { x: pushed.wallX ? 0 : decayed.x, y: pushed.wallY ? 0 : decayed.y }
   faceAlong(p, dir.x)
   return room

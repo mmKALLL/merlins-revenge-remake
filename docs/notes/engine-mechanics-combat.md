@@ -310,3 +310,11 @@ replaced by one remake field, `damageDealtMultiplier` (engine default 1; the pla
 multiplies the damage of everything Merlin deals, his swings and spells and the bullets and mines
 his spells leave (actors he owns that are not units), but not his allies' (`withOwnerDamage` in
 `src/sim/tick-combat.ts`). Heals and freezes are unaffected; pushes are unchanged.
+
+## Less reel when Merlin fights it (owner request, 2026-10-25)
+
+The knockback keeps its size and its 10 %/tick decay (`frictionReel`), but on an axis where Merlin
+walks against the slide it decays by `frictionReelAgainstWalk` instead (player: 30 %/tick in
+`assets/tuning.json`; engine default null = frictionReel), so steering back cuts a slide short while a
+hit he doesn't fight slides as far as before (`knockbackFriction` in `src/sim/tick.ts`).
+

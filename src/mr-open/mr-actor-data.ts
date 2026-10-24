@@ -85,6 +85,8 @@ export interface ActorDef {
   energyRecoverDelay: number // ticks between +1 passive health regeneration
   friction: Vec // percent of speed lost per tick per axis while walking
   frictionReel: Vec // percent of speed lost per tick while reeling from a hit
+  /** remake: the player's knockback friction on an axis where he walks against the slide; null = frictionReel (engine) */
+  frictionReelAgainstWalk: Vec | null
   inertia: number // percent of an incoming push that is absorbed; 0 = pushed with full force
   damageSpeed: number // wall-impact speed threshold while reeling before extra damage applies
   stallSpeed: number // objMoveXY: a tick moving |dx| + |dy| <= this counts as stalled (ends a reel after 10)
@@ -244,6 +246,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     // engine: energy and physics
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
+    frictionReelAgainstWalk: null, // remake: walking against a knockback slows it like any reel (engine)
     stallSpeed: 0.2, teamRole: 'teamMembers', collisionDetection: true, // objGameObject
     reelProof: false, // modReel
     minEnergy: 0, maxEnergy: 'auto', // modEnergy
@@ -306,7 +309,7 @@ for (const k of [
   ...Object.keys(ATTACK_DEFAULTS),
   // engine properties read by the port
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
-  'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
+  'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'frictionReelAgainstWalk', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
   'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
@@ -617,6 +620,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: energy and physics
       energy: num(r, 'energy', ctx), energyRecoverDelay: num(r, 'energyRecoverDelay', ctx),
       friction: vec(r, 'friction', ctx), frictionReel: vec(r, 'frictionReel', ctx),
+      frictionReelAgainstWalk: r['frictionReelAgainstWalk'] === null ? null : vec(r, 'frictionReelAgainstWalk', ctx),
       inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx),
       stallSpeed: num(r, 'stallSpeed', ctx), teamRole: str(r, 'teamRole', ctx),
       reelProof: bool(r, 'reelProof', ctx), collisionDetection: bool(r, 'collisionDetection', ctx),

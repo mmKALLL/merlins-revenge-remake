@@ -8,6 +8,10 @@
     "damageDealtMultiplier": 2,
     "medikitRestRate": 3,
     "activationAttackGraceTicks": 24,
+    "frictionReelAgainstWalk": {
+      "x": 30,
+      "y": 30
+    },
     "attack": {
       "chargeMaxBasic": 6
     }
