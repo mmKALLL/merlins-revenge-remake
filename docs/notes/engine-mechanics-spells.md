@@ -573,3 +573,10 @@ splash.
 - **Launch speeds (owner, 2026-10-25):** an exploding projectile launches at no less than half its
   full speed (`minLandingSpeedShare`), overshooting close aims; bombs 1.2x faster (rangeFactor 1.5,
   about 90 px); thunder rangeFactor 2.6 (about 600 px, across the room).
+- **From zero, smooth ball, from Merlin (owner, 2026-10-25):** a volley fires one projectile per
+  `chargePerShot` (a release below the first fires nothing); each `chargePerShot` became
+  (maxShots - 1) / maxShots of the old one, so the full charge and the capacity tiers stay. The ball
+  grows linearly with the charge (`volleyBallPx`), from room for one icon to the larger of charge x
+  chargeSize and what holds every icon stack in time, with a 4 px margin (it used to stall at five
+  icons, then jump). The pin icon sits 1 px higher. To try: `launchFrom` (#caster, the default now)
+  starts the projectiles at Merlin's attack point instead of the ball (#spell). Bombs fan to 90 degrees.

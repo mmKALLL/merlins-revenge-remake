@@ -71,6 +71,9 @@ export interface AttackDef {
 /** How a volley spreads its projectiles over the fan. */
 export type VolleySpread = 'even' | 'random'
 
+/** Where a volley's projectiles start: the charged spell's ball, or the caster's attack point (as an enemy's shot). */
+export type VolleyLaunchFrom = 'spell' | 'caster'
+
 export interface VolleyDef {
   chargePerShot: number // charge each projectile after the first costs
   maxShots: number // the most projectiles one volley fires (the charge max is held where it is reached)
@@ -82,6 +85,7 @@ export interface VolleyDef {
   spread: VolleySpread // even: equally spaced; random: the first at the aim, the others anywhere in the fan
   speedJitter: number // each projectile's speed x (1 +- up to this)
   minLandingSpeedShare: number // a projectile that explodes on landing launches at least this share of the full speed
+  launchFrom: VolleyLaunchFrom
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -253,7 +257,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, spread: 'random' }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random' }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -352,7 +356,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'spread',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -548,8 +552,13 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     damageMultiplier: num(f, 'damageMultiplier', c), staggerTicks: num(f, 'staggerTicks', c),
     spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
     minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
-    spread: volleySpreadOf(f['spread'], c),
+    spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
   }
+}
+
+/** Remake: a volley's #launchFrom, #spell or #caster. */
+function volleyLaunchFromOf(v: unknown, ctx: string): VolleyLaunchFrom {
+  return v === 'spell' || v === 'caster' ? v : bad(ctx, 'launchFrom', '#spell or #caster', v)
 }
 
 /** Remake: a volley's #spread, #even or #random. */

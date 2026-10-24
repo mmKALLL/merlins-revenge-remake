@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "spell_release",
 #volume: 60,
-#volley: [#chargePerShot: 3, #maxShots: 7, #rangeFactor: 1.5, #damageMultiplier: 2.7, #spreadMinDeg: 30, #spreadMaxDeg: 80]
+#volley: [#chargePerShot: 2.5714, #maxShots: 7, #rangeFactor: 1.5, #damageMultiplier: 2.7, #spreadMinDeg: 30, #spreadMaxDeg: 90]
 ],
 #character: #bombVolley,
 #collectSound: "collect_powerup_01",

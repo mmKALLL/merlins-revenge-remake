@@ -9,14 +9,14 @@ import { stepVelocity } from '../mr-open/mr-movement'
 /** Keeps a charge sitting exactly on a threshold (the charge max) from rounding down a projectile. */
 const THRESHOLD_EPSILON = 1e-9
 
-/** Projectiles a volley released at `charge` fires: 1, +1 per chargePerShot, at most maxShots. */
+/** Projectiles a volley released at `charge` fires: one per chargePerShot (none below the first), at most maxShots. */
 export function volleyShots(charge: number, v: VolleyDef): number {
   const levels = Math.floor(Math.max(0, charge) / v.chargePerShot + THRESHOLD_EPSILON)
-  return Math.min(v.maxShots, 1 + levels)
+  return Math.min(v.maxShots, levels)
 }
 
 /** The charge at which the volley reaches maxShots; charging further adds nothing, so the charge max stops there. */
-export const volleyFullCharge = (v: VolleyDef): number => (v.maxShots - 1) * v.chargePerShot
+export const volleyFullCharge = (v: VolleyDef): number => v.maxShots * v.chargePerShot
 
 /** Below this many projectiles the fan keeps its narrowest width. */
 const NARROW_SHOTS = 2
@@ -110,39 +110,48 @@ export function turnAndScale(vel: Vec, deg: number, factor: number): Vec {
   return { x: (vel.x * c - vel.y * s) * factor, y: (vel.x * s + vel.y * c) * factor }
 }
 
-/** The most mini projectiles stacked over a charging volley; more show as a "+" beside the stack. */
+/** The most mini projectiles stacked over a charging volley. */
 export const ICON_STACK_MAX = 5
 /** The longest side of a mini projectile, in game px. */
 export const ICON_PX = 8
 /** Each stacked icon sits this many px left of and below the one before (drawn over it). */
 export const ICON_STEP = 2
 /** Room around the stack inside the spell's ball. */
-const BALL_MARGIN = 2
+const BALL_MARGIN = 4
 
-/** The stacked icons for `count` projectiles (at most ICON_STACK_MAX) and whether a "+" stands for the rest. */
-export function volleyIconStack(count: number): { icons: number; more: boolean } {
-  return { icons: Math.min(count, ICON_STACK_MAX), more: count > ICON_STACK_MAX }
-}
+/** The stacked icons for `count` projectiles: one each, at most ICON_STACK_MAX. */
+export const volleyIconCount = (count: number): number => Math.min(count, ICON_STACK_MAX)
 
 /** The side of the square the stacked icons for `count` projectiles cover (0 for none). */
 export function iconStackPx(count: number): number {
-  const { icons } = volleyIconStack(count)
+  const icons = volleyIconCount(count)
   return icons === 0 ? 0 : ICON_PX + ICON_STEP * (icons - 1)
 }
 
+/** The ball's diameter at no charge: room for one icon. */
+const MIN_BALL_PX = ICON_PX + BALL_MARGIN
+
 /**
- * Remake: a volley spell's ball is at least as wide as its icon stack, so the icons sit inside it.
- * `stackCount` may be fractional (the projectiles the charge is growing toward), so the ball grows
- * smoothly while the icons themselves appear one by one.
+ * The ball's diameter at full charge: charge x chargeSize, but at least big enough that the linear
+ * growth from MIN_BALL_PX holds every icon stack by the time its projectile is charged.
  */
-export function volleyBallPx(ballPx: number, stackCount: number): number {
-  if (stackCount <= 0) return ballPx
-  const icons = Math.min(stackCount, ICON_STACK_MAX)
-  return Math.max(ballPx, ICON_PX + ICON_STEP * (icons - 1) + BALL_MARGIN)
+function fullBallPx(chargeSize: number, v: VolleyDef): number {
+  let px = volleyFullCharge(v) * chargeSize
+  for (let n = 1; n <= v.maxShots; n++) {
+    const needed = iconStackPx(n) + BALL_MARGIN
+    px = Math.max(px, MIN_BALL_PX + ((needed - MIN_BALL_PX) * v.maxShots) / n)
+  }
+  return px
 }
 
-/** The projectile count a charge is growing toward, unrounded (1 at no charge, capped at maxShots). */
-export const smoothShots = (charge: number, v: VolleyDef): number => Math.min(v.maxShots, 1 + Math.max(0, charge) / v.chargePerShot)
+/**
+ * Remake: a volley spell's ball grows linearly with the charge, as the energy blast's does, from room
+ * for one icon to its full size, so the icons (which appear one by one) always sit inside it.
+ */
+export function volleyBallPx(charge: number, chargeSize: number, v: VolleyDef): number {
+  const share = Math.min(1, Math.max(0, charge) / volleyFullCharge(v))
+  return MIN_BALL_PX + (fullBallPx(chargeSize, v) - MIN_BALL_PX) * share
+}
 
 /** Projectiles a volley spell stands for: what its charge would fire, or once released what is left to fire; 0 for any other spell. */
 export function volleyShotsShown(mode: string, charge: number, v: VolleyDef | null, volley: { total: number; fired: number } | null): number {

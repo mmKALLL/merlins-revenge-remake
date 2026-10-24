@@ -10,20 +10,20 @@ import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { shotAngleDeg, smoothShots, volleyBallPx, volleyIconStack, volleyShots, volleySpreadDeg } from './volley'
+import { iconStackPx, shotAngleDeg, volleyBallPx, volleyIconCount, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, spread: 'random' }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random' }
 
 describe('volley rules', () => {
-  it('fires one projectile, one more per chargePerShot of charge, at most maxShots', () => {
-    expect([0, 1.9, 2, 3.9, 4, 6, 50].map((c) => volleyShots(c, VOLLEY))).toEqual([1, 1, 2, 2, 3, 4, 4])
+  it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
+    expect([0, 1.9, 2, 3.9, 4, 8, 50].map((c) => volleyShots(c, VOLLEY))).toEqual([0, 0, 1, 1, 2, 4, 4])
   })
 
   it("holds the charge max where the most projectiles are reached, so a smaller mana capacity reaches fewer", () => {
     const attack = { ...engineDefs['boltFan']!.attack, chargeMaxModifier: 1, chargeMaxBasic: 0, volley: { ...VOLLEY, maxShots: 10 } }
     const merlin = (capacity: number): ActorDef => ({ ...engineDefs['player']!, mana_capacity: capacity, attack })
-    expect(chargeLimits(merlin(100)).max).toBe(18) // (10 - 1) * 2
+    expect(chargeLimits(merlin(100)).max).toBe(20) // 10 * 2
     expect(volleyShots(chargeLimits(merlin(9)).max, attack.volley)).toBeLessThan(volleyShots(chargeLimits(merlin(15)).max, attack.volley))
   })
 
@@ -57,10 +57,8 @@ describe('volley rules', () => {
     for (const g of gaps) expect(g).toBeCloseTo(gaps[0]!)
   })
 
-  it('stacks one icon per projectile up to five, and a "+" for more', () => {
-    expect(volleyIconStack(3)).toEqual({ icons: 3, more: false })
-    expect(volleyIconStack(5)).toEqual({ icons: 5, more: false })
-    expect(volleyIconStack(6)).toEqual({ icons: 5, more: true })
+  it('stacks one icon per projectile up to five', () => {
+    expect([0, 3, 5, 6].map(volleyIconCount)).toEqual([0, 3, 5, 5])
   })
 })
 
@@ -104,6 +102,9 @@ const aim: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + 200, y: SP
 const bolts = (s: SimState): number => s.actors.filter((a) => a.def === 'crossBolt').length
 const energyOf = (s: SimState, id: number): number => s.actors.find((a) => a.id === id)!.energy
 
+/** Charge ticks for one projectile of the test volley (chargeSpeed 1, chargePerShot 2), short of a second. */
+const ONE_SHOT_TICKS = 3
+
 /** Charges for `ticks` ticks, releases, and returns the state on the release tick. */
 function release(s: SimState, ticks: number): SimState {
   for (let i = 0; i < ticks; i++) s = stepSim(s, { ...aim, chargeHeld: true })
@@ -122,13 +123,20 @@ describe('volleys in the sim', () => {
     expect(s.actors.some((a) => a.def === 'spell')).toBe(false)
   })
 
+  it('a tap below the first projectile fires nothing', () => {
+    let s = release(world(scrollAttack()), 1)
+    for (let i = 0; i < 5; i++) s = stepSim(s, aim)
+    expect(bolts(s)).toBe(0)
+    expect(s.actors.some((a) => a.def === 'spell')).toBe(false)
+  })
+
   it('a projectile hits the first hostile it touches and stops there; the one behind is spared', () => {
     let s = world(scrollAttack())
     let near: number
     let far: number
     ;[s, near] = withDummy(s, PLAYER.x + 40)
     ;[s, far] = withDummy(s, PLAYER.x + 70)
-    s = release(s, 1) // a tap: one projectile
+    s = release(s, ONE_SHOT_TICKS) // one projectile
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(energyOf(s, near)).toBeLessThan(1e6)
     expect(energyOf(s, far)).toBe(1e6)
@@ -139,7 +147,7 @@ describe('volleys in the sim', () => {
     let dwelling: number
     ;[s, dwelling] = withDummy(s, PLAYER.x + 50, 'skeletonDwelling')
     const before = energyOf(s, dwelling)
-    s = release(s, 1)
+    s = release(s, ONE_SHOT_TICKS)
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(energyOf(s, dwelling)).toBeLessThan(before)
   })
@@ -148,7 +156,7 @@ describe('volleys in the sim', () => {
     const bombs = { ...engineDefs['bombVolley']!.attack, chargeSpeed: 1, chargeMaxModifier: 1, chargeMaxBasic: 0 }
     const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + dist, y: SPELL_Y } }
     let s = world(bombs)
-    s = stepSim(s, { ...at, chargeHeld: true })
+    for (let i = 0; i < ONE_SHOT_TICKS; i++) s = stepSim(s, { ...at, chargeHeld: true })
     s = stepSim(s, at)
     let landed: { x: number; y: number } | undefined
     for (let i = 0; i < 60 && !landed; i++) {
@@ -173,7 +181,7 @@ describe('volleys in the sim', () => {
       let s = world(attack)
       let id: number
       ;[s, id] = withDummy(s, PLAYER.x + 40)
-      s = release(s, 1) // a tap: one projectile
+      s = release(s, ONE_SHOT_TICKS) // one projectile
       for (let i = 0; i < 40; i++) s = stepSim(s, aim)
       return 1e6 - energyOf(s, id)
     }
@@ -185,17 +193,20 @@ describe('volleys in the sim', () => {
     s = { ...s, defs: unscaled }
     let id: number
     ;[s, id] = withDummy(s, PLAYER.x + 40)
-    s = release(s, 1)
+    s = release(s, ONE_SHOT_TICKS)
     for (let i = 0; i < 40; i++) s = stepSim(s, aim)
     expect(once).toBeCloseTo((1e6 - energyOf(s, id)) * 2)
   })
 })
 
 describe('the charging ball (remake)', () => {
-  it('grows smoothly with the charge while the icons step up one by one', () => {
-    const sizes = [0, 0.5, 1, 1.5, 1.99, 2.5, 3].map((charge) => volleyBallPx(0, smoothShots(charge, VOLLEY)))
-    for (let i = 1; i < sizes.length; i++) expect(sizes[i]!).toBeGreaterThan(sizes[i - 1]!)
-    expect(volleyShots(1.99, VOLLEY)).toBe(1) // the icon count only steps at the threshold
+  it('grows linearly with the charge and always holds the icon stack', () => {
+    const v = { ...VOLLEY, maxShots: 10 }
+    const charges = Array.from({ length: 21 }, (_, i) => i)
+    const sizes = charges.map((c) => volleyBallPx(c, 0.1, v))
+    const steps = sizes.slice(1).map((px, i) => px - sizes[i]!)
+    for (const step of steps) expect(step).toBeCloseTo(steps[0]!)
+    for (const c of charges) expect(volleyBallPx(c, 0.1, v)).toBeGreaterThan(iconStackPx(volleyShots(c, v)))
   })
 })
 

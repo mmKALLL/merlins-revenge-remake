@@ -4,7 +4,10 @@
 import { Container, Sprite, type Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { ActorState } from '../sim/state'
-import { ICON_PX, ICON_STEP, iconStackPx, volleyIconStack, volleyShotsShown } from '../sim/volley'
+import { ICON_PX, ICON_STEP, iconStackPx, volleyIconCount, volleyShotsShown } from '../sim/volley'
+
+/** Per-projectile nudges (px) for icons whose art sits off-centre in their frame (owner: the pin poked out of the ball). */
+const ICON_NUDGE: Readonly<Record<string, { x: number; y: number }>> = { smokePin: { x: 0, y: -1 } }
 
 export class VolleyIcons {
   private stacks = new Map<number, { stack: Container; shown: number }>()
@@ -35,7 +38,8 @@ export class VolleyIcons {
     entry.stack.zIndex = spellSprite.zIndex + 1
     // the icons' square is centred on the ball
     const half = iconStackPx(shown) / 2
-    entry.stack.position.set(Math.round(spellSprite.x - half), Math.round(spellSprite.y - half))
+    const nudge = (bulletDef && ICON_NUDGE[bulletDef.key]) || { x: 0, y: 0 }
+    entry.stack.position.set(Math.round(spellSprite.x - half) + nudge.x, Math.round(spellSprite.y - half) + nudge.y)
   }
 
   /** Drops the stacks of spells no longer drawn (or hidden). */
@@ -54,7 +58,7 @@ export class VolleyIcons {
  * square from (0, 0).
  */
 function layOut(stack: Container, tex: Texture, count: number): void {
-  const { icons } = volleyIconStack(count)
+  const icons = volleyIconCount(count)
   const side = iconStackPx(count)
   const k = Math.min(1, ICON_PX / Math.max(tex.width, tex.height))
   for (let i = 0; i < icons; i++) {
