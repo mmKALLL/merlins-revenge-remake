@@ -103,11 +103,6 @@ Work top down; the sections below hold the details.
   switch during a run voids it (grey `—`, no best); one best per generated map id; the debug readout
   shortened to end well left of a five-digit total. To confirm: the open world's room rule (a room
   banks once no hostile stands in its area, so hostiles chasing Merlin out of it bank it too).
-  map's best (localStorage, per map id; a death's partial run counts). To confirm: an empty room
-  paying its full 9999 at once (the start room included), the HUD placement (total left of the room
-  points, both ending at the room's right edge x 608), the open-world note, one best per generated
-  map id rather than per seed, and the total overlapping the debug readout's second line once it has
-  five or more digits (debug info only).
 - Volley spells (`docs/notes/engine-mechanics-spells.md`, Volley spells; data in
   `assets/remake-actors/`; test map `?map=test_maps/spell_test`, the row below Merlin): all eight
   (with needle spray). To decide: the projectiles' damage (2.5x the enemy shot, every one), the
