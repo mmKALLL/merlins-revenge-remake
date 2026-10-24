@@ -156,5 +156,14 @@
   },
   "skeletonDwelling": {
     "energy": 75
+  },
+  "laser": {
+    "landedTicks": 15
+  },
+  "fireBall": {
+    "landedTicks": 15
+  },
+  "blueFlame": {
+    "landedTicks": 15
   }
 }

@@ -213,6 +213,7 @@ export interface ActorDef {
    */
   splashRadius: number | null
   splashGraveOn: boolean // modSplashDamage: a splash bullet stamps its #grave image where it lands (the dwarf tower's axe: a crack)
+  landedTicks: number // remake: ticks a landed bullet stays on the ground before it is removed
   /**
    * Every resolved raw property for later slices, tuning overlay included. Keys in the canonical
    * list keep their camelCase spelling; every other key is lowercased (Lingo symbols are
@@ -329,6 +330,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
     splashGraveOn: false, // modSplashDamage.addModParams
+    landedTicks: 30, // remake: a landed arrow stays a second (the engine removes it once its land strip has played)
   },
   objCharacter: { energyRecoverDelay: 30 },
   objCPUCharacter: { energyRecoverDelay: 300 },
@@ -357,7 +359,7 @@ for (const k of [
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'keepAttackOnTargetLoss', 'startingArmy',
-  'splashRadius', 'splashGraveOn',
+  'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
@@ -740,6 +742,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),
       splashGraveOn: bool(r, 'splashGraveOn', ctx),
+      landedTicks: num(r, 'landedTicks', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
       naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),

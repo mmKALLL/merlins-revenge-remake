@@ -269,7 +269,9 @@ Choices the remake made where the engine is ambiguous, depends on values outside
 
 - **Two takeHits per arrow.** `objBullet.updateFly` calls `takeHit` and then the `#takeHit` payload function for the same collision; the port applies both (`src/sim/tick-combat.ts`, `stepBullets`), i.e. 24 damage and a push of 8 for a full-speed arrow on the player (Feedback round 1).
 - **No experience.** Nothing in the exported scripts sets `#lastAttacker`, so kills award nothing; `experienceImWorth` is carried in `ActorDef` but unused, and there are no level-ups or stars.
-- **`LANDED_TICKS = 30`.** A landed arrow stays 30 ticks before removal (`src/mr-open/mr-bullet.ts`); the engine removes it once its one-frame `land` strip has played.
+- **`landedTicks` (default 30).** A landed bullet stays this many ticks before removal (an ActorDef
+  field); the engine removes it once its `land` strip has played. The laser, fire ball and blue flame
+  stay 15 (`assets/tuning.json`; owner, 2026-10-25: they lingered about 2x too long).
 - **Magic limit fixed at 100 %.** `gMagicLimit` is set outside the export; `chargeLimits` takes the percentage as a parameter with default 100 (`src/mr-open/mr-spell.ts`), so the player's blast charges 1..12.5.
 - **Energy blast granted via tuning.** The original gives the blast through the `energyBlast` scroll pickup, which most maps do not place; `assets/tuning.json` sets `player.weapon = energyBlast` so Merlin starts with it (scrolls and his other weapons: `engine-mechanics-spells.md`).
 - **Full-scan targeting.** `findTarget` always scans every hated-team member for the nearest one (`findATarget`); the engine's unit-map shell search for 5+ enemies, which can pick a slightly different target by tile ring, is not ported (`src/mr-open/mr-targeting.ts`).
