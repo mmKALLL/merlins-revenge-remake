@@ -1,8 +1,10 @@
 // The Maps menu's browser: one folder of the map list at a time. Folders open in place; a map
 // reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed. Each map row
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
+// A map's best score (remake scoring) shows at the end of its row.
+import { loadBestScores, type BestScores } from '../data/best-scores'
 import { loadMapList } from '../data/map-list'
-import { favouriteEntries, loadFavourites, saveFavourites, toggleFavourite, type FavouritesStore } from '../data/favourites'
+import { browserStore, favouriteEntries, loadFavourites, saveFavourites, toggleFavourite } from '../data/favourites'
 import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
 
 /** Keys a focused entry acts on; they must not reach the game's window listeners too. */
@@ -10,12 +12,6 @@ const ACTIVATE_KEYS = new Set(['Enter', 'Space'])
 const FAVOURITES_ID = 'favourites'
 const STAR_ON = '★'
 const STAR_OFF = '☆'
-
-/** localStorage, looked up on each use: touching it at all throws when storage is blocked. */
-const browserStore: FavouritesStore = {
-  getItem: (key) => localStorage.getItem(key),
-  setItem: (key, value) => localStorage.setItem(key, value),
-}
 
 /** The page URL that starts a map: the other query parameters stay, except the seed (a random floor gets a fresh one). */
 export const mapUrl = (id: string): string => {
@@ -53,9 +49,20 @@ const starSpacer = (): HTMLSpanElement => {
   return s
 }
 
+/** The best score at the end of a map's row, if the map has one. */
+function bestScore(best: number | undefined): HTMLSpanElement[] {
+  if (best === undefined) return []
+  const s = document.createElement('span')
+  s.className = 'best'
+  s.textContent = String(best)
+  s.title = 'Best score'
+  return [s]
+}
+
 /** A button that loads a map, marked when it is the map being played. */
-const mapButton = (text: string, id: string, currentId: string): HTMLButtonElement => {
+const mapButton = (text: string, id: string, currentId: string, bests: BestScores): HTMLButtonElement => {
   const b = button(text)
+  b.append(...bestScore(bests[id]))
   b.title = id
   b.addEventListener('click', () => location.assign(mapUrl(id)))
   if (id === currentId) b.setAttribute('aria-current', 'page')
@@ -86,20 +93,25 @@ function favouritesList(browser: HTMLElement): HTMLElement {
   return list
 }
 
-export async function setupMapBrowser(list: HTMLElement, currentId: string): Promise<void> {
+/**
+ * Fills the browser and the Favourites list; resolves to a function that redraws them with the
+ * stored best scores (null when the map list is unavailable).
+ */
+export async function setupMapBrowser(list: HTMLElement, currentId: string): Promise<(() => void) | null> {
   let index: MapEntry[]
   try {
     index = await loadMapList()
   } catch (e) {
     console.warn('map list unavailable:', e)
     list.hidden = true
-    return
+    return null
   }
   const root = buildMapTree(index)
   const favList = favouritesList(list)
   keepActivateKeys(list)
   keepActivateKeys(favList)
   let favourites = loadFavourites(browserStore)
+  let bests = loadBestScores(browserStore)
 
   const showFavourites = (): void => {
     const entries = favouriteEntries(favourites, index)
@@ -109,7 +121,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
       empty.textContent = 'No favourites yet'
       favList.replaceChildren(empty)
     } else {
-      favList.replaceChildren(...entries.map((e) => row(mapButton(`${e.id} ${sizeLabel(e)}`, e.id, currentId))))
+      favList.replaceChildren(...entries.map((e) => row(mapButton(`${e.id} ${sizeLabel(e)}`, e.id, currentId, bests))))
     }
     scrollToCurrent(favList)
   }
@@ -135,9 +147,11 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
   }
 
   /** Shows a folder; `focusFirst` keeps keyboard users inside the list after it is rebuilt. */
+  let shown = findFolder(root, folderOf(currentId)) ?? root
   const show = (folder: MapFolder, focusFirst: boolean): void => {
+    shown = folder
     const items = listFolder(folder).map((item) => {
-      if (item.kind === 'map') return row(starButton(item.entry.id), mapButton(label(item), item.entry.id, currentId))
+      if (item.kind === 'map') return row(starButton(item.entry.id), mapButton(label(item), item.entry.id, currentId, bests))
       const b = button(label(item))
       const target = findFolder(root, item.path) ?? root
       // a click from the keyboard has detail 0
@@ -149,6 +163,11 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
     if (focusFirst) list.querySelector('button')?.focus()
     scrollToCurrent(list)
   }
-  show(findFolder(root, folderOf(currentId)) ?? root, false)
+  show(shown, false)
   showFavourites()
+  return () => {
+    bests = loadBestScores(browserStore)
+    show(shown, false)
+    showFavourites()
+  }
 }

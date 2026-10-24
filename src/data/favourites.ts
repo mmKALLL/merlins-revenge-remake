@@ -10,6 +10,12 @@ export interface FavouritesStore {
   setItem(key: string, value: string): void
 }
 
+/** localStorage, looked up on each use: touching it at all throws when storage is blocked. */
+export const browserStore: FavouritesStore = {
+  getItem: (key) => localStorage.getItem(key),
+  setItem: (key, value) => localStorage.setItem(key, value),
+}
+
 const isIdList = (v: unknown): v is string[] => Array.isArray(v) && v.every((id) => typeof id === 'string')
 
 /** The stored favourites, or none when storage is blocked or holds something else. */

@@ -9,6 +9,8 @@ import {
 } from './data/loaders'
 import { framesPerSecond, loadDebugInfo, loadFrameRate, loadLastMap, loadRandomMaps, loadSpaceMode, loadZoom, saveDebugInfo, saveFrameRate, saveLastMap, saveRandomMaps, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
+import { loadBestScores, saveBestScores, withRunScore } from './data/best-scores'
+import { browserStore } from './data/favourites'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { energyLookup, type EnergyOf } from './gen/floor'
@@ -216,6 +218,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   let runSeed = seed
   // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
+  // the map's best score: a run counts as its rooms are banked, so a death keeps what it reached
+  let bests = loadBestScores(browserStore)
+  const recordBest = () => {
+    const improved = withRunScore(bests, mapId, sim.score)
+    if (!improved) return
+    bests = improved
+    saveBestScores(browserStore, improved)
+  }
+  recordBest() // a start room with no hostile pays at once
   const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
     const newLayout = loaded === null && shell.newLayoutEachRun()
     runSeed = seedChoice === 'same' && !newLayout ? pageSeed : nextRunSeed(runSeed)
@@ -226,6 +237,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     }
     sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
+    recordBest()
     ending = sim.mapComplete ? startEndSequence() : null
   }
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
@@ -315,6 +327,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       inputLog.push(sim.tick, tickInput)
       sim = stepSim(sim, tickInput)
       audio.handle(sim.events) // every tick stepped this frame, not just the last
+      recordBest()
       if (sim.mapComplete) ending = startEndSequence()
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
