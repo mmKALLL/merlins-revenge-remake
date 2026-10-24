@@ -11,11 +11,14 @@ export const REMAKE_OBJECT_TILES: Readonly<Record<string, Readonly<Record<string
     // the second batch: the empty slots with no art on the sheet (18 and 53 are listed `none` but drawn on)
     longbow: 19, dragonFire: 20, boulderLob: 54, darkRockBurst: 55, poisonSmoke: 56, acidSplash: 57, lightningFan: 58, bunnyLob: 59,
     skullToss: 60, frostBurst: 100, iceBoulderLob: 102, chillFlame: 109, laserVolley: 110,
+    // the archive's unused music tracks (music tiles are not drawn)
+    musicFinalStand2: 206, musicMerl2319: 207, musicUltimateSongThing: 208,
   },
   merlin4Objects: {
     bombVolley: 173, boltFan: 174, arrowRain: 175, shurikenFan: 176, thunderBurst: 177, pinStorm: 178, lavaLob: 179, needleSpray: 180,
     longbow: 181, dragonFire: 182, boulderLob: 183, darkRockBurst: 184, poisonSmoke: 185, acidSplash: 186, lightningFan: 187, bunnyLob: 188,
     skullToss: 189, frostBurst: 190, iceBoulderLob: 191, chillFlame: 192, laserVolley: 193,
+    musicFinalStand2: 194, musicMerl2319: 195, musicUltimateSongThing: 196,
   },
 }
 

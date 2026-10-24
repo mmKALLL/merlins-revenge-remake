@@ -1,0 +1,6 @@
+[#name: "act_musicMerl2319", #type: #field]
+[
+#inherit: #music,
+#name: "musicMerl2319",
+#musicName: "merl2319_v1"
+]

@@ -1,0 +1,6 @@
+[#name: "act_musicFinalStand2", #type: #field]
+[
+#inherit: #music,
+#name: "musicFinalStand2",
+#musicName: "final_stand_2_v1"
+]

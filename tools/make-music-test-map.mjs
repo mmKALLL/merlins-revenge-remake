@@ -11,13 +11,16 @@ const fmt = (g) => '[' + g.map((row) => '[' + row.join(', ') + ']').join(', ') +
 const GROUND = 37 // merlinOpenPassive: the red sandstone (tools/derived-tiles.ts)
 const keyFile = readFileSync(new URL('../assets/tile-keys/merlinOpenObjects.txt', import.meta.url), 'utf8')
 const symbols = keyFile.split(/\r?\n|\r/).map((l) => l.trim()).filter((l) => l.startsWith('#')).map((l) => l.slice(1))
+// the remake's music tiles (src/gen/remake-object-tiles.ts) sit past the original key
+const REMAKE_TILES = { musicFinalStand2: 206, musicMerl2319: 207, musicUltimateSongThing: 208 }
 const tile = (symbol) => {
+  if (REMAKE_TILES[symbol]) return REMAKE_TILES[symbol]
   const i = symbols.indexOf(symbol)
   if (i < 0) throw new Error(`merlinOpenObjects has no ${symbol}`)
   return i + 1
 }
 
-const MUSIC = ['musicWoodsOfEvil', 'musicBaroqueRock', 'musicBaroqueRockTechno', 'musicElectronicMerlin', 'musicLastStand', 'musicOff']
+const MUSIC = ['musicWoodsOfEvil', 'musicBaroqueRock', 'musicBaroqueRockTechno', 'musicElectronicMerlin', 'musicLastStand', 'musicFinalStand2', 'musicMerl2319', 'musicUltimateSongThing', 'musicOff']
 const rooms = [
   ...MUSIC.map((m, i) => ({ num: i + 1, objs: [{ c: 9, r: 2, s: m }, ...(i === 0 ? [{ c: 4, r: 5, s: 'player' }] : [])] })),
   { num: MUSIC.length + 1, objs: [{ c: 15, r: 5, s: 'goblinWarrior' }] },

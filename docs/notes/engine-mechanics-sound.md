@@ -150,4 +150,8 @@ Deviations:
 effect; the room's music kept playing over it and drowned it out. On the sim's `mapComplete` event the
 audio engine now stops the music at once (`silenceForJingle`); restarting the map plays the start
 room's track again.
-
+- **Unused tracks as music tiles (remake, 2026-10-25):** final_stand_2_v1, merl2319_v1 and
+  the_ultimate_song_thing_v1 are in the archive's music but no map plays them. Remake music objects
+  (`assets/remake-actors/musicFinalStand2`, `musicMerl2319`, `musicUltimateSongThing`; object tiles in
+  `src/gen/remake-object-tiles.ts`) let maps use them; `?map=test_maps/music_test` has a room for each,
+  after the original five (owner choosing a more upbeat track for East Woods).
