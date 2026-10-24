@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { SPELL_SCROLLS } from '../gen/themes'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { addWeapon } from '../mr-open/mr-weapons'
-import { holdsScroll } from './rewards'
+import { collectedScrolls, holdsScroll } from './rewards'
 import { anims, defs, teams } from './test-data'
 import { createSim } from './tick'
 import { buildWorldGrid } from './world-grid'
@@ -27,5 +27,14 @@ describe('holdsScroll', () => {
     const s = start()
     const armed = { ...s, arsenal: addWeapon(s.arsenal, 'armySummon', defs['armySummon']!.attack) }
     expect(holdsScroll(armed, 'armySummon')).toBe(true)
+  })
+})
+
+describe('collectedScrolls', () => {
+  it('lists the scrolls of the weapons taken during the run, not the starting ones', () => {
+    const s = start()
+    expect(collectedScrolls(s)).toEqual([])
+    const armed = { ...s, arsenal: addWeapon(s.arsenal, 'armySummon', defs['armySummon']!.attack) }
+    expect(collectedScrolls(armed)).toEqual(['armySummon'])
   })
 })

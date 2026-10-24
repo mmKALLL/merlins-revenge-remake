@@ -2,7 +2,8 @@
 // floor up the biome table, each with its own seed, won after the last one.
 import { describe, expect, it } from 'vitest'
 import { ROGUELITE_FLOORS, firstBiome, floorSeed } from '../gen/roguelite-biomes'
-import { enterFloor, nextFloorPlan, startRun } from './run'
+import { TICKS_PER_SECOND } from '../sim/state'
+import { enterFloor, nextFloorPlan, runTimeText, startRun } from './run'
 
 const SEED = 11
 
@@ -23,5 +24,14 @@ describe('roguelite run', () => {
     expect(run.floor).toBe(ROGUELITE_FLOORS.length - 1)
     expect(run.biomes).toHaveLength(ROGUELITE_FLOORS.length)
     expect(nextFloorPlan(run)).toBe('won')
+  })
+
+  it('shows the run time as m:ss, minutes uncapped', () => {
+    const at = (seconds: number) => runTimeText(seconds * TICKS_PER_SECOND)
+    expect(at(0)).toBe('0:00')
+    expect(at(9)).toBe('0:09')
+    expect(at(65)).toBe('1:05')
+    expect(at(3600 + 1)).toBe('60:01')
+    expect(runTimeText(TICKS_PER_SECOND - 1)).toBe('0:00')
   })
 })

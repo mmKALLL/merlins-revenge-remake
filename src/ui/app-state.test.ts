@@ -58,4 +58,14 @@ describe('app state', () => {
     expect(run(picking, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'settings' })).toEqual(picking)
     expect(nextAppState(picking, { kind: 'picked' })).toEqual(PLAYING)
   })
+
+  it('a run end shows the summary, which no menu or Esc can leave; New run plays on, Main menu quits', () => {
+    const summary = nextAppState(PLAYING, { kind: 'runEnded' })
+    expect(simRuns(summary)).toBe(false)
+    expect(visiblePanel(summary)).toBe('runSummary')
+    expect(run(summary, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'maps' })).toEqual(summary)
+    expect(nextAppState(summary, { kind: 'newRun' })).toEqual(PLAYING)
+    expect(nextAppState(summary, { kind: 'quit' })).toEqual(TITLE)
+    expect(nextAppState(TITLE, { kind: 'runEnded' })).toEqual(TITLE)
+  })
 })

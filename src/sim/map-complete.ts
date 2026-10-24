@@ -8,7 +8,7 @@
 import type { Vec } from '../mr-open/mr-geometry'
 import { GAME_COMPLETE_SOUND, isClearOnMiniMap, isMapClear } from '../mr-open/mr-map-clear'
 import { DEFAULT_VOLUME } from '../mr-open/mr-sound'
-import { roomKey, type SimState } from './state'
+import { roomKey, type SimEvent, type SimState } from './state'
 import { exitsOpenFor } from './tick-combat'
 
 /**
@@ -60,6 +60,9 @@ export function isEndRoom(s: SimState): boolean {
   return end !== undefined && end.x === s.room.x && end.y === s.room.y
 }
 
+/** What completing a map tells the presentation: the end and gGameCompleteSound (the jingle). */
+export const MAP_COMPLETE_EVENTS: readonly SimEvent[] = [{ kind: 'mapComplete' }, { kind: 'sound', name: GAME_COMPLETE_SOUND, volume: DEFAULT_VOLUME }]
+
 /**
  * gameMaster.gameComplete, once: the `mapComplete` event for the presentation and
  * gGameCompleteSound. The engine then finishes every actor (finishGame); the port keeps them for
@@ -71,7 +74,7 @@ export function completeMap(s: SimState): SimState {
   return {
     ...s,
     mapComplete: true,
-    events: [...s.events, { kind: 'mapComplete' }, { kind: 'sound', name: GAME_COMPLETE_SOUND, volume: DEFAULT_VOLUME }],
+    events: [...s.events, ...MAP_COMPLETE_EVENTS],
   }
 }
 
