@@ -70,6 +70,24 @@
       .choices button[aria-pressed='true'] { color: #000; background: var(--fg); border-color: var(--fg); }
       .setting input[type='range'] { flex: 1 1 10rem; max-width: 16rem; accent-color: var(--fg); }
 
+      /* the roguelite floor pick (src/ui/floor-pick.ts): biome and reward cards, dimmed while locked */
+      .floor-pick h3 { text-align: center; }
+      .pick-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+      .panel .pick-card {
+        position: relative; flex: 1 1 10rem; max-width: 14rem; min-height: 88px; box-sizing: border-box; padding: 10px 10px 12px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center;
+        transition: opacity 0.2s;
+      }
+      .panel .pick-card[aria-pressed='true'] { border-color: var(--accent); background: #2a2410; color: #fff; }
+      .panel .pick-card.only:disabled { color: var(--fg); cursor: default; }
+      .floor-pick.locked .pick-card { opacity: 0.35; cursor: default; }
+      .pick-key { position: absolute; top: 4px; left: 6px; font-size: 11px; color: var(--dim); }
+      .pick-title { color: #fff; }
+      .pick-detail { font-size: 12px; color: var(--dim); }
+      .pick-art { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; }
+      .pick-art canvas { max-width: 100%; height: auto; min-width: 0; image-rendering: pixelated; }
+      .pick-count { color: #fff; font-variant-numeric: tabular-nums; }
+
       /* how to play */
       .help-section dl { display: grid; grid-template-columns: minmax(7rem, max-content) 1fr; gap: 6px 16px; margin: 0; }
       .help-section dt { color: #fff; }

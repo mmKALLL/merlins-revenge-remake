@@ -50,4 +50,12 @@ describe('app state', () => {
     expect(simRuns(run(PLAYING, { kind: 'pause' }))).toBe(false)
     expect(simRuns(run(PLAYING, { kind: 'pause' }, { kind: 'open', panel: 'help' }))).toBe(false)
   })
+
+  it('pauses on the floor pick, which no menu or Esc can leave, until both picks are made', () => {
+    const picking = nextAppState(PLAYING, { kind: 'pick' })
+    expect(simRuns(picking)).toBe(false)
+    expect(visiblePanel(picking)).toBe('floorPick')
+    expect(run(picking, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'settings' })).toEqual(picking)
+    expect(nextAppState(picking, { kind: 'picked' })).toEqual(PLAYING)
+  })
 })

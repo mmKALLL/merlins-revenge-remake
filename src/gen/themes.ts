@@ -245,6 +245,8 @@ export interface StartRewards {
 export interface FloorTheme {
   id: string
   name: string
+  /** who the player meets there, in a few words (the roguelite pick screen's biome cards) */
+  foes: string
   /** the floor's number, as in its map id and its place in the tower (1 = Goblin Forest); scales HP budgets */
   level: number
   /** rooms across and down */
@@ -471,6 +473,7 @@ const GOBLIN_FOREST_PLAN: RoomPlan = [
 export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'Goblin Forest',
+  foes: 'Goblins, orcs and bats',
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN4_TILESETS,
@@ -696,6 +699,7 @@ const UNDEAD_MARSH_PLAN: RoomPlan = [
 export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Undead Marsh',
+  foes: 'Skeletons, ghosts and quadranids',
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -797,6 +801,7 @@ const DRAGON_CANYON_PLAN: RoomPlan = [
 export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
   name: 'Dragon Canyon',
+  foes: 'Fighters, lizards and dragons',
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -949,6 +954,7 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
   name: 'Magic Maze',
+  foes: 'Mages, scarlet guards and the undead',
   level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1159,6 +1165,7 @@ const GOLD_WALLS: WallAutotile = [
 export const GOLDEN_FORT: FloorTheme = {
   id: 'golden-fort',
   name: 'Golden Fort',
+  foes: 'Foes of every floor, in alliances',
   level: 5,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
