@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "goblin_fire",
 #volume: 80,
-#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.68, #spread: #even, #spreadMinDeg: 20, #spreadMaxDeg: 42]
+#volley: [#chargePerShot: 8, #maxShots: 10, #rangeFactor: 1.5, #damageMultiplier: 0.85, #spread: #even, #spreadMinDeg: 20, #spreadMaxDeg: 42]
 ],
 #character: #shurikenFan,
 #collectSound: "collect_powerup_01",
