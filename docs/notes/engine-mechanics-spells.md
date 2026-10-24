@@ -649,4 +649,5 @@ Remake decisions (owner, 2026-10-25):
   skull toss, frost burst, ice boulder, blue flame and laser in the top row.
 - **Acid and laser retune (owner, 2026-10-25):** acid rangeFactor 2.65 (about 255 px, almost 2x),
   fan 15-50, landed splash 15 ticks; laser 30% slower per laser (chargeSpeed 0.1556) and 7 at most (chargePerShot 6, full
-  charge still at tier 18). Frost burst / ice boulder freezes and lightning's push stay original.
+  charge still at tier 18), damage x0.7 for the pierce (damageMultiplier 0.532, about 1.75x the
+  quadranid's laser). Frost burst / ice boulder freezes and lightning's push stay original.

@@ -27,7 +27,8 @@ Owner's answers (2026-10-25):
 - Acid: almost 2x the range (rangeFactor 2.65, about 255 px), fan 15-50 (was 25-60), and its landed
   splash stays 15 ticks (was 30, `landedTicks` in `assets/tuning.json`).
 - Laser: each laser charges 30% slower than the first build (chargeSpeed 0.1556) and 7 at most (was 6; the owner first wrote 20%
-  fewer, then meant more), the full charge still at tier 18 (chargePerShot 6).
+  fewer, then meant more), the full charge still at tier 18 (chargePerShot 6); damage x0.7 for the
+  pierce (damageMultiplier 0.532).
 
 Open: skull toss is a plain, solid volley (5 heads, power 1, 2.5x the thrower's damage); anything
 sillier can come later.
