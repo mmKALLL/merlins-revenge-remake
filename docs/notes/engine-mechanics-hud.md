@@ -117,6 +117,9 @@ The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.sco
   rooms: a run ended by a death still sets the best if it is higher, and the restart begins at 0. A
   generated map keeps one best per mode for its id (`randomly_generated/...`), whatever the layout's
   seed. Blocked storage keeps the bests for the page only.
+- Map lists (`src/ui/map-browser.ts`): each best at the right end of its row, shortened by
+  `shortScore` (truncated: up to 9999 in full, then 12.3k / 123k, then 1.234M / 12.34M / 123.4M;
+  the full number in the tooltip; owner, 2026-10-25), in wider list boxes so a row never wraps.
 - HUD (`src/render/score-hud.ts`): monospace 11 px text (PIXEL_TEXT) in the 16 px strip below the
   play view, at its right end. The current room's points (green, the health bar's rgb(0,200,0),
   `+1234`) keep a slot as wide as `+9999` that ends at the play view's right edge (x 608, where

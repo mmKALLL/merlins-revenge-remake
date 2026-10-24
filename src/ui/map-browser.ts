@@ -3,6 +3,7 @@
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
 // A map's best score (remake scoring) in the world mode of the player's camera shows at the end of its row.
 import { loadBestScores, type ScoreTable } from '../data/best-scores'
+import { shortScore } from './short-score'
 import { loadMapList } from '../data/map-list'
 import { browserStore, favouriteEntries, loadFavourites, saveFavourites, toggleFavourite } from '../data/favourites'
 import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
@@ -59,8 +60,8 @@ function bestScore(best: number | undefined): HTMLSpanElement[] {
   if (best === undefined) return []
   const s = document.createElement('span')
   s.className = 'best'
-  s.textContent = String(best)
-  s.title = 'Best score'
+  s.textContent = shortScore(best)
+  s.title = `Best score: ${best}`
   return [s]
 }
 
