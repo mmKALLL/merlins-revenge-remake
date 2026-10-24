@@ -27,8 +27,10 @@ Work top down; the sections below hold the details.
       start-room pickups (3 potions, a medikit and a scroll) on top of the rewards.
     - **Alternative biomes:** 2-3 per floor with different enemy groups, e.g. deep forest; cave or
       hydra marsh; fortress or golem mountain; golden palace.
-    - **Location sign:** the place's name in the entry room, not blocking exits.
-    - **Safe arrival:** no enemies within 3 tiles (taxicab) of Merlin's arrival.
+    - Slice 4 (location sign and safe arrival) done 2026-10-24: each floor's start room has a
+      wooden board (the original sign art, its writing wiped) with the biome's name, off every
+      exit's band and keeping the room connected; no unit or dwelling within 3 tiles (taxicab) of
+      Merlin's arrival.
     - **Statistics:** win ratio, floors reached and win streak, kept in localStorage. Abandoned runs
       reset the streak but don't count towards the ratio or distribution.
     - Hades-like gameplay ideas are welcome.

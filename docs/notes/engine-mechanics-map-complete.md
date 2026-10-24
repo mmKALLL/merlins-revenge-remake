@@ -158,3 +158,22 @@ has no such mode; these are remake decisions.
   both picks are made. The in-game menu cannot open while picking (Esc and the menu button do
   nothing), so the pick is never lost. Cards show the scroll's and potions' own `stand` and
   `writing` frames (their in-game names: Max Blast, Quick Blast, Faster Charge, Speed Up).
+- **Safe arrival** (owner rule; `FloorOptions.safeArrivalTiles`, `SAFE_ARRIVAL_TILES = 3` in
+  `src/gen/roguelite.ts`). On a roguelite floor no unit or dwelling stands within 3 tiles (taxicab)
+  of Merlin's start tile. The generator lays out the start room first so the other rooms know his
+  tile, and leaves the tiles that near out of their unit tiles. The layout already keeps them apart
+  (the start room places no units, units keep 2 tiles off room edges and Merlin starts near the
+  room's centre: 6 tiles at the least over 200 seeds per biome), so the option is a guard for new
+  biomes and room sizes rather than a change to today's floors.
+- **Location sign** (`src/gen/location-sign.ts`, `src/render/location-sign.ts`). Every roguelite
+  floor's start room has a wooden board, 4 tiles wide, with the biome's name (`MapDefinition.locationSign`).
+  The original has no blank sign, only signs with their names painted on (merlinOpenActive and
+  merlin4Active rows 14-17), so the converter (`tools/derived-tiles.ts`) cuts the Black Fortress
+  sign (merlinOpenActive 164-166) into empty slots 197-199 with its yellow writing painted over by
+  the wood around it, keyed `solid` like the originals; the board is its left end, middle pieces
+  and its right end. The renderer writes the name over the board's face in the signs' yellow,
+  rgb(161, 160, 86), in the cut scene speech's Verdana 10 bold, shrunk to fit a long name. The board
+  is solid, so it stands on open or decorated tiles 1 tile off the room's edges, in no opening's
+  column or row band, under no placement, nearest 2 rows above Merlin, and only where every other
+  tile of the room stays reachable from him. A start room with no such spot fails the floor attempt
+  (a retry from the next seed, as for an unconnected floor; about 1 start room in 15).

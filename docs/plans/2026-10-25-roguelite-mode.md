@@ -315,6 +315,18 @@ two-biome floor with a temporary table). Deviations from the steps below:
 
 ## Slice 4: the location sign and safe arrival
 
+**Done (2026-10-24).** Tasks 11-12 implemented and checked in muted headless Chrome (floors 1 and 2
+start rooms, room and follow cameras, 1280x720 and 390x844). Deviations from the steps below:
+- The tests are in `src/gen/roguelite.test.ts` (with the other roguelite floor tests), 50 seeds per
+  biome.
+- The safe arrival lays the start room out first (when the option is set), so the other rooms know
+  Merlin's tile; today's layouts already keep units 6+ tiles away, so it is a guard.
+- The sign is an original board: the converter wipes the Black Fortress sign's writing into empty
+  merlinOpenActive slots (197-199, keyed solid); the map stores `locationSign: { room, tile, width,
+  text }` and `src/render/location-sign.ts` writes the name. The board is 4 tiles wide and solid;
+  its spot also keeps every tile of the room reachable, and a start room without a spot retries the
+  floor.
+
 ### Task 11: safe arrival
 
 **Files:** modify `src/gen/floor.ts` (placement); test `src/gen/floor.test.ts`.
