@@ -191,15 +191,18 @@ has no such mode; these are remake decisions.
   (the start room places no units, units keep 2 tiles off room edges and Merlin starts near the
   room's centre: 6 tiles at the least over 200 seeds per biome), so the option is a guard for new
   biomes and room sizes rather than a change to today's floors.
-- **Location sign** (`src/gen/location-sign.ts`, `src/render/location-sign.ts`). Every roguelite
-  floor's start room has a wooden board, 4 tiles wide, with the biome's name (`MapDefinition.locationSign`).
-  The original has no blank sign, only signs with their names painted on (merlinOpenActive and
-  merlin4Active rows 14-17), so the converter (`tools/derived-tiles.ts`) cuts the Black Fortress
-  sign (merlinOpenActive 164-166) into empty slots 197-199 with its yellow writing painted over by
-  the wood around it, keyed `solid` like the originals; the board is its left end, middle pieces
-  and its right end. The renderer writes the name over the board's face in the signs' yellow,
-  rgb(161, 160, 86), in the cut scene speech's Verdana 10 bold, shrunk to fit a long name. The board
-  is solid, so it stands on open or decorated tiles 1 tile off the room's edges, in no opening's
-  column or row band, under no placement, nearest 2 rows above Merlin, and only where every other
-  tile of the room stays reachable from him. A start room with no such spot fails the floor attempt
-  (a retry from the next seed, as for an unconnected floor; about 1 start room in 15).
+- **Location sign** (owner rule 2026-10-25: in-game locations always use the game files' signs;
+  `FloorTheme.locationSign`, `src/gen/location-sign.ts`). Every roguelite floor's start room stands
+  its biome's original painted sign, the tiles of merlinOpenActive's sign rows (14-20, keyed `solid`;
+  merlin4Active has none), resolved into the tower's active tileset by `towerSignTiles` (merlinOpen's
+  part, offset 0, also for the merlin4-based Goblin Forest). Each biome's user-facing name is the
+  sign's text: Goblin Forest "East Woods" (169-170), Deep Forest "Woods of Mourning" (154-156),
+  Undead Marsh "Dead Woods" (159-160), Hydra Marsh "West Jungle" (187-188), Dragon Canyon "Caves of
+  Fire" (177-178), Golem Mountain "Remorseless Mountains" (161-163), Magic Maze "Black Fortress"
+  (164-166), Golden Palace "Golden Palace" (184-186). Theme ids and map ids keep the old names (the
+  run's bests are keyed by them); the Golden Fort (not a roguelite biome) has no sign and keeps its
+  name. A sign is 2 or 3 tiles wide and solid, so it stands on open or decorated tiles 1 tile off the
+  room's edges, in no opening's column or row band, under no placement (the start pickups are laid
+  out first), nearest 2 rows above Merlin, and only where every other tile of the room stays
+  reachable from him; `MapDefinition.locationSign` records where. A start room with no such spot
+  fails the floor attempt (a retry from the next seed, as for an unconnected floor).

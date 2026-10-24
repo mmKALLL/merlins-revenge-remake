@@ -30,12 +30,14 @@ Work top down; the sections below hold the details.
       pickups (the side corner potions stay). Awaits the owner's review.
     - Slice 3 (the new biomes) done 2026-10-24: two biomes per floor (Goblin Forest or Deep
       Forest, Undead Marsh or Hydra Marsh, Dragon Canyon or Golem Mountain, Magic Maze or Golden
-      Palace); the pick screen's biome cards show 4 enemy icons each. Owner to review the built
+      Palace; shown by their signs' names, see slice 4); the pick screen's biome cards show 4 enemy icons each. Owner to review the built
       enemy lists (design doc, Biomes) and the Golden Palace reading of "hostile palace guards".
-    - Slice 4 (location sign and safe arrival) done 2026-10-24: each floor's start room has a
-      wooden board (the original sign art, its writing wiped) with the biome's name, off every
-      exit's band and keeping the room connected; no unit or dwelling within 3 tiles (taxicab) of
-      Merlin's arrival.
+    - Slice 4 (location sign and safe arrival) done 2026-10-24: each floor's start room has its
+      biome's sign, off every exit's band and keeping the room connected; no unit or dwelling
+      within 3 tiles (taxicab) of Merlin's arrival. Since 2026-10-25 (owner rule) the signs are
+      the original painted ones and the biomes are named after them: East Woods, Woods of
+      Mourning, Dead Woods, West Jungle, Caves of Fire, Remorseless Mountains, Black Fortress,
+      Golden Palace. Awaits the owner's review.
     - **Statistics:** win ratio, floors reached and win streak, kept in localStorage. Abandoned runs
       reset the streak but don't count towards the ratio or distribution.
     - Hades-like gameplay ideas are welcome.

@@ -338,11 +338,11 @@ start rooms, room and follow cameras, 1280x720 and 390x844). Deviations from the
   biome.
 - The safe arrival lays the start room out first (when the option is set), so the other rooms know
   Merlin's tile; today's layouts already keep units 6+ tiles away, so it is a guard.
-- The sign is an original board: the converter wipes the Black Fortress sign's writing into empty
-  merlinOpenActive slots (197-199, keyed solid); the map stores `locationSign: { room, tile, width,
-  text }` and `src/render/location-sign.ts` writes the name. The board is 4 tiles wide and solid;
-  its spot also keeps every tile of the room reachable, and a start room without a spot retries the
-  floor.
+- The sign is the biome's original painted sign (merlinOpenActive's sign rows, keyed solid,
+  `FloorTheme.locationSign`), 2 or 3 tiles wide, and the biome takes its text as its name (owner
+  rule 2026-10-25; this replaced a first version that wiped a sign's writing and rendered the name
+  over it). The map stores `locationSign: { room, tile, width }`; its spot also keeps every tile of
+  the room reachable, and a start room without a spot retries the floor.
 
 ### Task 11: safe arrival
 

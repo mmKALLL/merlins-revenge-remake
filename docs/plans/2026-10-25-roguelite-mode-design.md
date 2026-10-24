@@ -48,10 +48,14 @@ other reward type goes to the owner first.
 
 | Floor | Biome A (existing) | Biome B (new) |
 |---|---|---|
-| 1 | Goblin Forest | Deep Forest |
-| 2 | Undead Marsh | Hydra Marsh |
-| 3 | Dragon Canyon | Golem Mountain |
-| 4 | Magic Maze | Golden Palace (the Golden Fort floor, adapted) |
+| 1 | Goblin Forest: "East Woods" | Deep Forest: "Woods of Mourning" |
+| 2 | Undead Marsh: "Dead Woods" | Hydra Marsh: "West Jungle" |
+| 3 | Dragon Canyon: "Caves of Fire" | Golem Mountain: "Remorseless Mountains" |
+| 4 | Magic Maze: "Black Fortress" | Golden Palace: "Golden Palace" (the Golden Fort floor, adapted) |
+
+The player sees each biome by the name on its original location sign (in quotes; owner rule
+2026-10-25: in-game locations always use the game files' signs). The theme names before the colon
+are the working names these docs and the code (theme and map ids) use.
 
 A new biome is data: a `FloorTheme` on an existing tileset with its own enemy list, room plan,
 dwellings, bosses and themed spells. Enemies may appear in several biomes where they fit, since
@@ -115,8 +119,8 @@ golem (the lava golem's twin, with no objects tile).
 
 ## Arrival
 
-- **Location sign.** The place's name stands on a sign in the entry room, on a tile that blocks no
-  exit or path.
+- **Location sign.** The biome's original painted sign (from the game's tiles; its text is the
+  biome's name) stands in the entry room, where it blocks no exit or path.
 - **Safe arrival.** No enemy within 3 tiles (counting steps across and down) of where Merlin appears.
   The generator moves such units, or does not place them there.
 
