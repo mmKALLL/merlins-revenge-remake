@@ -1,11 +1,12 @@
 // The Maps menu's browser: one folder of the map list at a time. Folders open in place; a map
 // reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed. Each map row
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
-// A map's best score (remake scoring) shows at the end of its row.
-import { loadBestScores, type BestScores } from '../data/best-scores'
+// A map's best score (remake scoring) in the world mode of the player's camera shows at the end of its row.
+import { loadBestScores, type ScoreTable } from '../data/best-scores'
 import { loadMapList } from '../data/map-list'
 import { browserStore, favouriteEntries, loadFavourites, saveFavourites, toggleFavourite } from '../data/favourites'
 import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
+import type { WorldMode } from '../sim/state'
 
 /** Keys a focused entry acts on; they must not reach the game's window listeners too. */
 const ACTIVATE_KEYS = new Set(['Enter', 'Space'])
@@ -60,7 +61,7 @@ function bestScore(best: number | undefined): HTMLSpanElement[] {
 }
 
 /** A button that loads a map, marked when it is the map being played. */
-const mapButton = (text: string, id: string, currentId: string, bests: BestScores): HTMLButtonElement => {
+const mapButton = (text: string, id: string, currentId: string, bests: ScoreTable): HTMLButtonElement => {
   const b = button(text)
   b.append(...bestScore(bests[id]))
   b.title = id
@@ -95,9 +96,9 @@ function favouritesList(browser: HTMLElement): HTMLElement {
 
 /**
  * Fills the browser and the Favourites list; resolves to a function that redraws them with the
- * stored best scores (null when the map list is unavailable).
+ * stored best scores of the world mode `scoreMode` gives then (null when the map list is unavailable).
  */
-export async function setupMapBrowser(list: HTMLElement, currentId: string): Promise<(() => void) | null> {
+export async function setupMapBrowser(list: HTMLElement, currentId: string, scoreMode: () => WorldMode): Promise<(() => void) | null> {
   let index: MapEntry[]
   try {
     index = await loadMapList()
@@ -111,7 +112,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
   keepActivateKeys(list)
   keepActivateKeys(favList)
   let favourites = loadFavourites(browserStore)
-  let bests = loadBestScores(browserStore)
+  let bests = loadBestScores(browserStore)[scoreMode()]
 
   const showFavourites = (): void => {
     const entries = favouriteEntries(favourites, index)
@@ -166,7 +167,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string): Pro
   show(shown, false)
   showFavourites()
   return () => {
-    bests = loadBestScores(browserStore)
+    bests = loadBestScores(browserStore)[scoreMode()]
     show(shown, false)
     showFavourites()
   }

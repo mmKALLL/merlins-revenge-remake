@@ -64,6 +64,8 @@ const cfg: RenderConfig = {
 }
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
 const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
+/** The map lists show the best scores of the player's camera, the next run's world mode. */
+const scoreModeShown = (): WorldMode => worldModeFor(cfg.cameraMode)
 
 /** Records a query parameter in the URL (without a reload), so reloading the page keeps it; null removes it. */
 function rememberParam(name: string, value: string | null): void {
@@ -218,15 +220,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   let runSeed = seed
   // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
-  // the map's best score: a run counts as its rooms are banked, so a death keeps what it reached
+  // the map's best score in the run's world mode (a run with the mode switched has no score): a run
+  // counts as its rooms are banked, so a death keeps what it reached
   let bests = loadBestScores(browserStore)
   const recordBest = () => {
-    const improved = withRunScore(bests, mapId, sim.score)
+    const improved = withRunScore(bests, mapId, sim.worldMode, sim.score)
     if (!improved) return
     bests = improved
     saveBestScores(browserStore, improved)
   }
-  recordBest() // a start room with no hostile pays at once
   const restart = (seedChoice: 'same' | 'fresh' = 'fresh') => {
     const newLayout = loaded === null && shell.newLayoutEachRun()
     runSeed = seedChoice === 'same' && !newLayout ? pageSeed : nextRunSeed(runSeed)
@@ -237,7 +239,6 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     }
     sim = createSim(world.grid, defs, teams, anims, runSeed, world.startPos, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
-    recordBest()
     ending = sim.mapComplete ? startEndSequence() : null
   }
   const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
@@ -247,8 +248,9 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   await scene.init(document.getElementById('game') ?? document.body)
   const setCamera = (camera: CameraMode) => {
     if (camera === scene.cameraMode) return
+    cfg.cameraMode = camera // the map lists show this mode's bests
     scene.setCameraMode(camera)
-    sim = switchWorldMode(sim, worldModeFor(camera))
+    sim = switchWorldMode(sim, worldModeFor(camera)) // voids the run's score
     rememberParam('camera', camera)
   }
 
@@ -332,7 +334,6 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       // the player died: start the map again with the loaded assets and a fresh seed
       if (sim.restartRequested) restart()
     }
-    scene.musicTrack = audio.track
     scene.draw(sim, alpha, fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
@@ -356,7 +357,7 @@ function showError(e: unknown, mapId: string): void {
   mapList.id = 'maps'
   document.documentElement.dataset['screen'] = 'error'
   document.body.replaceChildren(pre, mapList)
-  void setupMapBrowser(mapList, mapId)
+  void setupMapBrowser(mapList, mapId, scoreModeShown)
 }
 
 function main(): void {
@@ -415,7 +416,7 @@ function main(): void {
         dispatch({ kind: 'quit' })
       },
     }, () => game?.mapId ?? ''),
-    maps: mapsPanel(mapToPlay(), back),
+    maps: mapsPanel(mapToPlay(), back, scoreModeShown),
     settings: settingsPanel({
       zoom: () => zoom,
       setZoom: (z) => {
@@ -423,7 +424,7 @@ function main(): void {
         saveZoom(z)
         game?.scene.setZoom(z)
       },
-      camera: () => game?.scene.cameraMode ?? cfg.cameraMode,
+      camera: () => cfg.cameraMode,
       setCamera: (c) => {
         if (game) game.setCamera(c)
         else {
