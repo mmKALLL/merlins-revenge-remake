@@ -264,7 +264,7 @@ export interface FloorTheme {
   name: string
   /** the original sign standing in the start room of the theme's roguelite floors (location-sign.ts) */
   locationSign?: SignTiles
-  /** 3-4 enemy keys that show who the player meets there (the roguelite pick screen's biome cards) */
+  /** 3-4 enemy keys that show who the player meets there (the roguelite pick screen's biome cards): its most common ones */
   showcase: readonly string[]
   /** the floor's number, as in its map id and its place in the tower (1 = Goblin Forest); scales HP budgets */
   level: number
@@ -511,7 +511,7 @@ export const GOBLIN_FOREST: FloorTheme = {
   id: 'goblin-forest',
   name: 'East Woods',
   locationSign: LOCATION_SIGNS.eastWoods,
-  showcase: ['goblinWarrior', 'goblinArcher', 'swordOrc', 'bat'],
+  showcase: ['goblinArcher', 'goblinWarrior', 'bat', 'swordOrc'],
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN4_TILESETS,
@@ -785,7 +785,7 @@ export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Dead Woods',
   locationSign: LOCATION_SIGNS.deadWoods,
-  showcase: ['skeletonWarrior', 'skeletonArcher', 'quadranid', 'necromancer'],
+  showcase: ['skeletonWarrior', 'skeletonArcher', 'skeletonThrower', 'quadranid'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -888,7 +888,7 @@ export const DRAGON_CANYON: FloorTheme = {
   id: 'dragon-canyon',
   name: 'Caves of Fire',
   locationSign: LOCATION_SIGNS.cavesOfFire,
-  showcase: ['karateGuy', 'lizard', 'dragon', 'darkGolem'],
+  showcase: ['karateGuy', 'kongFuChicken', 'lizard', 'dragon'],
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1028,7 +1028,7 @@ export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
   name: "Scarlet's Storeroom",
   locationSign: LOCATION_SIGNS.scarletsStoreroom,
-  showcase: ['shrouder', 'necromancer', 'darkMage', 'scWarrior'],
+  showcase: ['darkMage', 'shrouder', 'scWarrior', 'necromancer'],
   level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1319,7 +1319,7 @@ export const DEEP_FOREST: FloorTheme = {
   id: 'deep-forest',
   name: 'Woods of Mourning',
   locationSign: LOCATION_SIGNS.woodsOfMourning,
-  showcase: ['goblinHero', 'fangBunny', 'ninja', 'plant'],
+  showcase: ['goblinWarrior', 'goblinArcher', 'quadranid', 'bug'],
   level: 1,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1407,7 +1407,7 @@ export const HYDRA_MARSH: FloorTheme = {
   id: 'hydra-marsh',
   name: 'West Jungle',
   locationSign: LOCATION_SIGNS.westJungle,
-  showcase: ['lizard', 'quadranid', 'plant', 'hydra3'],
+  showcase: ['lizard', 'bat', 'plant', 'hydra1'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1490,7 +1490,7 @@ export const GOLEM_MOUNTAIN: FloorTheme = {
   id: 'golem-mountain',
   name: 'Remorseless Mountains',
   locationSign: LOCATION_SIGNS.remorselessMountains,
-  showcase: ['boulderMonster', 'iceRock', 'lavaGolem', 'fourArmGolem'],
+  showcase: ['boulderMonster', 'iceRock', 'vultureGuard', 'darkGolem'],
   level: 3,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1578,7 +1578,7 @@ export const GOLDEN_PALACE: FloorTheme = {
   id: 'golden-palace',
   name: 'Golden Palace',
   locationSign: LOCATION_SIGNS.goldenPalace,
-  showcase: ['mageOrc', 'swordOrc', 'bombMage', 'frostyMonk'],
+  showcase: ['mageOrc', 'swordOrc', 'bombMage', 'thunderMonk'],
   level: 4,
   objectTiles: BIOME_OBJECTS,
   units: {
