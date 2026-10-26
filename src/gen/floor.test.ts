@@ -8,13 +8,14 @@ import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
 import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, type GeneratedFloor, type Placement } from './floor'
 import { edgeMismatches } from './edge-check'
 import { TOWER_FLOORS } from './tower'
+import { ROGUELITE_BIOMES } from './roguelite-biomes'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { GOLDEN_FORT, GOLDEN_PALACE, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
-/** Every theme: the generated maps' and the roguelite run's own biomes. */
-const ALL_THEMES: readonly FloorTheme[] = [...THEMES, ...ROGUELITE_THEMES]
+/** Every theme: the generated maps', the roguelite run's own biomes and its 4x4 last floors. */
+const ALL_THEMES: readonly FloorTheme[] = [...THEMES, ...ROGUELITE_THEMES, ...ROGUELITE_BIOMES[3]!]
 /** Whether the theme is a generated map of its own (the roguelite biomes are not). */
 const hasMapId = (theme: FloorTheme) => THEMES.includes(theme)
 
@@ -41,7 +42,7 @@ const GENERATOR_HALF: Record<string, 'topLeft' | 'bottomRight'> = {
 }
 const drawsOf = (spec: DrawSpec | undefined): TierDraw[] => (spec === undefined ? [] : Array.isArray(spec) ? spec.map((o) => o.value) : [spec])
 
-describe.each(ALL_THEMES)('random floor: $name', (theme) => {
+describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', (theme) => {
   const active = key(theme.tileSets.backgroundActive)
   const objects = key(theme.tileSets.objects)
   const isSolid = (i: number) => active.isSolid(i)

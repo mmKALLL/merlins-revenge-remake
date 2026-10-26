@@ -11,6 +11,7 @@ import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
 import { ROOM_SIZE, energyLookup, exitRoom, generateFloor } from './floor'
 import { PENDING_SCROLLS, ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
+import { ROGUELITE_BIOMES } from './roguelite-biomes'
 import { generateTower } from './tower'
 import { TOWER_TILESETS } from './tower-tilesets'
 
@@ -36,7 +37,7 @@ function start(theme: FloorTheme, seed: number, mode: WorldMode, inExitRoom = fa
   return createSim(grid, pageDefs, pageTeams, anims, seed, pos, mode)
 }
 
-describe.each([...THEMES, ...ROGUELITE_THEMES])('random floor in the sim: $name', (theme) => {
+describe.each([...THEMES, ...ROGUELITE_THEMES, ...ROGUELITE_BIOMES[3]!])('random floor in the sim: $name ($floorSize.x by $floorSize.y)', (theme) => {
   it('starts in a clear start room and runs in both world modes', () => {
     for (const mode of ['rooms', 'continuous'] as const) {
       let s = start(theme, 7, mode)

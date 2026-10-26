@@ -217,7 +217,7 @@ export interface UnitTuning {
   dwellings: EnemyChoice[]
   /** the exit room picks one */
   bosses: BossGroup[]
-  /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) */
+  /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) but on the roguelite's last floor (roguelite-biomes.ts) */
   potions: Weighted<string>[]
   startRewards: StartRewards
   /**

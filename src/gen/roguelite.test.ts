@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { roomXYToNum } from '../mr-open/mr-map-format'
 import { pageDefs } from '../debug/snapshot-test-data'
 import type { Vec } from '../mr-open/mr-geometry'
-import { ROOM_SIZE, energyLookup, inDoorway, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
+import { ROOM_SIZE, cornerRoom, energyLookup, inDoorway, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
 import { ROGUELITE_MAP_ID, generateMap, isGeneratedMapId } from './generated-maps'
 import { floodOpen } from './grid'
 import { inOpeningBand, signTiles } from './location-sign'
@@ -40,6 +40,26 @@ describe('roguelite floor', () => {
         expect(floorIsConnected(floor, isSolid), `seed ${seed}`).toBe(true)
         const exit = floor.map.rooms.find((r) => r.num === roomXYToNum(exitRoom(theme.floorSize), floor.map.mapSize))!
         expect(exit.layers.backgroundActive![0]!.some((tile) => !isSolid(tile)), `seed ${seed}`).toBe(true)
+      }
+    })
+  }
+})
+
+describe('roguelite last floor (owner: 4x4, medikits in the side corners)', () => {
+  const potionKeys = new Set(['manaCapacity', 'manaBurst', 'manaFlow', 'walkSpeed'])
+  for (const theme of ROGUELITE_FLOORS[3]!) {
+    it(`${theme.id}: 4x4 rooms, connected, two medikits and no potion in each side corner`, () => {
+      const isSolid = themeIsSolid(theme)
+      for (const seed of SEEDS) {
+        const floor = runSteps(rogueliteFloor(theme, seed, energyOf, SOME_PICKUPS))
+        expect(floor.map.mapSize).toEqual({ x: 4, y: 4 })
+        expect(floorIsConnected(floor, isSolid), `seed ${seed}`).toBe(true)
+        for (const corner of ['farX', 'farY'] as const) {
+          const room = cornerRoom(theme.floorSize, corner)
+          const keys = floor.placements.filter((p) => sameVec(p.room, room)).map((p) => p.key)
+          expect(keys.filter((k) => k === 'medikit'), `seed ${seed} ${corner}`).toHaveLength(2)
+          expect(keys.filter((k) => potionKeys.has(k)), `seed ${seed} ${corner}`).toEqual([])
+        }
       }
     })
   }
