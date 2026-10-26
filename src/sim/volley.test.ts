@@ -1,6 +1,6 @@
 // Remake volley spells (docs/notes/engine-mechanics-spells.md, Volley spells): the count from the
 // charge and its cap by the charge max, the fan, the stagger, first-hostile hits (dwellings too), the
-// landing of exploding projectiles on the aim, the damage, the chill and the pierce.
+// landing of exploding projectiles on the aim, the damage, the chill, the pierce and the fireball's growing blast.
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
@@ -10,10 +10,10 @@ import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { ICON_ROW_SHIFT, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyShots, volleySpreadDeg } from './volley'
+import { ICON_ROW_SHIFT, blastCharge, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyFullCharge, volleyProjectileAttack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0 }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, lob: false }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
@@ -233,6 +233,72 @@ describe('volleys in the sim', () => {
     expect(chilled.freezeTicks).toBeGreaterThan(0)
     expect(chilled.glowTeal).toBe(true)
     expect(struck(0).freezeTicks).toBe(0)
+  })
+})
+
+describe('the fireball (remake, blastFromCharge)', () => {
+  /** The fireball scroll's own data, charging fast enough to reach its full charge in under a second. */
+  const fireball = (): AttackDef => ({ ...engineDefs['lavaLob']!.attack, chargeSpeed: 2, chargeMaxModifier: 10 })
+  const fireballVolley = (): VolleyDef => fireball().volley!
+  /** Charge ticks for a quick tap (just past the projectile's charge) and for the full charge. */
+  const TAP_TICKS = 2
+  const FULL_TICKS = 25
+
+  /** Charges for `ticks`, releases at a point `dist` px ahead (a dummy there when `target`), and returns the blast and the dummy's damage. */
+  function blast(ticks: number, dist: number, target: boolean): { radius: number; at: number; damage: number; rocks: number } {
+    const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + dist, y: SPELL_Y } }
+    let s = world(fireball())
+    let id = -1
+    if (target) [s, id] = withDummy(s, PLAYER.x + dist)
+    for (let i = 0; i < ticks; i++) s = stepSim(s, { ...at, chargeHeld: true })
+    const rocks = new Set<number>()
+    let ev: { radius: number; x: number } | undefined
+    for (let i = 0; i < 80; i++) {
+      s = stepSim(s, at)
+      for (const a of s.actors) if (a.def === 'flamingRock') rocks.add(a.id)
+      const e = s.events.find((x) => x.kind === 'explode')
+      if (e && e.kind === 'explode' && !ev) ev = { radius: e.radius, x: e.pos.x - PLAYER.x }
+    }
+    expect(ev).toBeDefined()
+    return { radius: ev!.radius, at: ev!.x, damage: target ? 1e6 - energyOf(s, id) : 0, rocks: rocks.size }
+  }
+
+  it('fires a single projectile, however long it was charged', () => {
+    expect(blast(TAP_TICKS, 80, false).rocks).toBe(1)
+    expect(blast(FULL_TICKS, 80, false).rocks).toBe(1)
+  })
+
+  it('charges on past its one projectile to its own fullCharge; other volleys stop at maxShots x chargePerShot', () => {
+    const merlin = (attack: AttackDef): ActorDef => ({ ...engineDefs['player']!, mana_capacity: 100, attack })
+    expect(chargeLimits(merlin(fireball())).max).toBe(fireballVolley().fullCharge)
+    expect(volleyFullCharge(VOLLEY)).toBe(VOLLEY.maxShots * VOLLEY.chargePerShot)
+  })
+
+  it('lands on the aim and explodes there', () => {
+    for (const dist of [60, 90]) expect(Math.abs(blast(FULL_TICKS, dist, false).at - dist)).toBeLessThan(6)
+  })
+
+  it("its blast grows with the charge at release (radius blastCharge / 2), and its damage with it", () => {
+    const tap = blast(TAP_TICKS, 80, true)
+    const full = blast(FULL_TICKS, 80, true)
+    expect(full.radius).toBeCloseTo(blastCharge(fireballVolley().fullCharge, fireballVolley())! / 2)
+    expect(full.radius).toBeGreaterThan(tap.radius * 2)
+    expect(full.damage).toBeGreaterThan(tap.damage * 2)
+  })
+
+  it('is lobbed over the units on its way: a tap aimed past one spares it', () => {
+    const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + 120, y: SPELL_Y } }
+    let s = world(fireball())
+    let id: number
+    ;[s, id] = withDummy(s, PLAYER.x + 50)
+    for (let i = 0; i < TAP_TICKS; i++) s = stepSim(s, { ...at, chargeHeld: true })
+    for (let i = 0; i < 80; i++) s = stepSim(s, at)
+    expect(energyOf(s, id)).toBe(1e6)
+  })
+
+  it("leaves other volleys' projectiles with their bullet's own explosion", () => {
+    expect(blastCharge(10, VOLLEY)).toBeNull()
+    expect(volleyProjectileAttack(engineDefs['bomb']!.attack, ['teamMembers'], VOLLEY, 10).explodeCharge).toBe(engineDefs['bomb']!.attack.explodeCharge)
   })
 })
 

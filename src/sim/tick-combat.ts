@@ -353,10 +353,11 @@ function splashOnLanding(t: Tick, a: ActorState, def: ActorDef, radius: number):
   if (def.splashGraveOn) t.graves.push({ def: a.def, pos: { ...a.pos } })
 }
 
-/** calcCollisionVectSpell of an #explode bullet on one unit (no push when outside the blast). */
+/** calcCollisionVectSpell of an #explode bullet on one unit with its own explodeCharge (no push when outside the blast). */
 function explosionPushOn(t: Tick, bullet: ActorState, def: ActorDef, victim: ActorState): Vec {
   const r = hurtSpriteRectFor(t.s, victim)
-  const ex = explodeWithCharge(bullet.pos, def.attack.explodeCharge, def.attack, [{ id: victim.id, pos: victim.pos, radius: (r.right - r.left) / 2 }])
+  const atk = bulletAttackOf(bullet, def)
+  const ex = explodeWithCharge(bullet.pos, atk.explodeCharge, atk, [{ id: victim.id, pos: victim.pos, radius: (r.right - r.left) / 2 }])
   return ex.pushes[0]?.push ?? { x: 0, y: 0 }
 }
 

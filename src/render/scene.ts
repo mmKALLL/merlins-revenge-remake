@@ -362,7 +362,7 @@ export class Scene {
       spr.position.set(Math.round(pos.x + shift * this.cfg.spriteScale), Math.round(pos.y))
       if (spell) this.styleSpell(spr, a, def, tex)
       else if (bullet && a.beamFrom) this.styleBeam(spr, a, pos)
-      else if (bullet) this.styleBullet(spr, a)
+      else if (bullet) this.styleBullet(spr, a, def)
       else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a), this.teamOverlay(s.teams, a.team))
       if (spell) this.syncSpellIcon(s, a, def, spr)
       if (spell) this.volleyIcons.sync(a, def, this.defs[(a.attack ?? def.attack).bullet ?? ''], spr)
@@ -441,11 +441,14 @@ export class Scene {
     spr.rotation = 0
   }
 
-  /** modRotational #once: turned to the launch velocity, never mirrored; the art points along +x. */
-  private styleBullet(spr: Sprite, a: ActorState): void {
+  /**
+   * modRotational #once: turned to the launch velocity, never mirrored; the art points along +x.
+   * Remake: an explosion bigger than the bullet's own (a fireball's blastFromCharge) scales its strip to match.
+   */
+  private styleBullet(spr: Sprite, a: ActorState, def: ActorDef): void {
     if (a.vel.x !== 0 || a.vel.y !== 0) this.bulletAngles.set(a.id, Math.atan2(a.vel.y, a.vel.x))
     spr.rotation = this.bulletAngles.get(a.id) ?? 0
-    spr.scale.set(this.cfg.spriteScale)
+    spr.scale.set(this.cfg.spriteScale * explosionScale(a, def))
     spr.tint = NO_TINT
     spr.alpha = 1
   }
@@ -585,4 +588,11 @@ export class Scene {
       }
     }
   }
+}
+
+/** An exploding bullet's own explodeCharge (a volley projectile's copy) over its definition's: how much bigger its blast is; 1 otherwise. */
+function explosionScale(a: ActorState, def: ActorDef): number {
+  const own = a.attack?.explodeCharge
+  if (a.mode !== 'explode' || own === undefined || def.attack.explodeCharge <= 0) return 1
+  return own / def.attack.explodeCharge
 }
