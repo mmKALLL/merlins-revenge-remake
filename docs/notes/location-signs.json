@@ -2,7 +2,7 @@
   "_note": "The named sign tiles of merlinOpenActive (the older merlinActive and merlin4Active sheets hold a subset). usedBy: the roguelite biome showing it. (of Death) is a suffix sign.",
   "signs": [
     {"name": "Apathetic Woods", "tiles": "131-133"},
-    {"name": "Scarlet's Storeroom", "tiles": "134-136"},
+    {"name": "Scarlet's Storeroom", "tiles": "134-136", "usedBy": "magic-maze"},
     {"name": "Caves of Woe", "tiles": "137-138"},
     {"name": "The Coughing Caves", "tiles": "141-143"},
     {"name": "Swamp of Despair", "tiles": "144-146"},
@@ -13,7 +13,7 @@
     {"name": "(of Death)", "tiles": "157-158"},
     {"name": "Dead Woods", "tiles": "159-160", "usedBy": "undead-marsh"},
     {"name": "Remorseless Mountains", "tiles": "161-163", "usedBy": "golem-mountain"},
-    {"name": "Black Fortress", "tiles": "164-166", "usedBy": "magic-maze"},
+    {"name": "Black Fortress", "tiles": "164-166"},
     {"name": "Caves of Doom", "tiles": "167-168"},
     {"name": "East Woods", "tiles": "169-170", "usedBy": "goblin-forest"},
     {"name": "Black Outpost", "tiles": "171-173"},

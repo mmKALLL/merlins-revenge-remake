@@ -11,7 +11,7 @@ import { TOWER_FLOORS } from './tower'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
 import { hatedTeams } from '../mr-open/mr-targeting'
-import { GOLDEN_FORT, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
+import { GOLDEN_FORT, GOLDEN_PALACE, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 /** Every theme: the generated maps' and the roguelite run's own biomes. */
 const ALL_THEMES: readonly FloorTheme[] = [...THEMES, ...ROGUELITE_THEMES]
@@ -394,10 +394,10 @@ describe.each(ALL_THEMES)('random floor: $name', (theme) => {
     for (const k of keys) expect(theme.objectTiles[k], k).toBeDefined()
   })
 
-  it('shows 3-4 of its own enemies on its biome card, each with actor data', () => {
+  it('shows 3-4 of its own enemies, dwellings or bosses on its biome card, each with actor data', () => {
     const u = theme.units
-    const placeable = new Set([...u.enemies, ...u.dwellings].map((c) => c.key))
-    for (const g of [...groupRooms.flatMap(([, groups]) => groups), ...u.bosses]) for (const k of Object.keys(g.units)) placeable.add(k)
+    const placeable = new Set([...u.enemies.filter((c) => !c.brawlOnly), ...u.dwellings].map((c) => c.key))
+    for (const g of u.bosses) for (const k of Object.keys(g.units)) placeable.add(k)
     expect(theme.showcase.length).toBeGreaterThanOrEqual(3)
     expect(theme.showcase.length).toBeLessThanOrEqual(4)
     for (const k of theme.showcase) {
@@ -487,7 +487,7 @@ describe('Magic Maze necromancers (owner: a regular sight)', () => {
   })
 })
 
-describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => {
+describe('Magic Maze corner and boss groups', () => {
   const groups = [...planCell(MAGIC_MAZE.units.roomPlan, cornerRoom(MAGIC_MAZE.floorSize, 'farY')).groups!, ...MAGIC_MAZE.units.bosses]
   const leaderOf = (g: UnitGroup) => ('boss' in g ? (g.boss as string) : g.lead)
 
@@ -507,6 +507,10 @@ describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => 
     }
   })
 
+  it('is led by Scarlet (owner: her floor)', () => {
+    expect(new Set(MAGIC_MAZE.units.bosses.map((g) => g.boss))).toEqual(new Set(['scarletInGame']))
+  })
+
   it('leads the midboss and boss rooms of a floor by different leaders', () => {
     const midboss = cornerRoom(MAGIC_MAZE.floorSize, 'farY')
     const exit = exitRoom(MAGIC_MAZE.floorSize)
@@ -520,6 +524,12 @@ describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => 
       expect(group, `seed ${seed}: midboss ${midbossKeys.join(' ')}`).toBeDefined()
       expect(leaderOf(group!), `seed ${seed}: ${group!.label}`).not.toBe(boss)
     }
+  })
+})
+
+describe("Golden Palace (owner: Ochre's floor)", () => {
+  it('is led by Ochre', () => {
+    expect(new Set(GOLDEN_PALACE.units.bosses.map((g) => g.boss))).toEqual(new Set(['ochreInGame']))
   })
 })
 

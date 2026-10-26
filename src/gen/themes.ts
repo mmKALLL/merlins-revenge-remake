@@ -296,7 +296,7 @@ export const LOCATION_SIGNS = {
   woodsOfMourning: merlinOpenSign(154, 155, 156),
   deadWoods: merlinOpenSign(159, 160),
   remorselessMountains: merlinOpenSign(161, 162, 163),
-  blackFortress: merlinOpenSign(164, 165, 166),
+  scarletsStoreroom: merlinOpenSign(134, 135, 136),
   eastWoods: merlinOpenSign(169, 170),
   cavesOfFire: merlinOpenSign(177, 178),
   goldenPalace: merlinOpenSign(184, 185, 186),
@@ -591,6 +591,7 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   skeletonGiant: 99,
   bombMage: 101,
   thunderMonk: 103,
+  frostyMonk: 107,
   shrouder: 104,
   magicPortal: 105,
   karateGuy: 116,
@@ -976,51 +977,31 @@ const CASTLE_WALLS: WallAutotile = [
 ]
 
 /**
- * Owner: necromancers should be a regular sight in the maze, so its generator rooms also draw mid
- * producers (necromancers, mid in the maze, in an undead room; other factions fall back to weak ones).
+ * Owner: necromancers should be a regular sight in the maze (2026-10-26: more of them), so its
+ * generator rooms draw mid producers (necromancers, mid in the maze, in a court room; the
+ * shrouders' rooms fall back to weak ones) as often as weak ones.
  */
-const WEAK_SOME_MID: TierWeights = { weak: 2, mid: 1 }
-
-/** A Magic Maze boss group: its leader and the minions it brings to the midboss corner. */
-interface MazeBossGroup {
-  label: string
-  lead: string
-  minions: Record<string, number>
-  faction: string
-  allies?: readonly string[]
-}
+const WEAK_SOME_MID: TierWeights = { weak: 1, mid: 1 }
 
 /**
- * Owner (2026-10-24): the maze's midboss and boss rooms draw from the same groups, the midboss
- * corner alone with the minions below, the exit room with this many times the minions (rounded
- * up) and its usual draws on top.
+ * Scarlet's Storeroom's factions (owner, 2026-10-26: Scarlet's floor). Her army and the undead
+ * casters leave each other alone, so they make one faction, her court; the magical alliance's
+ * shrouders hate them all and hold rooms of their own.
  */
-const BOSS_MINION_FACTOR = 1.5
+const COURT = 'court'
+const ALLIANCE = 'alliance'
 
-const MAZE_BOSS_GROUPS: readonly MazeBossGroup[] = [
-  // Ochre (team blackSorcerer hates only Aldevar and the monster summon) leads the magical alliance's casters
-  { label: "Ochre's elementals", lead: 'ochreInGame', minions: { bombMage: 1, thunderMonk: 1, shrouder: 1, magicPortal: 1 }, faction: 'alliance' },
-  // Scarlet summons undead and her team and theirs leave each other alone, so her red army may come too
-  { label: "Scarlet's court", lead: 'scarletInGame', minions: { necromancer: 2, darkMage: 1 }, faction: 'undead', allies: ['scarlet'] },
-  { label: "dark sorcerer's court", lead: 'darkMage', minions: { darkMage: 1, necromancer: 1, greyGhost: 1 }, faction: 'undead' },
-  { label: "Scarlet's guard", lead: 'scMonk', minions: { scMonk: 1, scWarrior: 1, scArcher: 1 }, faction: 'scarlet' },
+/** The maze's midboss corner: a powerful group alone, never Scarlet (she leads the exit room). */
+const MAZE_MIDBOSS_GROUPS: UnitGroup[] = [
+  { label: "dark sorcerer's court", lead: 'darkMage', units: { darkMage: 2, necromancer: 1, greyGhost: 1 }, faction: COURT, alone: true },
+  { label: "Scarlet's guard", lead: 'scMonk', units: { scMonk: 2, scWarrior: 1, lavaGolem: 1 }, faction: COURT, alone: true },
+  { label: 'shrouder coven', lead: 'shrouder', units: { shrouder: 4, magicPortal: 1 }, faction: ALLIANCE, alone: true },
 ]
-
-/** A group's units: its minions and its leader. */
-const withLead = (lead: string, minions: Record<string, number>): Record<string, number> => ({ ...minions, [lead]: (minions[lead] ?? 0) + 1 })
-const scaledMinions = (minions: Record<string, number>): Record<string, number> =>
-  Object.fromEntries(Object.entries(minions).map(([key, count]) => [key, Math.ceil(count * BOSS_MINION_FACTOR)]))
-const factionsOf = (g: MazeBossGroup) => ({ faction: g.faction, ...(g.allies ? { allies: g.allies } : {}) })
-
-const mazeMidboss = (g: MazeBossGroup): UnitGroup =>
-  ({ label: g.label, lead: g.lead, units: withLead(g.lead, g.minions), ...factionsOf(g), alone: true })
-const mazeBoss = (g: MazeBossGroup): BossGroup =>
-  ({ label: g.label, boss: g.lead, units: withLead(g.lead, scaledMinions(g.minions)), ...factionsOf(g) })
 
 /** The forest's plan, as the marsh's (the tower mirrors this floor in x). */
 const MAGIC_MAZE_PLAN: RoomPlan = [
   [
-    midboss(MAZE_BOSS_GROUPS.map(mazeMidboss)),
+    midboss(MAZE_MIDBOSS_GROUPS),
     normal({ producers: n(4, 6, WEAK_SOME_MID), regulars: n(0, 2, WEAK) }),
     boss({ producers: n(0, 1, WEAK_MID), regulars: n(2, 3, WEAK_MID) }),
   ],
@@ -1034,8 +1015,9 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
     normal({ regulars: n(2, 3, WEAK) }),
     normal({
       groups: [
-        { label: 'alliance squad', units: { bombMage: 2, thunderMonk: 2 }, faction: 'alliance' },
-        { label: 'Scarlet patrol', units: { scWarrior: 2, scArcher: 2 }, faction: 'scarlet' },
+        { label: 'shrouder patrol', units: { shrouder: 3, thunderMonk: 1 }, faction: ALLIANCE },
+        // alone: Scarlet's few weak soldiers could not fill the corner's weak draws
+        { label: 'Scarlet patrol', units: { scWarrior: 2, scArcher: 1, lavaGolem: 1 }, faction: COURT, alone: true },
       ],
       regulars: NUMEROUS_WEAK,
     }),
@@ -1044,9 +1026,9 @@ const MAGIC_MAZE_PLAN: RoomPlan = [
 
 export const MAGIC_MAZE: FloorTheme = {
   id: 'magic-maze',
-  name: 'Black Fortress',
-  locationSign: LOCATION_SIGNS.blackFortress,
-  showcase: ['bombMage', 'scWarrior', 'necromancer', 'darkMage'],
+  name: "Scarlet's Storeroom",
+  locationSign: LOCATION_SIGNS.scarletsStoreroom,
+  showcase: ['shrouder', 'necromancer', 'darkMage', 'scWarrior'],
   level: 4,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1081,37 +1063,32 @@ export const MAGIC_MAZE: FloorTheme = {
     roomPlan: MAGIC_MAZE_PLAN,
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
-    // the undead and Scarlet's army leave each other alone
-    rivals: [['alliance', 'undead'], ['alliance', 'scarlet'], ['alliance', 'monsters'], ['undead', 'monsters'], ['scarlet', 'monsters']],
-    // MR3's wizards are not ported: the magical alliance, the undead casters and Scarlet's army
-    // (the chromatic sorcerers' troops) stand in, each faction in rooms of its own
+    rivals: [[COURT, ALLIANCE]],
+    // owner (2026-10-26): more shrouders, necromancers and dark mages, and Scarlet's army in small
+    // numbers but powerful (MR3's wizards are not ported)
     enemies: [
-      { key: 'bombMage', weight: 3, tier: 'weak', faction: 'alliance' },
-      { key: 'thunderMonk', weight: 3, tier: 'weak', faction: 'alliance' },
-      { key: 'shrouder', weight: 2, tier: 'mid', faction: 'alliance' },
-      { key: 'necromancer', weight: 5, tier: 'mid', faction: 'undead', producer: true },
-      // owner: about 20 % fewer dark mages. They are the maze's only undead regular, so the court's
-      // and the study's draws are all dark mages and their weight changes little; the cap does
-      { key: 'darkMage', weight: 2, tier: 'strong', maxPerRoom: 3, faction: 'undead' },
-      { key: 'greyGhost', weight: 1, tier: 'weak', faction: 'undead', producer: true },
-      { key: 'scWarrior', weight: 2, tier: 'weak', faction: 'scarlet' },
-      { key: 'scArcher', weight: 2, tier: 'weak', faction: 'scarlet' },
-      { key: 'scMonk', weight: 1, tier: 'mid', faction: 'scarlet', producer: true },
-      // giant orcs and vultures are monsters, who brawl with all of the above
-      { key: 'blackOrc', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },
-      { key: 'vultureGuard', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'monsters' },
+      { key: 'necromancer', weight: 6, tier: 'mid', faction: COURT, producer: true },
+      { key: 'darkMage', weight: 3, tier: 'strong', maxPerRoom: 3, faction: COURT },
+      { key: 'greyGhost', weight: 1, tier: 'weak', faction: COURT, producer: true },
+      { key: 'scWarrior', weight: 1, tier: 'weak', maxPerRoom: 2, faction: COURT },
+      { key: 'scArcher', weight: 1, tier: 'weak', maxPerRoom: 2, faction: COURT },
+      { key: 'scMonk', weight: 0.5, tier: 'strong', maxPerRoom: 1, faction: COURT, producer: true },
+      { key: 'lavaGolem', weight: 0.5, tier: 'strong', maxPerRoom: 1, faction: COURT },
+      { key: 'shrouder', weight: 4, tier: 'weak', faction: ALLIANCE },
+      { key: 'bombMage', weight: 1, tier: 'weak', faction: ALLIANCE },
+      { key: 'thunderMonk', weight: 1, tier: 'weak', faction: ALLIANCE },
     ],
     dwellings: [
-      { key: 'magicPortal', weight: 2, tier: 'weak', faction: 'alliance' },
-      { key: 'skeletonDwelling', weight: 1, tier: 'weak', faction: 'undead' },
+      { key: 'magicPortal', weight: 1, tier: 'weak', faction: ALLIANCE },
+      { key: 'skeletonDwelling', weight: 1, tier: 'weak', faction: COURT },
     ],
-    // the midboss corner's groups with more minions (the Black Sorcerer is not in the engine's data)
-    bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
+    // owner: Scarlet is the floor's boss
+    bosses: [
+      { label: "Scarlet's court", units: { scarletInGame: 1, necromancer: 3, darkMage: 2 }, faction: COURT, boss: 'scarletInGame' },
+      { label: "Scarlet's store guard", units: { scarletInGame: 1, scWarrior: 2, scArcher: 1, lavaGolem: 1 }, faction: COURT, boss: 'scarletInGame' },
+    ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
-    startRewards: startRewards(
-      spellWeights(MERLIN_OPEN_OBJECTS),
-      MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
-    ),
+    startRewards: startRewards(spellWeights(MERLIN_OPEN_OBJECTS), MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []),
   },
 }
 
@@ -1188,8 +1165,8 @@ const TEAM_OF: Record<string, string> = {
   scWarrior: 'scarlet',
   scArcher: 'scarlet',
   scMonk: 'scarlet',
+  lavaGolem: 'scarlet',
   scarletInGame: 'scarlet',
-  ochreInGame: 'blackSorcerer',
 }
 
 const teamOf = (key: string): string => {
@@ -1214,14 +1191,14 @@ function everyThemesChoices(pick: (u: UnitTuning) => EnemyChoice[]): EnemyChoice
 /**
  * Teams that leave each other alone (no hate either way in assets/teams; floor.test.ts checks
  * this), so a fort room mixes several teams without them brawling at once. The magical alliance
- * hates every other enemy team, so it holds rooms of its own, with Ochre (blackSorcerer) when he leads.
+ * hates every other enemy team, so it holds rooms of its own.
  */
 const FORT_ALLIANCES: Alliance[] = [
   { name: 'greenskins and beasts', factions: ['goblins', 'orcs', 'monsters', 'swamp', 'cave'], weight: 3 },
   { name: 'the dead and the red', factions: ['undead', 'scarlet', 'cave'], weight: 2 },
   { name: 'martial beasts', factions: ['karate', 'monsters', 'swamp'], weight: 2 },
   { name: 'dojo and Scarlet', factions: ['karate', 'scarlet'], weight: 1 },
-  { name: 'magical alliance', factions: ['magicalAlliance', 'blackSorcerer'], weight: 1 },
+  { name: 'magical alliance', factions: ['magicalAlliance'], weight: 1 },
 ]
 
 /**
@@ -1583,22 +1560,25 @@ export const GOLEM_MOUNTAIN: FloorTheme = {
   },
 }
 
-/** The palace guards' factions, each in rooms of its own (they hate each other, but for Scarlet's and the dojo's). */
-const SCARLET = 'scarlet'
-const DOJO = 'dojo'
+/**
+ * Ochre's palace's factions (owner, 2026-10-26: Ochre's floor): his elemental mages of the magical
+ * alliance, and the orc horde (the orcs and their huts, with the frosty monks and black orcs, who
+ * leave them alone), who hate each other. Ochre's team (blackSorcerer) hates neither.
+ */
 const MAGES = 'mages'
+const HORDE = 'horde'
 
 /**
  * The Golden Fort's palace on floor 4: its tiles and room shapes, but the rooms of a tower floor
- * (midboss, boss, the floor-4 budgets) held by hostile palace guards instead of the fort's peaceful
- * alliances of every floor's enemies.
+ * (midboss, boss, the floor-4 budgets) held by Ochre's mages and the orc horde instead of the
+ * fort's peaceful alliances of every floor's enemies.
  */
 export const GOLDEN_PALACE: FloorTheme = {
   ...GOLDEN_FORT,
   id: 'golden-palace',
   name: 'Golden Palace',
   locationSign: LOCATION_SIGNS.goldenPalace,
-  showcase: ['scArcher', 'karateGuy', 'shrouder', 'lavaGolem'],
+  showcase: ['mageOrc', 'swordOrc', 'bombMage', 'frostyMonk'],
   level: 4,
   objectTiles: BIOME_OBJECTS,
   units: {
@@ -1606,41 +1586,37 @@ export const GOLDEN_PALACE: FloorTheme = {
     startMusic: 'musicElectronicMerlin',
     roomPlan: biomePlan(
       [
-        { label: 'golem guard', units: { lavaGolem: 2, scMonk: 1 }, faction: SCARLET },
-        { label: 'ninja ambush', units: { mysteriousCloud: 1, ninja: 2, shurikenNinja: 2 }, faction: NINJAS },
+        { label: 'orc shamans', units: { mageOrc: 3, orcHouse: 1 }, faction: HORDE },
+        { label: 'elemental circle', units: { magicPortal: 2, bombMage: 1, thunderMonk: 1 }, faction: MAGES },
       ],
       [
-        { label: 'palace guard', units: { scWarrior: 2, scArcher: 2 }, faction: SCARLET },
-        { label: 'dojo students', units: { karateGuy: 3, kongFuChicken: 2 }, faction: DOJO },
+        { label: 'orc raiders', units: { swordOrc: 3, bowOrc: 2 }, faction: HORDE },
+        { label: 'frost monks', units: { frostyMonk: 3, bowOrc: 1 }, faction: HORDE },
+        { label: 'mage squad', units: { bombMage: 3, thunderMonk: 1 }, faction: MAGES },
       ]
     ),
     wildcardChance: WILDCARD_CHANCE,
     mixedFactionChance: MIXED_FACTION_CHANCE,
-    // Scarlet's army and the dojo leave each other alone
-    rivals: [[SCARLET, NINJAS], [SCARLET, MAGES], [DOJO, NINJAS], [DOJO, MAGES], [NINJAS, MAGES]],
+    rivals: [[MAGES, HORDE]],
     enemies: [
-      { key: 'scWarrior', weight: 3, tier: 'weak', faction: SCARLET },
-      { key: 'scArcher', weight: 3, tier: 'weak', faction: SCARLET },
-      { key: 'scMonk', weight: 1, tier: 'mid', faction: SCARLET, producer: true },
-      { key: 'lavaGolem', weight: 1.5, tier: 'strong', maxPerRoom: 2, faction: SCARLET },
-      { key: 'karateGuy', weight: 3, tier: 'weak', faction: DOJO },
-      { key: 'kongFuChicken', weight: 2, tier: 'weak', faction: DOJO },
-      { key: 'speedyGuy', weight: 2, tier: 'mid', faction: DOJO },
-      { key: 'shurikenNinja', weight: 1.5, tier: 'weak', faction: NINJAS },
-      { key: 'ninja', weight: 1.5, tier: 'mid', faction: NINJAS },
-      { key: 'bombMage', weight: 2, tier: 'weak', faction: MAGES },
-      { key: 'thunderMonk', weight: 2, tier: 'weak', faction: MAGES },
-      { key: 'shrouder', weight: 2, tier: 'mid', faction: MAGES },
+      // owner: more elemental mages
+      { key: 'bombMage', weight: 3, tier: 'weak', faction: MAGES },
+      { key: 'thunderMonk', weight: 2, tier: 'mid', faction: MAGES },
+      { key: 'frostyMonk', weight: 2, tier: 'mid', faction: HORDE },
+      // owner: orcs in about the numbers of the first floor's goblins, and the orc mages shining
+      { key: 'swordOrc', weight: 3, tier: 'weak', faction: HORDE },
+      { key: 'bowOrc', weight: 3, tier: 'weak', faction: HORDE },
+      { key: 'mageOrc', weight: 3, tier: 'weak', faction: HORDE, producer: true },
+      { key: 'blackOrc', weight: 1, tier: 'strong', maxPerRoom: 2, faction: HORDE },
     ],
     dwellings: [
-      { key: 'dojo', weight: 1, tier: 'weak', faction: DOJO },
       { key: 'magicPortal', weight: 1, tier: 'weak', faction: MAGES },
-      { key: 'mysteriousCloud', weight: 1, tier: 'mid', maxPerRoom: 1, faction: NINJAS },
+      { key: 'orcHouse', weight: 1, tier: 'mid', maxPerRoom: 1, faction: HORDE },
     ],
+    // owner: Ochre is the floor's boss
     bosses: [
-      { label: "Scarlet's throne", units: { scarletInGame: 1, scWarrior: 2, scArcher: 2, lavaGolem: 1 }, faction: SCARLET, boss: 'scarletInGame' },
-      { label: 'dojo masters', units: { speedyGuy: 3, karateGuy: 2, dojo: 1 }, faction: DOJO, boss: 'speedyGuy' },
-      { label: 'court mages', units: { shrouder: 2, bombMage: 2, thunderMonk: 2, magicPortal: 1 }, faction: MAGES, boss: 'shrouder' },
+      { label: "Ochre's elementals", units: { ochreInGame: 1, bombMage: 2, thunderMonk: 2, magicPortal: 1 }, faction: MAGES, boss: 'ochreInGame' },
+      { label: "Ochre's warband", units: { ochreInGame: 1, mageOrc: 3, swordOrc: 2, frostyMonk: 1 }, faction: HORDE, boss: 'ochreInGame' },
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(spellWeights(BIOME_OBJECTS)),
