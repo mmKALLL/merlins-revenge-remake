@@ -36,10 +36,10 @@ export const ENERGY_BLAST = 'energyBlast'
  * Owner: the melee weapons are never start-room scrolls; a floor's end may offer one Merlin lacks in
  * place of the new spell. The golden machine gun joins once it is ported (PENDING_SCROLLS).
  */
-export const RESERVED_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch', GOLDEN_MACHINE_GUN]
-/** Owner: the melee weapons come with this many faster-movement potions, to close in on the enemies. */
-const MELEE_SPEED_POTIONS: PotionCount = { character: 'walkSpeed', count: 4 }
 const MELEE_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch']
+export const RESERVED_WEAPONS: readonly string[] = [...MELEE_WEAPONS, GOLDEN_MACHINE_GUN]
+/** Owner (2026-10-26): the melee weapons come with this many faster-movement potions, to close in on the enemies. */
+const MELEE_SPEED_POTIONS: PotionCount = { character: 'walkSpeed', count: 4 }
 /** The potions laid out with a scroll reward: the speed potions with a melee weapon, else none. */
 export const scrollPotions = (scroll: string): PotionCount[] => (MELEE_WEAPONS.includes(scroll) ? [MELEE_SPEED_POTIONS] : [])
 /** A reserved weapon's weight per biome: an original spell's. */
