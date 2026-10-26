@@ -9,7 +9,7 @@
 #animType: #magic,
 #bullet: #flamingRock,
 #chargeColour: rgb(240,110,60),
-#chargeSize: 0.769,
+#chargeSize: 0.41,
 #chargeSpeed: 0.216,
 #chargeStart: 0,
 #chargeMax: 999,
@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 2, #maxShots: 1, #fullCharge: 39, #blastFromCharge: [#base: 12.4, #perCharge: 3.78], #rangeFactor: 3.48, #damageMultiplier: 0.63, #minLandingSpeedShare: 0.1, #lob: true, #spreadMinDeg: 0, #spreadMaxDeg: 0]
+#volley: [#chargePerShot: 2, #maxShots: 1, #fullCharge: 39, #blastFromCharge: [#base: 36.97, #perCharge: 1.5135, #damageBase: 0.1635, #damagePerCharge: 0.02827], #rangeFactor: 3.48, #damageMultiplier: 1, #minLandingSpeedShare: 0.1, #burstOnContact: true, #spreadMinDeg: 0, #spreadMaxDeg: 0]
 ],
 #character: #lavaLob,
 #collectSound: "collect_powerup_01",

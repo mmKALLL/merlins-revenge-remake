@@ -13,7 +13,7 @@ import { createSim, stepSim } from './tick'
 import { ICON_ROW_SHIFT, blastCharge, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyFullCharge, volleyProjectileAttack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, lob: false }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
@@ -286,14 +286,20 @@ describe('the fireball (remake, blastFromCharge)', () => {
     expect(full.damage).toBeGreaterThan(tap.damage * 2)
   })
 
-  it('is lobbed over the units on its way: a tap aimed past one spares it', () => {
+  it('bursts on the first hostile it touches on its way, the blast its only hit', () => {
     const at: InputSnapshot = { ...NO_INPUT, mouseWorld: { x: PLAYER.x + 120, y: SPELL_Y } }
     let s = world(fireball())
     let id: number
     ;[s, id] = withDummy(s, PLAYER.x + 50)
     for (let i = 0; i < TAP_TICKS; i++) s = stepSim(s, { ...at, chargeHeld: true })
-    for (let i = 0; i < 80; i++) s = stepSim(s, at)
-    expect(energyOf(s, id)).toBe(1e6)
+    let burstAt: number | undefined
+    for (let i = 0; i < 80; i++) {
+      s = stepSim(s, at)
+      const e = s.events.find((x) => x.kind === 'explode')
+      if (e && e.kind === 'explode' && burstAt === undefined) burstAt = e.pos.x - PLAYER.x
+    }
+    expect(burstAt).toBeLessThan(60) // at the dummy, short of the aim
+    expect(energyOf(s, id)).toBeLessThan(1e6)
   })
 
   it("leaves other volleys' projectiles with their bullet's own explosion", () => {

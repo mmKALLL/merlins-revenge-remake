@@ -27,6 +27,12 @@ export function blastCharge(charge: number, v: VolleyDef): number | null {
   return b ? b.base + Math.max(0, charge) * b.perCharge : null
 }
 
+/** Remake (blastFromCharge): a projectile's damage factor for the spell's charge as it fires; 1 without a grown blast. */
+export function blastDamageFactor(charge: number, v: VolleyDef): number {
+  const b = v.blastFromCharge
+  return b ? b.damageBase + Math.max(0, charge) * b.damagePerCharge : 1
+}
+
 /** Below this many projectiles the fan keeps its narrowest width. */
 const NARROW_SHOTS = 2
 
@@ -122,7 +128,7 @@ const FREEZE_PAYLOAD = 'takeFreeze'
  */
 export function volleyProjectileAttack(bullet: AttackDef, hits: string[], v: VolleyDef, charge: number): AttackDef {
   const explodeCharge = blastCharge(charge, v) ?? bullet.explodeCharge
-  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier, explodeCharge }
+  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier * blastDamageFactor(charge, v), explodeCharge }
   if (v.chill <= 0) return attack
   const others = bullet.payloadFunction.filter((fn) => fn !== FREEZE_PAYLOAD)
   return { ...attack, payloadFunction: [FREEZE_PAYLOAD, ...others], freezeMultiplier: v.chill, glowTeal: true }

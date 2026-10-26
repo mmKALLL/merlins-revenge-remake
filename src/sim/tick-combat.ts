@@ -292,6 +292,8 @@ function stepFlyingBullet(t: Tick, a: ActorState): void {
   if (def.splashRadius !== null) return
   const struck = a.hitsFirstHostile ? firstHostileTouched(t, a, def) : targetTouched(t, a)
   if (!struck) return
+  // remake (volley burstOnContact): the blast is the only hit
+  if (a.burstsOnContact) return explodeBullet(t, a, def)
   const target = hitTargetIn(t, struck.id)!
   // objBullet.updateFly calls myTarget.takeHit and then CallPayloadFunction([#takeHit]) with the
   // same collisionVect: two pushes and two damage applications, the second with the vector

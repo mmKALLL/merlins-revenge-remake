@@ -156,7 +156,9 @@ export interface ActorState {
   volley: { total: number; fired: number } | null
   /** remake: a lingering blast of Merlin's (explosionsLinger): the units it has hit; null for any other */
   explosionHitIds: number[] | null
-  /** remake: a volley projectile hits the first hostile unit it touches, not only its target (a lobbed one hits none: it has no target) */
+  /** remake: a volley projectile bursts on the hostile it touches, its blast its only hit (volley burstOnContact) */
+  burstsOnContact: boolean
+  /** remake: a volley projectile hits the first hostile unit it touches, not only its target */
   hitsFirstHostile: boolean
   /** remake (volley #pierce): hostiles a volley projectile still flies on through after hitting them */
   piercesLeft: number

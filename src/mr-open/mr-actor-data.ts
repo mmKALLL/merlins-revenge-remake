@@ -98,14 +98,20 @@ export interface VolleyDef {
   fullCharge: number
   /** remake: each projectile's explodeCharge from the spell's charge as it fires (base + charge x perCharge); null = the bullet's own */
   blastFromCharge: BlastFromCharge | null
-  /** remake: the projectiles fly over every unit and go off only where they land (a fireball's blast on the aim); false = they hit the first hostile they touch */
-  lob: boolean
+  /** remake: a projectile that touches a hostile bursts there, its blast its only hit (a fireball); false = it hits as its bullet does */
+  burstOnContact: boolean
 }
 
-/** Remake: a volley projectile's explodeCharge grows with the charge, so its blast (radius explodeCharge / 2) does too. */
+/**
+ * Remake: a volley projectile's explodeCharge grows with the charge, so its blast (radius
+ * explodeCharge / 2) does too; its damage is scaled by damageBase + charge x damagePerCharge, so a
+ * tap's wide blast stays weak and a full one hits hard (owner).
+ */
 export interface BlastFromCharge {
   base: number
   perCharge: number
+  damageBase: number
+  damagePerCharge: number
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -289,7 +295,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, lob: false }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -393,7 +399,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'lob',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'burstOnContact',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -600,15 +606,15 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
     spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
     chill: num(f, 'chill', c), pierce: num(f, 'pierce', c), fullCharge: num(f, 'fullCharge', c),
-    blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), lob: bool(f, 'lob', c),
+    blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), burstOnContact: bool(f, 'burstOnContact', c),
   }
 }
 
-/** Remake: a volley's #blastFromCharge, [#base, #perCharge] or none. */
+/** Remake: a volley's #blastFromCharge, [#base, #perCharge, #damageBase, #damagePerCharge] or none. */
 function blastFromChargeOf(v: unknown, ctx: string): BlastFromCharge | null {
   if (v === null || v === undefined || v === 'none') return null
-  if (!isPlain(v)) return bad(ctx, 'blastFromCharge', '[#base, #perCharge]', v)
-  return { base: num(v, 'base', ctx), perCharge: num(v, 'perCharge', ctx) }
+  if (!isPlain(v)) return bad(ctx, 'blastFromCharge', '[#base, #perCharge, #damageBase, #damagePerCharge]', v)
+  return { base: num(v, 'base', ctx), perCharge: num(v, 'perCharge', ctx), damageBase: num(v, 'damageBase', ctx), damagePerCharge: num(v, 'damagePerCharge', ctx) }
 }
 
 /** Remake: a volley's #launchFrom, #spell or #caster. */
