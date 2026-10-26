@@ -32,7 +32,7 @@ The Sorcerer's Tower (one stacked map) stays as it is.
 
 | Reward | Contents | Preview |
 |---|---|---|
-| Spell | a random spell Merlin does not hold, drawn from the floor's start-scroll pool (half original spells, half volleys, the biome's themed ones weighted up) | the scroll, its name and writing |
+| Spell | a random spell Merlin does not hold, drawn from the floor's start-scroll pool (every original spell at weight 2, every volley at 1; owner, 2026-10-26) | the scroll, its name and writing |
 | Heal | full energy and one medikit | "Full heal + medikit" |
 | Potions | 4-5 potions split between 2 random types, every split equally likely | the exact potions |
 
@@ -44,6 +44,13 @@ pickup (so no pickup is worth leaving behind for later; owner, 2026-10-25), the 
 scroll); the side corner rooms' potions stay. A wizard ally in place of a spell is a later idea. Any
 other reward type goes to the owner first.
 
+Owner (2026-10-26): no biome favours its own spells any more. Every original spell (the energy blast
+and the reserved weapons included) weighs 2 and every volley 1, so of a floor's pick the original
+spells take about 42 %, the sword and energy punch about 9 % and the volleys about 49 % (floor 1: 39,
+10 and 51 %, since East Woods' tiles have no arctic blast or energy beam). A sword or energy punch
+reward comes with 4 faster-movement potions (`walkSpeed`), laid out beside its scroll and shown on
+its card.
+
 ## Biomes
 
 | Floor | Biome A (existing) | Biome B (new) |
@@ -51,18 +58,24 @@ other reward type goes to the owner first.
 | 1 | Goblin Forest: "East Woods" | Deep Forest: "Woods of Mourning" |
 | 2 | Undead Marsh: "Dead Woods" | Hydra Marsh: "West Jungle" |
 | 3 | Dragon Canyon: "Caves of Fire" | Golem Mountain: "Remorseless Mountains" |
-| 4 | Magic Maze: "Black Fortress" | Golden Palace: "Golden Palace" (the Golden Fort floor, adapted) |
+| 4 | Magic Maze: "Scarlet's Storeroom" (Scarlet's floor) | Golden Palace: "Golden Palace" (Ochre's floor, on the Golden Fort's tiles) |
 
 The player sees each biome by the name on its original location sign (in quotes; owner rule
 2026-10-25: in-game locations always use the game files' signs). The theme names before the colon
 are the working names these docs and the code (theme and map ids) use.
 
 A new biome is data: a `FloorTheme` on an existing tileset with its own enemy list, room plan,
-dwellings, bosses and themed spells. Enemies may appear in several biomes where they fit, since
+dwellings and bosses. Enemies may appear in several biomes where they fit, since
 theme and variety matter more than exclusivity. The owner approved the drafts as drafted; this is
 what was built (slice 3, `src/gen/themes.ts`). Each uses the tower floors' room plan (a midboss
 corner of generators, a "numerous weak" corner) on the merlinOpen tiles, its floor's level for the
-HP budgets, and shows 4 enemies on its pick card.
+HP budgets, and shows its 4 most common enemies on its pick card (owner, 2026-10-26: each at
+its own size, the large ones shrunk to fit; never scaled up).
+
+**The last floor is 4x4 rooms** (owner, 2026-10-26; the roguelite's only, `asLastFloor` in
+`src/gen/roguelite-biomes.ts`: the tower keeps its floors 3 wide). Its plan stretches the 3x3 one:
+the corners stay, the start-exit diagonal takes the centre cell, the rooms either side repeat their
+half's cells. Its side corners hold two medikits each in place of the potions.
 
 - **Deep Forest** (floor 1; dark grass, pines and green trees with many eyed "haunted" trees,
   ferns and reeds; denser thickets and tree lines; music Woods of Evil).
@@ -78,8 +91,6 @@ HP budgets, and shows 4 enemies on its pick card.
   - Brawls: the woods against the ninjas.
   - Bosses: a fang bunny warren (the portal and a fang bunny), a goblin hero war band (3 heroes,
     3 warriors, a mage).
-  - Themed spells: army summon, mines, pulse, sword, heal; arrow rain, needle spray, bunny lob,
-    shuriken fan.
 - **Hydra Marsh** (floor 2; swamp ground with puddles everywhere, reed lines, swamp trees, ferns
   and wet blue rocks; music Last Stand). One faction (`jungle`): its teams leave each other alone.
   - Weak: lizards, bats. Dwellings: cocoons, bat trees.
@@ -89,8 +100,6 @@ HP budgets, and shows 4 enemies on its pick card.
   - Strong: hydras (2 a room), hydra 2s (1 a room); the hydra 3 leads the nest.
   - Midboss: a quadranid hive or a bat roost. Weak corner: a lizard pack or a plant bed.
   - Bosses: a hydra nest (hydra 3, hydra, 2 plants), a lizard war party (3 soldiers, 3 lizards).
-  - Themed spells: mines, arctic blast, C blast, pulse, heal, monster summon; acid, laser, needle
-    spray.
 - **Golem Mountain** (floor 3; grey stone ground, boulders, crags, dark and blue rocks and ice;
   more and bigger rock patches, long walls and baffles; music Baroque Rock Techno).
   - Weak: boulder monsters, ice rocks (moved from mid: 350 energy, a boulder monster's match).
@@ -104,22 +113,38 @@ HP budgets, and shows 4 enemies on its pick card.
     rollers or an ice field.
   - Bosses: a golem forge (four-armed golem, dark cave, 2 boulder monsters), a vulture eyrie
     (3 vultures, 2 boulder monsters).
-  - Themed spells: energy beam, punch, arctic blast, C blast, sword; boulder lob, dark rock, lava
-    lob, ice boulder, lightning.
-- **Golden Palace** (floor 4; the Golden Fort's tiles and room shapes; music Electronic Merlin).
-  The fort's peaceful alliances of every floor's enemies become four hostile guard factions, each
-  holding rooms of its own (brawl rooms, about 15 % of normal rooms, pit two of them against each
-  other; Scarlet's guard and the dojo leave each other alone):
-  - Scarlet's guard: Scarlet warriors and archers (weak), Scarlet monks (mid), lava golems (strong).
-  - The dojo: karate guys, kung fu chickens (weak), speedy guys (mid), dojos.
-  - Ninjas: shuriken ninjas (weak), ninjas (mid), mysterious clouds.
-  - Court mages: bomb mages, thunder monks (weak), shrouders (mid), magic portals.
-  - Midboss: a golem guard (2 lava golems, a monk) or a ninja ambush. Weak corner: a palace guard
-    or dojo students.
-  - Bosses: Scarlet's throne (Scarlet, 2 warriors, 2 archers, a lava golem), dojo masters (3 speedy
-    guys, 2 karate guys, a dojo), court mages (2 shrouders, 2 bomb mages, 2 thunder monks, a portal).
-  - Themed spells: energy beam, punch, monster summon, C blast, army summon; longbow, bomb volley,
-    thunder burst, pin storm, poison smoke, shuriken fan, lava lob.
+- **Golden Palace** (floor 4, Ochre's floor; owner, 2026-10-26; the Golden Fort's tiles and room
+  shapes; music Electronic Merlin). Two factions that hate each other, each holding rooms of its
+  own (brawls pit them against each other); Ochre (team blackSorcerer) hates neither:
+  - Ochre's elemental mages (the magical alliance): bomb mages (weak), thunder monks (mid), magic
+    portals (weak).
+  - The orc horde: sword orcs and bow orcs (weak, about the first floor's goblin numbers), orc mages
+    (weak summoners, weight 3: they shine), frosty monks (mid; team ice, who hate the magical
+    alliance and leave the orcs alone), black orcs (strong, 2 a room), orc houses (mid, 1 a room).
+  - Midboss: orc shamans (3 orc mages, an orc house) or an elemental circle (2 portals, a bomb mage,
+    a thunder monk). Weak corner: orc raiders, frost monks or a mage squad.
+  - Bosses, both led by Ochre: Ochre's elementals (2 bomb mages, 2 thunder monks, a portal) or
+    Ochre's warband (3 orc mages, 2 sword orcs, a frosty monk).
+
+Biome A of floor 4, the Magic Maze, became **Scarlet's Storeroom** (owner, 2026-10-26; sign tiles
+134-136; it is the tower's top floor too). Scarlet's army and the undead casters leave each other
+alone, so they are one faction (her court); the magical alliance's shrouders hate them and hold
+rooms of their own:
+  - Court: necromancers (mid summoners, weight 6; the generator rooms draw weak and mid producers
+    alike), dark mages (strong, weight 3, 3 a room), grey ghosts and skeleton dwellings (weak), and
+    Scarlet's army in small numbers: warriors and archers (weak, 2 a room each), monks and lava
+    golems (strong, 1 a room).
+  - Alliance: shrouders (weak, weight 4), a few bomb mages and thunder monks, magic portals.
+  - Midboss (alone): a dark sorcerer's court, Scarlet's guard (2 monks, a warrior, a lava golem) or
+    a shrouder coven. Weak corner: a shrouder patrol, or a Scarlet patrol alone (2 warriors, an
+    archer, a lava golem).
+  - Bosses, both led by Scarlet: her court (3 necromancers, 2 dark mages) or her store guard
+    (2 warriors, an archer, a lava golem). The giant black orcs and vultures left the maze; Ochre's
+    elementals moved to the Golden Palace.
+
+Dead Woods' quadranids are mid enemies (owner, 2026-10-26: mid on floor 2, as in West Jungle; weight
+2); the cocoons stay weak, and the critter nest corner (a cocoon, 4 quadranids) is left alone, since
+the critters have no weak regulars to fill the corner's weak draws.
 
 The tower floors used as biome A gained rivals for their brawl rooms (owner, 2026-10-25; brawl-only
 units, never in a room of one faction): East Woods gets skeleton warriors and skeleton archers
@@ -181,15 +206,15 @@ golem (the lava golem's twin, with no objects tile).
 
 Owner tweak (2026-10-25): Woods of Mourning has no bats (they could not be seen on its dark ground):
 lizards and quadranids are weak units instead, a cocoon replaces the bat tree, and the bat roost
-midboss is a critter nest (a cocoon and 3 quadranids); the laser volley is themed there.
+midboss is a critter nest (a cocoon and 3 quadranids).
 Woods of Mourning's ground is the sea-green grass (merlinOpenPassive 28) instead of the dark grass
 (22), so its enemies stand out (owner, 2026-10-25).
 
 Loadout (owner, 2026-10-25): a roguelite run starts with only the punch; the energy blast is a scroll in
-the reward pools (weight 1, `ENERGY_BLAST` in `src/run/rewards.ts`), and the starting kit's spell is
+the reward pools (an original spell's weight, 2, `ENERGY_BLAST` in `src/run/rewards.ts`), and the starting kit's spell is
 always an attack (not the heal blast). The sword and energy punch (and the golden machine gun once
 ported) are never start-room scrolls: a floor's end may offer one Merlin lacks in place of the new
-spell, at weight 2 per biome (`RESERVED_WEAPONS`).
+spell, at weight 2 per biome (`RESERVED_WEAPONS`), the melee two with 4 speed potions.
 
 West Jungle has druids too (weak, at most 1 a room, and one in the hydra nest boss room): they heal
 the jungle's monsters and hydras (owner, 2026-10-25).

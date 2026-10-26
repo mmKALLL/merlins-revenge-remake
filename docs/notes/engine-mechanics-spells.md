@@ -302,9 +302,7 @@ override them by key like any actor. Rules: `src/sim/volley.ts`; firing: `stepVo
   bars, black outline, the writings' orange-to-yellow rows). Object tiles: merlinOpenObjects' empty
   slots 31-37 and 40 (painted with the scroll), merlin4Objects 173-180 past its key
   (`src/gen/remake-object-tiles.ts`, written into the converted keys). Every floor's start scroll
-  list includes them at weight 1; themed: arrows and bolts in the Goblin Forest, needles in the
-  Undead Marsh, shurikens and lava in the Dragon Canyon, bombs, thunder and pins in the Magic Maze
-  (4 each). `?map=test_maps/spell_test` has them in a row below Merlin.
+  list includes them at weight 1 (Spell pools, below). `?map=test_maps/spell_test` has them in a row below Merlin.
 
 Numbers (damage measured in the sim on an inertia-0 target 48 px away, one projectile; the enemy's
 shot from its wielder's strength; Merlin's with his `damageDealtMultiplier` 2; at the start Merlin's
@@ -648,7 +646,11 @@ Remake decisions (owner, 2026-10-25):
   fan 15-50, landed splash 15 ticks; laser 30% slower per laser (chargeSpeed 0.1556) and 7 at most (chargePerShot 6, full
   charge still at tier 18), damage x0.7 for the pierce (damageMultiplier 0.532, about 1.75x the
   quadranid's laser). Frost burst / ice boulder freezes and lightning's push stay original.
-- **Spell pools (owner, 2026-10-25):** every floor's start scroll pool holds every spell at weight 1
+- **Spell pools (owner, 2026-10-26; replaces the 2026-10-25 rule below):** no themed spells. Every
+  floor's start scroll pool holds every spell its objects tileset has a tile for, the original
+  spells at weight 2 (`ORIGINAL_SPELL_WEIGHT`) and the volleys at 1, unscaled: about 49 % originals
+  on merlinOpen tiles (10 at 2 against 21 at 1), 43 % on merlin4's (no arctic blast or energy beam).
+- **Spell pools (owner, 2026-10-25, superseded):** every floor's start scroll pool holds every spell at weight 1
   (themed ones +3), and the volleys' weights are scaled so they make up half the pool's weight, the
   original spells the other half (`spellWeights` in `src/gen/themes.ts`). A volley is themed where the
   floor's own enemies (units, dwellings and their residents, bosses) fire its projectile: arrow rain,

@@ -170,6 +170,9 @@ exempts from the ported-actor check). Energy blast is left out (Merlin starts wi
 | merlinSword | 39 | 40 | `animType #weaponMelee` (a sword, not a spell) |
 | gmg | 38 | - | golden machine gun |
 
+Superseded 2026-10-26 (owner): no themed spells; originals weigh 2 and volleys 1 on every floor
+(`docs/notes/engine-mechanics-spells.md`, Spell pools). The earlier rule, for the record:
+
 Owner rule (2026-10-22): every spell can come up on every floor. Each list (`spellWeights` in
 `themes.ts`) holds every spell of `SPELL_SCROLLS` its objects tileset has a tile for at weight 1,
 and the floor's themed spells weighted 3 more (their old weights 1 / 2 / 3 become 4 / 5 / 6). The
@@ -504,6 +507,15 @@ they stay out of it.
   most 3 a room; the maze's generator rooms draw weak and mid producers, so necromancers still show up.
 
 ## Wizard bosses: Scarlet and Ochre (owner, 2026-10-24)
+
+**Superseded (owner, 2026-10-26):** the Magic Maze is Scarlet's Storeroom, Scarlet's floor. Scarlet
+leads both of its boss groups (her court: 3 necromancers, 2 dark mages; her store guard: 2 warriors,
+an archer, a lava golem), and its midboss corner takes other groups, alone (a dark sorcerer's court,
+Scarlet's guard, a shrouder coven). The undead casters and her army are one faction (`court`), the
+shrouders, bomb mages and thunder monks the other (`alliance`); the black orcs and vultures left.
+Ochre leads the roguelite's Golden Palace instead (docs/plans/2026-10-25-roguelite-mode-design.md,
+Biomes). `MAZE_BOSS_GROUPS` and `BOSS_MINION_FACTOR` are gone; the different-leaders rule stays.
+The 2026-10-24 design, for the record:
 
 The in-game wizards `act_scarletInGame` and `act_ochreInGame` (engine-mechanics-enemies-3.md,
 Wizards) lead the Magic Maze's boss groups. They have their own merlinOpenObjects tiles

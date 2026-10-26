@@ -39,8 +39,15 @@ Work top down; the sections below hold the details.
       biome's sign, off every exit's band and keeping the room connected; no unit or dwelling
       within 3 tiles (taxicab) of Merlin's arrival. Since 2026-10-25 (owner rule) the signs are
       the original painted ones and the biomes are named after them: East Woods, Woods of
-      Mourning, Dead Woods, West Jungle, Caves of Fire, Remorseless Mountains, Black Fortress,
-      Golden Palace. Awaits the owner's review.
+      Mourning, Dead Woods, West Jungle, Caves of Fire, Remorseless Mountains, Scarlet's Storeroom
+      (Black Fortress until 2026-10-26), Golden Palace. Awaits the owner's review.
+    - Playtest feedback done 2026-10-26, awaiting review: Dead Woods' quadranids mid; floor 4 reworked
+      (Golden Palace is Ochre's: elemental mages and an orc horde with frosty monks and black orcs;
+      the Magic Maze is Scarlet's Storeroom: necromancers, dark mages, shrouders and a few of her
+      army; each sorcerer leads its floor's boss rooms) and 4x4 in the roguelite with medikits in the
+      side corners; biome cards show each biome's most common enemies at their own size (large
+      ones shrunk); no themed spell scrolls (originals 2, volleys 1); sword and energy punch
+      rewards bring 4 speed potions.
     - Slice 5 (run summary, statistics, main menu entry) done 2026-10-24: a death or the win (after
       the original jingle, fade and cut scene) shows a summary (floors reached, score, time, spells
       collected, biomes) with the stats (runs, wins and ratio, furthest floor per run as a bar

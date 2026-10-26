@@ -146,6 +146,11 @@ has no such mode; these are remake decisions.
   (uniform) of 2 types drawn by the potion weights without repeats, the first type's count uniform
   over 1..n-1, so every split is equally likely. The pick screen shows its rewards before the biome
   is picked, so they draw from the next floor's biome options with their weights added up.
+  Spell weights (owner, 2026-10-26; `spellWeights` in `src/gen/themes.ts`): no biome favours its
+  own spells; every original spell weighs `ORIGINAL_SPELL_WEIGHT` (2), every volley 1, the energy
+  blast and the reserved weapons as an original. A floor's pick is then about 42 % original spells,
+  9 % sword or energy punch and 49 % volleys (floor 1: 39, 10, 51 %). The same weights fill every
+  generated floor's start scroll list (about 49 % originals on merlinOpen tiles, 43 % on merlin4's).
 - **Rewards as pickups** (owner decision, 2026-10-25). A picked reward is not given to Merlin: it
   stands as ordinary pickups in the next floor's start room (`rewardPickups`, passed to
   `rogueliteFloor` as `FloorOptions.startPickups`), and he collects them as any pickup, with their
@@ -153,7 +158,9 @@ has no such mode; these are remake decisions.
   Merlin arrives (`arrivalHeals`, `withFullEnergy`) and a medikit (owner: a maxikit on the ground
   could be left for later, which leads to backtracking); potions each potion rolled. A roguelite floor's start room
   places none of the theme's start rewards (the 3 potions, medikit and scroll); the side corner
-  rooms' potions stay. A pickup from another biome's pools takes its tower objects tile.
+  rooms' potions stay. A pickup from another biome's pools takes its tower objects tile. A sword or
+  energy punch reward (owner, 2026-10-26) is its scroll and 4 `walkSpeed` potions (`scrollPotions`),
+  which its card shows under the scroll.
 - **Pickup layout** (`startPickupTiles` in `src/gen/floor.ts`). The pickups fill the free unit
   tiles of the row 2 below Merlin (in front of him; the sign stands 2 above) from the middle
   outwards, left first, then the row between, within 2 tiles to either side (10 tiles, the kit's 8
@@ -178,18 +185,27 @@ has no such mode; these are remake decisions.
   silenced. Every other menu, the run summary included, suspends all sound. The in-game menu cannot open while picking (Esc and the menu button do
   nothing), so the pick is never lost. Cards show the scroll's and potions' own `stand` and
   `writing` frames (their in-game names: Max Blast, Quick Blast, Faster Charge, Speed Up). A biome
-  card shows its name over a row of 3-4 enemy icons (`FloorTheme.showcase`): each unit's first
-  `stand` frame (else `altStand`, `walk`) at the whole scale nearest 48 px, shrunk by the page to
-  one row; the card's label names them.
+  card shows its name over a row of 3-4 enemy icons (`FloorTheme.showcase`, the biome's most
+  common enemies as generated): each unit's first `stand` frame (else `altStand`, `walk`) at its own
+  size (owner, 2026-10-26: small ones are never scaled up), the large ones shrunk by the page to fit
+  their quarter of the row; the card's label names them.
 - **Biomes** (`ROGUELITE_FLOORS` in `src/gen/roguelite-biomes.ts`). Each floor offers its tower
   floor and one of the run's own biomes (`ROGUELITE_THEMES` in `src/gen/themes.ts`, no generated
   map ids of their own): Goblin Forest or Deep Forest, Undead Marsh or Hydra Marsh, Dragon Canyon
   or Golem Mountain, Magic Maze or Golden Palace. The new biomes are merlinOpen themes with the
-  tower floors' room plan (`biomePlan`), their own enemies, groups, bosses and themed spells; the
-  final lists are in the design doc's Biomes section. Factions keep teams that hate each other
-  apart: Deep Forest's ninjas and Golem Mountain's lava golems (team scarlet) hold rooms of their
-  own, and the Golden Palace's guards keep to Scarlet's, the dojo's, the ninjas' or the mages'
-  rooms (the usual 15 % of normal rooms mix them).
+  tower floors' room plan (`biomePlan`), their own enemies, groups and bosses; the final lists are
+  in the design doc's Biomes section. Factions keep teams that hate each other apart: Deep Forest's
+  ninjas and Golem Mountain's lava golems (team scarlet) hold rooms of their own; on floor 4
+  (owner, 2026-10-26) the Golden Palace is Ochre's (his magical-alliance mages against the orc
+  horde of orcs, frosty monks and black orcs; Ochre leads both bosses) and the Magic Maze is
+  Scarlet's Storeroom (her court of undead casters and her army against the shrouders; Scarlet
+  leads both bosses; the tower's top floor changed with it). The usual 15 % of normal rooms brawl.
+- **The last floor is 4x4** (owner, 2026-10-26; `asLastFloor` in `src/gen/roguelite-biomes.ts`).
+  Both floor-4 biomes play 4x4 rooms in the roguelite only (the tower's floors stay 3 wide). The
+  plan stretches the 3x3 one by a fixed cell table (`STRETCHED_CELLS`): corners stay corners, the
+  start-exit diagonal takes the centre cell, and the rooms on either side repeat their half's
+  cells, so generators still gather toward the midboss corner. The side corners hold 2 medikits
+  each in place of potions (`UnitTuning.potions`).
 - **Safe arrival** (owner rule; `FloorOptions.safeArrivalTiles`, `SAFE_ARRIVAL_TILES = 3` in
   `src/gen/roguelite.ts`). On a roguelite floor no unit or dwelling stands within 3 tiles (taxicab)
   of Merlin's start tile. The generator lays out the start room first so the other rooms know his
@@ -204,8 +220,8 @@ has no such mode; these are remake decisions.
   part, offset 0, also for the merlin4-based Goblin Forest). Each biome's user-facing name is the
   sign's text: Goblin Forest "East Woods" (169-170), Deep Forest "Woods of Mourning" (154-156),
   Undead Marsh "Dead Woods" (159-160), Hydra Marsh "West Jungle" (187-188), Dragon Canyon "Caves of
-  Fire" (177-178), Golem Mountain "Remorseless Mountains" (161-163), Magic Maze "Black Fortress"
-  (164-166), Golden Palace "Golden Palace" (184-186). Theme ids and map ids keep the old names (the
+  Fire" (177-178), Golem Mountain "Remorseless Mountains" (161-163), Magic Maze "Scarlet's
+  Storeroom" (134-136; "Black Fortress", 164-166, before 2026-10-26), Golden Palace "Golden Palace" (184-186). Theme ids and map ids keep the old names (the
   run's bests are keyed by them); the Golden Fort (not a roguelite biome) has no sign and keeps its
   name. A sign is 2 or 3 tiles wide and solid, so it stands on open or decorated tiles 1 tile off the
   room's edges, in no opening's column or row band, under no placement (the start pickups are laid
