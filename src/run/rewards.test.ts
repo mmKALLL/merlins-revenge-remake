@@ -97,9 +97,18 @@ describe('roguelite rewards', () => {
 describe('reward pickups', () => {
   it('lays a spell out as its scroll, the heal as a medikit (its full energy comes on arrival), potions one by one', () => {
     expect(rewardPickups({ kind: 'spell', scroll: 'armySummon' })).toEqual(['armySummon'])
+    expect(rewardPickups({ kind: 'spell', scroll: ENERGY_BLAST })).toEqual([ENERGY_BLAST])
     expect(rewardPickups({ kind: 'heal' })).toEqual(['medikit'])
     const potions = [{ character: 'manaFlow', count: 3 }, { character: 'walkSpeed', count: 2 }]
     expect(rewardPickups({ kind: 'potions', potions })).toEqual(['manaFlow', 'manaFlow', 'manaFlow', 'walkSpeed', 'walkSpeed'])
+  })
+})
+
+describe('reserved melee weapon rewards (owner rule)', () => {
+  it('come with 4 faster-movement potions', () => {
+    for (const weapon of MELEE) {
+      expect(rewardPickups({ kind: 'spell', scroll: weapon })).toEqual([weapon, 'walkSpeed', 'walkSpeed', 'walkSpeed', 'walkSpeed'])
+    }
   })
 })
 

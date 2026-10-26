@@ -37,6 +37,11 @@ export const ENERGY_BLAST = 'energyBlast'
  * place of the new spell. The golden machine gun joins once it is ported (PENDING_SCROLLS).
  */
 export const RESERVED_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch', GOLDEN_MACHINE_GUN]
+/** Owner: the melee weapons come with this many faster-movement potions, to close in on the enemies. */
+const MELEE_SPEED_POTIONS: PotionCount = { character: 'walkSpeed', count: 4 }
+const MELEE_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch']
+/** The potions laid out with a scroll reward: the speed potions with a melee weapon, else none. */
+export const scrollPotions = (scroll: string): PotionCount[] => (MELEE_WEAPONS.includes(scroll) ? [MELEE_SPEED_POTIONS] : [])
 /** A reserved weapon's weight per biome: an original spell's. */
 const RESERVED_WEAPON_WEIGHT = ORIGINAL_SPELL_WEIGHT
 /** Spells that do not fight (the heal blast only heals): never the kit's, which is Merlin's first attack beside the punch. */
@@ -110,15 +115,17 @@ export function startingKit(runSeed: number, pools: RewardPools): RewardOption[]
   return [...(spell ? [spell] : []), { kind: 'heal' }, potionSplit(rng, pools, KIT_POTIONS)]
 }
 
+const potionPickups = (potions: readonly PotionCount[]): string[] => potions.flatMap(({ character, count }) => Array<string>(count).fill(character))
+
 /**
- * The pickups (object keys) a reward is laid out as: its scroll, a medikit (the heal's full energy
- * comes on arrival, `arrivalHeals`, so nothing is worth leaving for later), or each potion.
+ * The pickups (object keys) a reward is laid out as: its scroll (and its scrollPotions), a medikit
+ * (the heal's full energy comes on arrival, `arrivalHeals`, so nothing is worth leaving for later), or each potion.
  */
 export function rewardPickups(reward: RewardOption): string[] {
   switch (reward.kind) {
-    case 'spell': return [reward.scroll]
+    case 'spell': return [reward.scroll, ...potionPickups(scrollPotions(reward.scroll))]
     case 'heal': return [MEDIKIT_CHARACTER]
-    case 'potions': return reward.potions.flatMap(({ character, count }) => Array<string>(count).fill(character))
+    case 'potions': return potionPickups(reward.potions)
   }
 }
 

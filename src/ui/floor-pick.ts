@@ -4,7 +4,8 @@
 // no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or WASD (up and down
 // between the rows) or Tab and Enter, the number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
-import { potionTotal, RESERVED_WEAPONS, type RewardOption } from '../run/rewards'
+import { potionTotal, RESERVED_WEAPONS, scrollPotions, type RewardOption } from '../run/rewards'
+import type { PotionCount } from '../mr-open/mr-pickup'
 import { el, panel } from './dom'
 import { focusInRows } from './grid-nav'
 import type { MenuPanel } from './overlay'
@@ -79,12 +80,17 @@ function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
 /** A scroll reward's heading: a reserved melee weapon is a new weapon, the rest new spells. */
 const scrollHeading = (scroll: string): string => (RESERVED_WEAPONS.includes(scroll) ? 'New weapon' : 'New spell')
 
+const potionsLabel = (potions: readonly PotionCount[]): string => potions.map((p) => `${p.count} ${potionName(p.character)}`).join(', ')
+
 /** What a reward card says, for its label and screen readers. */
 function rewardLabel(r: RewardOption): string {
   switch (r.kind) {
-    case 'spell': return `${scrollHeading(r.scroll)}: ${wordsOf(r.scroll)}`
+    case 'spell': {
+      const potions = scrollPotions(r.scroll)
+      return `${scrollHeading(r.scroll)}: ${wordsOf(r.scroll)}${potions.length > 0 ? ` and ${potionsLabel(potions)}` : ''}`
+    }
     case 'heal': return HEAL_LABEL
-    case 'potions': return `${potionTotal(r.potions)} potions: ${r.potions.map((p) => `${p.count} ${potionName(p.character)}`).join(', ')}`
+    case 'potions': return `${potionTotal(r.potions)} potions: ${potionsLabel(r.potions)}`
   }
 }
 
@@ -188,20 +194,21 @@ function markChosen(card: HTMLButtonElement): void {
   card.classList.add('only')
 }
 
-/** What a reward card shows: the scroll and its writing, the medikit, or each potion type with its count. */
+/** What a reward card shows: the scroll and its writing (and its potions), the medikit, or each potion type with its count. */
 function rewardContent(r: RewardOption, art: SpriteArt): HTMLElement[] {
   switch (r.kind) {
     case 'spell':
-      return [el('span', 'pick-detail', scrollHeading(r.scroll)), scrollArt(r.scroll, art)]
+      return [el('span', 'pick-detail', scrollHeading(r.scroll)), scrollArt(r.scroll, art), ...scrollPotions(r.scroll).map((p) => potionRow(p, art))]
     case 'heal':
       return [el('span', 'pick-detail', 'Heal'), artRow(art(MEDIKIT_SPRITE, 'stand'), el('span', 'pick-title', HEAL_LABEL))]
     case 'potions':
-      return [
-        el('span', 'pick-detail', `${potionTotal(r.potions)} potions`),
-        ...r.potions.map((p) => artRow(art(p.character, 'stand'), el('span', 'pick-count', `${p.count}×`), art(p.character, 'writing') ?? el('span', 'pick-title', potionName(p.character)))),
-      ]
+      return [el('span', 'pick-detail', `${potionTotal(r.potions)} potions`), ...r.potions.map((p) => potionRow(p, art))]
   }
 }
+
+/** A potion type with its count and writing (its name when the writing art is missing). */
+const potionRow = (p: PotionCount, art: SpriteArt): HTMLElement =>
+  artRow(art(p.character, 'stand'), el('span', 'pick-count', `${p.count}×`), art(p.character, 'writing') ?? el('span', 'pick-title', potionName(p.character)))
 
 /** A scroll and its writing (its name when the writing art is missing), as a spell card shows it. */
 export const scrollArt = (scroll: string, art: SpriteArt): HTMLElement =>
