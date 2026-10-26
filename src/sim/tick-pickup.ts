@@ -62,11 +62,15 @@ function collect(t: Tick, a: ActorState, p: ActorState): void {
   medikitCollected(t, p, def.character)
 }
 
-/** objPlayerMerlinCharacter.potionCollected: the temporary invincibility, the potion drunk (potionMaster) and BONUS_ENERGY. */
+/**
+ * objPlayerMerlinCharacter.potionCollected: the temporary invincibility, the potion drunk
+ * (potionMaster) and BONUS_ENERGY. Remake (owner request): a roguelite floor's potions (a markExit
+ * map) give no energy; healing there comes from the medikits and the floor rewards.
+ */
 export function potionCollected(t: Tick, p: ActorState, character: string): void {
   startTempInvince(t)
   t.pickups = { ...t.pickups, potionsDrunk: drinkPotion(t.pickups.potionsDrunk, character) }
-  p.energy = Math.min(p.energy + BONUS_ENERGY, defOf(t.s, p).maxEnergy)
+  if (!t.s.grid.map.markExit) p.energy = Math.min(p.energy + BONUS_ENERGY, defOf(t.s, p).maxEnergy)
 }
 
 /** objPlayerMerlinCharacter.medikitCollected(medType): the temporary invincibility, then the kit (collectMedikit). */

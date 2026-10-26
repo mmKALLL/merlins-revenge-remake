@@ -60,6 +60,16 @@ describe('pickups', () => {
     expect(s.pickups.potionsDrunk).toHaveLength(1)
   })
 
+  it('on a roguelite floor (a markExit map) a potion raises its stat but gives no energy', () => {
+    const map = threeRooms('manaFlow', 5)
+    const floor = { ...map, markExit: true, endRoom: { x: 3, y: 1 } }
+    const s0 = createSim(buildWorldGrid(floor, () => false, SYMBOLS), defs, teams, anims, 1, PLAYER, 'rooms')
+    const hurt: SimState = { ...s0, actors: s0.actors.map((a) => (a.id === s0.playerId ? { ...a, energy: 100 } : a)) }
+    const s = stepUntil(hurt, RIGHT, (n) => n.pickups.potionsDrunk.length > 0)
+    expect(s.pickups.potionsDrunk).toEqual([{ character: 'manaFlow', count: 1 }])
+    expect(playerOf(s).energy).toBe(100)
+  })
+
   it('a pickup leaves Merlin invincible for a while: hits push him but take no energy', () => {
     const s = stepUntil(world('medikit', 5), RIGHT, (n) => n.pickups.invinceTicks > 0)
     expect(s.pickups.medikits.stock).toBe(1)
