@@ -187,6 +187,9 @@ floor; roguelite snapshots that record the floor.
   (`docs/plans/2026-10-25-volley-batch-2.md`, with the owner's answers; acid and laser retuned).
   Retune round 4 (to review): 1.2x range, lightning/blue flame/shuriken/longbow pierce at 0.7x
   damage, the rest 1.2x damage and charge, blue flame freezes ~3 s, icon rows up to the max shots.
+  Fireball (2026-10-26, to review): Lava Shot fires one lobbed flaming rock whose blast grows with
+  the charge (radius 10 on a tap up to 80 at the full charge, 22 to 110 centre damage); Dark Rock is
+  renamed Lava Toss; no fire left behind (`act_fire` not ported). Engine notes: spells, Fireball.
   Next: lizard and ostrich egg volleys whose hatched units fight for Merlin (owner, 2026-10-25).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
   `?map=test_maps/spell_test`): every scroll but the golden machine gun gives its weapon; Q opens the

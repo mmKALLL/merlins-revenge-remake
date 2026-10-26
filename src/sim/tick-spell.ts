@@ -195,7 +195,8 @@ function stepVolley(t: Tick, spell: ActorState): void {
  * One projectile of a volley: the attack's bullet launched from the spell or Merlin (launchFrom) toward the release aim (volleyLaunch;
  * one that explodes on landing only as fast as lands it on the aim), turned to its place in the fan
  * and its speed jittered. It carries volleyProjectileAttack (the bullet's attack with the volley's
- * damageMultiplier, the spell's hit roles, dwellings too, and any chill) and hits the first hostile unit it touches.
+ * damageMultiplier, the spell's hit roles, dwellings too, any chill, and a blast grown from the
+ * spell's charge as it fires) and hits the first hostile unit it touches, unless it is lobbed over them all.
  */
 function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: VolleyDef, owner: ActorState): void {
   const bulletDef = atk.bullet ? t.s.defs[atk.bullet] : undefined
@@ -209,8 +210,8 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(from, spell.targetPoint, launch, bulletDef.friction, volley.minLandingSpeedShare) : launch
   const { fired, total } = spell.volley!
   const vel = turnAndScale(base, shotAngleDeg(fired, total, volley, angleU), shotSpeedFactor(fired, volley, speedU))
-  const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley)
-  spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true, piercesLeft: volley.pierce })
+  const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley, spell.charge)
+  spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: !volley.lob, piercesLeft: volley.pierce })
   playSound(t, atk.sound, atk.volume)
 }
 

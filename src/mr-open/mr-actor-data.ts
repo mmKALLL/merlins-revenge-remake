@@ -94,6 +94,18 @@ export interface VolleyDef {
   chill: number
   /** remake: hostiles each projectile flies on through after hitting them (each hit once); 0 = it stops at the first */
   pierce: number
+  /** remake: the charge at which the volley is full, for one whose charge does more than add projectiles (a growing blast); 0 = maxShots x chargePerShot */
+  fullCharge: number
+  /** remake: each projectile's explodeCharge from the spell's charge as it fires (base + charge x perCharge); null = the bullet's own */
+  blastFromCharge: BlastFromCharge | null
+  /** remake: the projectiles fly over every unit and go off only where they land (a fireball's blast on the aim); false = they hit the first hostile they touch */
+  lob: boolean
+}
+
+/** Remake: a volley projectile's explodeCharge grows with the charge, so its blast (radius explodeCharge / 2) does too. */
+export interface BlastFromCharge {
+  base: number
+  perCharge: number
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -277,7 +289,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0 }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, lob: false }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -381,7 +393,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'lob',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -587,8 +599,16 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     spreadMinDeg: num(f, 'spreadMinDeg', c), spreadMaxDeg: num(f, 'spreadMaxDeg', c), speedJitter: num(f, 'speedJitter', c),
     minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
     spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
-    chill: num(f, 'chill', c), pierce: num(f, 'pierce', c),
+    chill: num(f, 'chill', c), pierce: num(f, 'pierce', c), fullCharge: num(f, 'fullCharge', c),
+    blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), lob: bool(f, 'lob', c),
   }
+}
+
+/** Remake: a volley's #blastFromCharge, [#base, #perCharge] or none. */
+function blastFromChargeOf(v: unknown, ctx: string): BlastFromCharge | null {
+  if (v === null || v === undefined || v === 'none') return null
+  if (!isPlain(v)) return bad(ctx, 'blastFromCharge', '[#base, #perCharge]', v)
+  return { base: num(v, 'base', ctx), perCharge: num(v, 'perCharge', ctx) }
 }
 
 /** Remake: a volley's #launchFrom, #spell or #caster. */

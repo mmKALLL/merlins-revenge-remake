@@ -15,8 +15,17 @@ export function volleyShots(charge: number, v: VolleyDef): number {
   return Math.min(v.maxShots, levels)
 }
 
-/** The charge at which the volley reaches maxShots; charging further adds nothing, so the charge max stops there. */
-export const volleyFullCharge = (v: VolleyDef): number => v.maxShots * v.chargePerShot
+/**
+ * The charge at which the volley is full, so the charge max stops there: where it reaches maxShots, or
+ * its own fullCharge when the charge does more (a fireball's blast grows on past its one projectile).
+ */
+export const volleyFullCharge = (v: VolleyDef): number => (v.fullCharge > 0 ? v.fullCharge : v.maxShots * v.chargePerShot)
+
+/** Remake (blastFromCharge): a projectile's explodeCharge for the spell's charge as it fires; null keeps the bullet's own. */
+export function blastCharge(charge: number, v: VolleyDef): number | null {
+  const b = v.blastFromCharge
+  return b ? b.base + Math.max(0, charge) * b.perCharge : null
+}
 
 /** Below this many projectiles the fan keeps its narrowest width. */
 const NARROW_SHOTS = 2
@@ -106,12 +115,14 @@ export function launchToLand(from: Vec, aim: Vec, launch: Vec, friction: Vec, mi
 const FREEZE_PAYLOAD = 'takeFreeze'
 
 /**
- * The attack a volley projectile carries: its bullet's own (push, payload, explosion), with the
- * spell's hit roles and the volley's damageMultiplier on top of the bullet's; a chilling volley
- * (remake, `chill` > 0) also freezes what it hits, as the arctic blast does, glowing teal.
+ * The attack a volley projectile fired at `charge` carries: its bullet's own (push, payload,
+ * explosion), with the spell's hit roles and the volley's damageMultiplier on top of the bullet's,
+ * and a blastFromCharge volley's explodeCharge; a chilling volley (remake, `chill` > 0) also
+ * freezes what it hits, as the arctic blast does, glowing teal.
  */
-export function volleyProjectileAttack(bullet: AttackDef, hits: string[], v: VolleyDef): AttackDef {
-  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier }
+export function volleyProjectileAttack(bullet: AttackDef, hits: string[], v: VolleyDef, charge: number): AttackDef {
+  const explodeCharge = blastCharge(charge, v) ?? bullet.explodeCharge
+  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier, explodeCharge }
   if (v.chill <= 0) return attack
   const others = bullet.payloadFunction.filter((fn) => fn !== FREEZE_PAYLOAD)
   return { ...attack, payloadFunction: [FREEZE_PAYLOAD, ...others], freezeMultiplier: v.chill, glowTeal: true }
