@@ -771,7 +771,8 @@ const UNDEAD_MARSH_PLAN: RoomPlan = [
     normal({ regulars: n(2, 3, WEAK) }),
     normal({
       groups: [
-        { label: 'critter nest', units: { cocoon: 1, quadranid: 3 }, faction: 'critters' },
+        // alone: the critters have no weak regulars, so the corner's weak draws would be all bats
+        { label: 'critter nest', units: { cocoon: 1, quadranid: 4 }, faction: 'critters', alone: true },
         { label: 'skeleton patrol', units: { skeletonWarrior: 3, skeletonThrower: 1 }, faction: 'undead' },
       ],
       regulars: NUMEROUS_WEAK,
@@ -783,7 +784,7 @@ export const UNDEAD_MARSH: FloorTheme = {
   id: 'undead-marsh',
   name: 'Dead Woods',
   locationSign: LOCATION_SIGNS.deadWoods,
-  showcase: ['skeletonWarrior', 'greyGhost', 'skeletonGiant', 'quadranid'],
+  showcase: ['skeletonWarrior', 'skeletonArcher', 'quadranid', 'necromancer'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -825,8 +826,9 @@ export const UNDEAD_MARSH: FloorTheme = {
       { key: 'greyGhost', weight: 1, tier: 'mid', faction: 'undead', producer: true },
       { key: 'skeletonComando', weight: 1, tier: 'mid', faction: 'undead' },
       { key: 'skeletonGiant', weight: 1, tier: 'strong', maxPerRoom: 2, faction: 'undead' },
-      // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own
-      { key: 'quadranid', weight: 4, tier: 'weak', faction: 'critters' },
+      // the owner's "gun critter": monsters, which brawl with the undead, so they hold rooms of their own.
+      // Owner (2026-10-26): mid on floor 2, as in the West Jungle
+      { key: 'quadranid', weight: 2, tier: 'mid', faction: 'critters' },
       { key: 'bat', weight: 1.5, tier: 'weak' },
     ],
     dwellings: [

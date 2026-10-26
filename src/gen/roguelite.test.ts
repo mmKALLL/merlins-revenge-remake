@@ -58,6 +58,12 @@ describe('roguelite run map', () => {
     expect(generateMap(ROGUELITE_MAP_ID, seed, energyOf)).toEqual(runSteps(rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf, startingKitPickups(seed))))
   })
 
+  it('makes the quadranids mid enemies on floor 2 (owner)', () => {
+    for (const theme of ROGUELITE_FLOORS[1]!) {
+      expect(theme.units.enemies.filter((c) => c.key === 'quadranid').map((c) => c.tier), theme.id).toEqual(['mid'])
+    }
+  })
+
   it('gives each floor of a run its own seed', () => {
     const seeds = ROGUELITE_FLOORS.map((_, floor) => floorSeed(7, floor))
     expect(new Set(seeds).size).toBe(seeds.length)

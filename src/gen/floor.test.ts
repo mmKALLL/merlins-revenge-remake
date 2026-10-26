@@ -304,7 +304,7 @@ describe.each(ALL_THEMES)('random floor: $name', (theme) => {
     it('fills a budget room, group included, to its budget within its counts, unless its free tiles run out', () => {
       const budgeted = planRooms(theme).flatMap(({ room, cell }) => [cell.regulars, cell.mixed].flatMap(drawsOf).filter((d) => d.hpBudget).map((d) => ({ room, draw: d })))
       const notUnits = new Set([...u.potions.map((p) => p.value), u.startMusic])
-      const aloneGroups = u.bosses.filter((g) => g.alone).map((g) => JSON.stringify(Object.entries(g.units).sort()))
+      const aloneGroups = [...u.bosses, ...groupRooms.flatMap(([, groups]) => groups)].filter((g) => g.alone).map((g) => JSON.stringify(Object.entries(g.units).sort()))
       const countsOf = (keys: string[]) => JSON.stringify(Object.entries(Object.fromEntries(keys.map((k) => [k, keys.filter((x) => x === k).length]))).sort())
       for (const { room, draw } of budgeted) {
         const budget = draw.hpBudget!
