@@ -3,7 +3,7 @@
 // the pickups each is laid out as in the next floor's start room (src/gen/roguelite.ts). Pure.
 import { firstBiome, floorSeed } from '../gen/roguelite-biomes'
 import { GenRandom } from '../gen/random'
-import { ANY_SPELL_WEIGHT, PENDING_SCROLLS, type FloorTheme, type Weighted } from '../gen/themes'
+import { ORIGINAL_SPELL_WEIGHT, PENDING_SCROLLS, type FloorTheme, type Weighted } from '../gen/themes'
 import { GOLDEN_MACHINE_GUN, MEDIKIT_CHARACTER, type PotionCount } from '../mr-open/mr-pickup'
 
 /** A reward: a scroll's spell (or reserved weapon), a full heal and a medikit, or potions. */
@@ -29,7 +29,7 @@ const KIT_POTIONS = 5
 const POTION_TYPES = 2
 /**
  * Owner: Merlin starts a run with only his punch; the energy blast (his starting weapon elsewhere,
- * player.weapon) is a scroll like any other, at the weight of a spell no biome favours.
+ * player.weapon) is a scroll like any other, at an original spell's weight.
  */
 export const ENERGY_BLAST = 'energyBlast'
 /**
@@ -37,8 +37,8 @@ export const ENERGY_BLAST = 'energyBlast'
  * place of the new spell. The golden machine gun joins once it is ported (PENDING_SCROLLS).
  */
 export const RESERVED_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch', GOLDEN_MACHINE_GUN]
-/** A reserved weapon's weight per biome, in the units of an unthemed original spell's ANY_SPELL_WEIGHT. */
-const RESERVED_WEAPON_WEIGHT = 2
+/** A reserved weapon's weight per biome: an original spell's. */
+const RESERVED_WEAPON_WEIGHT = ORIGINAL_SPELL_WEIGHT
 /** Spells that do not fight (the heal blast only heals): never the kit's, which is Merlin's first attack beside the punch. */
 const NOT_ATTACKS: readonly string[] = ['healBlast']
 /** Keeps the reward rolls apart from the floor layout drawn from the same floor seed. */
@@ -60,7 +60,7 @@ export function rewardPools(biomes: readonly FloorTheme[]): RewardPools {
   const perBiome = (value: string, weight: number): Weighted<string> => ({ value, weight: weight * biomes.length })
   const spells = merged((t) => t.units.startRewards.spellScrolls).filter((s) => !isReserved(s.value) && s.value !== ENERGY_BLAST)
   return {
-    spellScrolls: [...spells, perBiome(ENERGY_BLAST, ANY_SPELL_WEIGHT)],
+    spellScrolls: [...spells, perBiome(ENERGY_BLAST, ORIGINAL_SPELL_WEIGHT)],
     reservedWeapons: RESERVED_WEAPONS.filter((key) => !PENDING_SCROLLS.has(key)).map((key) => perBiome(key, RESERVED_WEAPON_WEIGHT)),
     potions: merged((t) => t.units.startRewards.potions),
   }

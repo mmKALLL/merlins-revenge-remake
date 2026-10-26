@@ -524,11 +524,9 @@ describe('Magic Maze boss groups (owner: the wizards Scarlet and Ochre)', () => 
 })
 
 describe('spell scroll pools (owner rule)', () => {
-  it('weigh the original spells and the volleys about half and half on every floor', () => {
+  it('weigh every original spell 2 and every volley 1 on every floor, whatever its enemies', () => {
     for (const theme of ALL_THEMES) {
-      const scrolls = theme.units.startRewards.spellScrolls
-      const share = (volleys: boolean) => scrolls.filter((s) => VOLLEY_SCROLLS.includes(s.value) === volleys).reduce((sum, s) => sum + s.weight, 0)
-      expect(share(true)).toBeCloseTo(share(false))
+      for (const s of theme.units.startRewards.spellScrolls) expect(s.weight, `${theme.id} ${s.value}`).toBe(VOLLEY_SCROLLS.includes(s.value) ? 1 : 2)
     }
   })
 })

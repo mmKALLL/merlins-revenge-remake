@@ -376,28 +376,18 @@ export const SPELL_SCROLLS = [
   ...VOLLEY_SCROLLS, // remake (owner request): the volley spells
 ] as const
 
-/** Owner: any spell can come up on any floor at this weight; the floor's own spells weigh more. */
-export const ANY_SPELL_WEIGHT = 1
-/** Added to a floor's own spell weights (its lists' 1 / 2 / 3 become 4 / 5 / 6). */
-const THEMED_SPELL_BONUS = 3
-
 /**
- * A floor's start scroll list: every spell its objects tileset has a tile for (merlin4Objects has
- * no arctic blast or energy beam), the floor's themed spells weighted up by THEMED_SPELL_BONUS (a
- * volley is themed where the floor's enemies fire its projectile). Owner: about half the scrolls are
- * original spells and half volleys, so the volleys' weights are scaled to the originals' total.
+ * Owner (2026-10-26): no floor favours its own spells; every scroll is as likely as any other of
+ * its kind, the original game's spells (fewer than the volleys) at twice a volley's weight.
  */
-function spellWeights(themed: Weighted<string>[], objectTiles: Record<string, number>): Weighted<string>[] {
-  const weighted = SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined).map((spell) => {
-    const own = themed.find((t) => t.value === spell)
-    return w<string>(spell, own ? own.weight + THEMED_SPELL_BONUS : ANY_SPELL_WEIGHT)
-  })
-  const total = (volleys: boolean) => weighted.filter((s) => isVolley(s.value) === volleys).reduce((sum, s) => sum + s.weight, 0)
-  const volleyScale = total(false) / total(true)
-  return weighted.map((s) => (isVolley(s.value) ? w(s.value, s.weight * volleyScale) : s))
-}
+export const ORIGINAL_SPELL_WEIGHT = 2
+const VOLLEY_WEIGHT = 1
 
-const isVolley = (spell: string): boolean => VOLLEY_SCROLLS.includes(spell)
+/** A floor's start scroll list: every spell its objects tileset has a tile for (merlin4Objects has no arctic blast or energy beam). */
+function spellWeights(objectTiles: Record<string, number>): Weighted<string>[] {
+  return SPELL_SCROLLS.filter((spell) => objectTiles[spell] !== undefined)
+    .map((spell) => w<string>(spell, VOLLEY_SCROLLS.includes(spell) ? VOLLEY_WEIGHT : ORIGINAL_SPELL_WEIGHT))
+}
 
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
@@ -578,7 +568,7 @@ export const GOBLIN_FOREST: FloorTheme = {
       { label: 'hydra trainer', units: { hydra1: 1, goblinHero: 1, goblinWarrior: 1 }, faction: FOREST, boss: 'hydra1' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(spellWeights([w('armySummon', 3), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('boltFan', 1), w('acidSplash', 1)], MERLIN4_OBJECTS)),
+    startRewards: startRewards(spellWeights(MERLIN4_OBJECTS)),
   },
 }
 
@@ -850,12 +840,7 @@ export const UNDEAD_MARSH: FloorTheme = {
       { label: 'necromancer and archers', units: { necromancer: 1, skeletonArcher: 12 }, faction: 'undead', boss: 'necromancer', alone: true },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(
-      spellWeights(
-        [w('energyPulseSpell', 2), w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('armySummon', 1), w('healBlast', 1), w('monsterSummon', 1), w('arrowRain', 1), w('skullToss', 1), w('laserVolley', 1)],
-        MERLIN_OPEN_OBJECTS
-      )
-    ),
+    startRewards: startRewards(spellWeights(MERLIN_OPEN_OBJECTS)),
   },
 }
 
@@ -965,9 +950,7 @@ export const DRAGON_CANYON: FloorTheme = {
       { label: 'hydra den', units: { hydra3: 1, hydra1: 2, plant: 2 }, faction: CANYON, boss: 'hydra3' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(
-      spellWeights([w('arcticBlast', 2), w('energyBeamSpell', 2), w('cBlast', 2), w('energyPunch', 2), w('armySummon', 1), w('monsterSummon', 1), w('dragonFire', 1), w('boulderLob', 1), w('darkRockBurst', 1), w('needleSpray', 1), w('acidSplash', 1)], MERLIN_OPEN_OBJECTS)
-    ),
+    startRewards: startRewards(spellWeights(MERLIN_OPEN_OBJECTS)),
   },
 }
 
@@ -1124,7 +1107,7 @@ export const MAGIC_MAZE: FloorTheme = {
     bosses: MAZE_BOSS_GROUPS.map(mazeBoss),
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
     startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 3), w('cBlast', 2), w('energyPunch', 2), w('monsterSummon', 2), w('arcticBlast', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('poisonSmoke', 1), w('lightningFan', 1), w('longbow', 1), w('skullToss', 1), w('arrowRain', 1)], MERLIN_OPEN_OBJECTS),
+      spellWeights(MERLIN_OPEN_OBJECTS),
       MAZE_GIVES_GOLDEN_MACHINE_GUN ? [GOLDEN_MACHINE_GUN] : []
     ),
   },
@@ -1317,7 +1300,7 @@ export const GOLDEN_FORT: FloorTheme = {
     alliances: FORT_ALLIANCES,
     potions: POTION_WEIGHTS,
     // owner: ten potions, two medikits and one spell scroll of any kind
-    startRewards: { potions: POTION_WEIGHTS, potionCount: 10, medikits: 2, spellScrolls: spellWeights([], MERLIN_OPEN_OBJECTS), extras: [] },
+    startRewards: { potions: POTION_WEIGHTS, potionCount: 10, medikits: 2, spellScrolls: spellWeights(MERLIN_OPEN_OBJECTS), extras: [] },
   },
 }
 
@@ -1434,9 +1417,7 @@ export const DEEP_FOREST: FloorTheme = {
       { label: 'goblin hero war band', units: { goblinHero: 3, goblinWarrior: 3, goblinMage: 1 }, faction: WOODS, boss: 'goblinHero' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(
-      spellWeights([w('armySummon', 2), w('energyMines', 2), w('energyPulseSpell', 2), w('merlinSword', 2), w('healBlast', 1), w('arrowRain', 1), w('needleSpray', 1), w('bunnyLob', 1), w('shurikenFan', 1), w('laserVolley', 1)], BIOME_OBJECTS)
-    ),
+    startRewards: startRewards(spellWeights(BIOME_OBJECTS)),
   },
 }
 
@@ -1518,9 +1499,7 @@ export const HYDRA_MARSH: FloorTheme = {
       { label: 'lizard war party', units: { lizardSoldier: 3, lizard: 3 }, faction: JUNGLE, boss: 'lizardSoldier' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(
-      spellWeights([w('energyMines', 2), w('arcticBlast', 2), w('cBlast', 2), w('energyPulseSpell', 1), w('healBlast', 1), w('monsterSummon', 1), w('acidSplash', 1), w('laserVolley', 1), w('needleSpray', 1)], BIOME_OBJECTS)
-    ),
+    startRewards: startRewards(spellWeights(BIOME_OBJECTS)),
   },
 }
 
@@ -1598,9 +1577,7 @@ export const GOLEM_MOUNTAIN: FloorTheme = {
       { label: 'vulture eyrie', units: { vultureGuard: 3, boulderMonster: 2 }, faction: GOLEMS, boss: 'vultureGuard' },
     ],
     potions: POTION_WEIGHTS,
-    startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 2), w('energyPunch', 2), w('arcticBlast', 2), w('cBlast', 1), w('merlinSword', 1), w('boulderLob', 1), w('darkRockBurst', 1), w('lavaLob', 1), w('iceBoulderLob', 1), w('lightningFan', 1)], BIOME_OBJECTS)
-    ),
+    startRewards: startRewards(spellWeights(BIOME_OBJECTS)),
   },
 }
 
@@ -1664,9 +1641,7 @@ export const GOLDEN_PALACE: FloorTheme = {
       { label: 'court mages', units: { shrouder: 2, bombMage: 2, thunderMonk: 2, magicPortal: 1 }, faction: MAGES, boss: 'shrouder' },
     ],
     potions: [w('manaCapacity', 3), w('manaBurst', 3), w('manaFlow', 2), w('walkSpeed', 1)],
-    startRewards: startRewards(
-      spellWeights([w('energyBeamSpell', 2), w('energyPunch', 2), w('monsterSummon', 2), w('cBlast', 1), w('armySummon', 1), w('longbow', 1), w('bombVolley', 1), w('thunderBurst', 1), w('pinStorm', 1), w('poisonSmoke', 1), w('shurikenFan', 1), w('lavaLob', 1)], BIOME_OBJECTS)
-    ),
+    startRewards: startRewards(spellWeights(BIOME_OBJECTS)),
   },
 }
 

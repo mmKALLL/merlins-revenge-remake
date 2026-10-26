@@ -60,11 +60,11 @@ describe('roguelite rewards', () => {
     }
   })
 
-  it('keeps the reserved weapons out of the spell pools, the energy blast in at an unthemed spell\'s weight', () => {
+  it('keeps the reserved weapons out of the spell pools, the energy blast in at an original spell\'s weight', () => {
     for (const [floor, pools] of POOLS.entries()) {
       const biomes = ROGUELITE_FLOORS[floor]!.length
       expect(pools.spellScrolls.filter((s) => RESERVED_WEAPONS.includes(s.value))).toEqual([])
-      expect(pools.spellScrolls.find((s) => s.value === ENERGY_BLAST)?.weight).toBe(biomes)
+      expect(pools.spellScrolls.find((s) => s.value === ENERGY_BLAST)?.weight).toBe(2 * biomes)
       // the golden machine gun waits for its port
       expect(pools.reservedWeapons).toEqual(MELEE.map((value) => ({ value, weight: 2 * biomes })))
     }
