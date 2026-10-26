@@ -19,7 +19,9 @@ export interface AttackDef {
   /** remake: a melee hit lands on every target whose sprite rect meets this circle (centre from the reg point, x mirrored); null = the engine's strike point */
   strikeCircle: { centre: Vec; radius: number } | null
   chargeFullTicks: number | null // remake: the charge max is also capped at chargeStart + the charge speed x this many ticks (a faster charger reaches a bigger blast); null = engine
-  shotSpeedScale: number // remake: a ranged attack's bullet launch speed x this (owner: the skeleton heads' shots were too fast); 1 = engine
+  shotSpeedScale: number // remake: a ranged attack's bullet launch speed, and a spell's flight speed, x this (owner: enemy shots too fast); 1 = engine
+  /** remake: a spell's damage x (1 + (charge - from) x perCharge), clamped to 1..max (owner: big energy blasts hit harder); perCharge 0 = engine */
+  chargeDamageBonus: { from: number; perCharge: number; max: number }
   blankSummonsReserve: boolean // remake (army summon): a blank blast with no army ally in play summons the whole reserve where it lands, as R does; false = engine
   /** a point for the player's natural punch (act_player); a number everywhere else */
   reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
@@ -250,6 +252,9 @@ export function needsSprite(def: ActorDef): boolean {
   return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
 }
 
+/** Remake: chargeDamageBonus's engine default, no bonus (the multiplier stays 1). */
+export const NO_CHARGE_DAMAGE_BONUS: AttackDef['chargeDamageBonus'] = { from: 0, perCharge: 0, max: 1 }
+
 // structMaster.structAttack (only the fields this port reads; others stay in raw)
 const ATTACK_DEFAULTS = {
   name: 'none', type: 'auto', animType: 'none', animFrame: 2,
@@ -265,7 +270,8 @@ const ATTACK_DEFAULTS = {
   glowTeal: false, // not in structAttack; only the freezing attacks set it
   strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
   chargeFullTicks: null, // remake: no time cap on the charge, as in the engine
-  shotSpeedScale: 1, // bullets launch at performRangedAttack's speed, as in the engine
+  shotSpeedScale: 1, // bullets launch at performRangedAttack's speed and spells fly at spellSpeed, as in the engine
+  chargeDamageBonus: NO_CHARGE_DAMAGE_BONUS, // a spell's damage is linear in its charge, as in the engine
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
 } as const
@@ -558,6 +564,15 @@ function strikeCircleOf(a: Plain, ctx: string): AttackDef['strikeCircle'] {
   return { centre: vec(c, 'centre', ctx), radius: num(c, 'radius', ctx) }
 }
 
+/** Remake: chargeDamageBonus over NO_CHARGE_DAMAGE_BONUS (a tuning entry may set only some fields). */
+function chargeDamageBonusOf(a: Plain, ctx: string): AttackDef['chargeDamageBonus'] {
+  const b = a['chargeDamageBonus']
+  if (!isPlain(b)) return bad(ctx, 'attack.chargeDamageBonus', '{ from, perCharge, max }', b)
+  const f: Plain = { ...NO_CHARGE_DAMAGE_BONUS, ...b }
+  const c = `${ctx}: attack.chargeDamageBonus`
+  return { from: num(f, 'from', c), perCharge: num(f, 'perCharge', c), max: num(f, 'max', c) }
+}
+
 /** Remake: the volley's fields over VOLLEY_DEFAULTS; required with releaseFunction #volley, null otherwise. */
 function volleyOf(a: Plain, ctx: string): VolleyDef | null {
   const v = a['volley']
@@ -602,6 +617,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     strikeCircle: strikeCircleOf(a, ctx),
     chargeFullTicks: a['chargeFullTicks'] === null ? null : num(a, 'chargeFullTicks', ctx),
     shotSpeedScale: num(a, 'shotSpeedScale', ctx),
+    chargeDamageBonus: chargeDamageBonusOf(a, ctx),
     blankSummonsReserve: bool(a, 'blankSummonsReserve', ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),

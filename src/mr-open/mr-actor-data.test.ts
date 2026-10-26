@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { missingDefaultFields, resolveActors, type Plain } from './mr-actor-data'
+import { missingDefaultFields, NO_CHARGE_DAMAGE_BONUS, resolveActors, type Plain } from './mr-actor-data'
 
 function loadFiles(): Record<string, string> {
   const out: Record<string, string> = {}
@@ -99,6 +99,14 @@ describe('resolveActors', () => {
     const tuned = resolveActors(loadFiles(), { goblinWarrior: { weapon: 'goblinBow', attack: { reach: 42 } } })
     expect(tuned['goblinWarrior']!.attack.reach).toBe(42)
     expect(tuned['goblinWarrior']!.attack.bullet).toBe('goblinArrow')
+  })
+
+  it("keeps a player's attack tuning off the enemies wielding the same weapon (goblin mage energy blast)", () => {
+    const tuned = resolveActors(loadFiles(), { player: { weapon: 'energyBlast', attack: { chargeSpeed: 0.5, chargeDamageBonus: { perCharge: 0.1 } } } })
+    expect(tuned['player']!.attack.chargeSpeed).toBe(0.5)
+    expect(tuned['player']!.attack.chargeDamageBonus).toEqual({ ...NO_CHARGE_DAMAGE_BONUS, perCharge: 0.1 })
+    expect(tuned['goblinMage']!.attack.chargeSpeed).toBe(1)
+    expect(tuned['goblinMage']!.attack.chargeDamageBonus).toEqual(NO_CHARGE_DAMAGE_BONUS)
   })
 
   it('fails loudly on an unknown starting weapon', () => {

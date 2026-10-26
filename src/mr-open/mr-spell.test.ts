@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef } from './mr-actor-data'
 import { freezeTicksAfter } from './mr-freeze'
 import { chargeAfterBullet, fireBulletsPeriod, mineCount } from './mr-mine'
-import { armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, chargeStep, explode, payloadFunctionsFor, releaseVelocity } from './mr-spell'
+import { armyReinIn, arrivedAtTarget, chargeDamageMultiplier, chargeLimits, chargeLoc, chargeStep, explode, payloadFunctionsFor, releaseVelocity, spellFlightSpeed } from './mr-spell'
 
 const energyBlast: AttackDef = {
-  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null, chargeFullTicks: null, shotSpeedScale: 1, blankSummonsReserve: false, volley: null,
+  name: 'energyBlast', type: 'magic', animType: 'magic', animFrame: [2], collisionLoc: { x: 0, y: -8 }, idealAttackLoc: { x: 0, y: -8 }, strikeCircle: null, chargeFullTicks: null, shotSpeedScale: 1, chargeDamageBonus: { from: 0, perCharge: 0, max: 1 }, blankSummonsReserve: false, volley: null,
   reach: 9999, cooldown: 30, power: 0.75, damageMultiplier: 1, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 0, chargeMax: 999, chargeMaxBasic: 5, chargeMaxModifier: 0.75, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 200, b: 0 }, spellSpeed: 20, limitMagic: false, sound: null, releaseSound: 'spell_release', explodeSound: 'spell_explode',
@@ -143,5 +143,20 @@ describe('freeze', () => {
     const first = freezeTicksAfter(0, { x: 3, y: -2 }, 1)
     expect(first).toBe(21)
     expect(freezeTicksAfter(first, { x: 1, y: 0 }, 3)).toBe(33)
+  })
+})
+
+describe('remake spell tweaks', () => {
+  it('chargeDamageBonus: 1 up to its start, linear above it, capped at max; none by default', () => {
+    const bonus = { ...energyBlast, chargeDamageBonus: { from: 10, perCharge: 0.1, max: 2 } }
+    expect(chargeDamageMultiplier(4, bonus)).toBe(1)
+    expect(chargeDamageMultiplier(10, bonus)).toBe(1)
+    expect(chargeDamageMultiplier(15, bonus)).toBeCloseTo(1.5)
+    expect(chargeDamageMultiplier(40, bonus)).toBe(2)
+    expect(chargeDamageMultiplier(40, energyBlast)).toBe(1)
+  })
+  it("shotSpeedScale scales a spell's flight speed", () => {
+    expect(spellFlightSpeed(energyBlast)).toBe(20)
+    expect(spellFlightSpeed({ ...energyBlast, shotSpeedScale: 0.5 })).toBe(10)
   })
 })

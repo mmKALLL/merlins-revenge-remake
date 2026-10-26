@@ -12,7 +12,7 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
 import { chargeVolume } from '../mr-open/mr-sound'
 import {
-  armyReinIn, arrivedAtTarget, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, sendsAlliesHome, stageNumber,
+  armyReinIn, arrivedAtTarget, chargeDamageMultiplier, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, sendsAlliesHome, spellFlightSpeed, stageNumber,
 } from '../mr-open/mr-spell'
 import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
@@ -71,7 +71,7 @@ export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: 
   } else {
     spell.mode = 'fly'
     spell.targetPoint = target
-    spell.vel = releaseVelocity(spell.pos, target, atk.spellSpeed)
+    spell.vel = releaseVelocity(spell.pos, target, spellFlightSpeed(atk))
     // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
     playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
   }
@@ -292,14 +292,6 @@ function depositMines(t: Tick, spell: ActorState, atk: AttackDef): void {
 }
 
 /**
- * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
- * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
- * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
- * original explodes centred on the cursor. prevPos is pinned so the renderer does not slide the
- * explosion. impactAttack calls the payload functions (the stage's, once a summon stage is
- * reached); then doExplodeFunction summons or lays mines.
- */
-/**
  * Remake (blankSummonsReserve, owner request): a blank army summon (it sends allies home) of Merlin's
  * lands with none of his army in play, so it summons the whole reserve there instead, as R does.
  */
@@ -309,6 +301,20 @@ function blankSummonsReserve(t: Tick, spell: ActorState, atk: AttackDef): boolea
   return owner !== undefined && isAlive(owner) && armyMembersInPlay(t, owner).length === 0
 }
 
+/** Remake (chargeDamageBonus): the attack with its damage scaled for the spell's charge at release. */
+function withChargeDamage(atk: AttackDef, charge: number): AttackDef {
+  const m = chargeDamageMultiplier(charge, atk)
+  return m === 1 ? atk : { ...atk, damageMultiplier: atk.damageMultiplier * m }
+}
+
+/**
+ * objSpell.goMode(#explode) with the spell's own attack copy and team (setSpellProperties). The
+ * spell is placed on its target point before exploding: objMoveXY.update says "pLoc can be adjusted
+ * by fin so as not to overshoot targetLoc", but no snapping code survives in the export, and the
+ * original explodes centred on the cursor. prevPos is pinned so the renderer does not slide the
+ * explosion. impactAttack calls the payload functions (the stage's, once a summon stage is
+ * reached); then doExplodeFunction summons or lays mines.
+ */
 function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
@@ -324,12 +330,13 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   // remake: the caster's knockbackSpreadDeg turns each push by a small random angle
   const caster = t.actors.find((c) => c.id === spell.ownerId)
   const spread = caster ? defOf(t.s, caster).knockbackSpreadDeg : 0
+  const dealt = withChargeDamage(withOwnerDamage(t, spell, atk), spell.charge)
   for (const { id, push } of ex.pushes) {
     const victim = hitTargetIn(t, id)
     if (!victim) continue
     const [turned, rng] = spreadVec(t.rng, push, spread)
     t.rng = rng
-    applyPayload(t, victim, turned, withOwnerDamage(t, spell, atk), payloadFunctions)
+    applyPayload(t, victim, turned, dealt, payloadFunctions)
   }
   t.events.push({ kind: 'explode', pos: spell.pos, radius: ex.radius })
   playSound(t, atk.explodeSound, explodeVolume)
