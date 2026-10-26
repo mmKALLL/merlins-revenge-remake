@@ -759,3 +759,6 @@ the aim within it.
   28.1, 30 -> 29.7, 30 -> 29.5; the least that holds their icon stacks in time (`fullBallPx` with no
   chargeSize) is 42, 27, 28.7 and 28.7. Bolts and arrows were already near it, so they barely shrink;
   smaller would need the icon rule loosened (icons growing out of the ball early in the charge).
+- **Renames (owner, 2026-10-26):** Bunny Lob -> Particle Spray, Lava Lob -> Lava Shot, Bolt Fan -> Bolt
+  Spray, Acid Splash -> Acid Burst, Boulder Lob -> Boulder Toss, Ice Boulder -> Frost Boulder (the
+  scroll writings, `tools/volley-scroll-art.ts`; the actor keys stay).
