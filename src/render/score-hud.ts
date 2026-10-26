@@ -1,8 +1,8 @@
 // The score (remake feature, engine notes hud "Scoring") in the strip below the play view, at its
-// right end: the map's total ("Score: 1234"), then the current room's points still to win in green ("+1234"). The
-// room points keep a slot as wide as "+9999" that ends at the play view's right edge (x 608, where
-// potionMaster right-aligns the potions above), so the total stays put as they count down. A run
-// voided by a world mode switch shows a grey dash in place of the total's number.
+// right end: the map's total ("Score: 1234"), then the current room's points still to win in green
+// ("+1234"). The room points keep a slot as wide as "+9999" that ends at the play view's right edge
+// (x 608, where potionMaster right-aligns the potions above), so the total stays put as they count
+// down. A run voided by a world mode switch shows a grey dash in place of the total's number.
 import { Container, Text } from 'pixi.js'
 import { GAME_SCREEN } from '../mr-open/mr-hud'
 import { currentRoomPoints, ROOM_POINTS_MAX } from '../sim/score'
