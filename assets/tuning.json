@@ -15,7 +15,13 @@
       "y": 30
     },
     "attack": {
-      "chargeMaxBasic": 6
+      "chargeMaxBasic": 6,
+      "chargeSpeed": 0.8,
+      "chargeDamageBonus": {
+        "from": 13,
+        "perCharge": 0.09,
+        "max": 2
+      }
     }
   },
   "goblinWarrior": {
@@ -165,7 +171,8 @@
   },
   "darkMage": {
     "attack": {
-      "power": 2.1
+      "power": 2.1,
+      "shotSpeedScale": 0.8
     }
   },
   "skeletonDwelling": {
@@ -194,6 +201,26 @@
   "skelitonHead": {
     "attack": {
       "shotSpeedScale": 0.7
+    }
+  },
+  "energyPulse": {
+    "attack": {
+      "explodeCharge": 12
+    }
+  },
+  "goblinMage": {
+    "attack": {
+      "shotSpeedScale": 0.9
+    }
+  },
+  "shurikenNinja": {
+    "attack": {
+      "shotSpeedScale": 0.8
+    }
+  },
+  "quadranid": {
+    "attack": {
+      "shotSpeedScale": 0.9
     }
   }
 }
