@@ -91,6 +91,19 @@ export function chargeLoc(caster: Vec, casterDef: ActorDef, facingLeft: boolean)
   return { x: caster.x + casterDef.chargeLoc.x * (facingLeft ? -1 : 1), y: caster.y + casterDef.chargeLoc.y }
 }
 
+/**
+ * Remake (owner request): a spell's damage multiplier for its charge at release (before
+ * chargeExplodeFactor): 1 + (charge - from) x perCharge, clamped to 1..max. The engine's damage is
+ * linear in the charge (its push); this lets the biggest blasts hit harder still.
+ */
+export function chargeDamageMultiplier(charge: number, a: AttackDef): number {
+  const { from, perCharge, max } = a.chargeDamageBonus
+  return Math.max(1, Math.min(max, 1 + (charge - from) * perCharge))
+}
+
+/** A spell's flight speed: spellSpeed x the remake's shotSpeedScale (1 = engine). */
+export const spellFlightSpeed = (a: AttackDef): number => a.spellSpeed * a.shotSpeedScale
+
 /** GeomMoveVector: velocity of length `speed` toward the release point. */
 export function releaseVelocity(from: Vec, to: Vec, speed: number): Vec {
   const dx = to.x - from.x

@@ -9,7 +9,7 @@
 #animType: #magic,
 #bullet: #fangBunnyBabyBullet,
 #chargeColour: rgb(240,150,200),
-#chargeSize: 0.938,
+#chargeSize: 0.6,
 #chargeSpeed: 0.3199,
 #chargeStart: 0,
 #chargeMax: 999,

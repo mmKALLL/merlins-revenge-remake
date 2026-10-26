@@ -5,6 +5,7 @@
 import { loadAudioIndex, musicUrl, soundUrl, type AudioIndex } from '../data/loaders'
 import { DEFAULT_VOLUME, hasFreeVoice, MAX_VOLUME } from '../mr-open/mr-sound'
 import type { SimEvent } from '../sim/state'
+import { withoutMusicAfterMapComplete } from './jingle'
 
 export interface AudioSettings {
   music: boolean // false = the music is muted
@@ -163,7 +164,7 @@ export class AudioEngine {
 
   /** Forwards one tick's sim events. */
   handle(events: readonly SimEvent[]): void {
-    for (const e of events) {
+    for (const e of withoutMusicAfterMapComplete(events)) {
       if (e.kind === 'sound') this.playSound(e.name, e.volume)
       else if (e.kind === 'music') this.playMusic(e.track)
       else if (e.kind === 'mapComplete') this.silenceForJingle()
@@ -204,12 +205,14 @@ export class AudioEngine {
   }
 
   /**
-   * Remake (owner request): the map-complete jingle (the end_level effect) is heard on its own, so the
-   * room's music stops at once; a restart's start room asks for its track again.
+   * Remake (owner request): the map-complete jingle (the end_level effect, the event after
+   * mapComplete) is heard on its own: the room's music and the other effects stop at once, which
+   * also frees a voice for it (src/audio/jingle.ts); a restart's start room asks for its track again.
    */
   private silenceForJingle(): void {
     this.wanted = null
     this.stopMusic()
+    this.stopEffects()
   }
 
   /** Unmutes (true) or mutes the music: muted stops the bus; unmuted resumes the room's track from the start. */

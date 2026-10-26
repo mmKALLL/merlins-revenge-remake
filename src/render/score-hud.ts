@@ -1,8 +1,8 @@
 // The score (remake feature, engine notes hud "Scoring") in the strip below the play view, at its
-// right end: the map's total, then the current room's points still to win in green ("+1234"). The
-// room points keep a slot as wide as "+9999" that ends at the play view's right edge (x 608, where
-// potionMaster right-aligns the potions above), so the total stays put as they count down. A run
-// voided by a world mode switch shows a grey dash in the total's place.
+// right end: the map's total ("Score: 1234"), then the current room's points still to win in green
+// ("+1234"). The room points keep a slot as wide as "+9999" that ends at the play view's right edge
+// (x 608, where potionMaster right-aligns the potions above), so the total stays put as they count
+// down. A run voided by a world mode switch shows a grey dash in place of the total's number.
 import { Container, Text } from 'pixi.js'
 import { GAME_SCREEN } from '../mr-open/mr-hud'
 import { currentRoomPoints, ROOM_POINTS_MAX } from '../sim/score'
@@ -15,6 +15,7 @@ const COLOURS = { total: 0xffffff, room: 0x00c800, void: 0x808080 } // room: the
 /** Between the total and the room points. */
 const GAP = 8
 const VOID_MARK = '—'
+const TOTAL_PREFIX = 'Score: '
 
 export class ScoreHud {
   readonly layer = new Container()
@@ -29,9 +30,9 @@ export class ScoreHud {
   constructor(stage: Size, view: Size) {
     const strip = { top: GAME_SCREEN.map.y + view.h, height: stage.h - GAME_SCREEN.map.y - view.h }
     const right = GAME_SCREEN.map.x + view.w
-    this.voidMark.text = VOID_MARK
+    this.voidMark.text = TOTAL_PREFIX + VOID_MARK
     this.room.text = `+${ROOM_POINTS_MAX}`
-    this.total.text = '0'
+    this.total.text = TOTAL_PREFIX + '0'
     const roomLeft = right - Math.ceil(this.room.width)
     this.totalRight = roomLeft - GAP
     const top = strip.top + Math.max(0, Math.round((strip.height - this.total.height) / 2))
@@ -50,7 +51,7 @@ export class ScoreHud {
     this.total.visible = s.score.valid
     this.room.visible = roomPoints !== null
     if (!s.score.valid) return
-    this.total.text = String(s.score.total)
+    this.total.text = TOTAL_PREFIX + String(s.score.total)
     this.total.x = Math.round(this.totalRight - this.total.width)
     if (roomPoints !== null) this.room.text = `+${roomPoints}`
   }

@@ -6,14 +6,14 @@ import type { ActorDef } from '../mr-open/mr-actor-data'
 import { TELEPORT_TICKS } from '../mr-open/mr-army'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { MINE } from '../mr-open/mr-mine'
-import { addWeapon } from '../mr-open/mr-weapons'
+import { addWeapon, naturalArsenal, weaponOf } from '../mr-open/mr-weapons'
 import { createActor, playerOf } from './actors'
 import { NO_INPUT, roomKey, type ActorState, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
 
-const SYMBOLS = ['none', 'cBlast', 'merlinSword', 'armySummon', 'dwarf', 'goblinWarrior', 'dwarfTower']
+const SYMBOLS = ['none', 'cBlast', 'merlinSword', 'armySummon', 'dwarf', 'goblinWarrior', 'dwarfTower', 'energyBlast']
 const ROW = 4 // objects on the fifth row, where Merlin starts
 const PLAYER = { x: 100, y: ROW * 32 + 16 }
 const RIGHT: InputSnapshot = { ...NO_INPUT, move: { x: 1, y: 0 } }
@@ -68,6 +68,15 @@ describe("Merlin's weapons", () => {
     expect(s.arsenal.current).toBe('merlinSword')
     s = stepSim(s, { ...NO_INPUT, selectWeapon: 'punch' })
     expect(s.arsenal.current).toBe('punch')
+  })
+
+  it("the energy blast's own scroll (a roguelite run starts without it) gives Merlin's tuned blast, not the scroll's attack", () => {
+    const s0 = world({ energyBlast: 5 })
+    const player = s0.defs['player']!
+    const tunedPlayer = { ...player, attack: { ...player.attack, chargeSpeed: 0.5 } }
+    let s: SimState = { ...s0, defs: { ...s0.defs, player: tunedPlayer }, arsenal: naturalArsenal(tunedPlayer) }
+    s = stepUntil(s, RIGHT, (n) => n.arsenal.weapons.length === 2)
+    expect(weaponOf(s.arsenal, 'energyBlast')?.attack.chargeSpeed).toBe(0.5)
   })
 
   it("Merlin's sword strikes the enemy under its strike point on its attack frame", () => {

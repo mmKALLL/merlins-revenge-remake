@@ -150,6 +150,19 @@ Deviations:
 effect; the room's music kept playing over it and drowned it out. On the sim's `mapComplete` event the
 audio engine now stops the music at once (`silenceForJingle`); restarting the map plays the start
 room's track again.
+**Second fix (owner report, 2026-10-26: still missing at times, mostly with music playing).** Two
+causes: (1) soundMaster's seven effect voices drop a new sound when all are busy, and the killing
+blow's tick (hits, deaths, explosions) can fill them before `end_level`, which comes last in the
+tick's events; (2) a tick that completes the map as Merlin enters a room (`withExitsEvaluated` before
+`withRoomMusic`, and the continuous world's room crossing after `checkMapCleared`) asks for the
+room's music after `mapComplete`, which started the music again over the jingle. Now
+`silenceForJingle` also stops every effect voice (the jingle always finds a free one), and the
+audio engine drops a tick's music requests that follow its `mapComplete`
+(`withoutMusicAfterMapComplete`, `src/audio/jingle.ts`). Checked and fine: the end sequence runs with
+the audio unpaused (`audioPause` is `none` while the shell runs), the end cut scene asks for no
+music, it lasts about 7 s against the jingle's 3 s (so a roguelite win's summary, which pauses the
+effects, comes after it), and the roguelite win calls `audio.handle(MAP_COMPLETE_EVENTS)` after the
+exit tick's own events.
 - **Unused tracks as music tiles (remake, 2026-10-25):** final_stand_2_v1, merl2319_v1 and
   the_ultimate_song_thing_v1 are in the archive's music but no map plays them. Remake music objects
   (`assets/remake-actors/musicFinalStand2`, `musicMerl2319`, `musicUltimateSongThing`; object tiles in

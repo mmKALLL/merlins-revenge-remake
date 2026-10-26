@@ -732,3 +732,30 @@ the aim within it.
 - **Number keys pick melee weapons too (owner, 2026-10-25):** 1-9 pick the n-th weapon Merlin holds
   other than his natural punch, spells and melee weapons alike, in the order collected (the original's
   selectSpell counted only #magic weapons). Q's palettes are unchanged.
+
+### Playtest retune (owner, 2026-10-26)
+
+- **Merlin's energy blast charges 20 % slower:** `player.attack.chargeSpeed` 0.8 (engine 1) in
+  `assets/tuning.json`, so at mana_flow 3 it gains 2.4 a tick. The player's attack tuning is his own:
+  goblin mages wield the same `energyBlast` weapon but take the raw scroll attack (the overlay is per
+  actor). In the roguelite Merlin starts without the blast and gets it from its scroll;
+  `collectScroll` gives the starting weapon's own scroll the player's tuned attack (`scrollAttack`),
+  so the retune applies there too (spells test).
+- **Big blasts hit harder (`attack.chargeDamageBonus`, remake field; engine default no bonus):** the
+  spell's damage is multiplied by m(c) = clamp(1 + (c - from) x perCharge, 1, max) for its charge c
+  at release (before chargeExplodeFactor), on top of the engine's damage, which already grows
+  linearly with the charge through the push, and Merlin's damageDealtMultiplier (`explodeSpell`,
+  `chargeDamageMultiplier`). Merlin's: from 13, perCharge 0.09, max 2, from two points: the full
+  charge is (mana_capacity x 0.75 + 6), mana_capacity 13 + 0.75 a Max Blast potion, so 15.75 with no
+  potion, 18.56 with 5 (m 1.50) and 24.19 with 15 (m 2.00, the cap); with no potion a full blast
+  gets m 1.25, and charges up to 13 none.
+- **Energy pulse blast 2 px wider:** `energyPulse.attack.explodeCharge` 12 (engine 10), so its
+  radius is 6 (was 5) plus the victim's half width. Done with the engine field rather than a separate
+  hit-area field: the engine's push falls off to 0 at the blast's edge, so a ring that hits without
+  more push would deal almost nothing; the cost is 1 px more push (and damage x5 of it) everywhere
+  inside. The bullet is shared with Ochre (ochreInGame's energyPulseSpell).
+- **Smaller volley balls for small projectiles:** `chargeSize` bunny lob 0.938 -> 0.6, skull toss
+  0.75 -> 0.39, bolt fan 0.606 -> 0.6, arrow rain 0.417 -> 0.41. Full ball 67.5 -> 43.2 px, 54 ->
+  28.1, 30 -> 29.7, 30 -> 29.5; the least that holds their icon stacks in time (`fullBallPx` with no
+  chargeSize) is 42, 27, 28.7 and 28.7. Bolts and arrows were already near it, so they barely shrink;
+  smaller would need the icon rule loosened (icons growing out of the ball early in the charge).

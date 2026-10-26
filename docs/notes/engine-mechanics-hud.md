@@ -124,10 +124,10 @@ The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.sco
 - HUD (`src/render/score-hud.ts`): monospace 11 px text (PIXEL_TEXT) in the 16 px strip below the
   play view, at its right end. The current room's points (green, the health bar's rgb(0,200,0),
   `+1234`) keep a slot as wide as `+9999` that ends at the play view's right edge (x 608, where
-  potionMaster right-aligns the potions in the strip above); the total (white) ends 8 px left of the
-  slot, so it stays put while the room counts down. The room points hide once the room is banked.
+  potionMaster right-aligns the potions in the strip above); the total (white, `Score: 1234`; the
+  prefix since 2026-10-26, owner) ends 8 px left of the slot, so it stays put while the room counts down. The room points hide once the room is banked.
   Right of 608 is only the 32 px margin, too narrow for `+9999` at a readable size, hence the total
-  on the left. A voided run shows a grey em dash `—` in the total's place and no room points.
+  on the left. A voided run shows `Score: —` in grey in the total's place and no room points.
 - Map selector (`src/ui/map-browser.ts`): each map row and favourite shows its best at the row's
   end in green, for the world mode of the player's current camera (`cfg.cameraMode`, which C and
   Settings camera keep current); the Maps panel redraws the lists each time it opens, so a camera
