@@ -154,3 +154,14 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   scales performRangedAttack's launch speed; the skeleton head (skelitonHead, #proportional: distance /
   10 per tick) fires at 0.7 of it. Its missile still flies past Merlin (friction 3 carries a
   proportional shot about 3x the distance), only slower.
+- **Slower enemy shots (owner, 2026-10-26):** `shotSpeedScale` now also scales a spell's flight
+  speed (`spellFlightSpeed` = spellSpeed x shotSpeedScale, objSpell.releaseNormal), so one field
+  covers bullets and spells. In `assets/tuning.json`: goblin mage 0.9 (its energy blast flies 18 px a
+  tick, was 20), dark mage 0.8 (16), shuriken ninja 0.8 (#fullstrength, strength 8: 6.4), quadranid
+  0.9 (laser, strength 10: 9); skeleton heads keep 0.7. Merlin's spells stay at 1, and so do the
+  friendly goblin mages (the owner named the enemies). Spell speed in the original: the goblin
+  mage's 20 px a tick is the original data (act_energyBlast `#spellSpeed: 20`, the same as Merlin's
+  blast), so at the engine's 30 Hz ceiling it flew 600 px/s, as in the port; frameTimer has no delta
+  time, so on a machine (or a movie tempo, walking notes §4) that ran slower than 30 ticks a second,
+  every shot and walk looked slower in proportion. The port does not know the tempo the original
+  ran at.

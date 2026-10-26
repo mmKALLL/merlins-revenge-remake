@@ -172,3 +172,6 @@ back, 0 -> 100 at speed 10, so ten ticks each way): a colour matrix blends his s
 - **Medikit pickup heals nothing at once (owner, 2026-10-25):** `player.medikitPickupEnergy` 0 in
   `assets/tuning.json` (engine 25, medikitCollected's increaseEnergy(25)); the kit still goes into
   stock and heals over time. Potions keep their +25.
+- **No potion energy in the roguelite (owner, 2026-10-26):** on a roguelite floor (a `markExit` map)
+  a potion raises its stat and gives the invincibility but no +25 energy (`potionCollected`); healing
+  there comes from the kits and the floor rewards. Other maps keep the engine's +25.

@@ -9,7 +9,9 @@ Work top down; the sections below hold the details.
 
 - **High priority:** (done 2026-10-25: one music track per biome on every random map.)
 - **Medium priority:**
-  - The victory jingle does not play on winning a map if music was already playing.
+  - The victory jingle does not play on winning a map if music was already playing (second fix
+    2026-10-26, owner to confirm: the jingle stops the other effects, and a same-tick room music
+    request no longer restarts the music; engine notes sound).
   - Projectile volley spells (done on branch `volley-spells`, awaiting review; see below).
   - Less reel on Merlin: the same knockback, but more friction when he walks against his current
     movement vector.
@@ -132,6 +134,13 @@ floor; roguelite snapshots that record the floor.
   Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
+
+- Playtest feedback of 2026-10-26 (to review): `Score: ` before the total; potions give no energy
+  on roguelite floors; Merlin's energy blast charges 20 % slower and a big charge hits up to 2x
+  (1.25x at full charge with no potion, 1.5x with 5 Max Blast potions, 2x with 15); energy pulse
+  blast 2 px wider; slower goblin mage (-10 %), dark mage (-20 %), shuriken (-20 %) and quadranid
+  (-10 %) shots; smaller volley balls for bunny lob and skull toss (bolts and arrows were already
+  at their icon floor). Engine notes: spells (Playtest retune), enemies 3, potions, hud §5.
 
 - Brawl rooms and biome enemies (2026-10-25; `docs/plans/2026-09-28-random-floor-design.md`, Owner
   decision 2026-10-25): a brawl room pits two rival factions, grouped a quarter of the way in from
