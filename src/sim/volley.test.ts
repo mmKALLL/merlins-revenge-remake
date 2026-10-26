@@ -4,16 +4,16 @@
 import { describe, expect, it } from 'vitest'
 import type { ActorDef, AttackDef, VolleyDef } from '../mr-open/mr-actor-data'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { chargeLimits } from '../mr-open/mr-spell'
+import { chargeLimits, explodeWithCharge } from '../mr-open/mr-spell'
 import { addWeapon } from '../mr-open/mr-weapons'
 import { createActor } from './actors'
 import { NO_INPUT, type InputSnapshot, type SimState } from './state'
 import { anims, defs as engineDefs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
-import { ICON_ROW_SHIFT, blastCharge, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyFullCharge, volleyProjectileAttack, volleyShots, volleySpreadDeg } from './volley'
+import { ICON_ROW_SHIFT, blastCharge, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyFullCharge, volleyIconPx, volleyProjectileAttack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0 }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {
@@ -300,6 +300,21 @@ describe('the fireball (remake, blastFromCharge)', () => {
     }
     expect(burstAt).toBeLessThan(60) // at the dummy, short of the aim
     expect(energyOf(s, id)).toBeLessThan(1e6)
+  })
+
+  it('spreads its damage more evenly than the engine blast (blastFalloff), and its icon grows instead of a ball', () => {
+    const v = fireballVolley()
+    const atk = volleyProjectileAttack(engineDefs['flamingRock']!.attack, ['teamMembers'], v, v.fullCharge)
+    const pushAt = (a: AttackDef, dist: number) => {
+      const p = explodeWithCharge({ x: 0, y: 0 }, a.explodeCharge, a, [{ id: 1, pos: { x: dist, y: 0 }, radius: 0 }]).pushes[0]!.push
+      return Math.hypot(p.x, p.y)
+    }
+    const radius = atk.explodeCharge / 2
+    const engine = { ...atk, blastFalloff: 1 }
+    expect(pushAt(atk, radius * 0.9) / pushAt(atk, 0.01)).toBeGreaterThan(pushAt(engine, radius * 0.9) / pushAt(engine, 0.01))
+    expect(volleyIconPx(0, v)).toBeLessThan(volleyIconPx(v.fullCharge, v))
+    expect(volleyIconPx(v.fullCharge, v)).toBe(v.growingIconPx)
+    expect(volleyIconPx(10, VOLLEY)).toBe(volleyIconPx(0, VOLLEY))
   })
 
   it("leaves other volleys' projectiles with their bullet's own explosion", () => {

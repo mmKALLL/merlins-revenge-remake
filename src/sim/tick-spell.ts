@@ -24,7 +24,7 @@ import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-contex
 import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
-import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyBallPx, volleyLaunch, volleyProjectileAttack, volleyShots } from './volley'
+import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyBallPx, volleyIconPx, volleyLaunch, volleyProjectileAttack, volleyShots } from './volley'
 import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
@@ -45,8 +45,9 @@ export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef)
 /** The charging ball's diameter: charge x chargeSize; a volley's grows to hold its icon stack (remake). */
 export function spellBallPx(spell: ActorState, casterAttack: AttackDef): number {
   const atk = spell.attack ?? casterAttack
-  // firing, a volley's ball shrinks with the charge each shot spends
-  return atk.volley ? volleyBallPx(spell.charge, atk.chargeSize, atk.volley) : spell.charge * atk.chargeSize
+  // firing, a volley's ball shrinks with the charge each shot spends; a growing icon (no ball) stands in for it
+  if (!atk.volley) return spell.charge * atk.chargeSize
+  return atk.volley.growingIconPx > 0 ? volleyIconPx(spell.charge, atk.volley) : volleyBallPx(spell.charge, atk.chargeSize, atk.volley)
 }
 
 /**

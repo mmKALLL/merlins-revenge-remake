@@ -19,6 +19,7 @@ export interface AttackDef {
   /** remake: a melee hit lands on every target whose sprite rect meets this circle (centre from the reg point, x mirrored); null = the engine's strike point */
   strikeCircle: { centre: Vec; radius: number } | null
   chargeFullTicks: number | null // remake: the charge max is also capped at chargeStart + the charge speed x this many ticks (a faster charger reaches a bigger blast); null = engine
+  blastFalloff: number // remake: how much an explosion's push falls off with the distance from its centre: 1 = to nothing at its edge (engine), 0 = the same everywhere in it
   shotSpeedScale: number // remake: a ranged attack's bullet launch speed, and a spell's flight speed, x this (owner: enemy shots too fast); 1 = engine
   /** remake: a spell's damage x (1 + (charge - from) x perCharge), clamped to 1..max (owner: big energy blasts hit harder); perCharge 0 = engine */
   chargeDamageBonus: { from: number; perCharge: number; max: number }
@@ -98,6 +99,8 @@ export interface VolleyDef {
   fullCharge: number
   /** remake: each projectile's explodeCharge from the spell's charge as it fires (base + charge x perCharge); null = the bullet's own */
   blastFromCharge: BlastFromCharge | null
+  /** remake: the single projectile's icon grows from ICON_PX to this many px wide with the charge and no ball is drawn (a fireball); 0 = the usual ball and icons */
+  growingIconPx: number
   /** remake: a projectile that touches a hostile bursts there, its blast its only hit (a fireball); false = it hits as its bullet does */
   burstOnContact: boolean
 }
@@ -112,6 +115,8 @@ export interface BlastFromCharge {
   perCharge: number
   damageBase: number
   damagePerCharge: number
+  /** the projectile's blastFalloff (owner: a fireball's damage spread more evenly over its blast) */
+  falloff: number
 }
 
 /** modResidents #residentGroups entry: what a dwelling produces, with [min, max] ranges rolled per group. */
@@ -288,6 +293,7 @@ const ATTACK_DEFAULTS = {
   glowTeal: false, // not in structAttack; only the freezing attacks set it
   strikeCircle: null, // remake: melee hits at the collisionLoc point, as in the engine
   chargeFullTicks: null, // remake: no time cap on the charge, as in the engine
+  blastFalloff: 1, // calcCollisionVectSpell: the push falls to nothing at the blast's edge, as in the engine
   shotSpeedScale: 1, // bullets launch at performRangedAttack's speed and spells fly at spellSpeed, as in the engine
   chargeDamageBonus: NO_CHARGE_DAMAGE_BONUS, // a spell's damage is linear in its charge, as in the engine
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
@@ -295,7 +301,7 @@ const ATTACK_DEFAULTS = {
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0 }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -399,7 +405,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'burstOnContact',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -606,15 +612,15 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     minLandingSpeedShare: num(f, 'minLandingSpeedShare', c),
     spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
     chill: num(f, 'chill', c), pierce: num(f, 'pierce', c), fullCharge: num(f, 'fullCharge', c),
-    blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), burstOnContact: bool(f, 'burstOnContact', c),
+    blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), burstOnContact: bool(f, 'burstOnContact', c), growingIconPx: num(f, 'growingIconPx', c),
   }
 }
 
-/** Remake: a volley's #blastFromCharge, [#base, #perCharge, #damageBase, #damagePerCharge] or none. */
+/** Remake: a volley's #blastFromCharge, [#base, #perCharge, #damageBase, #damagePerCharge, #falloff] or none. */
 function blastFromChargeOf(v: unknown, ctx: string): BlastFromCharge | null {
   if (v === null || v === undefined || v === 'none') return null
-  if (!isPlain(v)) return bad(ctx, 'blastFromCharge', '[#base, #perCharge, #damageBase, #damagePerCharge]', v)
-  return { base: num(v, 'base', ctx), perCharge: num(v, 'perCharge', ctx), damageBase: num(v, 'damageBase', ctx), damagePerCharge: num(v, 'damagePerCharge', ctx) }
+  if (!isPlain(v)) return bad(ctx, 'blastFromCharge', '[#base, #perCharge, #damageBase, #damagePerCharge, #falloff]', v)
+  return { base: num(v, 'base', ctx), perCharge: num(v, 'perCharge', ctx), damageBase: num(v, 'damageBase', ctx), damagePerCharge: num(v, 'damagePerCharge', ctx), falloff: num(v, 'falloff', ctx) }
 }
 
 /** Remake: a volley's #launchFrom, #spell or #caster. */
@@ -642,6 +648,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     collisionLoc: vec(a, 'collisionLoc', ctx), idealAttackLoc: vec(a, 'idealAttackLoc', ctx),
     strikeCircle: strikeCircleOf(a, ctx),
     chargeFullTicks: a['chargeFullTicks'] === null ? null : num(a, 'chargeFullTicks', ctx),
+    blastFalloff: num(a, 'blastFalloff', ctx),
     shotSpeedScale: num(a, 'shotSpeedScale', ctx),
     chargeDamageBonus: chargeDamageBonusOf(a, ctx),
     blankSummonsReserve: bool(a, 'blankSummonsReserve', ctx),

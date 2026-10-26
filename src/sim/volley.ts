@@ -128,7 +128,8 @@ const FREEZE_PAYLOAD = 'takeFreeze'
  */
 export function volleyProjectileAttack(bullet: AttackDef, hits: string[], v: VolleyDef, charge: number): AttackDef {
   const explodeCharge = blastCharge(charge, v) ?? bullet.explodeCharge
-  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier * blastDamageFactor(charge, v), explodeCharge }
+  const blastFalloff = v.blastFromCharge?.falloff ?? bullet.blastFalloff
+  const attack = { ...bullet, hits, damageMultiplier: bullet.damageMultiplier * v.damageMultiplier * blastDamageFactor(charge, v), explodeCharge, blastFalloff }
   if (v.chill <= 0) return attack
   const others = bullet.payloadFunction.filter((fn) => fn !== FREEZE_PAYLOAD)
   return { ...attack, payloadFunction: [FREEZE_PAYLOAD, ...others], freezeMultiplier: v.chill, glowTeal: true }
@@ -171,6 +172,16 @@ export function iconStackSize(count: number): { w: number; h: number } {
 export function iconStackPx(count: number): number {
   const { w, h } = iconStackSize(count)
   return Math.max(w, h)
+}
+
+/**
+ * Remake (growingIconPx): a single-projectile volley's icon width, growing from ICON_PX at no charge
+ * to growingIconPx at the full charge; ICON_PX for the others.
+ */
+export function volleyIconPx(charge: number, v: VolleyDef): number {
+  if (v.growingIconPx <= 0) return ICON_PX
+  const share = Math.min(1, Math.max(0, charge) / volleyFullCharge(v))
+  return ICON_PX + (v.growingIconPx - ICON_PX) * share
 }
 
 /** The ball's diameter at no charge: room for one icon. */

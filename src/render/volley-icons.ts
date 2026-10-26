@@ -4,13 +4,13 @@
 import { Container, Sprite, type Texture } from 'pixi.js'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { ActorState } from '../sim/state'
-import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackSize, volleyShotsShown } from '../sim/volley'
+import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStackSize, volleyIconPx, volleyShotsShown } from '../sim/volley'
 
 /** Per-projectile nudges (px) for icons whose art sits off-centre in their frame (owner: the pin poked out of the ball). */
 const ICON_NUDGE: Readonly<Record<string, { x: number; y: number }>> = { smokePin: { x: 0, y: -1 }, skeletonHead: { x: 1, y: 0 } }
 
 export class VolleyIcons {
-  private stacks = new Map<number, { stack: Container; shown: number }>()
+  private stacks = new Map<number, { stack: Container; shown: number; iconPx: number }>()
 
   constructor(private layer: Container, private projectileTexture: (def: ActorDef) => Texture | undefined) {}
 
@@ -18,6 +18,8 @@ export class VolleyIcons {
   sync(a: ActorState, def: ActorDef, bulletDef: ActorDef | undefined, spellSprite: Sprite): void {
     const atk = a.attack ?? def.attack
     const shown = volleyShotsShown(a.mode, a.charge, atk.volley, a.volley)
+    // a growing icon (remake, growingIconPx) is redrawn at each whole px it grows
+    const iconPx = atk.volley ? Math.round(volleyIconPx(a.charge, atk.volley)) : ICON_PX
     const tex = bulletDef ? this.projectileTexture(bulletDef) : undefined
     let entry = this.stacks.get(a.id)
     if (shown === 0 || !tex) {
@@ -25,19 +27,20 @@ export class VolleyIcons {
       return
     }
     if (!entry) {
-      entry = { stack: new Container(), shown: 0 }
+      entry = { stack: new Container(), shown: 0, iconPx: ICON_PX }
       this.stacks.set(a.id, entry)
       this.layer.addChild(entry.stack)
     }
-    if (entry.shown !== shown) {
+    if (entry.shown !== shown || entry.iconPx !== iconPx) {
       entry.stack.removeChildren().forEach((c) => c.destroy())
-      layOut(entry.stack, tex, shown)
+      layOut(entry.stack, tex, shown, iconPx)
       entry.shown = shown
+      entry.iconPx = iconPx
     }
     entry.stack.visible = true
     entry.stack.zIndex = spellSprite.zIndex + 1
     // the icons' box is centred on the ball
-    const size = iconStackSize(shown)
+    const size = iconPx === ICON_PX ? iconStackSize(shown) : { w: iconPx, h: iconPx }
     const nudge = (bulletDef && ICON_NUDGE[bulletDef.key]) || { x: 0, y: 0 }
     entry.stack.position.set(Math.round(spellSprite.x - size.w / 2) + nudge.x, Math.round(spellSprite.y - size.h / 2) + nudge.y)
   }
@@ -57,7 +60,8 @@ export class VolleyIcons {
  * over it, so the earlier ones peek out at its top right (owner's choice); past ICONS_PER_ROW a new
  * row starts over at the first icon's place, shifted by ICON_ROW_SHIFT; all inside iconStackSize from (0, 0).
  */
-function layOut(stack: Container, tex: Texture, count: number): void {
+function layOut(stack: Container, tex: Texture, count: number, iconPx: number): void {
+  if (iconPx !== ICON_PX) return layOutGrowing(stack, tex, iconPx)
   const rowSide = iconRowPx(count)
   const k = Math.min(1, ICON_PX / Math.max(tex.width, tex.height))
   for (let i = 0; i < count; i++) {
@@ -72,3 +76,10 @@ function layOut(stack: Container, tex: Texture, count: number): void {
   }
 }
 
+/** Remake (growingIconPx): the single icon scaled to `iconPx` wide, centred in an iconPx square from (0, 0). */
+function layOutGrowing(stack: Container, tex: Texture, iconPx: number): void {
+  const icon = new Sprite(tex)
+  icon.scale.set(iconPx / Math.max(tex.width, tex.height))
+  icon.position.set(Math.round((iconPx - icon.width) / 2), Math.round((iconPx - icon.height) / 2))
+  stack.addChild(icon)
+}

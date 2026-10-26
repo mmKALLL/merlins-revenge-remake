@@ -438,6 +438,8 @@ export class Scene {
     const c = atk.chargeColour
     spr.tint = (c.r << 16) | (c.g << 8) | c.b
     spr.alpha = exploding ? Math.max(0, 1 - a.age / EXPLODE_TICKS) : 1
+    // remake (growingIconPx): the projectile's growing icon stands in for the ball
+    if (!exploding && (atk.volley?.growingIconPx ?? 0) > 0) spr.alpha = 0
     spr.rotation = 0
   }
 

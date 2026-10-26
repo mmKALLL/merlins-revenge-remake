@@ -144,6 +144,7 @@ export function explode(center: Vec, chargeAtRelease: number, a: AttackDef, vict
 /**
  * The explosion itself for a final `charge` (calcAttackHitMagic / calcCollisionVectSpell): a spell's
  * charge after chargeExplodeFactor, or an #explode bullet's explodeCharge (modExploder.getCurrentCharge).
+ * Remake: the attack's blastFalloff (1 = engine) scales how much the distance takes off the push.
  */
 export function explodeWithCharge(center: Vec, charge: number, a: AttackDef, victims: SplashVictim[]): Explosion {
   const radius = charge / 2
@@ -155,7 +156,7 @@ export function explodeWithCharge(center: Vec, charge: number, a: AttackDef, vic
     const dy = v.pos.y - center.y
     const dist = Math.hypot(dx, dy)
     if (dist * dist >= (radius + v.radius) ** 2) continue
-    const speed = (radius + v.radius - dist) * power
+    const speed = (radius + v.radius - a.blastFalloff * dist) * power
     if (speed <= 0) continue
     // avoid locs being on top of each other: targetLoc + point(0,1)
     const dir = dist === 0 ? { x: 0, y: 1 } : { x: dx / dist, y: dy / dist }

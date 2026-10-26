@@ -811,3 +811,9 @@ the aim within it.
   the charge too (damageBase 0.1635, damagePerCharge 0.02827): at the blast centre on a goblin about
   12 for a tap, 115 at full with no potions, 140 at full from 3 Max Blast potions (the cap). The ball
   peaks at 16 px (chargeSize 0.41).
+- **Fireball look and spread (owner, 2026-10-26):** no charge ball: the fireball's icon grows from 8 to
+  24 px wide with the charge (volley `growingIconPx`). Its blast spreads the damage more evenly: a new
+  attack field `blastFalloff` (engine 1: the push falls to nothing at the blast's edge) is 0.64 for its
+  projectile (`blastFromCharge` falloff), and its damage factor rises to 1.63 at the full charge
+  (damageBase 0.1439, damagePerCharge 0.03804): a full charge from 3 Max Blast potions does about 180 at
+  the centre, 130 halfway out and 80 at the edge (radius 48); a tap 12 / 9 / 6 (radius 20).
