@@ -5,6 +5,7 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { cooldownIncrement, tickCooldown } from '../mr-open/mr-attack'
 import { withUnits } from '../mr-open/mr-army'
+import { GMG_SPELL, gmgAttack } from '../mr-open/mr-golden-machine-gun'
 import { BONUS_ENERGY, GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 import { addWeapon, nextWeapon, nthSpell, weaponGroupOf, weaponOf } from '../mr-open/mr-weapons'
 import { defOf, playerStatsOf } from './actors'
@@ -62,19 +63,39 @@ function scrollAttack(t: Tick, scroll: ActorDef): AttackDef {
 
 /**
  * objScroll.collected -> objPlayerMerlinCharacter.newScrollCollected: addWeapon (selected at once)
- * and +25 energy, or for the golden machine gun gmgCollected (not ported); temporary invincibility
- * either way. Remake (owner request): on a roguelite floor (a markExit map) the scroll's startingArmy
- * goes into the reserve army.
+ * and +25 energy, or for the golden machine gun gmgCollected; temporary invincibility either way.
+ * Remake (owner request): on a roguelite floor (a markExit map) the scroll's startingArmy goes into
+ * the reserve army.
  */
 export function collectScroll(t: Tick, p: ActorState, scroll: ActorDef): void {
   startTempInvince(t)
-  if (scroll.key === GOLDEN_MACHINE_GUN) return
+  if (scroll.key === GOLDEN_MACHINE_GUN) {
+    collectGoldenMachineGun(t, p)
+    return
+  }
   const attack = scrollAttack(t, scroll)
   const key = scroll.character ?? scroll.key
-  equip(t, p, key, attack, true)
-  t.arsenal = addWeapon(t.arsenal, key, attack)
+  takeWeapon(t, p, key, attack)
   p.energy = Math.min(p.energy + BONUS_ENERGY, defOf(t.s, p).maxEnergy)
   if (t.s.grid.map.markExit) t.army = withUnits(t.army, p.team, scroll.startingArmy)
+}
+
+/** modWeaponManager.addWeapon from a scroll: the new weapon is current at once, its cooldown ready. */
+function takeWeapon(t: Tick, p: ActorState, key: string, attack: AttackDef): void {
+  equip(t, p, key, attack, true)
+  t.arsenal = addWeapon(t.arsenal, key, attack)
+}
+
+/**
+ * modGoldenMachineGun.gmgCollected -> setGmg: the gun is on at once, with no bonus energy. Remake
+ * (docs/notes/engine-mechanics-spells.md §6): the gun is a weapon of its own that fires the energy
+ * blast's gmg version (gmgAttack), taken up like a scroll's weapon; picking another weapon puts it
+ * away, as the engine's gmg key turned it off.
+ */
+function collectGoldenMachineGun(t: Tick, p: ActorState): void {
+  const spell = t.s.defs[GMG_SPELL]
+  if (!spell) throw new Error(`actor definitions have no "${GMG_SPELL}" for the golden machine gun`)
+  takeWeapon(t, p, GOLDEN_MACHINE_GUN, gmgAttack(scrollAttack(t, spell)))
 }
 
 /** modWeaponManager.updateCooldowns: the current weapon's counter and every idle one, each by its own stat. */

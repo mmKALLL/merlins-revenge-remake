@@ -5,6 +5,7 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { cooldownReady, meleeHits, meleePush, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
+import { gmgAutoFires } from '../mr-open/mr-golden-machine-gun'
 import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, hurtSpriteRectFor, isAlive, isUnit, playerStatsOf } from './actors'
@@ -37,23 +38,36 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): voi
     const held = heldChargeKind(input, p.ai.chargeKind)
     if (held !== null) {
       p.ai.chargeKind = held
-      continueCharge(t, p, def, spell)
+      if (continueCharge(t, p, def, spell)) autoFire(t, p, def, spell, input, view)
     } else releaseSpell(t, p, def, spell, input, view)
   } else if (def.attack.type === 'magic') {
-    startCharge(t, p, def, input)
+    const started = startCharge(t, p, def, input)
+    if (started) autoFire(t, p, def, started, input, view)
   } else if (def.attack.type === 'melee') {
     startSwing(t, p, def, input, view)
   }
 }
 
-function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState): void {
-  if (!cooldownReady(p.cooldown)) return // objAiAttack.attack
+/** A charge step (objAiAttack.chargeSpell); false while the cooldown holds it (objAiAttack.attack). */
+function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState): boolean {
+  if (!cooldownReady(p.cooldown)) return false // objAiAttack.attack
   const limits = chargeLimits({ ...def, attack: spell.attack ?? def.attack }) // magic limit fixed at 100 %
   p.mode = 'charge' // ensureMode(#charge)
   spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
   // the player's AI only resets its charge counter on #chargeLimited (objAiAttack.eventNotification)
   stepMultistage(t, spell)
   alignSpell(spell, p, def)
+  return true
+}
+
+/**
+ * objAiPlayer.internalEvent(#spellCharged) with the golden machine gun: a spell whose charge counter
+ * has finished is released at once (playerAttackRelease); the next charge (playerAttackCharge) waits
+ * for the cooldown that release restarts, so it starts on a later tick.
+ */
+function autoFire(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
+  const atk = spell.attack ?? def.attack
+  if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk }))) releaseSpell(t, p, def, spell, input, view)
 }
 
 /**
@@ -78,18 +92,20 @@ function releaseAim(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, in
   return ally ? { ...ally.pos } : spellAimPoint(t, p, input, p.ai.chargeKind, view, atk)
 }
 
-function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): void {
+/** objAiAttack.chargeMagic without a current spell: ensureSpell; the new spell, or undefined when none starts. */
+function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot): ActorState | undefined {
   if (p.mode === 'charge') {
     // the spell went away under the charge
     p.mode = 'walk'
     p.ai.chargeKind = null
   }
   const kind = chargeKindFor(input)
-  if (kind === null || !cooldownReady(p.cooldown)) return
+  if (kind === null || !cooldownReady(p.cooldown)) return undefined
   p.ai.mode = 'none' // ensureMode(#charge) ends a swing switched away from
   const spell = startSpell(t, p, def)
   stepMultistage(t, spell)
   p.ai.chargeKind = kind
+  return spell
 }
 
 /** The strip a melee attack plays (its animType); weaponMelee for an unknown one. */

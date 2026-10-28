@@ -27,7 +27,8 @@
 // changes between the two between ticks.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { NO_ARMY } from '../mr-open/mr-army'
-import { naturalArsenal, startingArsenal } from '../mr-open/mr-weapons'
+import { currentAttack, naturalArsenal, startingArsenal } from '../mr-open/mr-weapons'
+import { gmgStrip } from '../mr-open/mr-golden-machine-gun'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
@@ -43,7 +44,7 @@ import {
   collisionRectFor, createActor, defOf, faceAlong, isAlive, isKeptWithRoom, isSpell, isStepped, isUnit, playerOf, playerStatsOf, roomMusicTrack, spawnAllRooms,
   spawnRoomActors, stripFor,
 } from './actors'
-import { advanceAnim, extendFrame, stripNameFor } from './anim'
+import { advanceAnim, extendFrame, stripKey, stripNameFor } from './anim'
 import {
   ATTACK_STRIPS, DEFAULT_SIM_CONFIG, NO_PICKUPS, roomKey,
   type ActorState, type AnimationSet, type InputSnapshot, type RoomState, type SimConfig, type SimState, type WorldMode,
@@ -302,7 +303,8 @@ function stepAnimation(t: Tick, input: InputSnapshot): void {
     if (t.removed.has(a.id) || a.mode === 'beBuilt') continue
     const set = s.anims[defOf(s, a).name]
     const moving = a.id === s.playerId ? isAlive(a) && (input.move.x !== 0 || input.move.y !== 0) : a.vel.x !== 0 || a.vel.y !== 0
-    const name = stripNameFor(set, a.mode, moving, isSpell(s, a))
+    const gun = a.id === s.playerId && currentAttack(t.arsenal)?.gmgOn && set ? stripKey(set, gmgStrip(moving)) : undefined
+    const name = gun ?? stripNameFor(set, a.mode, moving, isSpell(s, a))
     Object.assign(a, advanceAnim(a, name, stripFor(s, { ...a, anim: name }), attackSlowdown(s, a)))
   }
 }

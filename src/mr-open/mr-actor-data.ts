@@ -3,6 +3,7 @@
 // objMoveXY, modPathFinding, modMoveToLoc that the data files rely on.
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
+import type { GmgCharge } from './mr-golden-machine-gun'
 import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLLS_WITH_ART, SCROLL_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
@@ -69,6 +70,10 @@ export interface AttackDef {
   chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
   /** remake: from its first charge on, the volume follows this map instead (owner: a quieter big blast); null = engine */
   chargeVolumeTail: ChargeVolumeMap | null
+  /** the spell's #gmgChargeMax, #gmgChargeSpeed, #gmgChargeStart and #gmgAutoFire (modAttack.gmgOn); null when it has none */
+  gmg: GmgCharge | null
+  /** fired through the golden machine gun (mr-golden-machine-gun.ts gmgAttack): autofire, the charge beside the gun; false in the data */
+  gmgOn: boolean
 }
 
 /**
@@ -184,6 +189,7 @@ export interface ActorDef {
   reincarnateAs: string[] // modReincarnate: actor keys created on the spot when killed
   runReload: boolean // objCPUCharacter: after an attack, move away from the target until the cooldown is done
   chargeLoc: Vec // objCharacter: where a charging spell sits, from the reg point (x mirrored by facing)
+  gmgChargeLoc: Vec // objCharacter: the charge loc while holding the golden machine gun (the spell beside its muzzle)
   // --- engine: exploding bullets (modExploder)
   explodeEvents: string[] // bullet events that set it off: bulletCollidedWithTarget, bulletLanded
   exploderSound: string | null // modExploder #explodeSound (the actor's own, not the attack's)
@@ -332,7 +338,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     graveOn: true, // modGrave
     reincarnateAs: [], // modReincarnate ([#none, #none, #none])
     runReload: false, // objCPUCharacter
-    chargeLoc: { x: 0, y: -8 }, // objCharacter
+    chargeLoc: { x: 0, y: -8 }, gmgChargeLoc: { x: 8, y: 0 }, // objCharacter
     explodeEvents: [], exploderVolume: 50, // modExploder
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
@@ -396,7 +402,8 @@ for (const k of [
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'frictionReelAgainstWalk', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
-  'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc',
+  'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc', 'gmgChargeLoc',
+  'gmgChargeMax', 'gmgChargeSpeed', 'gmgChargeStart', 'gmgAutoFire',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
@@ -683,6 +690,16 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
     chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
+    gmg: gmgChargeOf(a, ctx), gmgOn: false,
+  }
+}
+
+/** The spell's gmg* fields (every spell of Merlin's has the four), or null without #gmgChargeMax. */
+function gmgChargeOf(a: Plain, ctx: string): GmgCharge | null {
+  if (a['gmgChargeMax'] === undefined) return null
+  return {
+    chargeMax: num(a, 'gmgChargeMax', ctx), chargeSpeed: num(a, 'gmgChargeSpeed', ctx),
+    chargeStart: num(a, 'gmgChargeStart', ctx), autoFire: bool(a, 'gmgAutoFire', ctx),
   }
 }
 
@@ -794,7 +811,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: sound
       takeHitSound: strOrNull(r['takeHitSound']), takeHitVolume: volumeOf(r, 'takeHitVolume', ctx),
       dieSound: strOrNull(r['dieSound']), dieVolume: volumeOf(r, 'dieVolume', ctx, DEFAULT_DIE_VOLUME),
-      chargeLoc: vec(r, 'chargeLoc', ctx),
+      chargeLoc: vec(r, 'chargeLoc', ctx), gmgChargeLoc: vec(r, 'gmgChargeLoc', ctx),
       graveOn: bool(r, 'graveOn', ctx), reincarnateAs: symbolList(r, 'reincarnateAs', ctx).map(actorKey), runReload: bool(r, 'runReload', ctx),
       // engine: exploding bullets (the actor-level #explodeSound / #explodeVolume, not the attack's)
       explodeEvents: symbolList(r, 'explodeEvents', ctx), exploderSound: strOrNull(r['explodeSound']),

@@ -9,6 +9,7 @@ import { ARMY_SUMMON, takeUnit, topAvailableStage } from '../mr-open/mr-army'
 import { attackLoc, resetCooldown } from '../mr-open/mr-attack'
 import { tileOfPx } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
+import { gmgSpellCentre } from '../mr-open/mr-golden-machine-gun'
 import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
 import { spellChargeVolume } from '../mr-open/mr-sound'
 import {
@@ -35,11 +36,19 @@ const DEPOSIT_MINES = 'depositMines'
 /** Ticks an exploded spell stays for the render fade (objSpell startQuickFade). */
 export const EXPLODE_TICKS = 8
 
-/** objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there (grows upward). */
+/**
+ * objSpell.align with chargeOffsetSide #top: the ball sits on the charge loc, its bottom edge there
+ * (grows upward); fired through the golden machine gun (#side), beside the gun's muzzle.
+ */
 export function alignSpell(spell: ActorState, caster: ActorState, def: ActorDef): void {
-  const at = chargeLoc(caster.pos, def, caster.facingLeft)
+  const ballPx = spellBallPx(spell, def.attack)
   spell.prevPos = spell.pos
-  spell.pos = { x: at.x, y: at.y - spellBallPx(spell, def.attack) / 2 }
+  if ((spell.attack ?? def.attack).gmgOn) {
+    spell.pos = gmgSpellCentre(caster.pos, def.gmgChargeLoc, caster.facingLeft, ballPx)
+    return
+  }
+  const at = chargeLoc(caster.pos, def, caster.facingLeft)
+  spell.pos = { x: at.x, y: at.y - ballPx / 2 }
 }
 
 /** The charging ball's diameter: charge x chargeSize; a volley's grows to hold its icon stack (remake). */
