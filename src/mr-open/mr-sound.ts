@@ -43,6 +43,15 @@ export function chargeVolume(charge: number, map: ChargeVolumeMap = DEFAULT_CHAR
   return Math.max(0, Math.min(MAX_VOLUME, varMapRange(charge, map.charge, map.vol)))
 }
 
+/**
+ * A spell's release/explode volume: chargeVolume by its chargeVolumeMap, or by the remake's
+ * chargeVolumeTail once the charge reaches the tail's first charge.
+ */
+export function spellChargeVolume(charge: number, a: { chargeVolumeMap: ChargeVolumeMap; chargeVolumeTail: ChargeVolumeMap | null }): number {
+  const tail = a.chargeVolumeTail
+  return chargeVolume(charge, tail !== null && charge >= tail.charge[0] ? tail : a.chargeVolumeMap)
+}
+
 /** soundMaster.playSound (:176-208): first free SFX channel, else the new sound is dropped (no voice stealing). */
 export function hasFreeVoice(busy: number, voices: number = SFX_VOICES): boolean {
   return busy < voices

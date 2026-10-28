@@ -164,7 +164,17 @@
   "cBlast": {
     "attack": {
       "chargeSpeed": 0.12,
-      "chargeFullTicks": 360
+      "chargeFullTicks": 150,
+      "chargeVolumeTail": {
+        "charge": [
+          15.75,
+          55
+        ],
+        "vol": [
+          46.5,
+          60
+        ]
+      }
     }
   },
   "darkCave": {

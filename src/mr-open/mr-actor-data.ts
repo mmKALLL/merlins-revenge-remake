@@ -67,6 +67,8 @@ export interface AttackDef {
   explodeSound: string | null // sound on spell impact
   volume: number // 0-255 volume of `sound` for melee and ranged attacks (structAttack #volume, default 150)
   chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
+  /** remake: from its first charge on, the volume follows this map instead (owner: a quieter big blast); null = engine */
+  chargeVolumeTail: ChargeVolumeMap | null
 }
 
 /**
@@ -298,6 +300,7 @@ const ATTACK_DEFAULTS = {
   chargeDamageBonus: NO_CHARGE_DAMAGE_BONUS, // a spell's damage is linear in its charge, as in the engine
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
+  chargeVolumeTail: null, // the release/explode volume follows chargeVolumeMap at every charge, as in the engine
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
@@ -676,6 +679,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     beam: a['beam'] === true, glowTeal: a['glowTeal'] === true, freezeMultiplier: num(a, 'freezeMultiplier', ctx),
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
+    chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
   }
 }
 
