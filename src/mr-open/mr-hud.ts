@@ -22,6 +22,11 @@ export const GAME_SCREEN = {
    * icon sits there (the original shows the weapon only in the weaponSelector palette).
    */
   wizard: { x: 72, y: 0 },
+  /**
+   * prg_armyMaster: the right margin, where armyMaster.displayNextSummons draws the army display (not
+   * ported). Remake: the reserve army display (src/render/army-display.ts) uses it.
+   */
+  army: { x: 608, y: 16, w: 32, h: 288 },
   /** health_grey_locz151: the word "health", drawn as is (ink copy). */
   healthLabel: { x: 32, y: 306 },
   /** health_bar_surround: the bar's frame (ink background transparent: its white inside shows the stage). */

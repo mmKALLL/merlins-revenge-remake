@@ -1,7 +1,8 @@
 // Small player preferences kept in localStorage: the pixel size, the Space mode, the random maps mode, the debug
-// readout, the frame rate and the last map started. Storage
+// readout, the army display, the frame rate and the last map started. Storage
 // may be blocked; then a choice lasts for this page only.
 import { SPACE_MODES, type SpaceMode } from '../input/keyboard'
+import { ARMY_DISPLAYS, type ArmyDisplayMode } from '../render/army-entries'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '../sim/difficulty'
 
@@ -13,6 +14,7 @@ const DEBUG_INFO_KEY = 'mr-remake.debugInfo'
 const FRAME_RATE_KEY = 'mr-remake.frameRate'
 const SEED_IN_URL_KEY = 'mr-remake.seedInUrl'
 const DIFFICULTY_KEY = 'mr-remake.difficulty'
+const ARMY_DISPLAY_KEY = 'mr-remake.armyDisplay'
 
 /** Whether each run of a generated map (a restart too) gets a new layout, or keeps the one it has. */
 export const RANDOM_MAPS_MODES = ['newEachRun', 'sameLayout'] as const
@@ -65,6 +67,11 @@ export const loadFrameRate = (fallback: FrameRate): FrameRate =>
   FRAME_RATES.find((r) => r === read(FRAME_RATE_KEY)) ?? fallback
 
 export const saveFrameRate = (r: FrameRate): void => write(FRAME_RATE_KEY, r)
+
+export const loadArmyDisplay = (fallback: ArmyDisplayMode): ArmyDisplayMode =>
+  ARMY_DISPLAYS.find((m) => m === read(ARMY_DISPLAY_KEY)) ?? fallback
+
+export const saveArmyDisplay = (m: ArmyDisplayMode): void => write(ARMY_DISPLAY_KEY, m)
 
 /** Whether a generated map's seed goes into the page URL (on unless turned off). */
 export const loadSeedInUrl = (): boolean => read(SEED_IN_URL_KEY) !== 'off'
