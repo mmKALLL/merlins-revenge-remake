@@ -144,8 +144,8 @@ floor; roguelite snapshots that record the floor.
 
 - Melee units in larger numbers (2026-10-28; `docs/plans/2026-09-28-random-floor-design.md`, Owner
   decision 2026-10-28): a room's draws count a melee unit as 0.75 of a unit (`MELEE_UNIT_SHARE` in
-  `src/gen/floor.ts`), in fixed counts, HP budgets and brawl sides; floors hold 6-13 % more units
-  (Remorseless Mountains unchanged: no melee units). Owner to playtest and tune the share.
+  `src/gen/floor.ts`), in fixed counts, HP budgets and brawl sides; floors hold 5-14 % more units
+  (Remorseless Mountains and the Magic Maze about unchanged: no or few melee units). Owner to playtest and tune the share.
 - Playtest feedback of 2026-10-26 (to review): `Score: ` before the total; potions give no energy
   on roguelite floors; Merlin's energy blast charges 20 % slower and a big charge hits up to 2x
   (1.25x at full charge with no potion, 1.5x with 5 Max Blast potions, 2x with 15); energy pulse
