@@ -7,7 +7,7 @@ import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
 import { ROGUELITE_FLOOR_COUNT } from '../run/run'
 import { button, el, menuList, panel } from './dom'
 import { focusInRows } from './grid-nav'
-import { scrollArt, wordsOf, type SpriteArt } from './floor-pick'
+import { scrollArt, scrollName, type SpriteArt } from './floor-pick'
 import type { MenuPanel } from './overlay'
 import { statsPanel } from './roguelite-stats-view'
 
@@ -89,7 +89,7 @@ function fact(name: string, value: string): HTMLElement[] {
 /** A collected spell: its scroll and writing, as on the pick screen's spell card. */
 function spellCard(scroll: string, art: SpriteArt): HTMLElement {
   const card = el('span', 'summary-spell')
-  card.title = wordsOf(scroll)
+  card.title = scrollName(scroll)
   card.append(scrollArt(scroll, art))
   return card
 }

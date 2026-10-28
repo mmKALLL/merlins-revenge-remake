@@ -5,7 +5,7 @@
 // between the rows) or Tab and Enter, the number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
 import { potionTotal, RESERVED_WEAPONS, scrollPotions, type RewardOption } from '../run/rewards'
-import type { PotionCount } from '../mr-open/mr-pickup'
+import { GOLDEN_MACHINE_GUN, type PotionCount } from '../mr-open/mr-pickup'
 import { el, panel } from './dom'
 import { focusInRows } from './grid-nav'
 import type { MenuPanel } from './overlay'
@@ -55,6 +55,10 @@ export const wordsOf = (key: string): string => {
 }
 const potionName = (character: string): string => POTION_NAMES[character] ?? wordsOf(character)
 
+/** Scrolls whose keys do not read as their names. */
+const SCROLL_NAMES: Record<string, string> = { [GOLDEN_MACHINE_GUN]: 'Golden machine gun' }
+export const scrollName = (key: string): string => SCROLL_NAMES[key] ?? wordsOf(key)
+
 /** Units whose keys do not read as their names, for the biome cards' labels. */
 const UNIT_NAMES: Record<string, string> = {
   scWarrior: 'Scarlet warrior',
@@ -82,7 +86,7 @@ function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
   return row
 }
 
-/** A scroll reward's heading: a reserved melee weapon is a new weapon, the rest new spells. */
+/** A scroll reward's heading: a reserved weapon (melee, or the golden machine gun) is a new weapon, the rest new spells. */
 const scrollHeading = (scroll: string): string => (RESERVED_WEAPONS.includes(scroll) ? 'New weapon' : 'New spell')
 
 const potionsLabel = (potions: readonly PotionCount[]): string => potions.map((p) => `${p.count} ${potionName(p.character)}`).join(', ')
@@ -92,7 +96,7 @@ function rewardLabel(r: RewardOption): string {
   switch (r.kind) {
     case 'spell': {
       const potions = scrollPotions(r.scroll)
-      return `${scrollHeading(r.scroll)}: ${wordsOf(r.scroll)}${potions.length > 0 ? ` and ${potionsLabel(potions)}` : ''}`
+      return `${scrollHeading(r.scroll)}: ${scrollName(r.scroll)}${potions.length > 0 ? ` and ${potionsLabel(potions)}` : ''}`
     }
     case 'heal': return HEAL_LABEL
     case 'potions': return `${potionTotal(r.potions)} potions: ${potionsLabel(r.potions)}`
@@ -217,7 +221,7 @@ const potionRow = (p: PotionCount, art: SpriteArt): HTMLElement =>
 
 /** A scroll and its writing (its name when the writing art is missing), as a spell card shows it. */
 export const scrollArt = (scroll: string, art: SpriteArt): HTMLElement =>
-  artRow(art(scroll, 'stand'), art(scroll, 'writing') ?? el('span', 'pick-title', wordsOf(scroll)))
+  artRow(art(scroll, 'stand'), art(scroll, 'writing') ?? el('span', 'pick-title', scrollName(scroll)))
 
 function artRow(...items: (HTMLElement | null)[]): HTMLElement {
   const row = el('span', 'pick-art')

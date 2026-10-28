@@ -295,6 +295,10 @@ function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: 
 const attackSlowdown = (s: SimState, a: ActorState): number =>
   a.id !== s.playerId && a.freezeTicks > 0 && ATTACK_STRIPS.has(a.mode) ? defOf(s, a).frozenAttackSlowdown : 1
 
+/** modAnimSet.getAnimSym with the golden machine gun on: Merlin holds the gun whatever his mode (when his atlas has the strip). */
+const gunStrip = (t: Tick, a: ActorState, set: AnimationSet | undefined, moving: boolean): string | undefined =>
+  a.id === t.s.playerId && set && currentAttack(t.arsenal)?.gmgOn ? stripKey(set, gmgStrip(moving)) : undefined
+
 /** 5. Animation advance for every actor; the player is "moving" while a move key is held, others while their velocity is non-zero. */
 function stepAnimation(t: Tick, input: InputSnapshot): void {
   const s = t.s
@@ -303,8 +307,7 @@ function stepAnimation(t: Tick, input: InputSnapshot): void {
     if (t.removed.has(a.id) || a.mode === 'beBuilt') continue
     const set = s.anims[defOf(s, a).name]
     const moving = a.id === s.playerId ? isAlive(a) && (input.move.x !== 0 || input.move.y !== 0) : a.vel.x !== 0 || a.vel.y !== 0
-    const gun = a.id === s.playerId && currentAttack(t.arsenal)?.gmgOn && set ? stripKey(set, gmgStrip(moving)) : undefined
-    const name = gun ?? stripNameFor(set, a.mode, moving, isSpell(s, a))
+    const name = gunStrip(t, a, set, moving) ?? stripNameFor(set, a.mode, moving, isSpell(s, a))
     Object.assign(a, advanceAnim(a, name, stripFor(s, { ...a, anim: name }), attackSlowdown(s, a)))
   }
 }
