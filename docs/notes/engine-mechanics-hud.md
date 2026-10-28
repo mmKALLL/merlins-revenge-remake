@@ -29,7 +29,7 @@ is frame 240).
 | `dd_map_to_play` | 32, 16 | the room's top-left: the play view is 576x288 at (32, 16)-(608, 304) |
 | `prg_medikitmaster` | 32, 0 | medikit display, from the top-left of the strip above the room |
 | `prg_potionmaster` | 470, 0, 138 x 16 | potions drunk, right-aligned to x 608 (the room's right edge) above the room |
-| `prg_armyMaster` | 608, 16, 32 x 288 | the right margin (army display, not ported) |
+| `prg_armyMaster` | 608, 16, 32 x 288 | the right margin (army display; the remake's reserve display, §6) |
 | `prg_wizardmaster`, `prg_gmgmaster` | 72, 0 / 90, 0 | wizard and GMG displays in the top strip (not ported; the remake draws Merlin's current weapon icon at the wizard mark, `engine-mechanics-spells.md`) |
 | `health_grey_locz151` | 32, 306, 68 x 13 | the word "health" (8-bit grey, ink copy) |
 | `health_bar_surround` | 104, 305, 100 x 14 | the health bar's frame (ink 36, background transparent) |
@@ -137,3 +137,27 @@ The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.sco
   of each potion). A run takes the setting when it starts (`src/sim/difficulty.ts`); only Hard runs
   count towards best scores and the roguelite statistics (an easier run's score is void, the grey
   dash).
+
+## 6. The reserve army display (remake decision, owner 2026-10-28)
+
+The original drew the army in the right margin (`prg_armyMaster`, `armyMaster.displayNextSummons`
+redraws it whenever the reserve changes); its drawing code is not ported. The remake shows the
+reserve army (`SimState.army`, Merlin's team) in one of two layouts the owner is comparing,
+Settings, Army display (`mr-remake.armyDisplay`, default Right):
+
+- **Right:** a column in the 32 x 288 margin, from 4 px below its top: each unit type as its stand
+  frame, shrunk (nearest, never enlarged) to fit 26 x 26 px, standing on the box's bottom and
+  centred, its count (`x2`, 9 px monospace, PIXEL_TEXT) centred under it; 4 px to the next entry.
+  Entries that would pass the margin's bottom are left out (about 7 fit).
+- **Top:** a row in the 16 px strip above the play view, from 8 px right of the weapon icon (x 98)
+  to x 470 (potionMaster's display rect): icons fitted to 14 x 14, each count to its right, 3 px
+  lower (as the medikit counter), 6 px to the next entry. Entries past x 470 are left out. The
+  potions drunk display can reach left of 470 with many potion types; the two may then touch.
+- **Off:** none. Either layout shows only while the reserve has a unit; it redraws when a count
+  changes (teleports in and out, the R key).
+- Order (`src/render/army-entries.ts`): the types in Merlin's `#armyMembers` order (warrior, archer,
+  monk, dwarf, kingInGame), then any other type by name.
+- Only the reserve ("next summons"), not the army units in play.
+- Touch: in landscape the ☰ button (40 px, top right of the window) sits over the margin's top
+  when the game fills the window's width, and the blast and target buttons (bottom right) can cover
+  the margin's lower half; in portrait the controls are in a band below the game, no overlap.

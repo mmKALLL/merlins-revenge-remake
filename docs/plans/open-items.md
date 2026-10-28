@@ -142,6 +142,12 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
+- Reserve army display, two prototypes to compare (2026-10-28, owner): Settings, Army display:
+  Right (default; a column in the right margin, the original's `prg_armyMaster` place), Top (a row
+  in the strip above the play view, between the weapon icon and the potions) or Off. Each reserve
+  unit type as its stand frame with `x2`; only the reserve, not the units in play. On phones in
+  landscape the ☰ button sits over the margin's top corner and the blast button can cover its lower
+  half (the Top layout has neither overlap). Engine notes: hud §6. Pick one, then drop the other.
 - Playtest feedback of 2026-10-26 (to review): `Score: ` before the total; potions give no energy
   on roguelite floors; Merlin's energy blast charges 20 % slower and a big charge hits up to 2x
   (1.25x at full charge with no potion, 1.5x with 5 Max Blast potions, 2x with 15); energy pulse
