@@ -436,7 +436,7 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   healBlast: 101,
   energyPunch: 103,
   monsterSummon: 104,
-  ...REMAKE_OBJECT_TILES['merlin4Objects'], // the volley spells' scrolls
+  ...REMAKE_OBJECT_TILES['merlin4Objects'], // the volley spells' scrolls, the power ostrich
 }
 
 export const MERLIN4_TILESETS: Record<LayerName, string> = {
@@ -655,7 +655,7 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   energyBeamSpell: 30,
   gmg: 38,
   merlinSword: 39,
-  ...REMAKE_OBJECT_TILES['merlinOpenObjects'], // the volley spells' scrolls
+  ...REMAKE_OBJECT_TILES['merlinOpenObjects'], // the volley spells' scrolls, the power ostrich
 }
 
 export const MERLIN_OPEN_TILESETS: Record<LayerName, string> = {
@@ -1143,6 +1143,7 @@ const TEAM_OF: Record<string, string> = {
   cocoon: 'monsters',
   lizard: 'monsters',
   lizardSoldier: 'monsters',
+  powerOstrich: 'monsters',
   boulderMonster: 'monsters',
   boulderCave: 'monsters',
   dragon: 'monsters',
@@ -1400,14 +1401,18 @@ export const DEEP_FOREST: FloorTheme = {
   },
 }
 
-/** The jungle's monsters, swamp creatures and bats leave each other alone; the ninjas (brawl rooms only) hate them all. */
+/**
+ * The jungle's monsters, swamp creatures and bats leave each other alone; the ninjas (brawl rooms
+ * only) hate them all. Owner (2026-10-28): no quadranids (the Dead Woods' critters), egg throwers
+ * instead: more lizard soldiers (their eggs hatch bugs) and power ostriches (theirs hatch baby ostriches).
+ */
 const JUNGLE = 'jungle'
 
 export const HYDRA_MARSH: FloorTheme = {
   id: 'hydra-marsh',
   name: 'West Jungle',
   locationSign: LOCATION_SIGNS.westJungle,
-  showcase: ['lizard', 'bat', 'plant', 'hydra1'],
+  showcase: ['lizard', 'lizardSoldier', 'powerOstrich', 'hydra1'],
   level: 2,
   floorSize: DEFAULT_FLOOR_SIZE,
   tileSets: MERLIN_OPEN_TILESETS,
@@ -1443,7 +1448,7 @@ export const HYDRA_MARSH: FloorTheme = {
     startMusic: 'musicLastStand',
     roomPlan: biomePlan(
       [
-        { label: 'quadranid hive', units: { cocoon: 2, quadranid: 2 }, faction: JUNGLE },
+        { label: 'egg throwers', units: { powerOstrich: 1, lizardSoldier: 2 }, faction: JUNGLE },
         { label: 'bat roost', units: { batTree: 2, bat: 2 }, faction: JUNGLE },
       ],
       [
@@ -1457,20 +1462,20 @@ export const HYDRA_MARSH: FloorTheme = {
     enemies: [
       { key: 'lizard', weight: 4, tier: 'weak', faction: JUNGLE },
       { key: 'bat', weight: 2, tier: 'weak', faction: JUNGLE },
-      { key: 'lizardSoldier', weight: 1.5, tier: 'mid', faction: JUNGLE },
+      { key: 'lizardSoldier', weight: 3, tier: 'mid', faction: JUNGLE },
       { key: 'plant', weight: 2, tier: 'mid', faction: JUNGLE },
-      { key: 'quadranid', weight: 2, tier: 'mid', faction: JUNGLE },
       // owner: druids heal the jungle's monsters and hydras
       { key: 'druid', weight: 1.5, tier: 'weak', maxPerRoom: 1, faction: JUNGLE },
       { key: 'hydra1', weight: 2, tier: 'strong', maxPerRoom: 2, faction: JUNGLE },
       { key: 'hydra2', weight: 1, tier: 'strong', maxPerRoom: 1, faction: JUNGLE },
+      // 500 energy, and its eggs hatch laser-firing baby ostriches: one a room
+      { key: 'powerOstrich', weight: 1.5, tier: 'strong', maxPerRoom: 1, faction: JUNGLE },
       // owner: ninjas for the brawls, no ninja dwelling (mysterious cloud)
       { key: 'shurikenNinja', weight: 1, tier: 'weak', faction: NINJAS, brawlOnly: true },
       { key: 'ninja', weight: 1, tier: 'mid', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
       { key: 'swordNinja', weight: 1, tier: 'strong', maxPerRoom: 2, faction: NINJAS, brawlOnly: true },
     ],
     dwellings: [
-      { key: 'cocoon', weight: 2, tier: 'weak', faction: JUNGLE },
       { key: 'batTree', weight: 1, tier: 'weak', faction: JUNGLE },
     ],
     bosses: [
