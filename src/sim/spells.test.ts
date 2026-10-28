@@ -21,15 +21,15 @@ const defs: Record<string, ActorDef> = { ...engineDefs, armySummon: { ...engineD
 
 /**
  * Three open 18x9 rooms side by side, room 1 holding `objects` (symbol -> column) on ROW and a
- * goblin in room 3, so the map is not complete from the start. `roguelite`: a markExit map (a run's floor).
+ * goblin in room 3, so the map is not complete from the start, with the remake's map `flags`.
  */
-function world(objects: Record<string, number>, roguelite = false): SimState {
+function world(objects: Record<string, number>, flags: Pick<MapDefinition, 'markExit' | 'noStartingWeapon'> = {}): SimState {
   const fill = (v: number) => Array.from({ length: 9 }, () => Array<number>(18).fill(v))
   const layers = [fill(0), fill(0), fill(0)]
   for (const [symbol, col] of Object.entries(objects)) layers[0]![ROW]![col - 1] = SYMBOLS.indexOf(symbol) + 1
   layers[2]![ROW]![9] = SYMBOLS.indexOf('goblinWarrior') + 1
   const map: MapDefinition = {
-    mapSize: { x: 3, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 }, ...(roguelite ? { markExit: true } : {}),
+    mapSize: { x: 3, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 }, ...flags,
     layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
     rooms: [1, 2, 3].map((num) => ({ num, layers: { backgroundActive: fill(0), backgroundPassive: fill(1), objects: layers[num - 1]! } })),
   }
@@ -79,6 +79,11 @@ describe("Merlin's weapons", () => {
     expect(weaponOf(s.arsenal, 'energyBlast')?.attack.chargeSpeed).toBe(0.5)
   })
 
+  it('a noStartingWeapon map starts Merlin with his punch only', () => {
+    expect(world({}).arsenal.weapons.map((w) => w.key)).toEqual(['punch', 'energyBlast'])
+    expect(world({}, { noStartingWeapon: true }).arsenal.weapons.map((w) => w.key)).toEqual(['punch'])
+  })
+
   it("Merlin's sword strikes the enemy under its strike point on its attack frame", () => {
     let s = armed(world({ goblinWarrior: 5 }), 'merlinSword')
     const goblin = ofDef(s, 'goblinWarrior')[0]!
@@ -96,7 +101,7 @@ describe('army summon', () => {
   })
 
   it("on a roguelite floor the scroll brings its starting army; a summon takes the unit from the reserve and it teleports in; with nothing to fight it teleports back", () => {
-    let s = stepUntil(world({ armySummon: 5 }, true), RIGHT, (n) => n.arsenal.current === 'armySummon')
+    let s = stepUntil(world({ armySummon: 5 }, { markExit: true }), RIGHT, (n) => n.arsenal.current === 'armySummon')
     expect(s.army['aldevar']).toEqual({ warrior: 1 })
     const target = { x: playerOf(s).pos.x + 60, y: playerOf(s).pos.y }
     // held long past the warrior's stage: only a warrior is in the reserve, so the charge stays below the archer's

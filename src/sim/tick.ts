@@ -27,7 +27,7 @@
 // changes between the two between ticks.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { NO_ARMY } from '../mr-open/mr-army'
-import { startingArsenal } from '../mr-open/mr-weapons'
+import { naturalArsenal, startingArsenal } from '../mr-open/mr-weapons'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
@@ -97,7 +97,7 @@ export function createSim(
     mapComplete: false,
     floorExited: false,
     pickups: NO_PICKUPS,
-    arsenal: startingArsenal(defs['player']!),
+    arsenal: grid.map.noStartingWeapon ? naturalArsenal(defs['player']!) : startingArsenal(defs['player']!),
     army: NO_ARMY,
     score: NEW_SCORE,
     events: [],
