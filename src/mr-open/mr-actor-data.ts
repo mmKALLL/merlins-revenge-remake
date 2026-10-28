@@ -713,10 +713,18 @@ function installedRawAttack(r: Plain, weapon: string | null, parsed: Record<stri
   return rawAttack
 }
 
-/** The actor's own #attack, with the tuning overlay's `attack` merged on when no weapon took it. */
-function naturalRawAttack(r: Plain, overlay: unknown, weapon: string | null): Plain | undefined {
-  const own = isPlain(r['attack']) ? r['attack'] : undefined
-  return weapon === null && isPlain(overlay) ? deepMerge(own ?? {}, overlay) : own
+/**
+ * The actor's own #attack, with the tuning overlay's `attack` merged on when no weapon took it, then
+ * its `naturalAttack` (which tunes a multiAttack unit's own attack apart from its weapon's).
+ */
+function naturalRawAttack(r: Plain, overlay: unknown, naturalOverlay: unknown, weapon: string | null, ctx: string): Plain | undefined {
+  let own = isPlain(r['attack']) ? r['attack'] : undefined
+  if (weapon === null && isPlain(overlay)) own = deepMerge(own ?? {}, overlay)
+  if (naturalOverlay !== undefined) {
+    if (!isPlain(naturalOverlay)) bad(ctx, 'tuning naturalAttack', 'a property list', naturalOverlay)
+    own = deepMerge(own ?? {}, naturalOverlay)
+  }
+  return own
 }
 
 /**
@@ -732,7 +740,8 @@ export function missingDefaultFields(def: ActorDef): string[] {
  * files: actor key (e.g. "goblinWarrior") -> raw text of act_<key>.txt.
  * tuning: optional deep overlay per actor key. Everything but `attack` is merged into the resolved
  * properties before the weapon is derived (so an overlay can swap `weapon`); `attack` is then merged
- * on top of the installed attack.
+ * on top of the installed attack, and `naturalAttack` on top of the actor's own attack (a weapon
+ * wielder's natural attack, e.g. the ninja's shuriken beside its sword).
  * A character's starting weapon (`#weapon`) supplies its attack (modWeaponManager.initStartingWeapon);
  * any actor file with an `#attack` list qualifies (the player's energyBlast is an objScroll).
  */
@@ -748,7 +757,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
     let r = resolveChain(key, parsed)
     const objType = String(r['objType'] ?? 'objGameObject')
     r = { ...OBJECT_DEFAULTS['*'], ...(OBJECT_DEFAULTS[objType] ?? {}), ...r }
-    const { attack: attackOverlay, ...overlay } = tuning[key] ?? {}
+    const { attack: attackOverlay, naturalAttack: naturalOverlay, ...overlay } = tuning[key] ?? {}
     r = deepMerge(r, overlay)
     const weapon = typeof r['weapon'] === 'string' ? actorKey(r['weapon']) : null
     const rawAttack = installedRawAttack(r, weapon, parsed, attackOverlay, ctx)
@@ -822,7 +831,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       splashGraveOn: bool(r, 'splashGraveOn', ctx),
       landedTicks: num(r, 'landedTicks', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
-      naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
+      naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, naturalOverlay, weapon, ctx), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
       raw: r,
     }

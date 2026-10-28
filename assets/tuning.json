@@ -215,12 +215,17 @@
   },
   "shurikenNinja": {
     "attack": {
-      "shotSpeedScale": 0.8
+      "shotSpeedScale": 1.125
     }
   },
   "quadranid": {
     "attack": {
-      "shotSpeedScale": 0.9
+      "shotSpeedScale": 0.97
+    }
+  },
+  "ninja": {
+    "naturalAttack": {
+      "shotSpeedScale": 0.75
     }
   }
 }

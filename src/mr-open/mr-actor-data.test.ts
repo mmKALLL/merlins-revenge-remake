@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { rangedShot } from './mr-attack'
 import { missingDefaultFields, NO_CHARGE_DAMAGE_BONUS, resolveActors, type Plain } from './mr-actor-data'
 
 function loadFiles(): Record<string, string> {
@@ -125,6 +126,14 @@ describe('resolveActors', () => {
     expect(() => resolveActors({ flat: '[#name: "act_flat", #type: #field]\n[1, 2, 3]' })).toThrow(/^actor flat: .*property list/)
   })
 
+  it("applies tuning[key].naturalAttack to a weapon wielder's own attack, leaving the weapon alone", () => {
+    const tuned = resolveActors(loadFiles(), { ninja: { naturalAttack: { shotSpeedScale: 0.5 } } })
+    const n = tuned['ninja']!
+    expect(n.naturalAttack.name).toBe('shuriken')
+    expect(n.naturalAttack.shotSpeedScale).toBe(0.5)
+    expect(n.attack.shotSpeedScale).toBe(1)
+  })
+
   it('lowercases non-canonical raw keys and keeps canonical spellings', () => {
     const r = defs['goblinArcher']!.raw
     expect(r['startinglevel']).toBe(0)
@@ -156,5 +165,20 @@ describe('missingDefaultFields (stale converted data)', () => {
     expect(missingDefaultFields(def)).toEqual([])
     const { minHurtboxPx: _gone, ...older } = def
     expect(missingDefaultFields(older as typeof def)).toEqual(['minHurtboxPx'])
+  })
+})
+
+describe('assets/tuning.json shuriken speed (owner: every shuriken flies at 9 px/tick)', () => {
+  const tuned = resolveActors(loadFiles(), JSON.parse(readFileSync('assets/tuning.json', 'utf8')) as Record<string, Plain>)
+  const launchSpeed = (key: string, natural: boolean): number => {
+    const def = tuned[key]!
+    const { vel } = rangedShot({ x: 0, y: 0 }, { x: 300, y: 0 }, natural ? { ...def, attack: def.naturalAttack } : def, false)
+    return Math.hypot(vel.x, vel.y)
+  }
+
+  it("throws the shurikenNinja's and the ninja's (natural attack) shurikens at the same speed", () => {
+    expect(launchSpeed('shurikenNinja', false)).toBeCloseTo(9)
+    expect(launchSpeed('ninja', true)).toBeCloseTo(9)
+    expect(tuned['ninja']!.attack.name).toBe('ninjaSword')
   })
 })
