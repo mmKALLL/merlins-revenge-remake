@@ -1,0 +1,78 @@
+[#name: "act_gmg", #type: #field]
+[
+#objType: #objScroll,
+#AiType: #objAiPowerUp,
+#inherit: #actor,
+#character: #gmg,
+#collectSound: "collect_powerup_01",
+#member: member("gmg_scroll", "gfx"),
+#minimapStatus: #spe,
+#team: #collectables,
+#weight: 3
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
