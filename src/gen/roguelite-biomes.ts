@@ -4,7 +4,7 @@
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { MEDIKIT_CHARACTER } from '../mr-open/mr-pickup'
-import type { EnergyOf } from './floor'
+import type { UnitFacts } from './floor'
 import { GenRandom } from './random'
 import { rogueliteFloor } from './roguelite'
 import type { Steps } from './steps'
@@ -73,6 +73,6 @@ export const firstBiome = (runSeed: number): FloorTheme =>
   new GenRandom(floorSeed((runSeed ^ FIRST_BIOME_SALT) >>> 0, 0)).pick(ROGUELITE_FLOORS[0]!)
 
 /** The map of the run's floor (0 = the first) in the chosen biome, `startPickups` (object keys) in its start room. */
-export function* rogueliteFloorMap(biome: FloorTheme, runSeed: number, floor: number, energyOf: EnergyOf, startPickups: readonly string[]): Steps<MapDefinition> {
-  return (yield* rogueliteFloor(biome, floorSeed(runSeed, floor), energyOf, startPickups)).map
+export function* rogueliteFloorMap(biome: FloorTheme, runSeed: number, floor: number, facts: UnitFacts, startPickups: readonly string[]): Steps<MapDefinition> {
+  return (yield* rogueliteFloor(biome, floorSeed(runSeed, floor), facts, startPickups)).map
 }

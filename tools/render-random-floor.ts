@@ -6,7 +6,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PNG } from 'pngjs'
-import { energyLookup } from '../src/gen/floor'
+import { unitFacts } from '../src/gen/floor'
 import { GENERATED_MAPS, generateMap } from '../src/gen/generated-maps'
 import { TILE_PX } from '../src/mr-open/mr-geometry'
 import type { LayerName } from '../src/mr-open/mr-map-format'
@@ -14,8 +14,8 @@ import type { LayerName } from '../src/mr-open/mr-map-format'
 const GENERATED = join(import.meta.dirname, '..', 'public', 'generated')
 /** converted sheets (pnpm assets:convert): white is already transparent there */
 const TILESETS = join(GENERATED, 'tilesets')
-/** the resolved actor definitions (tuning applied), as the page loads them: units' energies for HP budgets */
-const energyOf = energyLookup(JSON.parse(readFileSync(join(GENERATED, 'actors.json'), 'utf8')) as Record<string, { energy: number }>)
+/** the resolved actor definitions (tuning applied), as the page loads them: units' energies and attacks for the room draws */
+const facts = unitFacts(JSON.parse(readFileSync(join(GENERATED, 'actors.json'), 'utf8')) as Record<string, { energy: number; attack: { type: string } }>)
 const ROOM_LINE = [255, 0, 255, 160] as const
 
 const [outDir = 'dist/floors', mapArg = 'all', ...seedArgs] = process.argv.slice(2)
@@ -58,7 +58,7 @@ function drawTile(img: PNG, s: PNG, index: number, dx: number, dy: number): void
 
 for (const id of ids) for (const seed of seeds) {
   const started = performance.now()
-  const map = generateMap(id, seed, energyOf)
+  const map = generateMap(id, seed, facts)
   const ms = performance.now() - started
   const { mapSize, roomSize } = map
   const img = new PNG({ width: mapSize.x * roomSize.x * TILE_PX, height: mapSize.y * roomSize.y * TILE_PX })

@@ -5,7 +5,8 @@ import type { Vec } from '../mr-open/mr-geometry'
 import { parseTileKey } from '../mr-open/mr-tile-key'
 import { withRemakeObjectSymbols } from './remake-object-tiles'
 import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
-import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, energyLookup, exitRoom, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, type GeneratedFloor, type Placement } from './floor'
+import { BOSS_TILE, ROOM_SIZE, budgetCost, budgetEnergy, cornerRoom, drawToBudget, drawToSlots, exitRoom, MELEE_UNIT_SHARE, floorIsConnected, generateFloor, planCell, potionTiles, producerKeys as producerKeysOf, roomKey, startRoom, unitFacts, unitShare, type GeneratedFloor, type Placement } from './floor'
+import { GenRandom } from './random'
 import { edgeMismatches } from './edge-check'
 import { TOWER_FLOORS } from './tower'
 import { ROGUELITE_BIOMES } from './roguelite-biomes'
@@ -25,7 +26,7 @@ const key = (name: string) => {
   return { ...parsed, symbols: withRemakeObjectSymbols(name, parsed.symbols) }
 }
 /** the page's resolved actor data, so a unit without a definition fails here */
-const energyOf = energyLookup(pageDefs)
+const facts = unitFacts(pageDefs)
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 7919 + 1)
 const sameRoom = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y
 
@@ -47,7 +48,7 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
   const objects = key(theme.tileSets.objects)
   const isSolid = (i: number) => active.isSolid(i)
   const size = theme.floorSize
-  const floors = new Map<number, GeneratedFloor>(SEEDS.map((s) => [s, generateFloor(theme, s, energyOf)]))
+  const floors = new Map<number, GeneratedFloor>(SEEDS.map((s) => [s, generateFloor(theme, s, facts)]))
   const roomOf = (f: GeneratedFloor, room: Vec) => f.map.rooms[(room.y - 1) * size.x + room.x - 1]!
   const activeAt = (f: GeneratedFloor, room: Vec, x: number, y: number): number => roomOf(f, room).layers.backgroundActive![y]![x]!
   const rewards = theme.units.startRewards
@@ -62,9 +63,9 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
   const rewardKeys = new Set(['medikit', ...rewards.potions.map((p) => p.value), ...rewards.spellScrolls.map((s) => s.value), ...rewards.extras])
 
   it('is the same map for the same seed', () => {
-    expect(generateFloor(theme, 1234, energyOf)).toEqual(generateFloor(theme, 1234, energyOf))
-    if (hasMapId(theme)) expect(generateMap(floorMapId(theme), 99, energyOf)).toEqual(generateMap(floorMapId(theme), 99, energyOf))
-    expect(generateFloor(theme, 1, energyOf)).not.toEqual(generateFloor(theme, 2, energyOf))
+    expect(generateFloor(theme, 1234, facts)).toEqual(generateFloor(theme, 1234, facts))
+    if (hasMapId(theme)) expect(generateMap(floorMapId(theme), 99, facts)).toEqual(generateMap(floorMapId(theme), 99, facts))
+    expect(generateFloor(theme, 1, facts)).not.toEqual(generateFloor(theme, 2, facts))
   })
 
   it('connects the start to the exit and every unit, by the tile key', () => {
@@ -259,10 +260,12 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
   describe('room plan', () => {
     const u = theme.units
     const planned: FloorTheme = { ...theme, units: { ...u, wildcardChance: 0 } }
-    const planFloors = SEEDS.slice(0, 200).map((s) => generateFloor(planned, s, energyOf))
+    const planFloors = SEEDS.slice(0, 200).map((s) => generateFloor(planned, s, facts))
     const tierOf = new Map([...u.enemies, ...u.dwellings].map((c) => [c.key, c.tier]))
     const producerKeys = new Set([...u.dwellings, ...u.enemies.filter((c) => c.producer)].map((c) => c.key))
     const unitsIn = (f: GeneratedFloor, room: Vec) => f.placements.filter((p) => sameRoom(p.room, room) && tierOf.has(p.key)).map((p) => p.key)
+    const shareOf = unitShare(facts, producerKeys)
+    const sharesOf = (units: string[]) => units.reduce((sum, k) => sum + shareOf(k), 0)
 
     it.skipIf(!hasMidboss)('has one midboss corner, and at least two groups in each side corner', () => {
       expect(planRooms(theme).filter(({ cell }) => cell.kind === 'midboss')).toHaveLength(1)
@@ -277,9 +280,12 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
         const tiers = new Set(each.flat().flatMap((d) => Object.keys(d.tiers)))
         const most = each.reduce((sum, draws) => sum + Math.max(0, ...draws.map((d) => d.count[1])), 0)
         const least = each.reduce((sum, draws) => sum + (draws.length > 0 ? Math.min(...draws.map((d) => d.count[0])) : 0), 0)
-        expect(units.length, label).toBeLessThanOrEqual(most)
+        // counted in unit shares (a melee unit is less than one); each draw's last unit may overfill it by part of one
+        const shares = sharesOf(units)
+        const draws = each.filter((d) => d.length > 0).length
+        expect(shares, label).toBeLessThanOrEqual(most + draws)
         for (const k of units) expect(tiers.has(tierOf.get(k)!), `${label}: ${k}`).toBe(true)
-        return units.length >= least
+        return shares > least - 1
       }
       for (const { room, cell } of plain) {
         let filled = 0
@@ -309,7 +315,8 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
       const countsOf = (keys: string[]) => JSON.stringify(Object.entries(Object.fromEntries(keys.map((k) => [k, keys.filter((x) => x === k).length]))).sort())
       for (const { room, draw } of budgeted) {
         const budget = draw.hpBudget!
-        const costOf = budgetCost(budget, producerKeysOf(u), energyOf)
+        const budgetCostOf = budgetCost(budget, producerKeysOf(u), facts.energyOf)
+        const costOf = (k: string) => budgetCostOf(k) * shareOf(k)
         const reserved = [...potionTiles(size, room), ...(sameRoom(room, exitRoom(size)) ? [BOSS_TILE] : [])]
         for (const f of planFloors) {
           const placed = f.placements.filter((p) => sameRoom(p.room, room) && !notUnits.has(p.key))
@@ -376,7 +383,7 @@ describe.each(ALL_THEMES)('random floor: $name ($floorSize.x by $floorSize.y)', 
 
   it('generates a floor well under 100 ms', () => {
     const started = performance.now()
-    for (let s = 0; s < 20; s++) generateFloor(theme, 5000 + s, energyOf)
+    for (let s = 0; s < 20; s++) generateFloor(theme, 5000 + s, facts)
     expect((performance.now() - started) / 20).toBeLessThan(50)
   })
 
@@ -457,7 +464,40 @@ describe('HP budget draws', () => {
 
   it('scales the budget with the floor level, and names an actor without data', () => {
     expect(budgetEnergy({ base: 10, perLevel: 5 }, 3)).toBe(25)
-    expect(() => energyLookup({})('nobody')).toThrow(/nobody/)
+    expect(() => unitFacts({}).energyOf('nobody')).toThrow(/nobody/)
+    expect(() => unitFacts({}).isMelee('nobody')).toThrow(/nobody/)
+  })
+})
+
+describe('unit slots (fixed-count draws)', () => {
+  const shares: Record<string, number> = { archer: 1, warrior: MELEE_UNIT_SHARE }
+  const draw = (slots: number, unit: string, keepPart: (fraction: number) => boolean) =>
+    drawToSlots(slots, () => unit, (k) => shares[k]!, keepPart, () => {}).length
+
+  it('fills whole slots with whole units, and stops when nothing is left to draw', () => {
+    expect(draw(4, 'archer', () => true)).toBe(4)
+    expect(drawToSlots(4, () => null, () => 1, () => true, () => {})).toEqual([])
+  })
+
+  it('draws about 1 / MELEE_UNIT_SHARE times as many melee units as ranged ones for the same slots', () => {
+    const rng = new GenRandom(42)
+    const keep = (p: number) => rng.chance(p)
+    let ranged = 0
+    let melee = 0
+    for (let i = 0; i < 2000; i++) {
+      const slots = 1 + (i % 6)
+      ranged += draw(slots, 'archer', keep)
+      melee += draw(slots, 'warrior', keep)
+    }
+    expect(melee / ranged).toBeCloseTo(1 / MELEE_UNIT_SHARE, 1)
+  })
+
+  it('takes a unit that overfills the slots only by the chance of the share still free', () => {
+    const fractions: number[] = []
+    const units = drawToSlots(2, () => 'warrior', (k) => shares[k]!, (p) => { fractions.push(p); return false }, () => {})
+    expect(units).toHaveLength(2)
+    expect(fractions).toHaveLength(1)
+    expect(fractions[0]).toBeCloseTo((2 - 2 * MELEE_UNIT_SHARE) / MELEE_UNIT_SHARE)
   })
 })
 
@@ -482,7 +522,7 @@ describe('generated map ids', () => {
 describe('Magic Maze necromancers (owner: a regular sight)', () => {
   it('puts necromancers outside the midboss and boss rooms on many floors', () => {
     const fixed = [cornerRoom(MAGIC_MAZE.floorSize, 'farY'), exitRoom(MAGIC_MAZE.floorSize)]
-    const floors = SEEDS.slice(0, 200).map((s) => generateFloor(MAGIC_MAZE, s, energyOf))
+    const floors = SEEDS.slice(0, 200).map((s) => generateFloor(MAGIC_MAZE, s, facts))
     const featuring = floors.filter((f) => f.placements.some((p) => p.key === 'necromancer' && !fixed.some((r) => sameRoom(r, p.room))))
     expect(featuring.length).toBeGreaterThan(floors.length / 3)
   })
@@ -518,7 +558,7 @@ describe('Magic Maze corner and boss groups', () => {
     const midbossGroups = planCell(MAGIC_MAZE.units.roomPlan, midboss).groups!
     const countIn = (keys: string[], key: string) => keys.filter((k) => k === key).length
     for (const seed of SEEDS.slice(0, 100)) {
-      const f = generateFloor(MAGIC_MAZE, seed, energyOf)
+      const f = generateFloor(MAGIC_MAZE, seed, facts)
       const boss = f.placements.find((p) => sameRoom(p.room, exit) && sameRoom(p.tile, BOSS_TILE))!.key
       const midbossKeys = f.placements.filter((p) => sameRoom(p.room, midboss)).map((p) => p.key)
       const group = midbossGroups.find((g) => Object.entries(g.units).every(([k, n]) => countIn(midbossKeys, k) === n))
@@ -544,7 +584,7 @@ describe('spell scroll pools (owner rule)', () => {
 
 describe('Golden Fort (owner rules)', () => {
   const u = GOLDEN_FORT.units
-  const floors = SEEDS.slice(0, 100).map((s) => generateFloor(GOLDEN_FORT, s, energyOf))
+  const floors = SEEDS.slice(0, 100).map((s) => generateFloor(GOLDEN_FORT, s, facts))
 
   it('gives 10 potions, 2 medikits and one spell scroll of any kind in the start room', () => {
     const potionKeys = new Set(u.startRewards.potions.map((p) => p.value))

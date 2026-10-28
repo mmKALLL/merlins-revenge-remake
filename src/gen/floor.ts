@@ -61,20 +61,39 @@ const reservedTiles = (floorSize: Vec, room: Vec): Vec[] => (sameVec(room, exitR
 const FLOOR_ATTEMPTS = 8
 const RETRY_SEED_STEP = 0x9e3779b9
 
-/**
- * A unit's starting energy (ActorDef.energy, tuning applied), for HP budgets: the generator's one
- * input from the actor data, so the same seed and actor data always give the same floor.
- */
+/** A unit's starting energy (ActorDef.energy, tuning applied), or what it counts towards an HP budget. */
 export type EnergyOf = (key: string) => number
 
-/** The energy lookup over resolved actor definitions; throws for a key without one. */
-export function energyLookup(defs: Readonly<Record<string, { energy: number }>>): EnergyOf {
-  return (key) => {
-    const def = defs[key]
-    if (!def) throw new Error(`random floor: no actor definition for "${key}" (its energy counts towards an HP budget)`)
-    return def.energy
-  }
+/**
+ * What the generator knows of the units from the actor data (tuning applied): its one input
+ * besides the theme and seed, so the same seed and actor data always give the same floor.
+ */
+export interface UnitFacts {
+  energyOf: EnergyOf
+  /** whether the unit's installed attack is a melee one (ActorDef.attack.type) */
+  isMelee: (key: string) => boolean
 }
+
+/** The unit facts over resolved actor definitions; each lookup throws for a key without one. */
+export function unitFacts(defs: Readonly<Record<string, { energy: number; attack: { type: string } }>>): UnitFacts {
+  const defOf = (key: string) => {
+    const def = defs[key]
+    if (!def) throw new Error(`random floor: no actor definition for "${key}" (its energy and attack decide how it is drawn)`)
+    return def
+  }
+  return { energyOf: (key) => defOf(key).energy, isMelee: (key) => defOf(key).attack.type === 'melee' }
+}
+
+/**
+ * Owner (2026-10-28): melee units are easy prey for projectiles when they charge, so rooms of
+ * them come in larger numbers: a room's draws count a melee unit (not a producer) as this share
+ * of a unit, in fixed counts (drawToSlots) and in HP budgets alike. 1 = every unit counts the same.
+ */
+export const MELEE_UNIT_SHARE = 0.75
+
+/** How much of a unit a key counts as when a room draws it (MELEE_UNIT_SHARE). */
+export const unitShare = (facts: UnitFacts, producers: ReadonlySet<string>) => (key: string): number =>
+  !producers.has(key) && facts.isMelee(key) ? MELEE_UNIT_SHARE : 1
 
 /** A placed unit: an objects-layer key at a room tile (0-based). */
 export interface Placement {
@@ -121,15 +140,15 @@ export const roomKey = (r: Vec): string => `${r.x},${r.y}`
 export const retrySeed = (seed: number, attempt: number): number => (seed + attempt * RETRY_SEED_STEP) >>> 0
 
 /** A seeded floor for a theme; the same theme, seed, actor energies and options always give the same floor. */
-export function generateFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions = {}): GeneratedFloor {
-  return runSteps(floorSteps(theme, seed, energyOf, options))
+export function generateFloor(theme: FloorTheme, seed: number, facts: UnitFacts, options: FloorOptions = {}): GeneratedFloor {
+  return runSteps(floorSteps(theme, seed, facts, options))
 }
 
 /** generateFloor in steps: yields its progress after each room (a retry starts the count again). */
-export function* floorSteps(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions = {}): Steps<GeneratedFloor> {
+export function* floorSteps(theme: FloorTheme, seed: number, facts: UnitFacts, options: FloorOptions = {}): Steps<GeneratedFloor> {
   checkRoomPlan(theme)
   for (let attempt = 0; attempt < FLOOR_ATTEMPTS; attempt++) {
-    const floor = yield* buildFloor(theme, retrySeed(seed, attempt), energyOf, options)
+    const floor = yield* buildFloor(theme, retrySeed(seed, attempt), facts, options)
     if (floorIsConnected(floor, themeIsSolid(theme)) && hasAskedSign(floor, options)) return floor
   }
   throw new Error(`random floor ${theme.id}: no connected floor${options.locationSign ? ' with its sign' : ''} for seed ${seed} after ${FLOOR_ATTEMPTS} attempts`)
@@ -139,7 +158,7 @@ export function* floorSteps(theme: FloorTheme, seed: number, energyOf: EnergyOf,
 const hasAskedSign = (floor: GeneratedFloor, options: FloorOptions): boolean =>
   !options.locationSign || floor.map.locationSign !== undefined
 
-function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, options: FloorOptions): Steps<GeneratedFloor> {
+function* buildFloor(theme: FloorTheme, seed: number, facts: UnitFacts, options: FloorOptions): Steps<GeneratedFloor> {
   const rng = new GenRandom(seed)
   const size = theme.floorSize
   const edges = decideEdges(rng, theme)
@@ -155,7 +174,7 @@ function* buildFloor(theme: FloorTheme, seed: number, energyOf: EnergyOf, option
     const roomEdges = edges[roomKey(room)]!
     const shape = generateRoomShape(rng, ROOM_SIZE, roomEdges, theme.shape, theme.edges.openingDepth, keepOpen)
     decorate(rng, shape, theme.shape.decorationChance)
-    const units = placeUnits(rng, theme, room, shape, roomEdges, energyOf, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
+    const units = placeUnits(rng, theme, room, shape, roomEdges, facts, options, takenLeaders, safeFromArrival(room, arrival, options.safeArrivalTiles))
     placements.push(...units)
     const def = roomDefinition(rng, theme, room, shape, units)
     if (sameVec(room, start) && (options.safeArrivalTiles !== undefined || options.locationSign)) {
@@ -470,6 +489,31 @@ export function drawToBudget(count: readonly [number, number], energy: number, s
   return out
 }
 
+/**
+ * The units of a fixed-count draw of `slots` unit slots, each proposed by `next` (null: nothing
+ * left to take) and then taken by `take`, a unit filling `shareOf(unit)` of a slot. A unit that
+ * would overfill the slots is taken by the chance that the share still free is of its own
+ * (`keepPart`), so a draw of units of share s gives slots / s units on average.
+ */
+export function drawToSlots<T>(slots: number, next: () => T | null, shareOf: (unit: T) => number, keepPart: (fraction: number) => boolean, take: (unit: T) => void): T[] {
+  const out: T[] = []
+  let filled = 0
+  while (slots - filled > SLOT_EPSILON) {
+    const unit = next()
+    if (unit === null) break
+    const share = shareOf(unit)
+    const free = slots - filled
+    if (share - free > SLOT_EPSILON && !keepPart(free / share)) break
+    take(unit)
+    out.push(unit)
+    filled += share
+  }
+  return out
+}
+
+/** Rounding slack when summing unit shares. */
+const SLOT_EPSILON = 1e-9
+
 /** A group's units and what they count, for the budget of the room it leads. */
 function groupStart(group: UnitGroup | null, costOf: EnergyOf): BudgetStart {
   const units = Object.entries(group?.units ?? {})
@@ -584,20 +628,26 @@ function pickGroup<G extends UnitGroup>(rng: GenRandom, groups: readonly G[], ta
   return group
 }
 
+/** A unit drawn for a room: its key and its brawl side (0 outside brawls). */
+interface Drawn { key: string; side: Side }
+
+/** A budget cost scaled by each unit's share (MELEE_UNIT_SHARE), so a melee unit takes less of an HP budget too. */
+const sharedCost = (costOf: EnergyOf, shareOf: (key: string) => number): EnergyOf => (key) => costOf(key) * shareOf(key)
+
 /**
  * A room's units by its plan cell: the start room's own placements, or the corner potions, the
  * boss (exit room) or one of the cell's groups, then unless that group is `alone` the cell's
  * producers, regulars and mixed units (a budget draw counting the group in), all of the room's
- * one faction or alliance; in a brawl, each unit for the side with fewer so far (the group's
+ * one faction or alliance; in a brawl, each unit for the side with fewer so far by unit shares (the group's
  * units on side 0), or the other side when it has nothing for the draw.
  */
-function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, edges: RoomEdges, energyOf: EnergyOf, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
+function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, edges: RoomEdges, facts: UnitFacts, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
   const reserved = reservedTiles(theme.floorSize, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)) && isSafe(t))
   if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, edges, options)
-  const units: { key: string; side: Side }[] = []
+  const units: Drawn[] = []
   const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
   const boss = cell.kind === 'boss' ? pickGroup(rng, u.bosses, takenLeaders) : null
   const group = boss ?? (cell.groups?.length ? pickGroup(rng, cell.groups, takenLeaders) : null)
@@ -610,6 +660,9 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
     units.push({ key, side })
     count(key)
   }
+  const shareOf = unitShare(facts, producerKeys(u))
+  /** a side's units by their shares, so a side of melee units brawls in larger numbers too */
+  const sideShare = (side: Side) => units.reduce((sum, p) => sum + (p.side === side ? shareOf(p.key) : 0), 0)
   const sideSize = (side: Side) => units.filter((p) => p.side === side).length
   if (boss) {
     fixed.push({ key: boss.boss, room, tile: BOSS_TILE })
@@ -621,25 +674,27 @@ function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomSha
   for (const d of draws) {
     const { draw } = d
     if (!draw) continue
-    const costOf = draw.hpBudget ? budgetCost(draw.hpBudget, producerKeys(u), energyOf) : energyOf
-    const take = (allowance = Infinity) => {
+    const costOf = draw.hpBudget ? sharedCost(budgetCost(draw.hpBudget, producerKeys(u), facts.energyOf), shareOf) : facts.energyOf
+    const propose = (allowance = Infinity): Drawn | null => {
       const fits = (k: string) => allowance === Infinity || costOf(k) <= allowance
-      const order: Side[] = sideSize(0) <= sideSize(1) ? [0, 1] : [1, 0]
+      const order: Side[] = sideShare(0) <= sideShare(1) ? [0, 1] : [1, 0]
       for (const side of order.filter((s) => s < sides.length)) {
         const key = pickUnit(rng, d, sides[side]!, counts, !boss, fits)
-        if (key) {
-          add(key, side)
-          return key
-        }
+        if (key) return { key, side }
       }
       return null
     }
+    const take = (unit: Drawn) => add(unit.key, unit.side)
     if (draw.hpBudget) {
       const b = draw.hpBudget
-      drawToBudget(draw.count, roomBudget(rng, b, theme.level), groupStart(group, costOf), take, costOf, b.capped ? budgetCeiling(b, theme.level) : Infinity)
+      const takeKey = (allowance: number) => {
+        const unit = propose(allowance)
+        if (unit) take(unit)
+        return unit?.key ?? null
+      }
+      drawToBudget(draw.count, roomBudget(rng, b, theme.level), groupStart(group, costOf), takeKey, costOf, b.capped ? budgetCeiling(b, theme.level) : Infinity)
     } else {
-      const n = rng.int(draw.count[0], draw.count[1])
-      for (let i = 0; i < n; i++) take()
+      drawToSlots(rng.int(draw.count[0], draw.count[1]), propose, (unit) => shareOf(unit.key), (p) => rng.chance(p), take)
     }
   }
   const placed = units.slice(0, tiles.length)
