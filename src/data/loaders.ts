@@ -4,7 +4,7 @@ import { Assets, Rectangle, Texture } from 'pixi.js'
 import { missingDefaultFields, type ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { GOLDEN_MACHINE_GUN, SCROLLS_WITH_ART } from '../mr-open/mr-pickup'
+import { SCROLLS_WITH_ART } from '../mr-open/mr-pickup'
 import { EDGES, type ArrowColour, type Edge } from '../mr-open/mr-screen-exits'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { AnimationSet } from '../sim/state'
@@ -229,8 +229,8 @@ export async function loadExitArrows(): Promise<ExitArrowTextures | null> {
 /** modWeaponSelector's members: each weapon's `<key>_ws` icon by weapon key, and the palette's boxes. */
 export interface WeaponSelectorTextures { icons: Record<string, Texture>; greenBox: Texture; yellowBox: Texture }
 
-/** The weapon keys with an icon: Merlin's scrolls but the golden machine gun, the remake's volleys, and his punch. */
-export const WEAPON_ICON_KEYS = [...SCROLLS_WITH_ART.filter((k) => k !== GOLDEN_MACHINE_GUN), 'punch']
+/** The weapon keys with an icon: Merlin's scrolls (the golden machine gun's is the remake's), the remake's volleys, and his punch. */
+export const WEAPON_ICON_KEYS = [...SCROLLS_WITH_ART, 'punch']
 
 /** hud/weapon-selector/<member>.png (tools/convert-assets.ts); null, with a warning, when not converted. */
 export async function loadWeaponSelectorTextures(): Promise<WeaponSelectorTextures | null> {

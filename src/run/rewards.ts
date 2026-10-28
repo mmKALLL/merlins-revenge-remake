@@ -3,7 +3,7 @@
 // the pickups each is laid out as in the next floor's start room (src/gen/roguelite.ts). Pure.
 import { firstBiome, floorSeed } from '../gen/roguelite-biomes'
 import { GenRandom } from '../gen/random'
-import { ORIGINAL_SPELL_WEIGHT, PENDING_SCROLLS, type FloorTheme, type Weighted } from '../gen/themes'
+import { ORIGINAL_SPELL_WEIGHT, type FloorTheme, type Weighted } from '../gen/themes'
 import { GOLDEN_MACHINE_GUN, MEDIKIT_CHARACTER, type PotionCount } from '../mr-open/mr-pickup'
 
 /** A reward: a scroll's spell (or reserved weapon), a full heal and a medikit, or potions. */
@@ -33,12 +33,15 @@ const POTION_TYPES = 2
  */
 export const ENERGY_BLAST = 'energyBlast'
 /**
- * Owner: the melee weapons are never start-room scrolls; a floor's end may offer one Merlin lacks in
- * place of the new spell. The golden machine gun joins once it is ported (PENDING_SCROLLS).
+ * Owner: the melee weapons and the golden machine gun are never start-room scrolls; a floor's end
+ * may offer one Merlin lacks in place of the new spell.
  */
 const MELEE_WEAPONS: readonly string[] = ['merlinSword', 'energyPunch']
 export const RESERVED_WEAPONS: readonly string[] = [...MELEE_WEAPONS, GOLDEN_MACHINE_GUN]
-/** Owner (2026-10-26): the melee weapons come with this many faster-movement potions, to close in on the enemies. */
+/**
+ * Owner (2026-10-26): the melee weapons come with this many faster-movement potions, to close in on
+ * the enemies. The golden machine gun shoots from afar and comes alone.
+ */
 const MELEE_SPEED_POTIONS: PotionCount = { character: 'walkSpeed', count: 4 }
 /** The potions laid out with a scroll reward: the speed potions with a melee weapon, else none. */
 export const scrollPotions = (scroll: string): PotionCount[] => (MELEE_WEAPONS.includes(scroll) ? [MELEE_SPEED_POTIONS] : [])
@@ -66,7 +69,7 @@ export function rewardPools(biomes: readonly FloorTheme[]): RewardPools {
   const spells = merged((t) => t.units.startRewards.spellScrolls).filter((s) => !isReserved(s.value) && s.value !== ENERGY_BLAST)
   return {
     spellScrolls: [...spells, perBiome(ENERGY_BLAST, ORIGINAL_SPELL_WEIGHT)],
-    reservedWeapons: RESERVED_WEAPONS.filter((key) => !PENDING_SCROLLS.has(key)).map((key) => perBiome(key, RESERVED_WEAPON_WEIGHT)),
+    reservedWeapons: RESERVED_WEAPONS.map((key) => perBiome(key, RESERVED_WEAPON_WEIGHT)),
     potions: merged((t) => t.units.startRewards.potions),
   }
 }

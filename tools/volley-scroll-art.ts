@@ -133,7 +133,7 @@ interface Pixels { w: number; h: number; at: (x: number, y: number) => [number, 
  * The frame's drawn pixels cut to their bounding box and shrunk (by area) to fit w x h; a downscaled
  * pixel is drawn when its source pixels cover `coverage` of it (lower on the scroll keeps an arrow's 1 px shaft).
  */
-function miniature(frame: PNG, fit: { w: number; h: number; coverage: number }): Pixels {
+export function miniature(frame: PNG, fit: { w: number; h: number; coverage: number }): Pixels {
   const { left, top, right, bottom } = drawnBox(frame)
   const sw = right - left
   const sh = bottom - top
@@ -162,7 +162,7 @@ function miniature(frame: PNG, fit: { w: number; h: number; coverage: number }):
 }
 
 /** Paints the pixels centred on (cx, cy). */
-function paint(onto: PNG, px: Pixels, cx: number, cy: number): void {
+export function paint(onto: PNG, px: Pixels, cx: number, cy: number): void {
   const x0 = Math.round(cx - px.w / 2)
   const y0 = Math.round(cy - px.h / 2)
   for (let y = 0; y < px.h; y++) {

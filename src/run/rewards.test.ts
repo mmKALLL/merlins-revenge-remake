@@ -21,6 +21,7 @@ const scrollOf = (options: RewardOption[]) => {
 }
 const MANY_SEEDS = Array.from({ length: 2000 }, (_, i) => i + 1)
 const MELEE = ['merlinSword', 'energyPunch']
+const GOLDEN_MACHINE_GUN = 'gmg'
 
 describe('roguelite rewards', () => {
   it('never offers a spell Merlin holds', () => {
@@ -65,8 +66,7 @@ describe('roguelite rewards', () => {
       const biomes = ROGUELITE_FLOORS[floor]!.length
       expect(pools.spellScrolls.filter((s) => RESERVED_WEAPONS.includes(s.value))).toEqual([])
       expect(pools.spellScrolls.find((s) => s.value === ENERGY_BLAST)?.weight).toBe(2 * biomes)
-      // the golden machine gun waits for its port
-      expect(pools.reservedWeapons).toEqual(MELEE.map((value) => ({ value, weight: 2 * biomes })))
+      expect(pools.reservedWeapons).toEqual([...MELEE, GOLDEN_MACHINE_GUN].map((value) => ({ value, weight: 2 * biomes })))
     }
   })
 
@@ -76,14 +76,15 @@ describe('roguelite rewards', () => {
     expect(kits).toContain(ENERGY_BLAST)
   })
 
-  it('offers a reserved melee weapon in place of the spell only while Merlin lacks it', () => {
+  it('offers a reserved weapon in place of the spell only while Merlin lacks it', () => {
     const offered = (holds: (k: string) => boolean) => MANY_SEEDS.map((seed) => scrollOf(rollRewards(seed, 1, POOLS[1]!, holds)))
     const lacking = offered(holdsNothing)
-    for (const weapon of MELEE) expect(lacking).toContain(weapon)
+    for (const weapon of [...MELEE, GOLDEN_MACHINE_GUN]) expect(lacking).toContain(weapon)
     expect(lacking).toContain(ENERGY_BLAST)
     const swordHeld = offered((k) => k === 'merlinSword')
     expect(swordHeld).not.toContain('merlinSword')
     expect(swordHeld).toContain('energyPunch')
+    expect(offered((k) => k === GOLDEN_MACHINE_GUN)).not.toContain(GOLDEN_MACHINE_GUN)
   })
 
   it('rolls the same rewards for the same seed and floor', () => {
@@ -104,11 +105,15 @@ describe('reward pickups', () => {
   })
 })
 
-describe('reserved melee weapon rewards (owner rule)', () => {
-  it('come with 4 faster-movement potions', () => {
+describe('reserved weapon rewards (owner rule)', () => {
+  it('the melee ones come with 4 faster-movement potions', () => {
     for (const weapon of MELEE) {
       expect(rewardPickups({ kind: 'spell', scroll: weapon })).toEqual([weapon, 'walkSpeed', 'walkSpeed', 'walkSpeed', 'walkSpeed'])
     }
+  })
+
+  it('the golden machine gun, shooting from afar, comes alone', () => {
+    expect(rewardPickups({ kind: 'spell', scroll: GOLDEN_MACHINE_GUN })).toEqual([GOLDEN_MACHINE_GUN])
   })
 })
 

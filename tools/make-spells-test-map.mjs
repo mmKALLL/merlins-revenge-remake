@@ -1,5 +1,5 @@
 // Generates assets/maps/test_maps/spell_test.txt (2x1 rooms, 18x9 tiles, merlinOpen tilesets). Room 1: every
-// spell scroll in a row above Merlin, the remake's volley scrolls in a row below him (the first batch in the
+// spell scroll (the golden machine gun last) in a row above Merlin, the remake's volley scrolls in a row below him (the first batch in the
 // middle, the second flanking it and in the top row), and Max Blast potions in the bottom row; room 2: goblins,
 // an orc and a goblin hut to try them on (docs/notes/engine-mechanics-spells.md). Run: node tools/make-spells-test-map.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -25,7 +25,7 @@ const tile = (symbol) => {
   return i + 1
 }
 
-const SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword']
+const SCROLLS = ['armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'healBlast', 'arcticBlast', 'energyBeamSpell', 'merlinSword', 'gmg']
 const VOLLEYS = ['bombVolley', 'boltFan', 'arrowRain', 'shurikenFan', 'thunderBurst', 'pinStorm', 'lavaLob', 'needleSpray']
 // the second batch: beside the first in its row, then in the top row
 const VOLLEYS_2_LEFT = ['longbow', 'dragonFire', 'boulderLob']

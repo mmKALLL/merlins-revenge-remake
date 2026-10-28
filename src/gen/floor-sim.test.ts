@@ -10,7 +10,7 @@ import { anims } from '../sim/test-data'
 import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
 import { ROOM_SIZE, unitFacts, exitRoom, generateFloor } from './floor'
-import { PENDING_SCROLLS, ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
+import { ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
 import { ROGUELITE_BIOMES } from './roguelite-biomes'
 import { generateTower } from './tower'
 import { TOWER_TILESETS } from './tower-tilesets'
@@ -57,7 +57,6 @@ describe.each([...THEMES, ...ROGUELITE_THEMES, ...ROGUELITE_BIOMES[3]!])('random
 
   it('places only ported actors with sprites', () => {
     for (const key of Object.keys(theme.objectTiles)) {
-      if (PENDING_SCROLLS.has(key)) continue
       const def = pageDefs[key]
       expect(def, key).toBeDefined()
       if (def!.objType === MUSIC_OBJ_TYPE) continue

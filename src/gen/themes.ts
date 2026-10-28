@@ -392,13 +392,10 @@ function spellWeights(objectTiles: Record<string, number>): Weighted<string>[] {
 /** The golden machine gun pickup (act_gmg, an objScroll); merlinOpenObjects has its tile, merlin4Objects has none. */
 export { GOLDEN_MACHINE_GUN }
 /**
- * Owner note: the Magic Maze also gives the golden machine gun once act_gmg is ported. Off until
- * then; on, the maze's start rewards include it.
+ * Owner note: the Magic Maze also gives the golden machine gun (act_gmg, now ported). Off until the
+ * owner confirms; on, the maze's start rewards include it.
  */
 export const MAZE_GIVES_GOLDEN_MACHINE_GUN = false
-
-/** Reward keys the sim does not spawn yet: the golden machine gun. */
-export const PENDING_SCROLLS: ReadonlySet<string> = new Set<string>([GOLDEN_MACHINE_GUN])
 
 // ---- Goblin Forest (merlin4 tilesets) ----
 

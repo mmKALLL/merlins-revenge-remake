@@ -6,6 +6,7 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { GOLDEN_MACHINE_GUN, MERLIN_SCROLLS } from '../src/mr-open/mr-pickup'
+import { gmgIcon } from './gmg-icon'
 import { writeVolleyScrollArt } from './volley-scroll-art'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -174,7 +175,7 @@ for (const state of ['on', 'off']) {
 const spellActors = [
   'armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'arcticBlast',
   'energyBeamSpell', 'merlinSword', 'energyPulse', 'energyBeam', 'energyMine', 'summonArcher', 'summonWarrior',
-  'summonOrc', 'summonBoulder', 'summonGolem', 'dwarf', 'dwarfAxe',
+  'summonOrc', 'summonBoulder', 'summonGolem', 'dwarf', 'dwarfAxe', GOLDEN_MACHINE_GUN,
 ]
 for (const name of spellActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: Merlin\'s spells' })
@@ -215,22 +216,21 @@ const castSprites = [
   // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
   'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]
-/** Merlin's strips that only the cast has (his other frames come from gfx/merlin as BMPs): energy punch and sword. */
-const MERLIN_CAST_STRIPS = ['magicMelee', 'weaponMelee']
 /**
- * Spell scrolls by key: `<key>_scroll` (the pickup) and `<key>_writing` (shown once collected) become
- * the stand and writing strips of sprites/<key>/, as for the potions; `<key>_ws` is the weapon
- * selector icon (modWeaponSelector.getWeaponIcon). These members are not anm_* strips: dump them
- * into cast_bitmaps/ with `dump_bitmaps.py <key>_scroll <key>_writing <key>_ws punch_ws greenBox_ws yellowBox_ws`.
+ * Merlin's strips that only the cast has (his other frames come from gfx/merlin as BMPs): energy
+ * punch and sword, and holding the golden machine gun (modAnimSet.getAnimSym with the gmg on).
  */
-const SCROLLS = MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN) // the gmg is not ported yet
+const MERLIN_CAST_STRIPS = ['magicMelee', 'weaponMelee', 'weaponMagic', 'weaponMagicWalk']
 /**
  * Members whose dumped alpha channel is cut short (cBlast_scroll: the scroll's right edge, 42 drawn
  * pixels, has alpha 0 though its colours are all there); the copy drops the alpha.
  */
 const BROKEN_ALPHA_MEMBERS = new Set(['cBlast_scroll'])
-/** Weapon selector members: every scroll's icon, the punch's, and the palette's selection boxes. */
-const SELECTOR_MEMBERS = [...SCROLLS.map((k) => `${k}_ws`), 'punch_ws', 'greenBox_ws', 'yellowBox_ws']
+/**
+ * Weapon selector members: every scroll's icon, the punch's, and the palette's selection boxes. The
+ * golden machine gun has none (the engine's gun was no weapon): its icon is painted below.
+ */
+const SELECTOR_MEMBERS = [...MERLIN_SCROLLS.filter((k) => k !== GOLDEN_MACHINE_GUN).map((k) => `${k}_ws`), 'punch_ws', 'greenBox_ws', 'yellowBox_ws']
 if (existsSync(CAST_BITMAPS)) {
   const [header, ...rows] = readFileSync(join(CAST_BITMAPS, 'regpoints.tsv'), 'utf8').split('\n')
   // the frames matching `frame` into sprites/<sprite>/, with their regpoints.tsv rows
@@ -243,8 +243,12 @@ if (existsSync(CAST_BITMAPS)) {
   for (const sprite of castSprites) {
     copyCastFrames(new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`), sprite, `${sprite} frames (Director cast dump)`)
   }
-  copyCastFrames(new RegExp(`^anm_mer_(${MERLIN_CAST_STRIPS.join('|')})_\\d+_\\d+\\.png$`), 'mer', 'merlin melee frames (Director cast dump)')
-  for (const key of SCROLLS) {
+  copyCastFrames(new RegExp(`^anm_mer_(${MERLIN_CAST_STRIPS.join('|')})_\\d+_\\d+\\.png$`), 'mer', 'merlin cast-only frames (Director cast dump)')
+  // Spell scrolls by key: `<key>_scroll` (the pickup) and `<key>_writing` (shown once collected) become
+  // the stand and writing strips of sprites/<key>/, as for the potions; `<key>_ws` is the weapon
+  // selector icon (modWeaponSelector.getWeaponIcon). These members are not anm_* strips: dump them into
+  // cast_bitmaps/ with `dump_bitmaps.py <key>_scroll <key>_writing <key>_ws punch_ws greenBox_ws yellowBox_ws`.
+  for (const key of MERLIN_SCROLLS) {
     const members: [member: string, strip: string][] = [['scroll', 'stand'], ['writing', 'writing']]
     for (const [member, strip] of members) {
       const name = `${key}_${member}`
@@ -301,6 +305,14 @@ for (const [key, { glyph, at }] of Object.entries(SCROLL_LETTERS)) {
   }))
   writeFileSync(file, PNG.sync.write(scroll))
   console.log(`${file.slice(ROOT.length)}  <- ${key} scroll letter`)
+}
+
+// Remake: the golden machine gun's weapon icon, painted from its scroll (tools/gmg-icon.ts).
+const GMG_SCROLL = join(ASSETS, `sprites/${GOLDEN_MACHINE_GUN}/anm_${GOLDEN_MACHINE_GUN}_stand_1_01.png`)
+if (existsSync(GMG_SCROLL)) {
+  const to = join(ASSETS, `hud/weapon-selector/${GOLDEN_MACHINE_GUN}_ws.png`)
+  writeFileSync(to, PNG.sync.write(gmgIcon(PNG.sync.read(readFileSync(GMG_SCROLL)))))
+  console.log(`${to.slice(ROOT.length)}  <- golden machine gun icon from its scroll`)
 }
 
 // Remake (owner request): the volley spells' scrolls, writings and weapon icons, painted from the
