@@ -93,12 +93,18 @@ half's cells. Its side corners hold two medikits each in place of the potions.
     3 warriors, a mage).
 - **Hydra Marsh** (floor 2; swamp ground with puddles everywhere, reed lines, swamp trees, ferns
   and wet blue rocks; music Last Stand). One faction (`jungle`): its teams leave each other alone.
-  - Weak: lizards, bats. Dwellings: cocoons, bat trees.
+  - Weak: lizards, bats. Dwellings: bat trees.
   - Brawls only (owner, 2026-10-25): shuriken ninjas (weak), ninjas (mid), sword ninjas (strong),
     no mysterious clouds; they fight the jungle's units.
-  - Mid: lizard soldiers, plants, quadranids.
-  - Strong: hydras (2 a room), hydra 2s (1 a room); the hydra 3 leads the nest.
-  - Midboss: a quadranid hive or a bat roost. Weak corner: a lizard pack or a plant bed.
+  - Mid: lizard soldiers (weight 3; egg throwers whose eggs hatch bugs), plants.
+  - Strong: hydras (2 a room), hydra 2s (1 a room), power ostriches (1 a room; 500 energy, egg
+    throwers whose eggs hatch laser-firing baby ostriches); the hydra 3 leads the nest.
+  - Midboss: egg throwers (a power ostrich, 2 lizard soldiers) or a bat roost. Weak corner: a
+    lizard pack or a plant bed.
+  - Owner (2026-10-28): no quadranids or cocoons (the cocoons only hatch quadranids), so floor 2's
+    biomes have distinct enemies: the quadranids are the Dead Woods' critters. With the cocoons
+    gone the bat trees are the jungle's only dwelling, so the producer draws are all bat trees
+    (about 10 a floor, from 4.6).
   - Bosses: a hydra nest (hydra 3, hydra, 2 plants), a lizard war party (3 soldiers, 3 lizards).
 - **Golem Mountain** (floor 3; grey stone ground, boulders, crags, dark and blue rocks and ice;
   more and bigger rock patches, long walls and baffles; music Baroque Rock Techno).
@@ -142,7 +148,7 @@ rooms of their own:
     (2 warriors, an archer, a lava golem). The giant black orcs and vultures left the maze; Ochre's
     elementals moved to the Golden Palace.
 
-Dead Woods' quadranids are mid enemies (owner, 2026-10-26: mid on floor 2, as in West Jungle; weight
+Dead Woods' quadranids are mid enemies (owner, 2026-10-26: mid on floor 2, as West Jungle's were; weight
 2); the cocoons stay weak, and the critter nest corner (a cocoon, 4 quadranids) is left alone, since
 the critters have no weak regulars to fill the corner's weak draws.
 

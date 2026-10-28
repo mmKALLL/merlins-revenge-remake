@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { needsSprite, resolveActors } from './mr-actor-data'
-import { chargeVolume, hasFreeVoice, roomMusic, varMapRange } from './mr-sound'
+import { chargeVolume, DEFAULT_CHARGE_VOLUME_MAP, hasFreeVoice, roomMusic, spellChargeVolume, varMapRange } from './mr-sound'
 
 describe('chargeVolume (VarMapRange charge [1,100] -> vol [10,255])', () => {
   it('maps linearly and clamps at both ends', () => {
@@ -13,6 +13,19 @@ describe('chargeVolume (VarMapRange charge [1,100] -> vol [10,255])', () => {
   })
   it('handles reversed ranges like VarPercent/VarValRange', () => {
     expect(varMapRange(25, [100, 0], [0, 1])).toBeCloseTo(0.75)
+  })
+})
+
+describe('spellChargeVolume (remake chargeVolumeTail)', () => {
+  const tail = { charge: [20, 60] as [number, number], vol: [57, 70] as [number, number] }
+  const atk = { chargeVolumeMap: DEFAULT_CHARGE_VOLUME_MAP, chargeVolumeTail: tail }
+  it('follows the engine map below the tail and the tail from its first charge on', () => {
+    expect(spellChargeVolume(10, atk)).toBe(chargeVolume(10))
+    expect(spellChargeVolume(40, atk)).toBeCloseTo(63.5)
+    expect(spellChargeVolume(200, atk)).toBe(70)
+  })
+  it('is the engine volume without a tail', () => {
+    expect(spellChargeVolume(80, { ...atk, chargeVolumeTail: null })).toBe(chargeVolume(80))
   })
 })
 

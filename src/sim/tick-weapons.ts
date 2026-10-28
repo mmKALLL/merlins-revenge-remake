@@ -63,7 +63,8 @@ function scrollAttack(t: Tick, scroll: ActorDef): AttackDef {
 /**
  * objScroll.collected -> objPlayerMerlinCharacter.newScrollCollected: addWeapon (selected at once)
  * and +25 energy, or for the golden machine gun gmgCollected (not ported); temporary invincibility
- * either way. Remake (owner request): the scroll's startingArmy goes into the reserve army.
+ * either way. Remake (owner request): on a roguelite floor (a markExit map) the scroll's startingArmy
+ * goes into the reserve army.
  */
 export function collectScroll(t: Tick, p: ActorState, scroll: ActorDef): void {
   startTempInvince(t)
@@ -73,7 +74,7 @@ export function collectScroll(t: Tick, p: ActorState, scroll: ActorDef): void {
   equip(t, p, key, attack, true)
   t.arsenal = addWeapon(t.arsenal, key, attack)
   p.energy = Math.min(p.energy + BONUS_ENERGY, defOf(t.s, p).maxEnergy)
-  t.army = withUnits(t.army, p.team, scroll.startingArmy)
+  if (t.s.grid.map.markExit) t.army = withUnits(t.army, p.team, scroll.startingArmy)
 }
 
 /** modWeaponManager.updateCooldowns: the current weapon's counter and every idle one, each by its own stat. */

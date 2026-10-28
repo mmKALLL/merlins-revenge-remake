@@ -76,7 +76,7 @@ function convertMaps(): ConvertedMap[] {
       if (!objectsSet) throw new Error(`map patch ${id}: map has no objects layer`)
       const key = parseTileKey(readFileSync(join(ASSETS, 'tile-keys', `${objectsSet}.txt`), 'utf8'))
       def = applyMapPatch(def, patch, key.symbols, id)
-      patched = ` (+${patch.objects.length} patched objects)`
+      patched = ` (+${patch.objects?.length ?? 0} patched objects${patch.noStartingWeapon ? ', no starting weapon' : ''})`
     }
     maps.push({ id, def })
     const target = join(out, `${id}.json`)

@@ -375,6 +375,18 @@ a fire.
   is 130.6 (explosion radius 261 px, charge ball 131 px); with 4 Quick Charge potions (flow 5) it is
   217 (radius 434 px). The charge sound's volume map tops out at charge 100, so it plays at full
   volume from there on.
+- **cBlast is full after 5 s, and quieter when big (owner request, 2026-10-28).**
+  `cBlast.attack.chargeFullTicks` 360 -> 150: at flow 3 the max is 55 (1 + 0.36 x 150; was 130.6).
+  Its release and explode sounds take their volume from the charge (chargeVolumeMap, charge 1-100 ->
+  volume 10-255), which made a big cBlast far louder than the energy blast (whose full charge at
+  Merlin's start is 15.75: volume 46.5). A new attack field `chargeVolumeTail` (a second
+  [#charge, #vol] map; engine default null) takes over from its first charge on
+  (`spellChargeVolume` in `src/mr-open/mr-sound.ts`): cBlast's is charge [15.75, 55] -> volume
+  [46.5, 60], so up to the regular blast's size it sounds as the engine does, and past it the volume
+  rises slowly to at most 60 (1.3x the regular blast). Volume at the full charge: engine map 255
+  (charge 130.6), 143.6 at the new 5 s charge without the tail, 60 with it. The tail's numbers are
+  for Merlin's starting stats; with Mana Capacity potions the regular blast grows louder and the
+  cap stays.
 - **Attack grace (owner request, 2026-10-23).** A hostile unit that has just become active for Merlin
   starts no ranged or magic attack for the player's `activationAttackGraceTicks` (24 ticks, 0.8 s, in
   `assets/tuning.json`; engine default 0): with the room camera the units of the room he enters (and
@@ -434,7 +446,14 @@ a fire.
   warriors, 2 archers, a monk and a dwarf into the reserve: `armySummon.startingArmy` in
   `assets/tuning.json` (engine default `{}`, as the original scroll brings none). The spell then
   works as in the engine: the charge picks the stage, held below the stage above the best unit in
-  the reserve; allies go back to the reserve when they run out of enemies.
+  the reserve; allies go back to the reserve when they run out of enemies. Since 2026-10-28 (owner)
+  only on a roguelite floor (a `markExit` map, `collectScroll` in `src/sim/tick-weapons.ts`): on the
+  original maps the scroll brings no units, as in the engine.
+- **A map without the starting weapon (dev option, owner request, 2026-10-28).** A map's
+  `noStartingWeapon` (MapDefinition, remake) starts Merlin with his natural attack only (the punch),
+  as a roguelite run does (`withRunStartArsenal`); `createSim` reads it. An original map gets it
+  from its map patch: `assets/map-patches/<map id>.json` with `"noStartingWeapon": true` (the
+  patch's `objects` list is optional), applied by `tools/convert-assets.ts`.
 - **The current weapon in the HUD.** The original shows the weapon only in the Q palette; the
   remake draws the current weapon's `_ws` icon at the `prg_wizardMaster` mark (72, 0), free until
   the wizards are ported.

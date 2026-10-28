@@ -10,7 +10,7 @@ import { attackLoc, resetCooldown } from '../mr-open/mr-attack'
 import { tileOfPx } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
 import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
-import { chargeVolume } from '../mr-open/mr-sound'
+import { spellChargeVolume } from '../mr-open/mr-sound'
 import {
   armyReinIn, arrivedAtTarget, chargeDamageMultiplier, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, sendsAlliesHome, spellFlightSpeed, stageNumber,
 } from '../mr-open/mr-spell'
@@ -68,13 +68,13 @@ export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: 
     spell.age = 0
     spell.targetPoint = target
     spell.volley = { total: volleyShots(spell.charge, atk.volley), fired: 0 }
-    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
+    playSound(t, atk.releaseSound, spellChargeVolume(spell.charge, atk))
   } else {
     spell.mode = 'fly'
     spell.targetPoint = target
     spell.vel = releaseVelocity(spell.pos, target, spellFlightSpeed(atk))
     // objSpell.releaseNormal -> playReleaseSound (objSpell.txt:219-226, :247)
-    playSound(t, atk.releaseSound, chargeVolume(spell.charge, atk.chargeVolumeMap))
+    playSound(t, atk.releaseSound, spellChargeVolume(spell.charge, atk))
   }
   caster.mode = 'release'
   caster.cooldown = resetCooldown(def.attack)
@@ -325,7 +325,7 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const teams = atk.targetAllegiance === 'friendly' ? friendlyTeams(spell.team, t.s.teams) : hatedTeams(spell.team, t.s.teams)
   const victims = splashVictims(t, teams, atk.hits)
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
-  const explodeVolume = chargeVolume(spell.charge, atk.chargeVolumeMap)
+  const explodeVolume = spellChargeVolume(spell.charge, atk)
   const ex = explode(spell.pos, spell.charge, atk, victims)
   const payloadFunctions = payloadFunctionsFor(spell.charge, atk)
   const summonsReserve = blankSummonsReserve(t, spell, atk)

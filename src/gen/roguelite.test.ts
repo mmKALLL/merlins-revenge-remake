@@ -78,9 +78,10 @@ describe('roguelite run map', () => {
     expect(generateMap(ROGUELITE_MAP_ID, seed, facts)).toEqual(runSteps(rogueliteFloorMap(firstBiome(seed), seed, 0, facts, startingKitPickups(seed))))
   })
 
-  it('makes the quadranids mid enemies on floor 2 (owner)', () => {
+  it('keeps the quadranids to the Dead Woods on floor 2, as mid enemies (owner)', () => {
     for (const theme of ROGUELITE_FLOORS[1]!) {
-      expect(theme.units.enemies.filter((c) => c.key === 'quadranid').map((c) => c.tier), theme.id).toEqual(['mid'])
+      const quadranids = theme.units.enemies.filter((c) => c.key === 'quadranid').map((c) => c.tier)
+      expect(quadranids, theme.id).toEqual(theme.id === 'undead-marsh' ? ['mid'] : [])
     }
   })
 

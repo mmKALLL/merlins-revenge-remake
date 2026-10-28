@@ -1,5 +1,5 @@
 // Remake object tiles: objects-layer symbols the original keys do not have (the volley spells'
-// scrolls), so maps and floors can place them. tools/convert-assets.ts writes them into the
+// scrolls, the power ostrich), so maps and floors can place them. tools/convert-assets.ts writes them into the
 // converted keys: on merlinOpenObjects into empty slots (beside the original scrolls first; painted with
 // the scroll's art), on merlin4Objects after the key's last slot (its sheet has no empty slot; the
 // game never draws the objects layer, so those tiles need no art).
@@ -13,12 +13,15 @@ export const REMAKE_OBJECT_TILES: Readonly<Record<string, Readonly<Record<string
     skullToss: 60, frostBurst: 100, iceBoulderLob: 102, chillFlame: 109, laserVolley: 110,
     // the archive's unused music tracks (music tiles are not drawn)
     musicFinalStand2: 206, musicMerl2319: 207, musicUltimateSongThing: 208,
+    // units the original keys do not place (an empty slot; its stand frame is not drawn on the sheet)
+    powerOstrich: 148,
   },
   merlin4Objects: {
     bombVolley: 173, boltFan: 174, arrowRain: 175, shurikenFan: 176, thunderBurst: 177, pinStorm: 178, lavaLob: 179, needleSpray: 180,
     longbow: 181, dragonFire: 182, boulderLob: 183, darkRockBurst: 184, poisonSmoke: 185, acidSplash: 186, lightningFan: 187, bunnyLob: 188,
     skullToss: 189, frostBurst: 190, iceBoulderLob: 191, chillFlame: 192, laserVolley: 193,
     musicFinalStand2: 194, musicMerl2319: 195, musicUltimateSongThing: 196,
+    powerOstrich: 197,
   },
 }
 

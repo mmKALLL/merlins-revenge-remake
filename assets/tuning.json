@@ -22,7 +22,8 @@
         "perCharge": 0.09,
         "max": 2
       }
-    }
+    },
+    "exitOpenDelayTicks": 18
   },
   "goblinWarrior": {
     "pathFindingStallTime": 2,
@@ -73,7 +74,8 @@
     "frictionReel": {
       "x": 20,
       "y": 20
-    }
+    },
+    "walkSpeed": 3.6
   },
   "plant": {
     "minHurtboxPx": 12
@@ -163,7 +165,17 @@
   "cBlast": {
     "attack": {
       "chargeSpeed": 0.12,
-      "chargeFullTicks": 360
+      "chargeFullTicks": 150,
+      "chargeVolumeTail": {
+        "charge": [
+          15.75,
+          55
+        ],
+        "vol": [
+          46.5,
+          60
+        ]
+      }
     }
   },
   "darkCave": {
@@ -215,12 +227,17 @@
   },
   "shurikenNinja": {
     "attack": {
-      "shotSpeedScale": 0.8
+      "shotSpeedScale": 1.125
     }
   },
   "quadranid": {
     "attack": {
-      "shotSpeedScale": 0.9
+      "shotSpeedScale": 0.97
+    }
+  },
+  "ninja": {
+    "naturalAttack": {
+      "shotSpeedScale": 0.75
     }
   }
 }

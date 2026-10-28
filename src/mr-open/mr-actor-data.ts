@@ -67,6 +67,8 @@ export interface AttackDef {
   explodeSound: string | null // sound on spell impact
   volume: number // 0-255 volume of `sound` for melee and ranged attacks (structAttack #volume, default 150)
   chargeVolumeMap: ChargeVolumeMap // spell release/explode volume from charge (VarMapRange charge -> vol)
+  /** remake: from its first charge on, the volume follows this map instead (owner: a quieter big blast); null = engine */
+  chargeVolumeTail: ChargeVolumeMap | null
 }
 
 /**
@@ -231,6 +233,8 @@ export interface ActorDef {
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   /** the player: a hostile unit that becomes active (its room entered, the map start, a wake in the continuous world) starts no ranged or magic attack for this many ticks; 0 = engine */
   activationAttackGraceTicks: number
+  /** the player: when a room's exits open on its clear, Merlin can leave through them only after this many ticks (the arrows show at once); 0 = engine */
+  exitOpenDelayTicks: number
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
@@ -298,6 +302,7 @@ const ATTACK_DEFAULTS = {
   chargeDamageBonus: NO_CHARGE_DAMAGE_BONUS, // a spell's damage is linear in its charge, as in the engine
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
+  chargeVolumeTail: null, // the release/explode volume follows chargeVolumeMap at every charge, as in the engine
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
@@ -364,6 +369,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     activationAttackGraceTicks: 0, // units attack as soon as they are active, as in the engine
+    exitOpenDelayTicks: 0, // the exits let Merlin out as soon as they open, as in the engine
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
     explosionsLinger: false, // a blast hits on its first tick only, as in the engine
@@ -403,7 +409,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'exitOpenDelayTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx',
 ]) {
@@ -676,6 +682,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     beam: a['beam'] === true, glowTeal: a['glowTeal'] === true, freezeMultiplier: num(a, 'freezeMultiplier', ctx),
     sound: strOrNull(a['sound']), releaseSound: strOrNull(a['releaseSound']), explodeSound: strOrNull(a['explodeSound']),
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
+    chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
   }
 }
 
@@ -713,10 +720,18 @@ function installedRawAttack(r: Plain, weapon: string | null, parsed: Record<stri
   return rawAttack
 }
 
-/** The actor's own #attack, with the tuning overlay's `attack` merged on when no weapon took it. */
-function naturalRawAttack(r: Plain, overlay: unknown, weapon: string | null): Plain | undefined {
-  const own = isPlain(r['attack']) ? r['attack'] : undefined
-  return weapon === null && isPlain(overlay) ? deepMerge(own ?? {}, overlay) : own
+/**
+ * The actor's own #attack, with the tuning overlay's `attack` merged on when no weapon took it, then
+ * its `naturalAttack` (which tunes a multiAttack unit's own attack apart from its weapon's).
+ */
+function naturalRawAttack(r: Plain, overlay: unknown, naturalOverlay: unknown, weapon: string | null, ctx: string): Plain | undefined {
+  let own = isPlain(r['attack']) ? r['attack'] : undefined
+  if (weapon === null && isPlain(overlay)) own = deepMerge(own ?? {}, overlay)
+  if (naturalOverlay !== undefined) {
+    if (!isPlain(naturalOverlay)) bad(ctx, 'tuning naturalAttack', 'a property list', naturalOverlay)
+    own = deepMerge(own ?? {}, naturalOverlay)
+  }
+  return own
 }
 
 /**
@@ -732,7 +747,8 @@ export function missingDefaultFields(def: ActorDef): string[] {
  * files: actor key (e.g. "goblinWarrior") -> raw text of act_<key>.txt.
  * tuning: optional deep overlay per actor key. Everything but `attack` is merged into the resolved
  * properties before the weapon is derived (so an overlay can swap `weapon`); `attack` is then merged
- * on top of the installed attack.
+ * on top of the installed attack, and `naturalAttack` on top of the actor's own attack (a weapon
+ * wielder's natural attack, e.g. the ninja's shuriken beside its sword).
  * A character's starting weapon (`#weapon`) supplies its attack (modWeaponManager.initStartingWeapon);
  * any actor file with an `#attack` list qualifies (the player's energyBlast is an objScroll).
  */
@@ -748,7 +764,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
     let r = resolveChain(key, parsed)
     const objType = String(r['objType'] ?? 'objGameObject')
     r = { ...OBJECT_DEFAULTS['*'], ...(OBJECT_DEFAULTS[objType] ?? {}), ...r }
-    const { attack: attackOverlay, ...overlay } = tuning[key] ?? {}
+    const { attack: attackOverlay, naturalAttack: naturalOverlay, ...overlay } = tuning[key] ?? {}
     r = deepMerge(r, overlay)
     const weapon = typeof r['weapon'] === 'string' ? actorKey(r['weapon']) : null
     const rawAttack = installedRawAttack(r, weapon, parsed, attackOverlay, ctx)
@@ -809,6 +825,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       activationAttackGraceTicks: num(r, 'activationAttackGraceTicks', ctx),
+      exitOpenDelayTicks: num(r, 'exitOpenDelayTicks', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       explosionsLinger: bool(r, 'explosionsLinger', ctx),
@@ -822,7 +839,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       splashGraveOn: bool(r, 'splashGraveOn', ctx),
       landedTicks: num(r, 'landedTicks', ctx),
       attack: withBulletKey(buildAttack(rawAttack, ctx), actorKey),
-      naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, weapon), ctx), actorKey),
+      naturalAttack: withBulletKey(buildAttack(naturalRawAttack(r, attackOverlay, naturalOverlay, weapon, ctx), ctx), actorKey),
       multiAttack: bool(r, 'multiAttack', ctx), bufferDist: num(r, 'bufferDist', ctx),
       raw: r,
     }

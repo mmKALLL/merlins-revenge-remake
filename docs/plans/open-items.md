@@ -146,6 +146,17 @@ floor; roguelite snapshots that record the floor.
   decision 2026-10-28): a room's draws count a melee unit as 0.75 of a unit (`MELEE_UNIT_SHARE` in
   `src/gen/floor.ts`), in fixed counts, HP budgets and brawl sides; floors hold 5-14 % more units
   (Remorseless Mountains and the Magic Maze about unchanged: no or few melee units). Owner to playtest and tune the share.
+
+- Board feedback of 2026-10-28 (to review): every shuriken flies at 9 px a tick (shuriken ninja and
+  the ninja's natural throw; tuning.json's new `naturalAttack` key); flamethrower lizards walk 1.8x
+  faster; energy blast c full in 5 s, its sound at most 1.3x the regular blast's; quadranid shots
+  0.97; the exits let Merlin out 0.6 s after a clear (arrows at once); the army summon's starting
+  army only in the roguelite; a map patch can start Merlin without the energy blast
+  (`"noStartingWeapon": true`, assets/README.md); West Jungle without quadranids or cocoons, with
+  more lizard soldiers and power ostriches (owner to check: the bat trees are now its only dwelling,
+  about 10 a floor from 4.6). Engine notes: enemies 3, spells (Remake decisions), walking §7;
+  roguelite design doc, Biomes.
+
 - Playtest feedback of 2026-10-26 (to review): `Score: ` before the total; potions give no energy
   on roguelite floors; Merlin's energy blast charges 20 % slower and a big charge hits up to 2x
   (1.25x at full charge with no potion, 1.5x with 5 Max Blast potions, 2x with 15); energy pulse

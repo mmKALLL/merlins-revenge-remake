@@ -140,6 +140,10 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   weak" corner, the Golden Fort): the other draws place a fixed count of units whatever their energy.
   Over 200 seeds per floor: Hydra Marsh 20.1 -> 23.2 lizards, Dragon Canyon 7.2 -> 7.4, Woods of
   Mourning 3.2 -> 3.2, Golden Fort 1.3 -> 1.4. No `maxPerRoom` caps them.
+- **Small lizards walk 1.8x faster (owner, 2026-10-28).** A CPU character walks at its `walkSpeed`
+  (modMoveToLoc; `walkAcceleration` is the player's): `lizard.walkSpeed` 2 -> 3.6 in
+  `assets/tuning.json`, so after the 50 % walking friction it covers 1.8 px a tick (54 px/s) instead
+  of 1 (30 px/s). `fireLizard` again keeps its data.
 - **Least hit area (`minHurtboxPx`, ActorDef, engine default 0).** The plant's stand frame (its seed,
   7x10 px, reg (4,-2)) gives it the fixed collision rect (-3,3)-(2,11), 5x8 px, for its whole life
   (`collisionRectType #fixed`, see `collisionRectFor`), and the 7x10 sprite rect for melee and
@@ -165,3 +169,12 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   time, so on a machine (or a movie tempo, walking notes §4) that ran slower than 30 ticks a second,
   every shot and walk looked slower in proportion. The port does not know the tempo the original
   ran at.
+- **Every shuriken at 9 px a tick; quadranid lasers a tad faster (owner, 2026-10-28).** Two units
+  throw shurikens, both #fullstrength: the shuriken ninja (its own attack, strength 8) and the ninja
+  (a multiAttack unit: its natural attack throws them at strength 12, its weapon is the ninjaSword).
+  A tuning entry's `attack` tunes the installed attack, which for the ninja is the sword's, so
+  `tuning.json` has a second key, `naturalAttack`, merged onto the actor's own #attack only
+  (`naturalRawAttack` in `src/mr-open/mr-actor-data.ts`). `shurikenNinja.attack.shotSpeedScale` 1.125
+  (8 x 1.125 = 9, was 6.4) and `ninja.naturalAttack.shotSpeedScale` 0.75 (12 x 0.75 = 9, was 12); the
+  ninja's sword is untouched. The sword ninja has no throw (multiAttack false, no #attack of its own).
+  `quadranid.attack.shotSpeedScale` 0.9 -> 0.97 (laser 9 -> 9.7 px a tick).

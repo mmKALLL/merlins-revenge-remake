@@ -1,16 +1,18 @@
 // Applies assets/map-patches/<map id>.json on top of a converted map, so test content can be added
-// without editing the copies of the original map files. A patch places objects-layer symbols.
+// without editing the copies of the original map files. A patch places objects-layer symbols, and
+// can start Merlin without his starting weapon (noStartingWeapon).
 import type { MapDefinition } from '../src/mr-open/mr-map-format'
 
 export interface MapPatch {
   why?: string
-  objects: { room: number; col: number; row: number; symbol: string }[]
+  objects?: { room: number; col: number; row: number; symbol: string }[]
+  noStartingWeapon?: boolean
 }
 
 /** Returns a patched copy; `objectSymbols[i]` is the objects tileset's symbol for tile index i + 1. */
 export function applyMapPatch(map: MapDefinition, patch: MapPatch, objectSymbols: string[], mapName: string): MapDefinition {
   const rooms = map.rooms.map((r) => ({ ...r, layers: { ...r.layers } }))
-  for (const o of patch.objects) {
+  for (const o of patch.objects ?? []) {
     const where = `map patch ${mapName}: room ${o.room} (${o.col},${o.row}) ${o.symbol}`
     const index = objectSymbols.indexOf(o.symbol) + 1
     if (index === 0) throw new Error(`${where}: symbol not in the objects tileset key`)
@@ -21,5 +23,5 @@ export function applyMapPatch(map: MapDefinition, patch: MapPatch, objectSymbols
     objects[o.row - 1]![o.col - 1] = index
     room.layers.objects = objects
   }
-  return { ...map, rooms }
+  return { ...map, rooms, ...(patch.noStartingWeapon ? { noStartingWeapon: true } : {}) }
 }

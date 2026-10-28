@@ -36,6 +36,8 @@ export interface MapDefinition {
   markExit?: boolean
   /** remake (roguelite floors): where the biome's original sign stands in the start room (its tiles are on the map) */
   locationSign?: LocationSign
+  /** remake (dev, set by a map patch): Merlin starts the map with his natural attack only, without his starting weapon (the energy blast) */
+  noStartingWeapon?: boolean
   layers: LayerDefinition[]
   rooms: RoomDefinition[]
 }

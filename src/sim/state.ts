@@ -219,6 +219,8 @@ export interface SimState {
   room: Vec // continuous world: the room Merlin stands in (music, grave storage)
   rooms: Record<string, RoomState> // key `${x},${y}`
   exitsOpen: boolean
+  /** remake (the player's exitOpenDelayTicks): ticks before Merlin can leave through exits that opened on the room's clear */
+  exitsLockedTicks: number
   navMode: boolean // modNavMode: the player walks with navModeAcceleration while the room is clear (exits open)
   actors: ActorState[]
   nextId: number
