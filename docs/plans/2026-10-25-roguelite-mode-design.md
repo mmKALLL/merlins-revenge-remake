@@ -46,10 +46,17 @@ other reward type goes to the owner first.
 
 Owner (2026-10-26): no biome favours its own spells any more. Every original spell (the energy blast
 and the reserved weapons included) weighs 2 and every volley 1, so of a floor's pick the original
-spells take about 42 %, the sword and energy punch about 9 % and the volleys about 49 % (floor 1: 39,
-10 and 51 %, since East Woods' tiles have no arctic blast or energy beam). A sword or energy punch
-reward comes with 4 faster-movement potions (`walkSpeed`), laid out beside its scroll and shown on
-its card.
+spells take about 40 %, the sword and energy punch about 9 %, the golden machine gun about 4.4 % and
+the volleys about 47 % (floor 1: 37, 9, 4.7 and 49 %, since East Woods' tiles have no arctic blast
+or energy beam). A sword or energy punch reward comes with 4 faster-movement potions (`walkSpeed`),
+laid out beside its scroll and shown on its card.
+
+The golden machine gun (2026-10-28, owner: a reserved weapon offered in the spell slot) is a weapon
+in the remake (engine notes spells §6): held, it fires a charge-11 energy blast every second tick. It
+comes without potions: it shoots from afar, so Merlin has nothing to close in on. Whether the
+standalone Magic Maze floor (and the tower's) also hands it out at its start
+(`MAZE_GIVES_GOLDEN_MACHINE_GUN`) is the owner's call; a roguelite floor lays out only the picked
+reward, so the switch does not touch runs.
 
 ## Biomes
 
@@ -218,9 +225,9 @@ Woods of Mourning's ground is the sea-green grass (merlinOpenPassive 28) instead
 
 Loadout (owner, 2026-10-25): a roguelite run starts with only the punch; the energy blast is a scroll in
 the reward pools (an original spell's weight, 2, `ENERGY_BLAST` in `src/run/rewards.ts`), and the starting kit's spell is
-always an attack (not the heal blast). The sword and energy punch (and the golden machine gun once
-ported) are never start-room scrolls: a floor's end may offer one Merlin lacks in place of the new
-spell, at weight 2 per biome (`RESERVED_WEAPONS`), the melee two with 4 speed potions.
+always an attack (not the heal blast). The sword, the energy punch and the golden machine gun are
+never start-room scrolls: a floor's end may offer one Merlin lacks in place of the new spell, at
+weight 2 per biome (`RESERVED_WEAPONS`), the melee two with 4 speed potions, the gun alone.
 
 West Jungle has druids too (weak, at most 1 a room, and one in the hydra nest boss room): they heal
 the jungle's monsters and hydras (owner, 2026-10-25).

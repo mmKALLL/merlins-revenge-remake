@@ -153,9 +153,8 @@ floors over 500 seeds, the tower over 40), never on the player's tile, distinct 
 The scroll pickups are the original's `act_<spell>` files with `objType #objScroll`
 (`objScroll.collected` -> `objPlayerMerlinCharacter.newScrollCollected`: `addWeapon(character,
 attack)`, +25 energy, temporary invincibility; for `#gmg` `gmgCollected` instead), ported with
-Merlin's spells (`docs/notes/engine-mechanics-spells.md`). Only the golden machine gun is still
-pending: its tile is skipped ("no actor definition"; `PENDING_SCROLLS`, which `floor-sim.test.ts`
-exempts from the ported-actor check). Energy blast is left out (Merlin starts with it).
+Merlin's spells (`docs/notes/engine-mechanics-spells.md`), the golden machine gun too (2026-10-28,
+as a weapon; spells notes §6). Energy blast is left out (Merlin starts with it).
 
 | Key | merlinOpenObjects | merlin4Objects | Spell |
 |---|---|---|---|
@@ -215,10 +214,10 @@ spell's charge stages then summon (warrior from 10, archer 15, monk 20, dwarf 25
 stays empty. Done with the spell port as a remake decision: `armySummon.startingArmy` in
 `assets/tuning.json` (an `ActorDef` field, `{}` by default), recorded in the spells notes.
 
-### Golden machine gun (pending)
+### Golden machine gun
 
 Owner note: the Magic Maze (the mage tower, floor 4) should also give the golden machine gun once
-`act_gmg` is ported. The data is in place behind `MAZE_GIVES_GOLDEN_MACHINE_GUN = false`
+`act_gmg` is ported (it is, 2026-10-28; the switch waits for the owner's word). The data is in place behind `MAZE_GIVES_GOLDEN_MACHINE_GUN = false`
 (`themes.ts`); on, the maze's `extras` hold `gmg` (merlinOpenObjects tile 38; merlin4Objects has
 none, and the tower takes merlinOpen's tile).
 
@@ -306,7 +305,7 @@ at the bottom and the maze at the top, seeded via `?seed=` like the single floor
 Five themes on 3x3 floors (the Golden Fort a floor of its own) and the tower of the first four. Known gaps: `mr.loadState` and the snapshot test helpers
 fetch maps as converted JSON, so a snapshot of a generated map cannot be replayed yet (it would need
 the seed passed to `generateMap`). Start rewards are placed; their spell scrolls (and the army
-summon's starting army, and the maze's golden machine gun) wait for the spell port.
+summon's starting army) wait for the spell port; the maze's golden machine gun waits for the owner.
 
 ## Room plans (owner, 2026-10-22)
 
