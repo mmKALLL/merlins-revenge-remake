@@ -6,7 +6,7 @@ import type { MapEntry } from '../data/map-tree'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { startingKitPickups } from '../run/rewards'
-import { floorSteps, type EnergyOf } from './floor'
+import { floorSteps, type UnitFacts } from './floor'
 import { ROGUELITE_FLOORS, firstBiome, rogueliteFloorMap } from './roguelite-biomes'
 import { runSteps, type Steps } from './steps'
 import { THEMES, type FloorTheme } from './themes'
@@ -20,7 +20,7 @@ export const TOWER_MAP_ID = `${FOLDER}${TOWER_ID}`
 /** A roguelite run (docs/plans/2026-10-25-roguelite-mode-design.md): the map is its first floor. */
 export const ROGUELITE_MAP_ID = `${FOLDER}tower-roguelite`
 
-interface GeneratedMapKind { id: string; mapSize: Vec; steps: (seed: number, energyOf: EnergyOf) => Steps<MapDefinition> }
+interface GeneratedMapKind { id: string; mapSize: Vec; steps: (seed: number, facts: UnitFacts) => Steps<MapDefinition> }
 
 /** The steps' map, without the edges and placements kept for the tests. */
 function* mapOf(steps: Steps<{ map: MapDefinition }>): Steps<MapDefinition> {
@@ -28,9 +28,9 @@ function* mapOf(steps: Steps<{ map: MapDefinition }>): Steps<MapDefinition> {
 }
 
 const KINDS: readonly GeneratedMapKind[] = [
-  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, steps: (seed: number, energyOf: EnergyOf) => mapOf(floorSteps(t, seed, energyOf)) })),
-  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, steps: (seed: number, energyOf: EnergyOf) => mapOf(towerSteps(seed, energyOf)) },
-  { id: ROGUELITE_MAP_ID, mapSize: ROGUELITE_FLOORS[0]![0]!.floorSize, steps: (seed: number, energyOf: EnergyOf) => rogueliteFloorMap(firstBiome(seed), seed, 0, energyOf, startingKitPickups(seed)) },
+  ...THEMES.map((t) => ({ id: floorMapId(t), mapSize: t.floorSize, steps: (seed: number, facts: UnitFacts) => mapOf(floorSteps(t, seed, facts)) })),
+  { id: TOWER_MAP_ID, mapSize: TOWER_SIZE, steps: (seed: number, facts: UnitFacts) => mapOf(towerSteps(seed, facts)) },
+  { id: ROGUELITE_MAP_ID, mapSize: ROGUELITE_FLOORS[0]![0]!.floorSize, steps: (seed: number, facts: UnitFacts) => rogueliteFloorMap(firstBiome(seed), seed, 0, facts, startingKitPickups(seed)) },
 ]
 
 export const GENERATED_MAPS: readonly MapEntry[] = KINDS.map((k) => ({ id: k.id, mapSize: { ...k.mapSize } }))
@@ -59,13 +59,13 @@ export function currentMapId(id: string): string {
 }
 
 /** The map for a generated map id and seed; the same pair (and actor energies) always gives the same map. */
-export function generateMap(id: string, seed: number, energyOf: EnergyOf): MapDefinition {
-  return runSteps(generateMapSteps(id, seed, energyOf))
+export function generateMap(id: string, seed: number, facts: UnitFacts): MapDefinition {
+  return runSteps(generateMapSteps(id, seed, facts))
 }
 
 /** generateMap in steps, for a progress bar (runStepsAsync); the same map as generateMap. */
-export function generateMapSteps(id: string, seed: number, energyOf: EnergyOf): Steps<MapDefinition> {
+export function generateMapSteps(id: string, seed: number, facts: UnitFacts): Steps<MapDefinition> {
   const kind = KINDS.find((k) => k.id === id)
   if (!kind) throw new Error(`no generated map "${id}"`)
-  return kind.steps(seed, energyOf)
+  return kind.steps(seed, facts)
 }

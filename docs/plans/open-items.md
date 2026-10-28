@@ -142,6 +142,11 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
+- Melee units in larger numbers (2026-10-28; `docs/plans/2026-09-28-random-floor-design.md`, Owner
+  decision 2026-10-28): a room's draws count a melee unit as 0.75 of a unit (`MELEE_UNIT_SHARE` in
+  `src/gen/floor.ts`), in fixed counts, HP budgets and brawl sides; floors hold 5-14 % more units
+  (Remorseless Mountains and the Magic Maze about unchanged: no or few melee units). Owner to playtest and tune the share.
+
 - Board feedback of 2026-10-28 (to review): every shuriken flies at 9 px a tick (shuriken ninja and
   the ninja's natural throw; tuning.json's new `naturalAttack` key); flamethrower lizards walk 1.8x
   faster; energy blast c full in 5 s, its sound at most 1.3x the regular blast's; quadranid shots

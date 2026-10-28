@@ -14,7 +14,7 @@ import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, w
 import { browserStore } from './data/favourites'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
-import { energyLookup, type EnergyOf } from './gen/floor'
+import { unitFacts, type UnitFacts } from './gen/floor'
 import { ROGUELITE_MAP_ID, currentMapId, generateMap, generateMapSteps, isGeneratedMapId } from './gen/generated-maps'
 import { rogueliteFloorMap } from './gen/roguelite-biomes'
 import { runStepsAsync } from './gen/steps'
@@ -100,9 +100,9 @@ function rememberSeed(layoutSeed: number): void {
 }
 
 /** A generated map for a seed; the seed goes into the URL (no reload) so the layout can be shared. */
-function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf): MapDefinition {
+function generatedMapWithSeedInUrl(mapId: string, layoutSeed: number, facts: UnitFacts): MapDefinition {
   rememberSeed(layoutSeed)
-  return generateMap(mapId, layoutSeed, energyOf)
+  return generateMap(mapId, layoutSeed, facts)
 }
 
 /** Work (ms) between the loading screen's repaints while a generated map is built. */
@@ -110,9 +110,9 @@ const BUILD_SLICE_MS = 25
 const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()))
 
 /** generatedMapWithSeedInUrl, pausing now and then so the loading screen shows the progress (0..1); the same map. */
-function buildGeneratedMapWithSeedInUrl(mapId: string, layoutSeed: number, energyOf: EnergyOf, onProgress: (fraction: number) => void): Promise<MapDefinition> {
+function buildGeneratedMapWithSeedInUrl(mapId: string, layoutSeed: number, facts: UnitFacts, onProgress: (fraction: number) => void): Promise<MapDefinition> {
   rememberSeed(layoutSeed)
-  return runStepsAsync(generateMapSteps(mapId, layoutSeed, energyOf), { onProgress, pause: nextFrame, sliceMs: BUILD_SLICE_MS })
+  return runStepsAsync(generateMapSteps(mapId, layoutSeed, facts), { onProgress, pause: nextFrame, sliceMs: BUILD_SLICE_MS })
 }
 
 /** Reports the step under way and how far the whole load has got (0..1), for the loading screen. */
@@ -229,14 +229,14 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const files = new LoadQueue(LOADS_AT_ONCE, showFiles)
   const track: TrackLoad = (load) => files.add(load)
   onProgress('Loading', 0)
-  // the rest loads while the map does; a generated map needs the actors' energies (HP budgets) first
+  // the rest loads while the map does; a generated map needs the actors' energies and attacks (room draws) first
   const dataLoading = track(() => Promise.all([loadTeams(), loadExitArrows(), loadCutScene(GAME_COMPLETE_SCRIPT), loadHudTextures(), loadWeaponSelectorTextures()]))
   const [loaded, defs] = await Promise.all([generated ? null : track(() => loadMap(mapId)), track(loadActors)])
   const spritesLoading = loadSprites(defs, track)
   spritesLoading.catch(() => {}) // a failure surfaces at its await below, unless an earlier step fails first
-  const energyOf = energyLookup(defs)
-  const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, energyOf)
-  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, seed, energyOf, (f) => onProgress('Building the map', f * MAP_SHARE))
+  const facts = unitFacts(defs)
+  const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, facts)
+  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, seed, facts, (f) => onProgress('Building the map', f * MAP_SHARE))
   building = false
   showFiles()
   const layerTileset = async (layer: string) => {
@@ -351,7 +351,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     if (run !== from) return // the run was restarted meanwhile
     const biome = plan.options[picked.biome]!
     const reward = rewards[picked.reward]!
-    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, energyOf, rewardPickups(reward)), {
+    const next = await runStepsAsync(rogueliteFloorMap(biome, from.seed, plan.floor, facts, rewardPickups(reward)), {
       onProgress: (f) => shell.loading.update('Building the next floor', f),
       pause: nextFrame,
       sliceMs: BUILD_SLICE_MS,

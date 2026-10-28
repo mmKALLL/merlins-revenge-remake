@@ -9,7 +9,7 @@ import { NO_INPUT, type InputSnapshot, type SimState, type WorldMode } from '../
 import { anims } from '../sim/test-data'
 import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
-import { ROOM_SIZE, energyLookup, exitRoom, generateFloor } from './floor'
+import { ROOM_SIZE, unitFacts, exitRoom, generateFloor } from './floor'
 import { PENDING_SCROLLS, ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
 import { ROGUELITE_BIOMES } from './roguelite-biomes'
 import { generateTower } from './tower'
@@ -17,7 +17,7 @@ import { TOWER_TILESETS } from './tower-tilesets'
 
 const symbols = (name: string): string[] =>
   (JSON.parse(readFileSync(`public/generated/tilesets/${name}.json`, 'utf8')) as { symbols: string[] }).symbols
-const energyOf = energyLookup(pageDefs)
+const facts = unitFacts(pageDefs)
 const KILL: InputSnapshot = { ...NO_INPUT, cheatKillAll: true }
 const MUSIC_OBJ_TYPE = 'objMusic'
 /** Often enough that units released by the dead (the double dark golem's halves) do not kill Merlin first. */
@@ -26,7 +26,7 @@ const KILL_EVERY_TICKS = 5
 function start(theme: FloorTheme, seed: number, mode: WorldMode, inExitRoom = false): SimState {
   const active = symbols(theme.tileSets.backgroundActive)
   const objects = symbols(theme.tileSets.objects)
-  const floor = generateFloor(theme, seed, energyOf)
+  const floor = generateFloor(theme, seed, facts)
   const grid = buildWorldGrid(floor.map, (i) => i >= 1 && active[i - 1] === 'solid', objects)
   let pos = findStartPos(grid, objects.indexOf('player') + 1)
   if (inExitRoom) {
@@ -68,7 +68,7 @@ describe.each([...THEMES, ...ROGUELITE_THEMES, ...ROGUELITE_BIOMES[3]!])('random
 
 describe('the tower in the sim', () => {
   it('starts the player on the bottom floor in a clear room, in both world modes', () => {
-    const tower = generateTower(7, energyOf)
+    const tower = generateTower(7, facts)
     const active = symbols(TOWER_TILESETS.backgroundActive)
     const objects = symbols(TOWER_TILESETS.objects)
     const grid = buildWorldGrid(tower.map, (i) => i >= 1 && active[i - 1] === 'solid', objects)
