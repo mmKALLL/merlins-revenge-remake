@@ -73,7 +73,8 @@
     "frictionReel": {
       "x": 20,
       "y": 20
-    }
+    },
+    "walkSpeed": 3.6
   },
   "plant": {
     "minHurtboxPx": 12
