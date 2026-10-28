@@ -25,7 +25,8 @@ rooms (the sketch has 4x4).
   (one small strategy per wall style), `themes.ts` (all theme data). A theme is data: floor size,
   tilesets, tiles per role, patch materials, which wall styles it uses and their parameters, enemy
   weights and tiers, factions, bosses and the room plan. Besides the theme and the seed, the
-  generator's one input is the units' energies (`EnergyOf`, for HP budgets; see Room plans).
+  generator's one input is what it knows of the units from the actor data (`UnitFacts`: their
+  energies for HP budgets, and whether their attack is melee for the unit shares; see Room plans).
 
 ## Coordinates
 
@@ -605,3 +606,47 @@ and a mixed room drawing from every faction by weight often still held one team.
 
 Owner (2026-10-25): the brawl share may vary between biomes, and may be higher on early floors and
 lower on later ones (Remorseless Mountains stays at about 7%).
+
+## Owner decision (2026-10-28): melee units come in larger numbers
+
+The owner's design: projectiles beat mid-range ranged units but not a melee charge, blasts beat
+long-range units and are ok against charges, piercing beats melee charges. Melee units were almost
+trivial, so rooms of mostly melee units now hold more of them. First pass:
+
+- **Unit shares** (`MELEE_UNIT_SHARE` 0.75 in `floor.ts`, one constant; 1 turns it off): when a room
+  draws its enemies, a melee unit (`ActorDef.attack.type === 'melee'`, its installed attack, so the
+  ninja with a ranged natural attack counts as melee; never a producer) counts as 0.75 of a unit.
+  Ranged units, casters, exploders, producers and dwellings count 1.
+- **Fixed-count draws** (`n(lo, hi, tiers)`): the drawn count is a number of unit slots, filled
+  unit by unit (`drawToSlots`); a melee unit fills 0.75 of a slot. A unit that would overfill the
+  slots is taken by the chance that the free share is of its own (a melee unit with 0.25 slot free
+  comes one time in three), so an all-melee draw gives on average 1/0.75 = 1.33 times its count,
+  and all-ranged rooms draw exactly as before. A draw of 4 slots gives 5 or 6 melee units, or for
+  example 3 melee and 1 archer (with a 75 % chance of the archer).
+- **HP-budget draws** (the numerous weak corner, the Golden Fort): a melee unit's budget cost is
+  also 0.75 of its energy (after the producer rule), so budget rooms of melee units hold about 1.33
+  times the units too; the fort's `capped` ceiling uses the same cost. The count bounds stay in
+  units. Chosen so the rule reads the same everywhere ("a melee unit counts as 0.75") and the
+  numerous weak corners, mostly melee goblins, skeletons and lizards, grow with the rest.
+- **Groups, bosses and midbosses** are unchanged (their units are fixed); in a budget room a group's
+  melee units count 0.75 towards the budget, leaving a little more for the draw.
+- **Brawls** balance the two sides by unit shares, so a melee side gets about 1.33 times the units
+  of a ranged side.
+- **Measured** (100 seeds per biome, roguelite floors in the tower tilesets; enemies placed per
+  floor, producers being dwellings and summoners):
+
+  | biome | total before | total after | melee before | melee after | ranged/other before | after | producers before | after |
+  |---|---|---|---|---|---|---|---|---|
+  | goblin-forest | 51.9 | 55.1 | 11.5 | 12.5 | 28.3 | 30.1 | 12.1 | 12.5 |
+  | deep-forest | 52.8 | 58.8 | 18.2 | 21.8 | 23.6 | 25.9 | 10.9 | 11.0 |
+  | undead-marsh | 50.2 | 54.9 | 16.5 | 18.2 | 21.7 | 25.2 | 12.0 | 11.5 |
+  | hydra-marsh | 62.3 | 70.2 | 21.7 | 26.5 | 28.8 | 31.9 | 11.8 | 11.8 |
+  | dragon-canyon | 48.9 | 55.8 | 23.8 | 29.7 | 14.3 | 15.1 | 10.8 | 11.0 |
+  | golem-mountain | 43.2 | 43.2 | 0 | 0 | 31.6 | 31.6 | 11.6 | 11.6 |
+  | magic-maze (4x4) | 83.3 | 82.8 | 9.8 | 10.2 | 48.6 | 47.7 | 24.9 | 24.9 |
+  | golden-palace (4x4) | 88.1 | 92.9 | 17.0 | 20.0 | 44.0 | 46.3 | 27.1 | 26.6 |
+
+  Ranged units grow a little as well: a melee unit leaves part of its slot to the next draw, which
+  may be an archer. Remorseless Mountains has no melee unit (every golem's attack is ranged), so it
+  is unchanged; the Magic Maze barely moves (few melee choices, many rooms at their free-tile limit).
+
