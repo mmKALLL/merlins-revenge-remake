@@ -21,15 +21,15 @@ const defs: Record<string, ActorDef> = { ...engineDefs, armySummon: { ...engineD
 
 /**
  * Three open 18x9 rooms side by side, room 1 holding `objects` (symbol -> column) on ROW and a
- * goblin in room 3, so the map is not complete from the start.
+ * goblin in room 3, so the map is not complete from the start. `roguelite`: a markExit map (a run's floor).
  */
-function world(objects: Record<string, number>): SimState {
+function world(objects: Record<string, number>, roguelite = false): SimState {
   const fill = (v: number) => Array.from({ length: 9 }, () => Array<number>(18).fill(v))
   const layers = [fill(0), fill(0), fill(0)]
   for (const [symbol, col] of Object.entries(objects)) layers[0]![ROW]![col - 1] = SYMBOLS.indexOf(symbol) + 1
   layers[2]![ROW]![9] = SYMBOLS.indexOf('goblinWarrior') + 1
   const map: MapDefinition = {
-    mapSize: { x: 3, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 },
+    mapSize: { x: 3, y: 1 }, roomSize: { x: 18, y: 9 }, startRoom: { x: 1, y: 1 }, ...(roguelite ? { markExit: true } : {}),
     layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
     rooms: [1, 2, 3].map((num) => ({ num, layers: { backgroundActive: fill(0), backgroundPassive: fill(1), objects: layers[num - 1]! } })),
   }
@@ -90,8 +90,13 @@ describe("Merlin's weapons", () => {
 })
 
 describe('army summon', () => {
-  it("the scroll brings its starting army; a summon takes the unit from the reserve and it teleports in; with nothing to fight it teleports back", () => {
-    let s = stepUntil(world({ armySummon: 5 }), RIGHT, (n) => n.arsenal.current === 'armySummon')
+  it('the scroll brings its starting army on a roguelite floor only', () => {
+    const s = stepUntil(world({ armySummon: 5 }), RIGHT, (n) => n.arsenal.current === 'armySummon')
+    expect(s.army['aldevar'] ?? {}).toEqual({})
+  })
+
+  it("on a roguelite floor the scroll brings its starting army; a summon takes the unit from the reserve and it teleports in; with nothing to fight it teleports back", () => {
+    let s = stepUntil(world({ armySummon: 5 }, true), RIGHT, (n) => n.arsenal.current === 'armySummon')
     expect(s.army['aldevar']).toEqual({ warrior: 1 })
     const target = { x: playerOf(s).pos.x + 60, y: playerOf(s).pos.y }
     // held long past the warrior's stage: only a warrior is in the reserve, so the charge stays below the archer's
