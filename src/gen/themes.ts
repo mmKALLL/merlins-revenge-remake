@@ -1480,6 +1480,8 @@ export const HYDRA_MARSH: FloorTheme = {
       { key: 'batTree', weight: 1, tier: 'weak', faction: JUNGLE },
       // owner: a chance at a fang bunny portal, so bat trees are not the only dwelling
       { key: 'fangBunnyPortal', weight: 1, tier: 'weak', maxPerRoom: 2, faction: JUNGLE },
+      // owner: goblin mage huts too (goblins leave the jungle's teams alone; the druids heal them)
+      { key: 'goblinMageHut', weight: 1, tier: 'weak', maxPerRoom: 1, faction: JUNGLE },
     ],
     bosses: [
       { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2, druid: 1 }, faction: JUNGLE, boss: 'hydra3' },
