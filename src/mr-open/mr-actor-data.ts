@@ -233,6 +233,8 @@ export interface ActorDef {
   killAllCheatRadius: number // px, plain distance: the K cheat kills hostile units this close to Merlin in the continuous world (player only)
   /** the player: a hostile unit that becomes active (its room entered, the map start, a wake in the continuous world) starts no ranged or magic attack for this many ticks; 0 = engine */
   activationAttackGraceTicks: number
+  /** the player: when a room's exits open on its clear, Merlin can leave through them only after this many ticks (the arrows show at once); 0 = engine */
+  exitOpenDelayTicks: number
   passiveEnergyRecovery: boolean // false turns off modEnergy.recoverEnergy (the +1 per energyRecoverDelay); true = engine
   keepAttackOnTargetLoss: boolean // remake: a target that dies during the wind-up is still struck where it stood (ranged); false = engine
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
@@ -367,6 +369,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     idleWanderMarginTiles: 8, idleWanderScanTicks: 5, // continuous world: sleepers' idle wander area and scan period
     killAllCheatRadius: 320, // continuous world: the K cheat's reach, 10 tiles (the room camera kills the whole room)
     activationAttackGraceTicks: 0, // units attack as soon as they are active, as in the engine
+    exitOpenDelayTicks: 0, // the exits let Merlin out as soon as they open, as in the engine
     passiveEnergyRecovery: true, // modEnergy.recoverEnergy on, as in the engine
     damageDealtMultiplier: 1, // damage as in the engine
     explosionsLinger: false, // a blast hits on its first tick only, as in the engine
@@ -406,7 +409,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'exitOpenDelayTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx',
 ]) {
@@ -822,6 +825,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       idleWanderMarginTiles: num(r, 'idleWanderMarginTiles', ctx), idleWanderScanTicks: num(r, 'idleWanderScanTicks', ctx),
       killAllCheatRadius: num(r, 'killAllCheatRadius', ctx),
       activationAttackGraceTicks: num(r, 'activationAttackGraceTicks', ctx),
+      exitOpenDelayTicks: num(r, 'exitOpenDelayTicks', ctx),
       passiveEnergyRecovery: bool(r, 'passiveEnergyRecovery', ctx),
       damageDealtMultiplier: num(r, 'damageDealtMultiplier', ctx),
       explosionsLinger: bool(r, 'explosionsLinger', ctx),

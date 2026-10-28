@@ -87,6 +87,7 @@ export function createSim(
     room: grid.roomOfPoint(startPos.x, startPos.y),
     rooms: {},
     exitsOpen: true,
+    exitsLockedTicks: 0,
     navMode: true,
     actors: [],
     nextId: 0,
@@ -183,13 +184,14 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const pushed = sweepTileCollision(s.grid.solidAt, p.pos, vel, cfg.collisionRect)
   let loc = pushed.loc
   const roomRect = s.grid.roomRectPx(s.room)
-  if (!s.exitsOpen) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
+  const canLeave = exitsPassable(s)
+  if (!canLeave) loc = clampToRoom(roomRect, loc, cfg.collisionRect)
   let room = s.room
   if (s.worldMode === 'continuous') {
     // the map edge still blocks; the room only follows Merlin's position
     loc = clampToRoom(playAreaRect(s), loc, cfg.collisionRect)
     room = s.grid.roomOfPoint(loc.x, loc.y)
-  } else if (s.exitsOpen && isAlive(p)) {
+  } else if (canLeave && isAlive(p)) {
     // a dying player (stretch death) never leaves the room
     const next = roomAfterMove(roomRect, loc, s.room)
     if (s.grid.roomExists(next)) room = next
@@ -207,6 +209,9 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   return room
 }
 
+/** The room's exits are open and (remake) their exitOpenDelayTicks after the room's clear have run out. */
+const exitsPassable = (s: SimState): boolean => s.exitsOpen && s.exitsLockedTicks === 0
+
 /** How close (px) Merlin's collision rect must come to the map's top edge to count as leaving it. */
 const EXIT_MARGIN_PX = 2
 
@@ -218,7 +223,7 @@ const EXIT_MARGIN_PX = 2
 function leftEndRoomUpward(t: Tick, p: ActorState, cfg: SimConfig): boolean {
   const s = t.s
   const end = s.grid.map.endRoom
-  if (!s.grid.map.markExit || !end || t.floorExited || !s.exitsOpen || !isAlive(p)) return false
+  if (!s.grid.map.markExit || !end || t.floorExited || !exitsPassable(s) || !isAlive(p)) return false
   const here = s.grid.roomOfPoint(p.pos.x, p.pos.y)
   if (here.x !== end.x || here.y !== end.y) return false
   return p.pos.y + cfg.collisionRect.top < s.grid.roomRectPx(end).top + EXIT_MARGIN_PX
@@ -349,19 +354,22 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
  * hostile team member is left. teamMaster.leaveTeam schedules tellTeamDied for the next update, so
  * the exits open on the tick after the last hostile finished (its grave is already recorded): the
  * test runs on the tick's incoming actors. `opened`: the exits opened on this tick (see onExitsOpened).
+ * Remake: exits opened by the clear let Merlin out only after the player's exitOpenDelayTicks.
  */
-function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean; opened: boolean } {
+function settleRoom(t: Tick): { rooms: SimState['rooms']; exitsOpen: boolean; exitsLockedTicks: number; opened: boolean } {
   const s = t.s
   const key = roomKey(s.room)
   const current = s.rooms[key] ?? EMPTY_ROOM
   let roomState = t.graves.length ? { ...current, graves: [...current.graves, ...t.graves] } : current
   let exitsOpen = s.exitsOpen
+  let exitsLockedTicks = Math.max(0, s.exitsLockedTicks - 1)
   if (!exitsOpen && exitsOpenFor(s, s.actors)) {
     exitsOpen = true
+    exitsLockedTicks = defOf(s, playerIn(t)).exitOpenDelayTicks
     roomState = { ...roomState, clear: true }
     t.events.push({ kind: 'exitsOpened' })
   }
-  return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen, opened: exitsOpen !== s.exitsOpen }
+  return { rooms: roomState === current ? s.rooms : { ...s.rooms, [key]: roomState }, exitsOpen, exitsLockedTicks, opened: exitsOpen !== s.exitsOpen }
 }
 
 /**
@@ -446,11 +454,12 @@ function stepWorld(s: SimState, input: InputSnapshot, cfg: SimConfig): SimState 
   stepReelAndDeath(t)
   stepCooldownsAndRegen(t)
   if (s.worldMode === 'continuous') return settleContinuous(t, room)
-  const { rooms, exitsOpen, opened } = settleRoom(t)
+  const { rooms, exitsOpen, exitsLockedTicks, opened } = settleRoom(t)
   const settled: SimState = {
     ...afterTick(t),
     rooms,
     exitsOpen,
+    exitsLockedTicks,
     navMode: exitsOpen, // attemptOpenExits -> goNavMode
   }
   const next = opened ? onExitsOpened(settled) : settled

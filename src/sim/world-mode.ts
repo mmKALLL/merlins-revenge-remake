@@ -37,7 +37,7 @@ function toContinuous(s: SimState): SimState {
     if (current.has(a.id) || !isUnit(spawned, a)) return a
     return withinWakeDistance(spawned, p, a) || !canSleep(a) ? { ...a, awake: true, wakeHold: 0 } : asleep(spawned, a)
   })
-  const next: SimState = { ...spawned, actors, exitsOpen: true, events: [] }
+  const next: SimState = { ...spawned, actors, exitsOpen: true, exitsLockedTicks: 0, events: [] }
   return { ...next, navMode: navModeClear(next) }
 }
 

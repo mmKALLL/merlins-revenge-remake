@@ -22,7 +22,8 @@
         "perCharge": 0.09,
         "max": 2
       }
-    }
+    },
+    "exitOpenDelayTicks": 18
   },
   "goblinWarrior": {
     "pathFindingStallTime": 2,

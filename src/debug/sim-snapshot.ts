@@ -39,6 +39,7 @@ export interface SimSnapshot {
   restartRequested: boolean
   mapComplete?: boolean // absent in snapshots made before map completion existed
   floorExited?: boolean // absent in snapshots made before roguelite floors existed
+  exitsLockedTicks?: number // absent in snapshots made before the exits' open delay existed
   runTicks?: number // absent in snapshots made before roguelite floors existed (then the map's tick)
   pickups?: PlayerPickups // absent in snapshots made before potions existed
   arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
@@ -114,6 +115,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     restartRequested: s.restartRequested,
     mapComplete: s.mapComplete,
     floorExited: s.floorExited,
+    exitsLockedTicks: s.exitsLockedTicks,
     runTicks: s.runTicks,
     pickups: s.pickups,
     arsenal: s.arsenal,
@@ -167,6 +169,7 @@ export function deserializeSim(
     room: snap.room,
     rooms: Object.fromEntries(Object.entries(snap.rooms).map(([k, r]) => [k, r.actors.every((a) => a.freezeTicks !== undefined) ? r : { ...r, actors: r.actors.map(withFields) }])),
     exitsOpen: snap.exitsOpen,
+    exitsLockedTicks: snap.exitsLockedTicks ?? 0,
     navMode: snap.navMode,
     actors: snap.actors.map(withFields),
     nextId: snap.nextId,
