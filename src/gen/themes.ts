@@ -628,6 +628,7 @@ export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   fangBunnyBaby: 143,
   fangBunny: 144,
   fangBunnyPortal: 145,
+  tvBox: 159,
   lavaGolem: 155,
   musicLastStand: 176,
   musicWoodsOfEvil: 177,
@@ -1477,6 +1478,8 @@ export const HYDRA_MARSH: FloorTheme = {
     ],
     dwellings: [
       { key: 'batTree', weight: 1, tier: 'weak', faction: JUNGLE },
+      // owner: a chance at a fang bunny portal, so bat trees are not the only dwelling
+      { key: 'fangBunnyPortal', weight: 1, tier: 'weak', maxPerRoom: 1, faction: JUNGLE },
     ],
     bosses: [
       { label: 'hydra nest', units: { hydra3: 1, hydra1: 1, plant: 2, druid: 1 }, faction: JUNGLE, boss: 'hydra3' },
@@ -1617,6 +1620,8 @@ export const GOLDEN_PALACE: FloorTheme = {
     dwellings: [
       { key: 'magicPortal', weight: 1, tier: 'weak', faction: MAGES },
       { key: 'orcHouse', weight: 1, tier: 'mid', maxPerRoom: 1, faction: HORDE },
+      // owner: the evil TVs belong in the palace (a TV box makes them; team monsters, with the horde)
+      { key: 'tvBox', weight: 0.6, tier: 'weak', maxPerRoom: 1, faction: HORDE },
     ],
     // owner: Ochre is the floor's boss
     bosses: [

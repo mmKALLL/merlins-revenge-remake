@@ -225,3 +225,7 @@ spell, at weight 2 per biome (`RESERVED_WEAPONS`), the melee two with 4 speed po
 West Jungle has druids too (weak, at most 1 a room, and one in the hydra nest boss room): they heal
 the jungle's monsters and hydras (owner, 2026-10-25).
 Caves of Fire has a rare druid (weak, weight 0.3, at most 1 a room) beside its dragons and golems.
+
+West Jungle has a fang bunny portal beside its bat trees (weak dwelling, at most 1 a room: about 2.8
+portals and 8.3 bat trees a floor); Golden Palace's orc horde has TV boxes (evil TVs, weak, at most
+1 a room, about 1.1 a floor) (owner, 2026-10-28).
