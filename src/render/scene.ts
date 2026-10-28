@@ -13,6 +13,8 @@ import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import type { EndSequenceView } from '../cutscene/end-sequence'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
+import { ArmyDisplay } from './army-display'
+import type { ArmyDisplayMode } from './army-entries'
 import { ExitArrowLayer } from './exit-arrows'
 import { HealthBars, type StandBox } from './health-bars'
 import { MiniMapLayer } from './minimap'
@@ -30,6 +32,7 @@ export interface RenderConfig {
   cameraMode: CameraMode
   spriteScale: number // 1: frames drawn at native size
   debug: boolean
+  armyDisplay: ArmyDisplayMode // where the reserve army shows on the HUD (Settings, Army display)
 }
 
 /**
@@ -155,6 +158,7 @@ export class Scene {
   private healthBar: PlayerHealthBar
   private pickupHud: PickupHud
   private scoreHud: ScoreHud
+  private armyDisplay: ArmyDisplay
   private weaponSelector: WeaponSelectorLayer
   private cutScene: CutSceneOverlay | null = null
   private debugText = new Text({ text: '', ...PIXEL_TEXT, style: { fill: '#0f0', fontFamily: 'monospace', fontSize: DEBUG_TEXT.fontSize, lineHeight: DEBUG_TEXT.lineHeight } })
@@ -176,6 +180,7 @@ export class Scene {
     this.healthBar = new PlayerHealthBar(hud)
     this.pickupHud = new PickupHud(sprites, defs)
     this.scoreHud = new ScoreHud(cfg.logical, cfg.view)
+    this.armyDisplay = new ArmyDisplay(sprites, defs, cfg.armyDisplay)
     this.exitArrows = new ExitArrowLayer(exitArrows)
     this.miniMap = new MiniMapLayer(cfg.view)
   }
@@ -222,7 +227,7 @@ export class Scene {
     // the HUD on the stage around the play view, at the original's gameScreen marks
     const { healthSurround } = GAME_SCREEN
     this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, this.cfg.playOffset.y + this.cfg.view.h)
-    this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.scoreHud.layer, this.debugText, this.weaponSelector.layer)
+    this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.scoreHud.layer, this.armyDisplay.layer, this.debugText, this.weaponSelector.layer)
     this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
@@ -258,6 +263,11 @@ export class Scene {
   /** Shows or hides the debug readout below the play view (Settings, Debug info). */
   setDebugInfo(on: boolean): void {
     this.cfg = { ...this.cfg, debug: on }
+  }
+
+  /** Moves or hides the reserve army display (Settings, Army display). */
+  setArmyDisplay(mode: ArmyDisplayMode): void {
+    this.armyDisplay.setMode(mode)
   }
 
   setZoom(zoom: ZoomSetting): void {
@@ -307,6 +317,7 @@ export class Scene {
     this.healthBar.update(p.energy, def?.maxEnergy || def?.energy || 1)
     this.pickupHud.update(s)
     this.scoreHud.update(s)
+    this.armyDisplay.update(s)
     this.weaponSelector.update(s.arsenal, s.tick, pointerStage)
     this.debugText.visible = this.cfg.debug
     if (this.cfg.debug) {

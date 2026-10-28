@@ -7,7 +7,7 @@ import { ARMY_SUMMON } from './mr-open/mr-army'
 import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
-import { framesPerSecond, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
+import { framesPerSecond, loadArmyDisplay, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveArmyDisplay, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
 import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
 import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
@@ -24,6 +24,7 @@ import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
 import { frameCanvas } from './render/dom-sprite'
+import { DEFAULT_ARMY_DISPLAY } from './render/army-entries'
 import { DEFAULT_ZOOM, SPELL_ICONS, Scene, type RenderConfig, type ZoomSetting } from './render/scene'
 import { TICK_MS, type AnimationSet, type SimState, type WorldMode } from './sim/state'
 import { playerOf } from './sim/actors'
@@ -72,6 +73,7 @@ const cfg: RenderConfig = {
   cameraMode: params.get('camera') === 'follow' ? 'follow' : 'room',
   spriteScale: 1,
   debug: loadDebugInfo(params.get('debug')),
+  armyDisplay: loadArmyDisplay(DEFAULT_ARMY_DISPLAY),
 }
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
 const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
@@ -661,6 +663,12 @@ function main(): void {
       setFrameRate: (r) => {
         frameRate = r
         saveFrameRate(r)
+      },
+      armyDisplay: () => cfg.armyDisplay,
+      setArmyDisplay: (m) => {
+        cfg.armyDisplay = m
+        saveArmyDisplay(m)
+        game?.scene.setArmyDisplay(m)
       },
       debugInfo: () => cfg.debug,
       setDebugInfo: (on) => {

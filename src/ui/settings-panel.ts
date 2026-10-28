@@ -1,8 +1,9 @@
 // Settings: pixel size, camera, what Space (and the touch blast button) fires at, whether random
-// maps get a new layout each run, the frame rate, the debug readout, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
+// maps get a new layout each run, the frame rate, the reserve army display, the debug readout, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
 import type { AudioEngine } from '../audio/audio'
 import type { FrameRate, RandomMapsMode } from '../data/preferences'
 import type { SpaceMode } from '../input/keyboard'
+import type { ArmyDisplayMode } from '../render/army-entries'
 import type { CameraMode } from '../render/camera'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
 import type { Difficulty } from '../sim/difficulty'
@@ -22,6 +23,8 @@ export interface SettingsHost {
   setSeedInUrl(on: boolean): void
   frameRate(): FrameRate
   setFrameRate(r: FrameRate): void
+  armyDisplay(): ArmyDisplayMode // where the reserve army shows on the HUD
+  setArmyDisplay(m: ArmyDisplayMode): void
   debugInfo(): boolean // the fps / tick / room / position readout below the play view
   setDebugInfo(on: boolean): void
   difficulty(): Difficulty // applies from the next run
@@ -158,6 +161,11 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: '60', label: '60 fps', title: 'Draws 60 frames a second, blending between the 30 game ticks' },
       { value: 'display', label: 'Display rate', title: 'Draws at every refresh of the display (120 Hz and up on some screens)' },
     ], host.frameRate, host.setFrameRate),
+    choiceRow(body, 'Army display', [
+      { value: 'right', label: 'Right', title: 'The reserve army in the right margin, where the original showed it' },
+      { value: 'top', label: 'Top', title: 'The reserve army in a row above the play view' },
+      { value: 'off', label: 'Off', title: 'No reserve army display' },
+    ], host.armyDisplay, host.setArmyDisplay),
     choiceRow(body, 'Debug info', ON_OFF, host.debugInfo, host.setDebugInfo),
     volumeRow(body, 'Music', () => audio.current.musicVolume, (v) => audio.setMusicVolume(v), () => audio.current.music, (on) => audio.setMusic(on)),
     volumeRow(body, 'Sound effects', () => audio.current.effectsVolume, (v) => audio.setEffectsVolume(v), () => audio.current.effects, (on) => audio.setEffects(on)),
