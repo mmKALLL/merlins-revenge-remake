@@ -178,7 +178,8 @@
           60
         ]
       },
-      "gmgChargeFullTicks": 60
+      "gmgChargeSpeed": 0.75,
+      "gmgChargeFullTicks": 80
     }
   },
   "darkCave": {
@@ -252,7 +253,7 @@
   },
   "energyMines": {
     "attack": {
-      "gmgStreamSlowdown": 2
+      "gmgStreamSlowdown": 2.667
     }
   }
 }

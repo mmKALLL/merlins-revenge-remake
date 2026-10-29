@@ -995,3 +995,8 @@ the aim within it.
 - **Pulse rate split (owner, 2026-10-30):** without the gun the pulse fires 0.805 as often as the engine
   (`fireRateScale`, one pulse every 6.2 ticks; 15% faster than the 0.7 of the round before); with the
   gun its own `gmgFireRateScale` 0.7 (pulses on 7 ticks in 10) stays.
+- **Gun mode, third round (owner, 2026-10-30):** the gun charges cBlast and the mines 25% slower: cBlast
+  `gmgChargeSpeed` 0.75 with `gmgChargeFullTicks` 80 (a blast every 80 ticks, the same size as before),
+  the mines `gmgStreamSlowdown` 2.667 (a mine every ~8.9 ticks). Gun fireballs fire half as often at the
+  same charge speed, each from twice the charge (`gmgShotCharge` 15.6): about 1.25 a second, radius 30 px,
+  55 / 41 / 27 damage at the centre / halfway / edge on a goblin.

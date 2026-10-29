@@ -28,7 +28,7 @@
 #releaseSound: "spell_release",
 #sound: "darkGolem_fire",
 #volume: 100,
-#volley: [#chargePerShot: 2, #gmgShotCharge: 7.8, #maxShots: 1, #fullCharge: 39, #blastFromCharge: [#base: 36.97, #perCharge: 1.5135, #damageBase: 0.1439, #damagePerCharge: 0.03804, #falloff: 0.64], #rangeFactor: 3.48, #damageMultiplier: 1, #minLandingSpeedShare: 0.1, #burstOnContact: true, #growingIconPx: 24, #spreadMinDeg: 0, #spreadMaxDeg: 0]
+#volley: [#chargePerShot: 2, #gmgShotCharge: 15.6, #maxShots: 1, #fullCharge: 39, #blastFromCharge: [#base: 36.97, #perCharge: 1.5135, #damageBase: 0.1439, #damagePerCharge: 0.03804, #falloff: 0.64], #rangeFactor: 3.48, #damageMultiplier: 1, #minLandingSpeedShare: 0.1, #burstOnContact: true, #growingIconPx: 24, #spreadMinDeg: 0, #spreadMaxDeg: 0]
 ],
 #character: #lavaLob,
 #collectSound: "collect_powerup_01",
