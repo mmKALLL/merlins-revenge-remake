@@ -8,6 +8,7 @@ import type { TeamDef } from '../mr-open/mr-team-data'
 import type { Rng } from '../sim/rng'
 import { NO_ARMY, type ArmyReserve } from '../mr-open/mr-army'
 import { startingArsenal, type Arsenal } from '../mr-open/mr-weapons'
+import { NO_GMG, type GmgState } from '../mr-open/mr-golden-machine-gun'
 import { NO_PICKUPS, type ActorState, type AnimationSet, type InputSnapshot, type PlayerPickups, type RoomState, type SimState, type WorldMode } from '../sim/state'
 import { VOID_SCORE, type ScoreState } from '../sim/score'
 import type { WorldGrid } from '../sim/world-grid'
@@ -43,6 +44,7 @@ export interface SimSnapshot {
   runTicks?: number // absent in snapshots made before roguelite floors existed (then the map's tick)
   pickups?: PlayerPickups // absent in snapshots made before potions existed
   arsenal?: Arsenal // absent in snapshots made before Merlin's spells existed
+  gmg?: GmgState // absent in snapshots made before the golden machine gun was a mode
   army?: ArmyReserve // likewise
   score?: ScoreState // absent in snapshots made before scoring: such a run has no score
   actors: ActorState[]
@@ -119,6 +121,7 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
     runTicks: s.runTicks,
     pickups: s.pickups,
     arsenal: s.arsenal,
+    gmg: s.gmg,
     army: s.army,
     score: s.score,
     actors: s.actors,
@@ -180,6 +183,7 @@ export function deserializeSim(
     floorExited: snap.floorExited ?? false,
     pickups: snap.pickups ?? NO_PICKUPS,
     arsenal: snap.arsenal ?? startingArsenal(defs['player']!),
+    gmg: snap.gmg ?? NO_GMG,
     army: snap.army ?? NO_ARMY,
     score: snap.score ?? VOID_SCORE,
     events: [],

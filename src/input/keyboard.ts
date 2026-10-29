@@ -1,12 +1,13 @@
 // Browser input -> InputSnapshot. Direction mapping follows keyMaster.updateMoveVector:
 // up (0,-1), down (0,1), left (-1,0), right (1,0), summed; both WASD and arrows are active.
-// E or the left button charges and fires at the mouse position. Space charges and fires by its mode
-// (SpaceMode): at the nearest enemy, at the mouse like E (straight ahead while no mouse position is
+// The left button charges and fires at the mouse position. Space charges and fires by its mode
+// (SpaceMode): at the nearest enemy, at the mouse like a click (straight ahead while no mouse position is
 // known), or at the farthest enemy on screen; F toggles nearest and farthest (Settings offers all three). C switches between the room camera and the follow camera (main.ts
 // takes each press with takeCameraToggle), N hides or shows the mini-map (takeMiniMapToggle). The
 // debug cheats K (kill the enemies on screen) and M (one more medikit) reach the sim once per press,
 // in the next snapshot (gameMaster.cheat, bound in bnd_wasd: #killAll 40 = K, #medikit 46 = M), and
-// so does R, the #army key (summon the whole reserve army, or send the army back; the original's C).
+// so does R, the #army key (summon the whole reserve army, or send the army back; the original's C),
+// and E, the #gmg key (bnd_wasd 14: the golden machine gun on or off, once Merlin has it).
 // The weapon keys (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9;
 // remake: or melee weapon, nthSpell) once per press; Q opens the weapon palettes (#weaponSelector 12; main.ts takes each press with
 // takeWeaponSelector), and a weapon picked on them (pickWeapon) reaches the next snapshot. The
@@ -15,7 +16,7 @@
 // a known mouse position (a finger-only device) fires at the nearest enemy; the target button
 // switches Space between the nearest and the farthest enemy (toggleTouchTarget); the weapon button
 // steps to the next weapon (cycleWeapon); the army button is R, always aimed at the nearest enemy
-// (touchArmy). While a menu is open (setEnabled(false)) keys and clicks are left to the page.
+// (touchArmy); the gun button is E (touchGun). While a menu is open (setEnabled(false)) keys and clicks are left to the page.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { InputSnapshot } from '../sim/state'
 
@@ -60,6 +61,7 @@ export class InputTracker {
   private selectSpell: number | null = null // a 1-9 press not yet in a snapshot
   private selectWeapon: string | null = null // a palette pick not yet in a snapshot
   private cycleWeapon = false // a touch weapon button press not yet in a snapshot
+  private gunKey = false // an E press (or gun button tap) not yet in a snapshot
   private weaponSelector = false // a Q press not yet taken
   private swallowMouse = false // the button press picked a weapon on the palette: no charge until it is let go
   private touchMove: Vec = { x: 0, y: 0 } // the touch nub's direction
@@ -91,6 +93,7 @@ export class InputTracker {
       this.armyFromTouch = false
     }
     if (code === 'KeyQ' && pressed) this.weaponSelector = true
+    if (code === 'KeyE' && pressed) this.gunKey = true
     const spell = SPELL_KEY.exec(code)
     if (spell && pressed) this.selectSpell = Number(spell[1])
     this.held.add(code)
@@ -133,6 +136,10 @@ export class InputTracker {
     if (!this.enabled) return
     this.armyKey = true
     this.armyFromTouch = true
+  }
+  /** Remake (the touch gun button): E, the golden machine gun on or off, in the next snapshot. */
+  touchGun(): void {
+    if (this.enabled) this.gunKey = true
   }
   /** Whether N was pressed since the last call: the mini-map should be hidden or shown once. */
   takeMiniMapToggle(): boolean {
@@ -179,7 +186,7 @@ export class InputTracker {
     const shots: Record<SpaceShot, boolean> = { chargeHeld: false, shootNearest: false, shootFarthest: false }
     if (this.held.has('Space')) shots[SPACE_SHOT[this.mode]] = true
     if (this.touchBlast) shots[this.touchShot()] = true
-    const { cheatKillAll, cheatMedikit, armyKey, armyFromTouch, selectSpell, selectWeapon, cycleWeapon } = this
+    const { cheatKillAll, cheatMedikit, armyKey, armyFromTouch, selectSpell, selectWeapon, cycleWeapon, gunKey } = this
     this.cheatKillAll = false
     this.cheatMedikit = false
     this.armyKey = false
@@ -187,10 +194,11 @@ export class InputTracker {
     this.selectSpell = null
     this.selectWeapon = null
     this.cycleWeapon = false
+    this.gunKey = false
     return {
       move,
       mouseWorld: this.mouseWorld,
-      chargeHeld: this.held.has('KeyE') || this.mouseDown || shots.chargeHeld,
+      chargeHeld: this.mouseDown || shots.chargeHeld,
       shootNearest: shots.shootNearest,
       shootFarthest: shots.shootFarthest,
       cheatKillAll,
@@ -200,6 +208,7 @@ export class InputTracker {
       selectSpell,
       selectWeapon,
       cycleWeapon,
+      toggleGun: gunKey,
     }
   }
 

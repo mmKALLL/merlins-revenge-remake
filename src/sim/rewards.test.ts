@@ -3,6 +3,8 @@
 import { describe, expect, it } from 'vitest'
 import { SPELL_SCROLLS } from '../gen/themes'
 import type { MapDefinition } from '../mr-open/mr-map-format'
+import { gmgCollected } from '../mr-open/mr-golden-machine-gun'
+import { GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 import { addWeapon } from '../mr-open/mr-weapons'
 import { withRunStartArsenal } from './carry-over'
 import { collectedScrolls, holdsScroll } from './rewards'
@@ -40,6 +42,14 @@ describe('holdsScroll', () => {
     const armed = { ...s, arsenal: addWeapon(s.arsenal, 'armySummon', defs['armySummon']!.attack) }
     expect(holdsScroll(armed, 'armySummon')).toBe(true)
   })
+
+  it('holds the golden machine gun once found, on or off (so the reward stops offering it)', () => {
+    const s = start()
+    expect(holdsScroll(s, GOLDEN_MACHINE_GUN)).toBe(false)
+    const found = { ...s, gmg: gmgCollected(s.gmg) }
+    expect(holdsScroll(found, GOLDEN_MACHINE_GUN)).toBe(true)
+    expect(holdsScroll({ ...found, gmg: { ...found.gmg, on: false } }, GOLDEN_MACHINE_GUN)).toBe(true)
+  })
 })
 
 describe('collectedScrolls', () => {
@@ -48,5 +58,6 @@ describe('collectedScrolls', () => {
     expect(collectedScrolls(s)).toEqual([])
     const armed = { ...s, arsenal: addWeapon(addWeapon(s.arsenal, 'armySummon', defs['armySummon']!.attack), 'energyBlast', defs['player']!.attack) }
     expect(collectedScrolls(armed)).toEqual(['armySummon', 'energyBlast'])
+    expect(collectedScrolls({ ...armed, gmg: gmgCollected(armed.gmg) })).toEqual(['armySummon', 'energyBlast', GOLDEN_MACHINE_GUN])
   })
 })

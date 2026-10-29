@@ -8,7 +8,7 @@ export const POTION_OBJ_TYPE = 'objPotion'
 export const MEDIKIT_OBJ_TYPE = 'objMedikit'
 /** objScroll: a spell scroll (docs/notes/engine-mechanics-spells.md §1). */
 export const SCROLL_OBJ_TYPE = 'objScroll'
-/** act_gmg: the golden machine gun, an objScroll that is not a weapon in the engine (gmgCollected; the remake's is, mr-golden-machine-gun.ts). */
+/** act_gmg: the golden machine gun, an objScroll that gives no weapon but a mode over every spell (gmgCollected, mr-golden-machine-gun.ts). */
 export const GOLDEN_MACHINE_GUN = 'gmg'
 /**
  * The scrolls the objects tilesets place (merlinOpenObjects, merlin4Objects, merlinObjects): Merlin's.

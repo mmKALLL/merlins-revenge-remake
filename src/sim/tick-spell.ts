@@ -25,7 +25,10 @@ import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-contex
 import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
-import { launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, turnAndScale, volleyBallPx, volleyIconPx, volleyLaunch, volleyProjectileAttack, volleyShots } from './volley'
+import {
+  isVolleyStream, launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, streamShotAngleDeg, streamShotDue, streamShotSpeedFactor, turnAndScale, volleyBallPx, volleyIconPx,
+  volleyLaunch, volleyProjectileAttack, volleyShots,
+} from './volley'
 import type { Size } from './view'
 
 /** attack.explodeFunction of summon spells (modSpellMultistage.doExplodeFunction). */
@@ -63,11 +66,14 @@ export function spellBallPx(spell: ActorState, casterAttack: AttackDef): number 
  * objAiAttack.releaseMagic: the caster plays its release strip and the cooldown restarts. The spell
  * flies at spellSpeed toward `target` (objSpell.releaseNormal, with its release sound), or with
  * releaseFunction #fireBullets stays where it is and fires (modFireBullets #spellReleased),
- * aiming where its caster aims (`kind` for Merlin).
+ * aiming where its caster aims (`kind` for Merlin). A volley stream (the golden machine gun's) has
+ * fired as it charged: let go, what is left of its charge goes with it.
  */
 export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: ActorState, target: Vec): void {
   const atk = spell.attack ?? def.attack
-  if (atk.releaseFunction === 'fireBullets') {
+  if (isVolleyStream(atk)) {
+    t.removed.add(spell.id)
+  } else if (atk.releaseFunction === 'fireBullets') {
     spell.mode = 'fireBullets'
     spell.age = 0
     spell.ai.chargeKind = caster.ai.chargeKind
@@ -186,41 +192,71 @@ function stepFireBullets(t: Tick, spell: ActorState, input: InputSnapshot, view:
  */
 function stepVolley(t: Tick, spell: ActorState): void {
   const atk = spell.attack!
+  const v = atk.volley
   const volley = spell.volley!
   const owner = spell.ownerId === null ? undefined : actorIn(t, spell.ownerId)
-  if (!owner || !isAlive(owner) || !atk.volley) {
+  if (!owner || !isAlive(owner) || !v) {
     t.removed.add(spell.id)
     return
   }
-  while (volley.fired < volley.total && shotDue(spell.age, volley.fired, atk.volley)) {
-    fireVolleyShot(t, spell, atk, atk.volley, owner)
+  const aim = spell.targetPoint
+  while (volley.fired < volley.total && shotDue(spell.age, volley.fired, v)) {
+    const { fired, total } = volley
+    if (aim) fireVolleyShot(t, spell, atk, v, owner, { aim, charge: spell.charge, angleDeg: (u) => shotAngleDeg(fired, total, v, u), speedFactor: (u) => shotSpeedFactor(fired, v, u) })
     volley.fired++
-    spell.charge = Math.max(0, spell.charge - atk.volley.chargePerShot)
+    spell.charge = Math.max(0, spell.charge - v.chargePerShot)
   }
   spell.age++
   if (volley.fired >= volley.total) t.removed.add(spell.id)
 }
 
 /**
- * One projectile of a volley: the attack's bullet launched from the spell or Merlin (launchFrom) toward the release aim (volleyLaunch;
+ * Remake (the golden machine gun's volley, isVolleyStream): while held, a projectile at `aim`
+ * whenever the charge holds one, each spending chargePerShot and fired as one projectile's worth
+ * (a fireball's blast too); the stream's count (spell.volley.fired) spreads the later ones.
+ */
+export function streamVolley(t: Tick, caster: ActorState, spell: ActorState, aim: Vec): void {
+  const atk = spell.attack
+  const v = atk?.volley
+  if (!atk || !v) return
+  const stream = spell.volley ?? { total: 0, fired: 0 }
+  while (streamShotDue(spell.charge, v)) {
+    const index = stream.fired
+    fireVolleyShot(t, spell, atk, v, caster, { aim, charge: v.chargePerShot, angleDeg: (u) => streamShotAngleDeg(index, v, u), speedFactor: (u) => streamShotSpeedFactor(index, v, u) })
+    stream.fired++
+    stream.total = stream.fired
+    spell.charge = Math.max(0, spell.charge - v.chargePerShot)
+  }
+  spell.volley = stream
+}
+
+/** One volley projectile's aim, the charge it is fired at, and its place in the fan (angle and speed from a uniform draw). */
+interface VolleyShot {
+  aim: Vec
+  charge: number
+  angleDeg: (u: number) => number
+  speedFactor: (u: number) => number
+}
+
+/**
+ * One projectile of a volley: the attack's bullet launched from the spell or Merlin (launchFrom) toward the aim (volleyLaunch;
  * one that explodes on landing only as fast as lands it on the aim), turned to its place in the fan
  * and its speed jittered. It carries volleyProjectileAttack (the bullet's attack with the volley's
  * damageMultiplier, the spell's hit roles, dwellings too, any chill, and a blast grown from the
- * spell's charge as it fires) and hits the first hostile unit it touches (a burstOnContact one bursts on it).
+ * shot's charge) and hits the first hostile unit it touches (a burstOnContact one bursts on it).
  */
-function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: VolleyDef, owner: ActorState): void {
+function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: VolleyDef, owner: ActorState, shot: VolleyShot): void {
   const bulletDef = atk.bullet ? t.s.defs[atk.bullet] : undefined
-  if (!bulletDef || !spell.targetPoint) return
+  if (!bulletDef) return
   const ownerDef = defOf(t.s, owner)
   const from = volley.launchFrom === 'caster' ? attackLoc(owner.pos, ownerDef.attack, owner.facingLeft) : spell.pos
   const [angleU, r1] = nextRandom(t.rng)
   const [speedU, r2] = nextRandom(r1)
   t.rng = r2
-  const launch = volleyLaunch(from, spell.targetPoint, ownerDef.strength, atk.firingType, volley)
-  const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(from, spell.targetPoint, launch, bulletDef.friction, volley.minLandingSpeedShare) : launch
-  const { fired, total } = spell.volley!
-  const vel = turnAndScale(base, shotAngleDeg(fired, total, volley, angleU), shotSpeedFactor(fired, volley, speedU))
-  const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley, spell.charge)
+  const launch = volleyLaunch(from, shot.aim, ownerDef.strength, atk.firingType, volley)
+  const base = bulletDef.explodeEvents.includes('bulletLanded') ? launchToLand(from, shot.aim, launch, bulletDef.friction, volley.minLandingSpeedShare) : launch
+  const vel = turnAndScale(base, shot.angleDeg(angleU), shot.speedFactor(speedU))
+  const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley, shot.charge)
   spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true, burstsOnContact: volley.burstOnContact, piercesLeft: volley.pierce })
   playSound(t, atk.sound, atk.volume)
 }

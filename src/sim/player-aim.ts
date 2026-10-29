@@ -21,7 +21,7 @@ const CHARGE_INPUT: Record<ChargeKind, 'chargeHeld' | 'shootNearest' | 'shootFar
 
 export const isHeld = (input: InputSnapshot, kind: ChargeKind | null): boolean => kind !== null && input[CHARGE_INPUT[kind]]
 
-/** The attack input held this tick (E or a click, Space by its mode), null for none. */
+/** The attack input held this tick (a click, Space by its mode), null for none. */
 export function chargeKindFor(input: InputSnapshot): ChargeKind | null {
   for (const kind of Object.keys(CHARGE_INPUT) as ChargeKind[]) if (input[CHARGE_INPUT[kind]]) return kind
   return null

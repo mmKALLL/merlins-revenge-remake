@@ -5,7 +5,7 @@
 import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { cooldownIncrement, tickCooldown } from '../mr-open/mr-attack'
 import { withUnits } from '../mr-open/mr-army'
-import { GMG_SPELL, gmgAttack } from '../mr-open/mr-golden-machine-gun'
+import { gmgCollected } from '../mr-open/mr-golden-machine-gun'
 import { BONUS_ENERGY, GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 import { addWeapon, nextWeapon, nthSpell, weaponGroupOf, weaponOf } from '../mr-open/mr-weapons'
 import { defOf, playerStatsOf } from './actors'
@@ -70,7 +70,7 @@ function scrollAttack(t: Tick, scroll: ActorDef): AttackDef {
 export function collectScroll(t: Tick, p: ActorState, scroll: ActorDef): void {
   startTempInvince(t)
   if (scroll.key === GOLDEN_MACHINE_GUN) {
-    collectGoldenMachineGun(t, p)
+    collectGoldenMachineGun(t)
     return
   }
   const attack = scrollAttack(t, scroll)
@@ -87,15 +87,12 @@ function takeWeapon(t: Tick, p: ActorState, key: string, attack: AttackDef): voi
 }
 
 /**
- * modGoldenMachineGun.gmgCollected -> setGmg: the gun is on at once, with no bonus energy. Remake
- * (docs/notes/engine-mechanics-spells.md §6): the gun is a weapon of its own that fires the energy
- * blast's gmg version (gmgAttack), taken up like a scroll's weapon; picking another weapon puts it
- * away, as the engine's gmg key turned it off.
+ * modGoldenMachineGun.gmgCollected: no weapon and no bonus energy; the gun is found and setGmg flips
+ * it (on at the first pickup). The spell in hand, charged the other way, is released in
+ * stepPlayerAttack (#gmgTurnedOn / #gmgTurnedOff).
  */
-function collectGoldenMachineGun(t: Tick, p: ActorState): void {
-  const spell = t.s.defs[GMG_SPELL]
-  if (!spell) throw new Error(`actor definitions have no "${GMG_SPELL}" for the golden machine gun`)
-  takeWeapon(t, p, GOLDEN_MACHINE_GUN, gmgAttack(scrollAttack(t, spell)))
+function collectGoldenMachineGun(t: Tick): void {
+  t.gmg = gmgCollected(t.gmg)
 }
 
 /** modWeaponManager.updateCooldowns: the current weapon's counter and every idle one, each by its own stat. */

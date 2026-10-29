@@ -1,8 +1,8 @@
 // Port of the golden machine gun (docs/notes/engine-mechanics-spells.md §6): modGoldenMachineGun
 // (gmgCollected, setGmg), modAttack.gmgOn (the spell's gmg* charge fields), objAiAttack.ensureSpell
 // (fireDelay 0), objAiPlayer.internalEvent(#spellCharged) (autofire), objCharacter.gmgOn (the charge
-// sits beside the gun) and modAnimSet.getAnimSym (Merlin holds the gun). Remake: the gun is a weapon
-// of Merlin's own, not a mode over every spell; see the notes.
+// sits beside the gun) and modAnimSet.getAnimSym (Merlin holds the gun). The gun is a mode over every
+// spell, switched by its own key; the remake's volleys get a gun version of their own (see the notes).
 import type { Vec } from './mr-geometry'
 import type { AttackDef } from './mr-actor-data'
 import type { ChargeLimits } from './mr-spell'
@@ -15,11 +15,20 @@ export interface GmgCharge {
   autoFire: boolean
 }
 
-/**
- * Remake: the spell the golden machine gun fires, the energy blast (Merlin's starting weapon, with
- * its tuning). In the engine the gun turned every spell into its gmg* version.
- */
-export const GMG_SPELL = 'energyBlast'
+/** modGoldenMachineGun's pGmgCollected and pGmgOn. */
+export interface GmgState {
+  collected: boolean
+  on: boolean
+}
+
+/** modGoldenMachineGun.init: not found, off. */
+export const NO_GMG: GmgState = { collected: false, on: false }
+
+/** modGoldenMachineGun.setGmg (the #gmg key): once collected, the gun flips on or off; before, nothing. */
+export const setGmg = (g: GmgState): GmgState => (g.collected ? { ...g, on: !g.on } : g)
+
+/** modGoldenMachineGun.gmgCollected: found, and setGmg: the first pickup turns it on (a second one off). */
+export const gmgCollected = (g: GmgState): GmgState => setGmg({ ...g, collected: true })
 
 /**
  * modAttack.gmgOn and objAiAttack.ensureSpell with the gmg on: the charge fields swapped for the gmg*
@@ -30,6 +39,13 @@ export function gmgAttack(a: AttackDef): AttackDef {
   const { chargeMax, chargeSpeed, chargeStart } = a.gmg
   return { ...a, chargeMax, chargeSpeed, chargeStart, chargeSpeedMax: chargeSpeed, fireDelay: 0, gmgOn: true }
 }
+
+/**
+ * The spell Merlin starts with the gun on: its gmg version (gmgAttack; every original spell of his
+ * has the gmg* fields). Remake: a spell without them (the remake's volleys, whose gun version is a
+ * stream, src/sim/volley.ts) keeps its own charge, charging beside the gun.
+ */
+export const gunAttack = (a: AttackDef): AttackDef => (a.gmg === null ? { ...a, gmgOn: true } : gmgAttack(a))
 
 /**
  * objAiPlayer.internalEvent(#spellCharged) with the gmg on and gmgAutoFire: the spell is released

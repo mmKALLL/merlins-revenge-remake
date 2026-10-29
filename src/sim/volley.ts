@@ -64,6 +64,28 @@ export const shotSpeedFactor = (index: number, v: VolleyDef, u: number): number 
 export const shotDue = (age: number, fired: number, v: VolleyDef): boolean => age >= fired * v.staggerTicks
 
 /**
+ * Remake (owner, 2026-10-29): with the golden machine gun on, a volley is a stream. While held it
+ * keeps its own charge speed, and whenever the charge holds one projectile (chargePerShot) it fires
+ * that one, spending its share: one every chargePerShot / charge speed ticks.
+ */
+export const isVolleyStream = (a: AttackDef): boolean => a.gmgOn && a.volley !== null
+
+/** Whether a streaming volley's charge holds a projectile to fire. */
+export const streamShotDue = (charge: number, v: VolleyDef): boolean => charge + THRESHOLD_EPSILON >= v.chargePerShot
+
+/**
+ * The angle (degrees off the aim) of projectile `index` of a stream: the first exactly at the aim,
+ * every later one at a random angle (`u` in [0, 1)) inside the fan a volley of that many projectiles
+ * (at most maxShots) would have, so a held stream widens to the spell's own fan.
+ */
+export function streamShotAngleDeg(index: number, v: VolleyDef, u: number): number {
+  return index === 0 ? 0 : (u - 0.5) * volleySpreadDeg(Math.min(index + 1, v.maxShots), v)
+}
+
+/** A stream projectile's speed factor: the first flies true, the later ones are jittered as a volley's. */
+export const streamShotSpeedFactor = (index: number, v: VolleyDef, u: number): number => (index === 0 ? 1 : 1 + (u * 2 - 1) * v.speedJitter)
+
+/**
  * The launch velocity toward `aim`, before the fan angle and the jitter: performRangedAttack's
  * #fullstrength (a vector of length `strength`) or #proportional (distance / 10), times rangeFactor.
  */

@@ -13,14 +13,11 @@ describe('InputTracker', () => {
     expect(t.snapshot().move).toEqual({ x: 0, y: 0 })
   })
 
-  it('maps E and left click to mouse aim, and Space by its mode', () => {
+  it('maps left click to mouse aim, and Space by its mode', () => {
     const t = new InputTracker()
     t.setMouseButton(true)
     expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootFarthest: false })
     t.setMouseButton(false)
-    t.keyDown('KeyE')
-    expect(t.snapshot()).toMatchObject({ chargeHeld: true, shootNearest: false, shootFarthest: false })
-    t.keyUp('KeyE')
     const space = (mode: SpaceMode) => {
       t.setSpaceMode(mode)
       t.keyDown('Space')
@@ -31,6 +28,17 @@ describe('InputTracker', () => {
     expect(space('nearest')).toEqual({ chargeHeld: false, shootNearest: true, shootFarthest: false })
     expect(space('mouse')).toEqual({ chargeHeld: true, shootNearest: false, shootFarthest: false })
     expect(space('farthest')).toEqual({ chargeHeld: false, shootNearest: false, shootFarthest: true })
+  })
+
+  it('E switches the golden machine gun once per press and fires nothing; the touch gun button too', () => {
+    const t = new InputTracker()
+    t.keyDown('KeyE')
+    t.keyDown('KeyE') // key repeat
+    expect(t.snapshot()).toMatchObject({ toggleGun: true, chargeHeld: false, shootNearest: false, shootFarthest: false })
+    expect(t.snapshot().toggleGun).toBe(false)
+    t.keyUp('KeyE')
+    t.touchGun()
+    expect(t.snapshot().toggleGun).toBe(true)
   })
 
   it('the touch target button toggles nearest and farthest (from any other mode: farthest)', () => {

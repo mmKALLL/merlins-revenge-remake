@@ -1,11 +1,12 @@
 // Merlin's attack input (objAiPlayer.playerAttackCharge / playerAttackRelease, combat notes §5,
 // spells notes §3): a spell charges while its key is held and is released when it is let go; a
 // melee weapon (the punch, the energy punch, the sword) swings while it is held, striking on its
-// attack frame every hated unit under the strike point (teamMaster.impactMeleeAttack).
+// attack frame every hated unit under the strike point (teamMaster.impactMeleeAttack). With the
+// golden machine gun on, every spell is started in its gun version (spells notes §6).
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { cooldownReady, meleeHits, meleePush, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
-import { gmgAutoFires } from '../mr-open/mr-golden-machine-gun'
+import { gmgAutoFires, gunAttack, setGmg, type GmgState } from '../mr-open/mr-golden-machine-gun'
 import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, hurtSpriteRectFor, isAlive, isUnit, playerStatsOf } from './actors'
@@ -15,26 +16,32 @@ import { ATTACK_STRIPS, type ActorState, type AttackStrip, type ChargeKind, type
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { applyPayload, withOwnerDamage } from './tick-combat'
 import { nearestAllyOnScreen } from './tick-army'
-import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage } from './tick-spell'
+import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage, streamVolley } from './tick-spell'
+import { isVolleyStream } from './volley'
 import { stepWeaponChoice } from './tick-weapons'
 import type { Size } from './view'
 
 /**
- * The weapon keys first (objAiPlayer.interpretGameKeys runs before interpretMouse), then the attack
- * input. The AI's current spell (pCurrentSpell) is the player's spell still in `charge` mode; it
+ * The weapon and gun keys first (objAiPlayer.interpretGameKeys runs before interpretMouse), then the
+ * attack input. The AI's current spell (pCurrentSpell) is the player's spell still in `charge` mode; it
  * belongs to the AI, not to the character mode, so a hit forcing #walk
  * (objPlayerMerlinCharacter.takeHit) keeps it: while its key stays held, attack() -> chargeMagic
  * re-enters #charge and keeps counting, and letting go releases it from any mode. Without a current
- * spell, a held Space/click or E starts a charge (or a swing) whenever the cooldown is ready, even
- * during the release strip (releaseSpell has already cleared pCurrentSpell).
+ * spell, a held Space or click starts a charge (or a swing) whenever the cooldown is ready, even
+ * during the release strip (releaseSpell has already cleared pCurrentSpell). A spell charged with
+ * the gun the other way (switched by its key or a pickup) is released (#gmgTurnedOn /
+ * #gmgTurnedOff); a held attack charges anew once the cooldown allows.
  */
 export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): void {
   const p = playerIn(t)
   if (!isAlive(p)) return
   stepWeaponChoice(t, p, input)
-  const def = playerStatsOf(t.s, p, t.arsenal) // the potions drunk raise the mana stats
+  if (input.toggleGun) t.gmg = setGmg(t.gmg)
+  const def = withGun(playerStatsOf(t.s, p, t.arsenal), t.gmg) // the potions drunk raise the mana stats
   const spell = chargingSpellOf(t, p)
-  if (spell) {
+  if (spell && (spell.attack ?? def.attack).gmgOn !== t.gmg.on) {
+    releaseSpell(t, p, def, spell, input, view)
+  } else if (spell) {
     const held = heldChargeKind(input, p.ai.chargeKind)
     if (held !== null) {
       p.ai.chargeKind = held
@@ -47,6 +54,9 @@ export function stepPlayerAttack(t: Tick, input: InputSnapshot, view: Size): voi
     startSwing(t, p, def, input, view)
   }
 }
+
+/** objAiAttack.ensureSpell with the gmg on: a spell starts in its gun version; melee weapons are untouched. */
+const withGun = (def: ActorDef, gmg: GmgState): ActorDef => (gmg.on && def.attack.type === 'magic' ? { ...def, attack: gunAttack(def.attack) } : def)
 
 /** A charge step (objAiAttack.chargeSpell); false while the cooldown holds it (objAiAttack.attack). */
 function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState): boolean {
@@ -63,11 +73,13 @@ function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState
 /**
  * objAiPlayer.internalEvent(#spellCharged) with the golden machine gun: a spell whose charge counter
  * has finished is released at once (playerAttackRelease); the next charge (playerAttackCharge) waits
- * for the cooldown that release restarts, so it starts on a later tick.
+ * for the cooldown that release restarts, so it starts on a later tick. Remake: a volley streams
+ * instead, a projectile whenever its charge holds one (streamVolley).
  */
 function autoFire(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
   const atk = spell.attack ?? def.attack
-  if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk }))) releaseSpell(t, p, def, spell, input, view)
+  if (isVolleyStream(atk)) streamVolley(t, p, spell, spellAimPoint(t, p, input, p.ai.chargeKind, view, atk))
+  else if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk }))) releaseSpell(t, p, def, spell, input, view)
 }
 
 /**

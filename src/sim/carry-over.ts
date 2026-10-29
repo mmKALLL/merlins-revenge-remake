@@ -1,8 +1,9 @@
 // Roguelite (docs/plans/2026-10-25-roguelite-mode-design.md, Architecture): what Merlin keeps from one
 // floor to the next. His record: energy, potion upgrades (derived from the potions drunk), medikits,
-// weapons and the current one, the reserve army, the run's score and its time. Everything else
-// belongs to the floor's map and starts fresh: graves, sleepers, room states, the mini-map, the
-// map's tick (its timers read it) and his temporary invincibility.
+// weapons and the current one, the golden machine gun (found, on or off), the reserve army, the
+// run's score and its time. Everything else belongs to the floor's map and starts fresh: graves,
+// sleepers, room states, the mini-map, the map's tick (its timers read it) and his temporary
+// invincibility.
 import { naturalArsenal } from '../mr-open/mr-weapons'
 import { playerOf } from './actors'
 import { VOID_SCORE } from './score'
@@ -16,6 +17,7 @@ export function carryOver(prev: SimState, next: SimState): SimState {
     runTicks: prev.runTicks,
     pickups: { ...prev.pickups, invinceTicks: 0 },
     arsenal: prev.arsenal,
+    gmg: prev.gmg,
     army: prev.army,
     score: prev.score.valid ? { ...next.score, total: prev.score.total + next.score.total } : VOID_SCORE,
     actors: next.actors.map((a) => (a.id === next.playerId ? { ...a, energy } : a)),

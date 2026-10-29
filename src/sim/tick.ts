@@ -28,7 +28,7 @@
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { NO_ARMY } from '../mr-open/mr-army'
 import { currentAttack, naturalArsenal, startingArsenal } from '../mr-open/mr-weapons'
-import { gmgStrip } from '../mr-open/mr-golden-machine-gun'
+import { NO_GMG, gmgStrip } from '../mr-open/mr-golden-machine-gun'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
@@ -99,6 +99,7 @@ export function createSim(
     floorExited: false,
     pickups: NO_PICKUPS,
     arsenal: grid.map.noStartingWeapon ? naturalArsenal(defs['player']!) : startingArsenal(defs['player']!),
+    gmg: NO_GMG,
     army: NO_ARMY,
     score: NEW_SCORE,
     events: [],
@@ -295,9 +296,15 @@ function collideCharacter(t: Tick, a: ActorState, loc: Vec, vel: Vec, roomRect: 
 const attackSlowdown = (s: SimState, a: ActorState): number =>
   a.id !== s.playerId && a.freezeTicks > 0 && ATTACK_STRIPS.has(a.mode) ? defOf(s, a).frozenAttackSlowdown : 1
 
-/** modAnimSet.getAnimSym with the golden machine gun on: Merlin holds the gun whatever his mode (when his atlas has the strip). */
-const gunStrip = (t: Tick, a: ActorState, set: AnimationSet | undefined, moving: boolean): string | undefined =>
-  a.id === t.s.playerId && set && currentAttack(t.arsenal)?.gmgOn ? stripKey(set, gmgStrip(moving)) : undefined
+/**
+ * modAnimSet.getAnimSym with the golden machine gun on: Merlin holds the gun whatever his mode (when
+ * his atlas has the strip). Remake: only while he lives and a spell is his weapon; a melee swing
+ * keeps its strip, whose attack frame strikes.
+ */
+function gunStrip(t: Tick, a: ActorState, set: AnimationSet | undefined, moving: boolean): string | undefined {
+  if (a.id !== t.s.playerId || !set || !t.gmg.on || !isAlive(a) || currentAttack(t.arsenal)?.type !== 'magic') return undefined
+  return stripKey(set, gmgStrip(moving))
+}
 
 /** 5. Animation advance for every actor; the player is "moving" while a move key is held, others while their velocity is non-zero. */
 function stepAnimation(t: Tick, input: InputSnapshot): void {
@@ -404,6 +411,7 @@ function afterTick(t: Tick): SimState {
     events: t.events,
     pickups: t.pickups,
     arsenal: t.arsenal,
+    gmg: t.gmg,
     army: t.army,
     restartRequested: t.restartRequested,
     floorExited: t.floorExited,

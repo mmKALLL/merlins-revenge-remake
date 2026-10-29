@@ -72,7 +72,7 @@ export interface AttackDef {
   chargeVolumeTail: ChargeVolumeMap | null
   /** the spell's #gmgChargeMax, #gmgChargeSpeed, #gmgChargeStart and #gmgAutoFire (modAttack.gmgOn); null when it has none */
   gmg: GmgCharge | null
-  /** fired through the golden machine gun (mr-golden-machine-gun.ts gmgAttack): autofire, the charge beside the gun; false in the data */
+  /** started with the golden machine gun on (mr-golden-machine-gun.ts gunAttack): autofire, the charge beside the gun; false in the data */
   gmgOn: boolean
 }
 

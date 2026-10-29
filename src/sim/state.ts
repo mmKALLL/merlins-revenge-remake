@@ -7,6 +7,7 @@ import type { DwellingState } from '../mr-open/mr-residents'
 import type { TeamDef } from '../mr-open/mr-team-data'
 import type { TechniqueState } from '../mr-open/mr-weapon-technique'
 import type { Arsenal } from '../mr-open/mr-weapons'
+import type { GmgState } from '../mr-open/mr-golden-machine-gun'
 import type { Rng } from './rng'
 import type { ScoreState } from './score'
 import { PLAY_VIEW, type Size } from './view'
@@ -18,7 +19,7 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND
 export interface InputSnapshot {
   move: Vec // keys: components -1, 0, 1 (opposite keys cancel); the touch nub: any angle, larger component +-1
   mouseWorld: Vec | null
-  chargeHeld: boolean // E, left mouse button or Space in mouse mode: charge, release at the mouse
+  chargeHeld: boolean // left mouse button or Space in mouse mode: charge, release at the mouse
   shootNearest: boolean // Space (nearest mode): charge, release at the nearest hostile
   shootFarthest: boolean // remake: Space (farthest mode): charge, release at the farthest hostile on screen
   cheatKillAll: boolean // K pressed (once per press): kill the hostile units on screen (tick-cheats.ts)
@@ -28,6 +29,7 @@ export interface InputSnapshot {
   selectSpell: number | null // 1-9 pressed (once per press): the n-th spell (objAiPlayer #spell1..9 -> selectSpell)
   selectWeapon: string | null // a weapon clicked on the weaponSelector palette (commandIssued -> setCurrentWeapon)
   cycleWeapon: boolean // remake (the touch weapon button): the next weapon in Merlin's list
+  toggleGun: boolean // E pressed (once per press), or the touch gun button: the golden machine gun on or off (#gmg -> setGmg)
 }
 
 export const NO_INPUT: InputSnapshot = {
@@ -43,6 +45,7 @@ export const NO_INPUT: InputSnapshot = {
   selectSpell: null,
   selectWeapon: null,
   cycleWeapon: false,
+  toggleGun: false,
 }
 
 export interface AnimationStrip {
@@ -233,6 +236,7 @@ export interface SimState {
   floorExited: boolean
   pickups: PlayerPickups
   arsenal: Arsenal // Merlin's weapons (modWeaponManager)
+  gmg: GmgState // the golden machine gun: found, and on (modGoldenMachineGun)
   army: ArmyReserve // armyMaster.pReserveArmy
   score: ScoreState // remake: the room countdowns and the map's total (score.ts)
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)

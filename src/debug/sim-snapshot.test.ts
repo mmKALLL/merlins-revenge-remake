@@ -26,6 +26,7 @@ function scriptedInput(tick: number): InputSnapshot {
     selectSpell: null,
     selectWeapon: null,
     cycleWeapon: false,
+    toggleGun: false,
   }
 }
 
