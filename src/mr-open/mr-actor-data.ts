@@ -82,6 +82,8 @@ export interface AttackDef {
   gmgFireRateScale: number
   /** remake: with the gun on the spell streams while held, charging at its own speed / this and sending a spell of chargePerUnit (one mine) whenever it holds one; 0 = engine (charged and let go by hand) */
   gmgStreamSlowdown: number
+  /** remake: a spell without gmg* fields (a volley) charges this many times as fast with the gun on (owner: the fireball 1.1); 1 = its own speed */
+  gmgChargeSpeedScale: number
   /** remake (army summon): with the gun on the spell goes once it reaches the lowest stage with a unit in the reserve; false = engine (let go by hand) */
   gmgSummonsLowest: boolean
 }
@@ -326,6 +328,7 @@ const ATTACK_DEFAULTS = {
   fireRateScale: 1, // bullets every fireDelay ticks, as in the engine
   gmgFireRateScale: 1, // a gun spell may start every tick, as in the engine
   gmgStreamSlowdown: 0, // the gun version is charged and let go by hand (unless it autofires), as in the engine
+  gmgChargeSpeedScale: 1, // remake volleys keep their own charge speed with the gun on
   gmgSummonsLowest: false, // a gun summon is let go by hand, as in the engine
 } as const
 
@@ -711,7 +714,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
     gmg: gmgChargeOf(a, ctx), gmgOn: false,
     gmgMuzzleShift: num(a, 'gmgMuzzleShift', ctx), fireRateScale: num(a, 'fireRateScale', ctx), gmgFireRateScale: num(a, 'gmgFireRateScale', ctx),
-    gmgStreamSlowdown: num(a, 'gmgStreamSlowdown', ctx), gmgSummonsLowest: bool(a, 'gmgSummonsLowest', ctx),
+    gmgStreamSlowdown: num(a, 'gmgStreamSlowdown', ctx), gmgChargeSpeedScale: num(a, 'gmgChargeSpeedScale', ctx), gmgSummonsLowest: bool(a, 'gmgSummonsLowest', ctx),
   }
 }
 

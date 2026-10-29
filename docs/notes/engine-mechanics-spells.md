@@ -1000,3 +1000,6 @@ the aim within it.
   the mines `gmgStreamSlowdown` 2.667 (a mine every ~8.9 ticks). Gun fireballs fire half as often at the
   same charge speed, each from twice the charge (`gmgShotCharge` 15.6): about 1.25 a second, radius 30 px,
   55 / 41 / 27 damage at the centre / halfway / edge on a goblin.
+- **Gun fireball charges 10% faster (owner, 2026-10-30):** a new attack field `gmgChargeSpeedScale`
+  (default 1) speeds a gmg-less spell's charge with the gun on; the fireball's is 1.1, and its
+  `gmgShotCharge` 17.16 keeps the same time between fireballs, so each blast is about 10% bigger.

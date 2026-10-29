@@ -48,12 +48,14 @@ export function gmgAttack(a: AttackDef): AttackDef {
 /**
  * The spell Merlin starts with the gun on: its gmg version (gmgAttack; every original spell of his
  * has the gmg* fields). Remake: a spell without them (the remake's volleys, whose gun version is a
- * stream, src/sim/volley.ts) keeps its own charge, charging beside the gun; so does a streaming one
- * (gmgStreamSlowdown, the mines), at its own speed slowed by that factor.
+ * stream, src/sim/volley.ts) keeps its own charge, charging beside the gun at its own speed x
+ * gmgChargeSpeedScale; so does a streaming one (gmgStreamSlowdown, the mines), at its own speed slowed by that factor.
  */
 export function gunAttack(a: AttackDef): AttackDef {
   if (a.gmgStreamSlowdown > 0) return streamingGunAttack(a)
-  return a.gmg === null ? { ...a, gmgOn: true } : gmgAttack(a)
+  if (a.gmg !== null) return gmgAttack(a)
+  const k = a.gmgChargeSpeedScale
+  return { ...a, chargeSpeed: a.chargeSpeed * k, chargeSpeedMax: a.chargeSpeedMax === null ? null : a.chargeSpeedMax * k, gmgOn: true }
 }
 
 /** Remake (gmgStreamSlowdown): the attack's own charge, its speed (and any cap on it) divided by the slowdown. */
