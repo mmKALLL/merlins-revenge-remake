@@ -376,7 +376,7 @@ export class Scene {
       else if (bullet) this.styleBullet(spr, a, def)
       else this.styleCharacter(spr, a, pickupAlpha(s, a), tex, reg, pulseWhiteness(s, a), this.teamOverlay(s.teams, a.team))
       if (spell) this.syncSpellIcon(s, a, def, spr)
-      if (spell) this.volleyIcons.sync(a, def, this.defs[(a.attack ?? def.attack).bullet ?? ''], spr)
+      if (spell) this.volleyIcons.sync(a, def, this.defs[(a.attack ?? def.attack).bullet ?? ''], spr, s.actors.find((o) => o.id === a.ownerId)?.facingLeft ?? false)
     }
     for (const [id, spr] of this.actorSprites) {
       if (seen.has(id)) continue

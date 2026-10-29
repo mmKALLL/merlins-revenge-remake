@@ -10,16 +10,20 @@ import { ICON_PX, ICON_ROW_SHIFT, ICON_STEP, ICONS_PER_ROW, iconRowPx, iconStack
 const ICON_NUDGE: Readonly<Record<string, { x: number; y: number }>> = { smokePin: { x: 0, y: -1 }, skeletonHead: { x: 1, y: 0 } }
 
 export class VolleyIcons {
-  private stacks = new Map<number, { stack: Container; shown: number; iconPx: number }>()
+  private stacks = new Map<number, { stack: Container; shown: number; iconPx: number; faceLeft: boolean }>()
 
   constructor(private layer: Container, private projectileTexture: (def: ActorDef) => Texture | undefined) {}
 
-  /** The stack over volley spell `a` (drawn at `spellSprite`), rebuilt when its count changes; hidden for other spells. */
-  sync(a: ActorState, def: ActorDef, bulletDef: ActorDef | undefined, spellSprite: Sprite): void {
+  /**
+   * The stack over volley spell `a` (drawn at `spellSprite`), rebuilt when its count changes; hidden for
+   * other spells. A growing icon (a fireball's) is mirrored while its caster faces left (owner).
+   */
+  sync(a: ActorState, def: ActorDef, bulletDef: ActorDef | undefined, spellSprite: Sprite, casterFacesLeft: boolean): void {
     const atk = a.attack ?? def.attack
     const shown = volleyShotsShown(a.mode, a.charge, atk.volley, a.volley)
     // a growing icon (remake, growingIconPx) is redrawn at each whole px it grows
     const iconPx = atk.volley ? Math.round(volleyIconPx(a.charge, atk.volley)) : ICON_PX
+    const faceLeft = iconPx !== ICON_PX && casterFacesLeft
     const tex = bulletDef ? this.projectileTexture(bulletDef) : undefined
     let entry = this.stacks.get(a.id)
     if (shown === 0 || !tex) {
@@ -27,15 +31,16 @@ export class VolleyIcons {
       return
     }
     if (!entry) {
-      entry = { stack: new Container(), shown: 0, iconPx: ICON_PX }
+      entry = { stack: new Container(), shown: 0, iconPx: ICON_PX, faceLeft: false }
       this.stacks.set(a.id, entry)
       this.layer.addChild(entry.stack)
     }
-    if (entry.shown !== shown || entry.iconPx !== iconPx) {
+    if (entry.shown !== shown || entry.iconPx !== iconPx || entry.faceLeft !== faceLeft) {
       entry.stack.removeChildren().forEach((c) => c.destroy())
-      layOut(entry.stack, tex, shown, iconPx)
+      layOut(entry.stack, tex, shown, iconPx, faceLeft)
       entry.shown = shown
       entry.iconPx = iconPx
+      entry.faceLeft = faceLeft
     }
     entry.stack.visible = true
     entry.stack.zIndex = spellSprite.zIndex + 1
@@ -60,8 +65,8 @@ export class VolleyIcons {
  * over it, so the earlier ones peek out at its top right (owner's choice); past ICONS_PER_ROW a new
  * row starts over at the first icon's place, shifted by ICON_ROW_SHIFT; all inside iconStackSize from (0, 0).
  */
-function layOut(stack: Container, tex: Texture, count: number, iconPx: number): void {
-  if (iconPx !== ICON_PX) return layOutGrowing(stack, tex, iconPx)
+function layOut(stack: Container, tex: Texture, count: number, iconPx: number, faceLeft: boolean): void {
+  if (iconPx !== ICON_PX) return layOutGrowing(stack, tex, iconPx, faceLeft)
   const rowSide = iconRowPx(count)
   const k = Math.min(1, ICON_PX / Math.max(tex.width, tex.height))
   for (let i = 0; i < count; i++) {
@@ -76,10 +81,13 @@ function layOut(stack: Container, tex: Texture, count: number, iconPx: number): 
   }
 }
 
-/** Remake (growingIconPx): the single icon scaled to `iconPx` wide, centred in an iconPx square from (0, 0). */
-function layOutGrowing(stack: Container, tex: Texture, iconPx: number): void {
+/** Remake (growingIconPx): the single icon scaled to `iconPx` wide, centred in an iconPx square from (0, 0), mirrored when `faceLeft`. */
+function layOutGrowing(stack: Container, tex: Texture, iconPx: number, faceLeft: boolean): void {
   const icon = new Sprite(tex)
-  icon.scale.set(iconPx / Math.max(tex.width, tex.height))
-  icon.position.set(Math.round((iconPx - icon.width) / 2), Math.round((iconPx - icon.height) / 2))
+  const k = iconPx / Math.max(tex.width, tex.height)
+  icon.scale.set(faceLeft ? -k : k, k)
+  const w = tex.width * k
+  // a mirrored sprite draws leftward from its x, so it starts at the box's right side
+  icon.position.set(Math.round((iconPx - w) / 2 + (faceLeft ? w : 0)), Math.round((iconPx - icon.height) / 2))
   stack.addChild(icon)
 }
