@@ -9,7 +9,7 @@ import { ARMY_SUMMON, takeUnit, topAvailableStage } from '../mr-open/mr-army'
 import { attackLoc, resetCooldown } from '../mr-open/mr-attack'
 import { tileOfPx } from '../mr-open/mr-collision'
 import type { Vec } from '../mr-open/mr-geometry'
-import { gmgSpellCentre } from '../mr-open/mr-golden-machine-gun'
+import { gmgMuzzle, gmgSpellCentre, gmgStrip, isSpellStream } from '../mr-open/mr-golden-machine-gun'
 import { BEAM_JITTER, ENERGY_MINE, chargeAfterBullet, fireBulletsPeriod, mineCount, mineSpread } from '../mr-open/mr-mine'
 import { spellChargeVolume } from '../mr-open/mr-sound'
 import {
@@ -26,7 +26,7 @@ import { nearestHostileId } from './tick-ai'
 import { applyPayload, splashVictims, withOwnerDamage } from './tick-combat'
 import { reservationTeamOf, teamHasRoomFor } from './tick-dwelling'
 import {
-  isVolleyStream, launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, streamShotAngleDeg, streamShotDue, streamShotSpeedFactor, turnAndScale, volleyBallPx, volleyIconPx,
+  isVolleyStream, launchToLand, shotAngleDeg, shotDue, shotSpeedFactor, streamShotAngleDeg, streamShotCharge, streamShotDue, streamShotSpeedFactor, turnAndScale, volleyBallPx, volleyIconPx,
   volleyLaunch, volleyProjectileAttack, volleyShots,
 } from './volley'
 import type { Size } from './view'
@@ -66,12 +66,15 @@ export function spellBallPx(spell: ActorState, casterAttack: AttackDef): number 
  * objAiAttack.releaseMagic: the caster plays its release strip and the cooldown restarts. The spell
  * flies at spellSpeed toward `target` (objSpell.releaseNormal, with its release sound), or with
  * releaseFunction #fireBullets stays where it is and fires (modFireBullets #spellReleased),
- * aiming where its caster aims (`kind` for Merlin). A volley stream (the golden machine gun's) has
- * fired as it charged: let go, what is left of its charge goes with it.
+ * aiming where its caster aims (`kind` for Merlin). A gun stream (a volley's, or the mines')
+ * has fired as it charged: let go, what is left of its charge goes with it. Remake: any other spell
+ * fired through the gun leaves from its muzzle (launchFromMuzzle).
  */
 export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: ActorState, target: Vec): void {
   const atk = spell.attack ?? def.attack
-  if (isVolleyStream(atk)) {
+  const stream = isGunStream(atk)
+  if (atk.gmgOn && !stream) launchFromMuzzle(t, caster, spell, atk)
+  if (stream) {
     t.removed.add(spell.id)
   } else if (atk.releaseFunction === 'fireBullets') {
     spell.mode = 'fireBullets'
@@ -93,6 +96,27 @@ export function releaseMagic(t: Tick, caster: ActorState, def: ActorDef, spell: 
   }
   caster.mode = 'release'
   caster.cooldown = resetCooldown(def.attack)
+}
+
+/** Remake: a gun spell streams while held (a volley's projectiles, or the mines' spells) instead of being released. */
+const isGunStream = (a: AttackDef): boolean => isVolleyStream(a) || isSpellStream(a)
+
+/**
+ * Remake (owner): where a spell fired through the golden machine gun leaves from: the gun's muzzle
+ * (gmgMuzzle on Merlin's still gun frame, plus the attack's gmgMuzzleShift); beside the muzzle at
+ * gmgChargeLoc when his sprite has no gun frame.
+ */
+export function muzzleOf(t: Tick, caster: ActorState, atk: AttackDef): Vec {
+  const def = defOf(t.s, caster)
+  const frame = t.s.anims[def.name]?.[gmgStrip(false)]
+  if (!frame?.reg) return gmgSpellCentre(caster.pos, { x: def.gmgChargeLoc.x + atk.gmgMuzzleShift, y: def.gmgChargeLoc.y }, caster.facingLeft, 0)
+  return gmgMuzzle(caster.pos, { w: frame.w, h: frame.h, reg: frame.reg }, caster.facingLeft, atk.gmgMuzzleShift)
+}
+
+/** The released gun spell moved from beside the muzzle onto it, without a slide in the drawing. */
+function launchFromMuzzle(t: Tick, caster: ActorState, spell: ActorState, atk: AttackDef): void {
+  spell.pos = muzzleOf(t, caster, atk)
+  spell.prevPos = spell.pos
 }
 
 /** The caster's spell still charging (the AI's pCurrentSpell), if any. */
@@ -170,12 +194,16 @@ export function stepSpells(t: Tick, input: InputSnapshot, view: Size): void {
   }
 }
 
-/** modFireBullets.updateFireBullets: a bullet every fireBulletsPeriod ticks; the spell is gone after the last. */
+/**
+ * modFireBullets.updateFireBullets: a bullet every fireBulletsPeriod ticks; the spell is gone after
+ * the last. A fractional period (remake fireRateScale) carries what is over into the next wait.
+ */
 function stepFireBullets(t: Tick, spell: ActorState, input: InputSnapshot, view: Size): void {
   const atk = spell.attack!
+  const period = fireBulletsPeriod(atk)
   spell.age++
-  if (spell.age < fireBulletsPeriod(atk)) return
-  spell.age = 0
+  if (spell.age < period) return
+  spell.age -= period
   const next = chargeAfterBullet(spell.charge, atk)
   spell.charge = next.charge
   const target = ownerAim(t, spell, input, view)
@@ -212,23 +240,45 @@ function stepVolley(t: Tick, spell: ActorState): void {
 
 /**
  * Remake (the golden machine gun's volley, isVolleyStream): while held, a projectile at `aim`
- * whenever the charge holds one, each spending chargePerShot and fired as one projectile's worth
- * (a fireball's blast too); the stream's count (spell.volley.fired) spreads the later ones.
+ * whenever the charge holds one (streamShotCharge: chargePerShot, or a fireball's gmgShotCharge),
+ * each spending that and fired at it (a fireball's blast too); the stream's count
+ * (spell.volley.fired) spreads the later ones.
  */
 export function streamVolley(t: Tick, caster: ActorState, spell: ActorState, aim: Vec): void {
   const atk = spell.attack
   const v = atk?.volley
   if (!atk || !v) return
   const stream = spell.volley ?? { total: 0, fired: 0 }
+  const shot = streamShotCharge(v)
   while (streamShotDue(spell.charge, v)) {
     const index = stream.fired
-    fireVolleyShot(t, spell, atk, v, caster, { aim, charge: v.chargePerShot, angleDeg: (u) => streamShotAngleDeg(index, v, u), speedFactor: (u) => streamShotSpeedFactor(index, v, u) })
+    fireVolleyShot(t, spell, atk, v, caster, { aim, charge: shot, angleDeg: (u) => streamShotAngleDeg(index, v, u), speedFactor: (u) => streamShotSpeedFactor(index, v, u) })
     stream.fired++
     stream.total = stream.fired
-    spell.charge = Math.max(0, spell.charge - v.chargePerShot)
+    spell.charge = Math.max(0, spell.charge - shot)
   }
   spell.volley = stream
 }
+
+/**
+ * Remake (gmgStreamSlowdown, the mines in gun mode): while held, whenever the charge holds
+ * chargePerUnit, a spell of that charge (one mine) leaves the muzzle for `aim` as a released one
+ * would, with its release sound; the held spell keeps the rest.
+ */
+export function streamSpell(t: Tick, caster: ActorState, spell: ActorState, aim: Vec): void {
+  const atk = spell.attack
+  if (!atk || atk.chargePerUnit <= 0) return
+  while (spell.charge + STREAM_EPSILON >= atk.chargePerUnit) {
+    const from = muzzleOf(t, caster, atk)
+    const vel = releaseVelocity(from, aim, spellFlightSpeed(atk))
+    spawn(t, 'spell', from, { mode: 'fly', ownerId: caster.id, team: spell.team, attack: atk, charge: atk.chargePerUnit, targetPoint: aim, vel })
+    playSound(t, atk.releaseSound, spellChargeVolume(atk.chargePerUnit, atk))
+    spell.charge = Math.max(0, spell.charge - atk.chargePerUnit)
+  }
+}
+
+/** Keeps a charge sitting exactly on a shot's worth from rounding down the shot. */
+const STREAM_EPSILON = 1e-9
 
 /** One volley projectile's aim, the charge it is fired at, and its place in the fan (angle and speed from a uniform draw). */
 interface VolleyShot {
@@ -249,7 +299,7 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const bulletDef = atk.bullet ? t.s.defs[atk.bullet] : undefined
   if (!bulletDef) return
   const ownerDef = defOf(t.s, owner)
-  const from = volley.launchFrom === 'caster' ? attackLoc(owner.pos, ownerDef.attack, owner.facingLeft) : spell.pos
+  const from = atk.gmgOn ? muzzleOf(t, owner, atk) : volley.launchFrom === 'caster' ? attackLoc(owner.pos, ownerDef.attack, owner.facingLeft) : spell.pos
   const [angleU, r1] = nextRandom(t.rng)
   const [speedU, r2] = nextRandom(r1)
   t.rng = r2
@@ -258,7 +308,9 @@ function fireVolleyShot(t: Tick, spell: ActorState, atk: AttackDef, volley: Voll
   const vel = turnAndScale(base, shot.angleDeg(angleU), shot.speedFactor(speedU))
   const attack = volleyProjectileAttack(bulletDef.attack, atk.hits, volley, shot.charge)
   spawn(t, bulletDef.key, from, { mode: 'fly', vel, ownerId: spell.ownerId, team: spell.team, attack, hitsFirstHostile: true, burstsOnContact: volley.burstOnContact, piercesLeft: volley.pierce })
-  playSound(t, atk.sound, atk.volume)
+  // remake: a gun stream's shot without a sound of its own (the shuriken fan's) swooshes as a release
+  if (atk.sound !== null) playSound(t, atk.sound, atk.volume)
+  else if (atk.gmgOn) playSound(t, atk.releaseSound, spellChargeVolume(shot.charge, atk))
 }
 
 /** objSpell.getTargetLoc -> owner.getTargetLoc: where Merlin aims, a CPU caster's target, or none. */

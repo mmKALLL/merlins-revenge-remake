@@ -44,6 +44,12 @@ export function topAvailableStage(army: ArmyReserve, team: string, a: AttackDef)
   return 0
 }
 
+/** Remake (gmgSummonsLowest): the 1-based number of the lowest stage whose unit type has a unit in `team`'s reserve, 0 when none has. */
+export function lowestAvailableStage(army: ArmyReserve, team: string, a: AttackDef): number {
+  const i = a.multistage.findIndex((stage) => reserveCount(army, team, stage.payload) > 0)
+  return i + 1
+}
+
 /** modTeleport pTeleportHeight: how tall the stretched sprite is at the far end of a teleport. */
 const TELEPORT_HEIGHT = 1000
 

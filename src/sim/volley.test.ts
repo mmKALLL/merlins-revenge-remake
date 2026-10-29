@@ -13,7 +13,7 @@ import { createSim, stepSim } from './tick'
 import { ICON_ROW_SHIFT, blastCharge, iconRows, iconStackPx, iconStackSize, shotAngleDeg, volleyBallPx, volleyFullCharge, volleyIconPx, volleyProjectileAttack, volleyShots, volleySpreadDeg } from './volley'
 import { buildWorldGrid } from './world-grid'
 
-const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0 }
+const VOLLEY: VolleyDef = { chargePerShot: 2, maxShots: 4, rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'spell', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0, gmgShotCharge: 0 }
 
 describe('volley rules', () => {
   it('fires one projectile per chargePerShot of charge, none below the first, at most maxShots', () => {

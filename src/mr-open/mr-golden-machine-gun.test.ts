@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defs } from '../sim/test-data'
-import { NO_GMG, gmgAttack, gmgAutoFires, gmgCollected, gunAttack, setGmg } from './mr-golden-machine-gun'
+import { NO_GMG, gmgAttack, gmgAutoFires, gmgCollected, gmgSummonDue, gunAttack, isSpellStream, onGunRhythm, setGmg } from './mr-golden-machine-gun'
 import { chargeLimits } from './mr-spell'
 
 const player = defs['player']!
@@ -51,6 +51,37 @@ describe('the golden machine gun charge (modAttack.gmgOn, #spellCharged)', () =>
       const limits = limitsOf(spell)
       expect(gmgAutoFires(gmgAttack(defs[spell]!.attack), limits.max, limits), spell).toBe(false)
     }
+  })
+
+  it('remake gmgChargeFullTicks: the gun version takes it as its chargeFullTicks; without it the attack keeps its own', () => {
+    const cBlast = defs['cBlast']!.attack
+    expect(gmgAttack({ ...cBlast, chargeFullTicks: 150 }).chargeFullTicks).toBe(150)
+    expect(gmgAttack({ ...cBlast, chargeFullTicks: 150, gmg: { ...cBlast.gmg!, chargeFullTicks: 60 } }).chargeFullTicks).toBe(60)
+  })
+
+  it('remake gmgStreamSlowdown: the gun version keeps its own charge, its speed and speed cap divided', () => {
+    const mines = { ...defs['energyMines']!.attack, gmgStreamSlowdown: 2, chargeSpeedMax: 4 }
+    const gun = gunAttack(mines)
+    expect(gun).toMatchObject({ chargeStart: mines.chargeStart, chargeMax: mines.chargeMax, chargeSpeed: mines.chargeSpeed / 2, chargeSpeedMax: 2, gmgOn: true })
+    expect(isSpellStream(gun)).toBe(true)
+    expect(isSpellStream(mines)).toBe(false)
+  })
+
+  it('remake gmgSummonsLowest: the gun summon is due once it reaches the lowest stage in the reserve, never with none there', () => {
+    const army = gunAttack({ ...defs['armySummon']!.attack, gmgSummonsLowest: true })
+    const archer = army.multistage[1]!.chargeRequired
+    expect(gmgSummonDue(army, archer - 0.1, 2)).toBe(false)
+    expect(gmgSummonDue(army, archer, 2)).toBe(true)
+    expect(gmgSummonDue(army, 99, 0)).toBe(false)
+    expect(gmgSummonDue({ ...army, gmgSummonsLowest: false }, archer, 2)).toBe(false)
+  })
+
+  it('remake fireRateScale: gun spells start on that share of the ticks, spread evenly; every tick at 1', () => {
+    const ticks = Array.from({ length: 100 }, (_, i) => i + 1)
+    expect(ticks.filter((n) => onGunRhythm(n, 0.7))).toHaveLength(70)
+    const skipped = ticks.filter((n) => !onGunRhythm(n, 0.7))
+    expect(skipped.every((n, i) => i === 0 || n - skipped[i - 1]! > 1)).toBe(true) // never two in a row
+    expect(ticks.every((n) => onGunRhythm(n, 1))).toBe(true)
   })
 
   it('an attack used without the gun never autofires', () => {

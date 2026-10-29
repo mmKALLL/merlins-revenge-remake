@@ -3,11 +3,12 @@
 // melee weapon (the punch, the energy punch, the sword) swings while it is held, striking on its
 // attack frame every hated unit under the strike point (teamMaster.impactMeleeAttack). With the
 // golden machine gun on, every spell is started in its gun version (spells notes §6).
-import type { ActorDef } from '../mr-open/mr-actor-data'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
 import { cooldownReady, meleeHits, meleePush, resetCooldown } from '../mr-open/mr-attack'
 import type { Vec } from '../mr-open/mr-geometry'
-import { gmgAutoFires, gunAttack, setGmg, type GmgState } from '../mr-open/mr-golden-machine-gun'
-import { chargeLimits, chargeStep, sendsAlliesHome } from '../mr-open/mr-spell'
+import { lowestAvailableStage, takeUnit } from '../mr-open/mr-army'
+import { gmgAutoFires, gmgSummonDue, gunAttack, isSpellStream, onGunRhythm, setGmg, type GmgState } from '../mr-open/mr-golden-machine-gun'
+import { chargeLimits, chargeStep, payloadFor, sendsAlliesHome } from '../mr-open/mr-spell'
 import { hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, hurtSpriteRectFor, isAlive, isUnit, playerStatsOf } from './actors'
 import { onFreshFrame } from './anim'
@@ -16,7 +17,7 @@ import { ATTACK_STRIPS, type ActorState, type AttackStrip, type ChargeKind, type
 import { hitTargetIn, playSound, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { applyPayload, withOwnerDamage } from './tick-combat'
 import { nearestAllyOnScreen } from './tick-army'
-import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage, streamVolley } from './tick-spell'
+import { alignSpell, chargingSpellOf, releaseMagic, startSpell, stepMultistage, streamSpell, streamVolley } from './tick-spell'
 import { isVolleyStream } from './volley'
 import { stepWeaponChoice } from './tick-weapons'
 import type { Size } from './view'
@@ -74,12 +75,31 @@ function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState
  * objAiPlayer.internalEvent(#spellCharged) with the golden machine gun: a spell whose charge counter
  * has finished is released at once (playerAttackRelease); the next charge (playerAttackCharge) waits
  * for the cooldown that release restarts, so it starts on a later tick. Remake: a volley streams
- * instead, a projectile whenever its charge holds one (streamVolley).
+ * instead, a projectile whenever its charge holds one (streamVolley), and so do the mines, a mine's
+ * spell whenever the charge holds one (streamSpell); the army summon goes once it reaches the
+ * lowest stage with a unit in the reserve (gmgSummonDue).
  */
 function autoFire(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, input: InputSnapshot, view: Size): void {
   const atk = spell.attack ?? def.attack
-  if (isVolleyStream(atk)) streamVolley(t, p, spell, spellAimPoint(t, p, input, p.ai.chargeKind, view, atk))
-  else if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk }))) releaseSpell(t, p, def, spell, input, view)
+  const aim = () => spellAimPoint(t, p, input, p.ai.chargeKind, view, atk)
+  if (isVolleyStream(atk)) streamVolley(t, p, spell, aim())
+  else if (isSpellStream(atk)) streamSpell(t, p, spell, aim())
+  else if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk })) || summonDue(t, spell, atk)) releaseSpell(t, p, def, spell, input, view)
+}
+
+/**
+ * Remake (gmgSummonsLowest): the gun's army summon has reached the lowest stage with a unit in the
+ * reserve, not counting the units the caster's summons still in flight will take from it.
+ */
+function summonDue(t: Tick, spell: ActorState, atk: AttackDef): boolean {
+  if (!atk.gmgSummonsLowest) return false
+  let army = t.army
+  for (const a of t.actors) {
+    if (t.removed.has(a.id) || a.mode !== 'fly' || a.ownerId !== spell.ownerId || a.attack?.name !== atk.name) continue
+    const payload = payloadFor(a.charge, a.attack)
+    if (payload !== null) army = takeUnit(army, a.team, payload) ?? army
+  }
+  return gmgSummonDue(atk, spell.charge, lowestAvailableStage(army, spell.team, atk))
 }
 
 /**
@@ -113,6 +133,8 @@ function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot
   }
   const kind = chargeKindFor(input)
   if (kind === null || !cooldownReady(p.cooldown)) return undefined
+  // remake (fireRateScale): gun spells start on its rhythm (the pulse: 7 ticks in 10)
+  if (def.attack.gmgOn && !onGunRhythm(t.s.tick, def.attack.fireRateScale)) return undefined
   p.ai.mode = 'none' // ensureMode(#charge) ends a swing switched away from
   const spell = startSpell(t, p, def)
   stepMultistage(t, spell)

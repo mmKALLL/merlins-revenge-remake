@@ -74,6 +74,14 @@ export interface AttackDef {
   gmg: GmgCharge | null
   /** started with the golden machine gun on (mr-golden-machine-gun.ts gunAttack): autofire, the charge beside the gun; false in the data */
   gmgOn: boolean
+  /** remake: fired through the gun, the spell launches this many px further out than its muzzle (owner: the pulse 4); 0 = at the muzzle */
+  gmgMuzzleShift: number
+  /** remake: bullets come this many times as often: a #fireBullets spell's period / this, and its gun spells start on that rhythm; 1 = engine */
+  fireRateScale: number
+  /** remake: with the gun on the spell streams while held, charging at its own speed / this and sending a spell of chargePerUnit (one mine) whenever it holds one; 0 = engine (charged and let go by hand) */
+  gmgStreamSlowdown: number
+  /** remake (army summon): with the gun on the spell goes once it reaches the lowest stage with a unit in the reserve; false = engine (let go by hand) */
+  gmgSummonsLowest: boolean
 }
 
 /**
@@ -110,6 +118,8 @@ export interface VolleyDef {
   growingIconPx: number
   /** remake: a projectile that touches a hostile bursts there, its blast its only hit (a fireball); false = it hits as its bullet does */
   burstOnContact: boolean
+  /** remake: the charge each projectile of the gun's stream takes and is fired at (owner: a fireball 1.3 Lava Toss rocks); 0 = chargePerShot */
+  gmgShotCharge: number
 }
 
 /**
@@ -309,10 +319,15 @@ const ATTACK_DEFAULTS = {
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
   chargeVolumeTail: null, // the release/explode volume follows chargeVolumeMap at every charge, as in the engine
+  gmgChargeFullTicks: null, // remake: the gun version keeps the attack's chargeFullTicks
+  gmgMuzzleShift: 0, // remake: a gun spell launches from the gun's muzzle
+  fireRateScale: 1, // bullets every fireDelay ticks, as in the engine
+  gmgStreamSlowdown: 0, // the gun version is charged and let go by hand (unless it autofires), as in the engine
+  gmgSummonsLowest: false, // a gun summon is let go by hand, as in the engine
 } as const
 
 /** Remake: a volley's fields when its data leaves them out (all but chargePerShot and maxShots). */
-const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0 }
+const VOLLEY_DEFAULTS = { rangeFactor: 1, damageMultiplier: 1, staggerTicks: 2, spreadMinDeg: 10, spreadMaxDeg: 32, speedJitter: 0.05, minLandingSpeedShare: 0.5, launchFrom: 'caster', spread: 'random', chill: 0, pierce: 0, fullCharge: 0, blastFromCharge: null, burstOnContact: false, growingIconPx: 0, gmgShotCharge: 0 }
 
 /** #payloadFunctionNonBlank [#same]: the stage payload keeps the blank payload functions. */
 const SAME_PAYLOAD = 'same'
@@ -418,7 +433,7 @@ for (const k of [
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
   'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'exitOpenDelayTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
-  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx',
+  'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx', 'gmgShotCharge',
 ]) {
   CANONICAL.set(k.toLowerCase(), k)
 }
@@ -626,6 +641,7 @@ function volleyOf(a: Plain, ctx: string): VolleyDef | null {
     spread: volleySpreadOf(f['spread'], c), launchFrom: volleyLaunchFromOf(f['launchFrom'], c),
     chill: num(f, 'chill', c), pierce: num(f, 'pierce', c), fullCharge: num(f, 'fullCharge', c),
     blastFromCharge: blastFromChargeOf(f['blastFromCharge'], c), burstOnContact: bool(f, 'burstOnContact', c), growingIconPx: num(f, 'growingIconPx', c),
+    gmgShotCharge: num(f, 'gmgShotCharge', c),
   }
 }
 
@@ -691,6 +707,8 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
     chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
     gmg: gmgChargeOf(a, ctx), gmgOn: false,
+    gmgMuzzleShift: num(a, 'gmgMuzzleShift', ctx), fireRateScale: num(a, 'fireRateScale', ctx),
+    gmgStreamSlowdown: num(a, 'gmgStreamSlowdown', ctx), gmgSummonsLowest: bool(a, 'gmgSummonsLowest', ctx),
   }
 }
 
@@ -700,6 +718,7 @@ function gmgChargeOf(a: Plain, ctx: string): GmgCharge | null {
   return {
     chargeMax: num(a, 'gmgChargeMax', ctx), chargeSpeed: num(a, 'gmgChargeSpeed', ctx),
     chargeStart: num(a, 'gmgChargeStart', ctx), autoFire: bool(a, 'gmgAutoFire', ctx),
+    chargeFullTicks: a['gmgChargeFullTicks'] === null ? null : num(a, 'gmgChargeFullTicks', ctx),
   }
 }
 

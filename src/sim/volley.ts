@@ -65,13 +65,16 @@ export const shotDue = (age: number, fired: number, v: VolleyDef): boolean => ag
 
 /**
  * Remake (owner, 2026-10-29): with the golden machine gun on, a volley is a stream. While held it
- * keeps its own charge speed, and whenever the charge holds one projectile (chargePerShot) it fires
- * that one, spending its share: one every chargePerShot / charge speed ticks.
+ * keeps its own charge speed, and whenever the charge holds one projectile (streamShotCharge) it
+ * fires that one, spending its share: one every streamShotCharge / charge speed ticks.
  */
 export const isVolleyStream = (a: AttackDef): boolean => a.gmgOn && a.volley !== null
 
+/** Remake: the charge one projectile of a stream takes and is fired at: gmgShotCharge (a fireball's), else chargePerShot. */
+export const streamShotCharge = (v: VolleyDef): number => (v.gmgShotCharge > 0 ? v.gmgShotCharge : v.chargePerShot)
+
 /** Whether a streaming volley's charge holds a projectile to fire. */
-export const streamShotDue = (charge: number, v: VolleyDef): boolean => charge + THRESHOLD_EPSILON >= v.chargePerShot
+export const streamShotDue = (charge: number, v: VolleyDef): boolean => charge + THRESHOLD_EPSILON >= streamShotCharge(v)
 
 /**
  * The angle (degrees off the aim) of projectile `index` of a stream: the first exactly at the aim,

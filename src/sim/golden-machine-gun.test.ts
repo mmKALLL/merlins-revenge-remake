@@ -1,9 +1,11 @@
 // The golden machine gun in the sim (docs/notes/engine-mechanics-spells.md §6): collecting it, E
 // switching it, every spell's gun version (the energy blast's autofire, a pulse a tick, the summons'
-// faster hand-released charge), the remake's volley stream, and Merlin holding the gun.
+// faster hand-released charge), the remake's volley stream, Merlin holding the gun, and the owner's
+// tuning of it (the muzzle, cBlast's rate, the pulse's rate, the mine stream, the army summon).
 import { describe, expect, it } from 'vitest'
-import type { ActorDef } from '../mr-open/mr-actor-data'
-import { gmgAttack, gmgCollected, gmgStrip } from '../mr-open/mr-golden-machine-gun'
+import type { ActorDef, AttackDef } from '../mr-open/mr-actor-data'
+import { withUnits } from '../mr-open/mr-army'
+import { gmgAttack, gmgCollected, gmgMuzzle, gmgStrip } from '../mr-open/mr-golden-machine-gun'
 import type { MapDefinition } from '../mr-open/mr-map-format'
 import { GOLDEN_MACHINE_GUN } from '../mr-open/mr-pickup'
 import { chargeLimits } from '../mr-open/mr-spell'
@@ -64,13 +66,13 @@ function fire(s: SimState, ticks: number, at = FAR_RIGHT): { s: SimState; releas
   return { s, released, releasedOn }
 }
 
-/** Holds the attack for `ticks` ticks; the `bullet` actors that appeared, each with the tick it appeared on. */
-function shots(s: SimState, bullet: string, ticks: number, at = FAR_RIGHT): { s: SimState; shot: ActorState[]; shotOn: number[] } {
+/** Holds the attack (or, `held` false, nothing) for `ticks` ticks; the `bullet` actors that appeared, each with the tick it appeared on. */
+function shots(s: SimState, bullet: string, ticks: number, held = true): { s: SimState; shot: ActorState[]; shotOn: number[] } {
   const seen = new Set<number>()
   const shot: ActorState[] = []
   const shotOn: number[] = []
   for (let i = 1; i <= ticks; i++) {
-    s = stepSim(s, aimAt(at))
+    s = stepSim(s, held ? aimAt(FAR_RIGHT) : { ...NO_INPUT, mouseWorld: FAR_RIGHT })
     for (const a of s.actors) {
       if (a.def !== bullet || seen.has(a.id)) continue
       seen.add(a.id)
@@ -204,14 +206,16 @@ describe('a volley in gun mode (remake): a stream', () => {
     expect(shots(s0, s0.defs['arrowRain']!.attack.bullet!, 90).shot).toEqual([])
   })
 
-  it('the fireball streams tap-sized fireballs at its own rate', () => {
+  it('the fireball streams fireballs of its gmgShotCharge each, their blasts grown from that charge', () => {
     const s0 = withGun(holding(world({}), 'lavaLob'))
     const atk = s0.defs['lavaLob']!.attack
-    const ticks = 60
+    const v = atk.volley!
+    expect(v.gmgShotCharge).toBeGreaterThan(v.chargePerShot)
+    const ticks = 120
     const { shot } = shots(s0, atk.bullet!, ticks)
-    expect(Math.abs(shot.length - ticks / ticksPerShot(s0, 'lavaLob'))).toBeLessThanOrEqual(1)
-    const blast = atk.volley!.blastFromCharge!
-    for (const rock of shot) expect(rock.attack!.explodeCharge).toBeCloseTo(blast.base + atk.volley!.chargePerShot * blast.perCharge)
+    const ticksPerFireball = v.gmgShotCharge / chargeLimits({ ...playerStatsOf(s0, playerOf(s0)), attack: atk }).speed
+    expect(Math.abs(shot.length - ticks / ticksPerFireball)).toBeLessThanOrEqual(1)
+    for (const rock of shot) expect(rock.attack!.explodeCharge).toBeCloseTo(v.blastFromCharge!.base + v.gmgShotCharge * v.blastFromCharge!.perCharge)
   })
 
   it('let go, the stream stops and what is left of its charge goes', () => {
@@ -219,5 +223,97 @@ describe('a volley in gun mode (remake): a stream', () => {
     s = shots(s, s.defs['arrowRain']!.attack.bullet!, 10).s
     s = stepSim(s, NO_INPUT)
     expect(spells(s)).toEqual([])
+  })
+})
+
+/** The scroll's attack with remake fields set, as assets/tuning.json would (these tests' defs are the engine's). */
+function tuned(s: SimState, spell: string, fields: Partial<AttackDef>): SimState {
+  const def = s.defs[spell]!
+  return { ...s, defs: { ...s.defs, [spell]: { ...def, attack: { ...def.attack, ...fields } } } }
+}
+
+/** The ticks between one entry and the next. */
+const gaps = (ticks: number[]): number[] => ticks.slice(1).map((n, i) => n - ticks[i]!)
+
+describe('fired through the gun (remake): from its muzzle', () => {
+  /** Merlin's gun muzzle: the middle of his still gun frame's front edge, `shift` px further out. */
+  const muzzle = (s: SimState, shift = 0) => {
+    const p = playerOf(s)
+    const frame = s.anims[s.defs['player']!.name]![gmgStrip(false)]!
+    return gmgMuzzle(p.pos, { w: frame.w, h: frame.h, reg: frame.reg! }, p.facingLeft, shift)
+  }
+
+  it("the muzzle is the middle of the gun frame's front edge, mirrored when Merlin faces left", () => {
+    const frame = { w: 19, h: 14, reg: { x: 9, y: 7 } }
+    expect(gmgMuzzle({ x: 100, y: 50 }, frame, false, 0)).toEqual({ x: 110, y: 50 })
+    expect(gmgMuzzle({ x: 100, y: 50 }, frame, true, 4)).toEqual({ x: 86, y: 50 })
+  })
+
+  it('a blast leaves from the muzzle', () => {
+    let s = withGun(world({}))
+    for (let i = 0; i < 4 && !spells(s).some((a) => a.mode === 'fly'); i++) s = stepSim(s, aimAt(FAR_RIGHT))
+    expect(spells(s).find((a) => a.mode === 'fly')!.prevPos).toEqual(muzzle(s))
+  })
+
+  it('a pulse leaves gmgMuzzleShift px further out than the muzzle', () => {
+    const s0 = withGun(holding(tuned(world({}), 'energyPulseSpell', { gmgMuzzleShift: 4 }), 'energyPulseSpell'))
+    const { s, shot } = shots(s0, s0.defs['energyPulseSpell']!.attack.bullet!, 1)
+    expect(shot[0]!.pos).toEqual(muzzle(s, 4))
+  })
+
+  it("a volley's projectiles leave from the muzzle", () => {
+    let s = withGun(holding(world({}), 'arrowRain'))
+    const arrow = s.defs['arrowRain']!.attack.bullet!
+    for (let i = 0; i < 30 && !s.actors.some((a) => a.def === arrow); i++) s = stepSim(s, aimAt(FAR_RIGHT))
+    expect(s.actors.find((a) => a.def === arrow)!.prevPos).toEqual(muzzle(s))
+  })
+})
+
+describe('the gun versions the owner tuned (remake)', () => {
+  it('gmgChargeFullTicks: the gun cBlast fires once every that many ticks', () => {
+    const gmg = { ...engineDefs['cBlast']!.attack.gmg!, chargeFullTicks: 60 }
+    const { releasedOn } = fire(withGun(holding(tuned(world({}), 'cBlast', { gmg }), 'cBlast')), 200)
+    expect(releasedOn.length).toBeGreaterThanOrEqual(3)
+    for (const gap of gaps(releasedOn)) expect(gap).toBe(60)
+  })
+
+  it('fireRateScale: a released pulse spell fires every fireDelay / scale ticks on average', () => {
+    const s0 = holding(tuned(world({}), 'energyPulseSpell', { fireRateScale: 0.7 }), 'energyPulseSpell')
+    const pulse = s0.defs['energyPulseSpell']!.attack.bullet!
+    const charged = shots(s0, pulse, 20).s
+    const { shotOn } = shots(charged, pulse, 60, false)
+    const period = s0.defs['energyPulseSpell']!.attack.fireDelay / 0.7
+    expect(shotOn.length).toBeGreaterThanOrEqual(4)
+    for (const gap of gaps(shotOn)) expect(Math.abs(gap - period)).toBeLessThan(1)
+  })
+
+  it('fireRateScale: the gun pulse fires on that share of the ticks', () => {
+    const s0 = withGun(holding(tuned(world({}), 'energyPulseSpell', { fireRateScale: 0.7 }), 'energyPulseSpell'))
+    const { shot } = shots(s0, s0.defs['energyPulseSpell']!.attack.bullet!, 100)
+    expect(Math.abs(shot.length - 70)).toBeLessThanOrEqual(1)
+  })
+
+  it('gmgStreamSlowdown: held, the gun mines send a one-mine spell every slowdown x the time a plain charge takes for one; let go, they stop', () => {
+    const s0 = withGun(holding(tuned(world({}), 'energyMines', { gmgStreamSlowdown: 2 }), 'energyMines'))
+    const atk = s0.defs['energyMines']!.attack
+    const plainSpeed = chargeLimits({ ...playerStatsOf(s0, playerOf(s0)), attack: atk }).speed
+    const ticks = 90
+    const { s, released } = fire(s0, ticks)
+    for (const charge of released.values()) expect(charge).toBe(atk.chargePerUnit)
+    expect(Math.abs(released.size - ticks / ((2 * atk.chargePerUnit) / plainSpeed))).toBeLessThanOrEqual(1)
+    const letGo = stepSim(s, NO_INPUT)
+    expect(spells(letGo).filter((a) => a.mode === 'charge')).toEqual([])
+  })
+
+  it('gmgSummonsLowest: the gun army summon goes at the lowest stage with a unit in the reserve; with none it holds a blank', () => {
+    const gmg = { ...engineDefs['armySummon']!.attack.gmg!, chargeMax: 38 }
+    let s0 = withGun(holding(tuned(world({}), 'armySummon', { gmgSummonsLowest: true, gmg }), 'armySummon'))
+    s0 = { ...s0, army: withUnits(s0.army, playerOf(s0).team, { archer: 1, monk: 1 }) }
+    const atk = s0.defs['armySummon']!.attack
+    const stage = (charge: number) => atk.multistage.filter((m) => m.chargeRequired <= charge).length
+    const { s, released } = fire(s0, 40)
+    expect([...released.values()].map(stage)).toEqual([2, 3]) // the archer, then the monk
+    const held = spells(s).find((a) => a.mode === 'charge')!
+    expect(stage(held.charge)).toBe(0)
   })
 })

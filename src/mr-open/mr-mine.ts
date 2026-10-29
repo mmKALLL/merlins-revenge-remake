@@ -21,9 +21,10 @@ export const mineSpread = (charge: number): number => charge / 2
 
 /**
  * modFireBullets: the fire delay counter (Counter over [1, fireDelay], reset after each bullet)
- * fires every ceil(fireDelay) ticks, the first that long after the release.
+ * fires every ceil(fireDelay) ticks, the first that long after the release. Remake
+ * (fireRateScale): that period / the scale, fractional, never under a tick.
  */
-export const fireBulletsPeriod = (a: AttackDef): number => Math.max(1, Math.ceil(a.fireDelay))
+export const fireBulletsPeriod = (a: AttackDef): number => Math.max(1, Math.ceil(a.fireDelay) / a.fireRateScale)
 
 /** modFireBullets.fireBullet: the charge after one more bullet, and whether that was the last. */
 export function chargeAfterBullet(charge: number, a: AttackDef): { charge: number; last: boolean } {
