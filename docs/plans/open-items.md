@@ -143,13 +143,21 @@ floor; roguelite snapshots that record the floor.
   engine, collecting it switches it on and E switches it off and on (E no longer fires; a click and
   Space do); on touch screens a gold gun button above the army button, shown once Merlin has the
   gun, lit while on. With it on every spell starts in its gun version (the energy blast's blast
-  every second tick, a pulse or beam strike a tick, faster summons and mines released by hand) and
-  Merlin holds the gun; the remake's volleys stream one projectile per `chargePerShot` of charge
-  (arrow rain every 3 ticks, the Fireball's tap-sized fireballs every 3.1, lightning fan every 30).
+  every second tick, a beam strike a tick, a faster monster summon released by hand) and Merlin
+  holds the gun; the remake's volleys stream one projectile per `chargePerShot` of charge (arrow
+  rain every 3 ticks, lightning fan every 30).
   A reserved roguelite reward (about 4.4 % of a floor's pick, no potions) while Merlin lacks it, and
   listed in the run summary; on `?map=test_maps/spell_test`. Owner to check on a phone: the gun
   button's place (landscape above the army button, portrait above the weapon button). Owner
   question: switch on `MAZE_GIVES_GOLDEN_MACHINE_GUN`?
+  Owner feedback of 2026-10-29 (done, to review; Remake decisions "Gun mode, second round"): spells
+  fired through the gun leave from its tip (the energy pulse 4 px further out); cBlast fires every
+  60 ticks (charge 61); the energy pulse 30 % slower with and without the gun (7.1 ticks between
+  pulses, 21 a second through the gun); the gun mines lay a mine every 6.7 ticks while held; the gun
+  army summon goes at the lowest stage in the reserve (blank held when the reserve is empty); the
+  gun Fireball streams 1.3-Lava-Toss-rock fireballs (every 12 ticks, radius 24 px, 28 at the
+  centre); the shuriken fan only swooshes; no sprite flicker during the map-clear fade. The beam's
+  longer reach with the gun is left as it is (owner).
 
 - Melee units in larger numbers (2026-10-28; `docs/plans/2026-09-28-random-floor-design.md`, Owner
   decision 2026-10-28): a room's draws count a melee unit as 0.75 of a unit (`MELEE_UNIT_SHARE` in

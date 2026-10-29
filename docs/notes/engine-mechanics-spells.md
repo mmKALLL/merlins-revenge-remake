@@ -417,7 +417,8 @@ a fire.
   `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
 - Every spell in the table is ported, and the golden machine gun as the engine's mode
   (`src/mr-open/mr-golden-machine-gun.ts`; `SimState.gmg`; the gun versions in
-  `tick-player-attack.ts`, the volley stream in `tick-spell.ts` `streamVolley`; Remake decisions).
+  `tick-player-attack.ts`, the volley and mine streams in `tick-spell.ts` `streamVolley` and
+  `streamSpell`, the muzzle `muzzleOf`; Remake decisions).
   Test content: `?map=test_maps/spell_test` (`tools/make-spells-test-map.mjs`; the gun is the last
   scroll of the row above Merlin).
 - Left out: experience in the army details (not ported anywhere), the in-game wizards, the axe's
@@ -434,7 +435,8 @@ a fire.
   engine's `setGmg`). E no longer charges or fires (a click and Space do). While it is on, every
   spell Merlin starts is its gun version (`gunAttack`: the gmg* charge fields, fireDelay 0,
   autofire, the charge beside the muzzle), so the energy blast fires a blast every second tick, the
-  pulse and beam a bullet a tick, the summons and mines charge faster and wait to be let go;
+  pulse and beam a bullet a tick, the summons and mines charge faster and wait to be let go (the
+  owner's second round below changes the pulse, the mines and the army summon);
   switching releases the spell in hand. The melee weapons are untouched. `SimState.gmg` carries over
   between roguelite floors with the weapons. Merlin is drawn holding the gun (`weaponMagic`,
   `weaponMagicWalk`) while it is on, alive, with a spell as his weapon; remake: not while a melee
@@ -451,13 +453,62 @@ a fire.
   straight at the aim at full speed, each later one at a random angle inside the fan a volley of
   that many projectiles would have (`streamShotAngleDeg`, capped at maxShots), so a long stream
   widens to the spell's own fan; letting go drops the leftover charge. The Fireball (lavaLob, one
-  projectile whose blast grows with the charge) streams tap-sized fireballs (blast at charge
-  `chargePerShot` 2) at the same rule. With Merlin's starting tuning (mana_flow 3), ticks per
-  projectile at 30 Hz: arrowRain and needleSpray 3, lavaLob 3.1, dragonFire 3.6, bunnyLob 4.2,
+  projectile whose blast grows with the charge) streams fireballs of its `gmgShotCharge` each (see
+  "Gun mode, second round" below; tap-sized until then). With Merlin's starting tuning (mana_flow 3), ticks per
+  projectile at 30 Hz: arrowRain and needleSpray 3, lavaLob 12, dragonFire 3.6, bunnyLob 4.2,
   shurikenFan 4.8, boltFan and pinStorm 6, acidSplash 7.5, bombVolley 8.5, chillFlame 11,
   darkRockBurst, poisonSmoke and skullToss 12, laserVolley 13, boulderLob and longbow 15,
   frostBurst, iceBoulderLob and thunderBurst 19, lightningFan 30 (Max Blast potions do not change
   them; mana flow potions do).
+- **Gun mode, second round (owner, 2026-10-29).** Remake fields, engine defaults off; Merlin's
+  starting tuning (burst 1, capacity 13, flow 3, regeneration 30) for the numbers:
+  - **From the gun's tip.** A spell fired through the gun leaves from its muzzle (`gmgMuzzle`,
+    `muzzleOf` in `tick-spell.ts`): the middle of the front edge of Merlin's still gun frame
+    (`weaponMagic`, 19 x 14, reg (9, 7): 10 px ahead of his reg point, level with it; the left edge
+    when he faces left), not the ball beside it nor his attack point. A released spell is moved
+    there (blasts, summons, a pulse's or beam's firing spell), and the volleys' stream shots and the
+    mines' shots start there. Attack field `gmgMuzzleShift` (px further out): the energy pulse 4. The
+    charging ball still sits beside the muzzle at `gmgChargeLoc` (10, -1), as the engine places it.
+  - **cBlast every 2 seconds.** Its gun version charged 1 a tick to the remake's 150-tick cap
+    (`chargeFullTicks`), a blast every 150 ticks. New attack field `#gmgChargeFullTicks` (the gun
+    version's `chargeFullTicks`; none = the attack's own): cBlast 60, so a blast every 60 ticks at
+    charge 61 (was 151): radius 122 px instead of 302 (chargeExplodeFactor 4, power 0.5).
+  - **Energy pulse 30 % slower.** Attack field `fireRateScale` (1 = engine; the pulse 0.7): a
+    released #fireBullets spell fires every `ceil(fireDelay) / fireRateScale` ticks, the fraction
+    carried (`fireBulletsPeriod`, `stepFireBullets`): the pulse every 7.14 ticks (was 5), 7 pulses
+    from a full charge of 13. In gun mode each pulse is its own spell started on a tick the cooldown
+    (0) allows, so the gun spells start only on that share of the ticks, spread evenly
+    (`onGunRhythm`: 7 ticks in 10): 21 pulses a second (was 30).
+  - **Gun mines by holding.** Attack field `gmgStreamSlowdown` (0 = engine; the mines 2): the gun
+    version keeps the plain charge with its speed divided by it (1.5 a tick, plain 3) and, while
+    held, sends a spell of `chargePerUnit` 10 (one mine) from the muzzle toward the aim whenever its
+    charge holds one (`isSpellStream`, `streamSpell`, with the release sound); letting go drops the
+    rest. A plain charge takes 10 / 3 = 3.3 ticks per mine, the gun one a mine every 6.7 ticks.
+  - **Gun army summon.** Attack field `gmgSummonsLowest` (false = engine; the army summon true): the
+    gun version goes as soon as its charge reaches the lowest stage whose unit type is in the
+    reserve (`lowestAvailableStage`, `gmgSummonDue`), counting out the units Merlin's summons still
+    in flight will take, so it does not send a second spell for the last warrior. Repeated while
+    held: from the gun start 7 at 5 a tick, a warrior goes on the charge's second tick, an archer on
+    its third, a monk on its fourth, a dwarf on its fifth and the king on its sixth; the next charge
+    starts on the tick after (cooldown 1). With none in the reserve the engine's rein-in holds the charge at 9.9 (a blank,
+    released by hand, sends allies home). `armySummon`'s `gmgChargeMax` is tuned 17 -> 38 (the plain
+    max) so the monk, dwarf and king stages (20, 25, 32) can be reached.
+  - **Fireball stream.** Volley field `gmgShotCharge` (0 = chargePerShot): each fireball of the gun
+    stream takes and is fired at 7.8 charge, 1.3 x a Lava Toss (`darkRockBurst`) rock's
+    `chargePerShot` 6, with the blast grown from it (`blastFromCharge`): explodeCharge 48.8, radius
+    24.4 px; on a goblin 28 damage at the centre, 21 halfway out, 14 at the edge (a tap's: radius 20,
+    12 / 9 / 6). One every 12.0 ticks (7.8 / 0.648), 2.5 a second (was 9.7 tap-sized ones).
+  - **Shuriken fan sound.** Its volley no longer plays the arrow release (`goblin_fire`) per
+    shuriken: `#sound` removed from `shurikenFan.txt`, so a release plays only the spell release
+    swoosh. A gun stream shot without a `#sound` plays the release swoosh instead, so the stream is
+    not silent. Others to look at: pinStorm and needleSpray also play `goblin_fire` per projectile
+    (pins and needles, not arrows), and bombVolley, frostBurst, poisonSmoke and thunderBurst play
+    `spell_release` per projectile on top of the release's own.
+  - **The beam's reach with the gun (left as it is, owner).** The energy beam's explode frames (2 x 2
+    px, reg point at their centre) are stretched like its fly frame, so for the two explode ticks the
+    beam is drawn centred on where it lands and reaches half its length past it (and only half way
+    back to the spell). A plain beam strike shows it for two ticks in seven; through the gun one
+    strikes every tick, so the longer beam is always on screen.
 
 - **Monster summon (owner requests, 2026-10-22).** It charges at 70 % of the engine's speed: the
   charge per tick is `chargeSpeed` 0.6 x Merlin's mana_flow capped at `chargeSpeedMax`, and with his
