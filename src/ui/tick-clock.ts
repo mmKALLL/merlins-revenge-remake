@@ -25,6 +25,14 @@ export class TickClock {
   }
 }
 
+/**
+ * The interpolation factor to draw with: the clock's alpha while the sim steps, 1 (the last tick's
+ * positions) while it is held, as during the end sequence. The clock's alpha keeps cycling through
+ * every tick either way, and a held sim keeps each actor's last prevPos, so drawing with it would
+ * slide every sprite that moved on its last tick back and forth 30 times a second.
+ */
+export const drawAlpha = (alpha: number, simHeld: boolean): number => (simHeld ? 1 : alpha)
+
 /** Early-frame allowance: well under half a 120 Hz frame (8.3 ms), so 60 fps on it keeps every other frame. */
 const FRAME_SLACK_MS = 2
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FrameLimiter, TickClock } from './tick-clock'
+import { FrameLimiter, TickClock, drawAlpha } from './tick-clock'
 
 const TICK = 100 / 3
 const MAX_FRAME = 250
@@ -39,5 +39,15 @@ describe('FrameLimiter', () => {
     expect(frames.filter((t) => at60.due(t))).toHaveLength(6)
     const uncapped = new FrameLimiter(null)
     expect(frames.filter((t) => uncapped.due(t))).toHaveLength(12)
+  })
+})
+
+describe('drawAlpha', () => {
+  it('interpolates while the sim steps and holds the last tick while it is held (the end sequence)', () => {
+    const c = new TickClock(TICK, MAX_FRAME)
+    c.frame(0, true)
+    const alphas = Array.from({ length: 12 }, (_, i) => c.frame((i + 1) * FRAME, true).alpha)
+    expect(new Set(alphas.map((a) => drawAlpha(a, false))).size).toBeGreaterThan(1)
+    for (const a of alphas) expect(drawAlpha(a, true)).toBe(1)
   })
 })

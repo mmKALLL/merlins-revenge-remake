@@ -51,7 +51,7 @@ import { menuButton } from './ui/menu-button'
 import { MenuOverlay, type MenuPanel } from './ui/overlay'
 import { pauseMenu } from './ui/pause-menu'
 import { settingsPanel } from './ui/settings-panel'
-import { FrameLimiter, TickClock } from './ui/tick-clock'
+import { FrameLimiter, TickClock, drawAlpha } from './ui/tick-clock'
 import { titleScreen } from './ui/title-screen'
 
 const params = new URLSearchParams(location.search)
@@ -507,7 +507,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       }
     }
     scene.musicTrack = audio.track
-    scene.draw(sim, alpha, fps, mouse, pointerStage())
+    // the end sequence (and a floor being built) holds the sim: draw its last tick, not a slide between the last two
+    scene.draw(sim, drawAlpha(alpha, ending !== null || buildingFloor), fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
     shell.touch?.showGun(sim.gmg.collected, sim.gmg.on)
