@@ -7,7 +7,7 @@ const base: AttackDef = {
   reach: 25, cooldown: 0, power: { x: 0.7, y: 0 }, damageMultiplier: 2, bullet: null, firingType: 'proportional', hits: ['teamMembers'],
   chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1, chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1,
   chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false, sound: null, releaseSound: null, explodeSound: null,
-  volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, chargeVolumeTail: null, gmg: null, gmgOn: false, gmgMuzzleShift: 0, fireRateScale: 1, gmgStreamSlowdown: 0, gmgSummonsLowest: false,
+  volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, chargeVolumeTail: null, gmg: null, gmgOn: false, gmgMuzzleShift: 0, fireRateScale: 1, gmgFireRateScale: 1, gmgStreamSlowdown: 0, gmgSummonsLowest: false,
 }
 const sword: AttackDef = base
 const bow: AttackDef = { ...base, name: 'goblinBow', type: 'ranged', animType: 'weaponRanged', animFrame: [21], collisionLoc: { x: 0, y: -2 }, reach: 100, cooldown: 200, power: 0.5, firingType: 'fullstrength', bullet: 'goblinArrow' }

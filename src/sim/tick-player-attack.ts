@@ -133,8 +133,8 @@ function startCharge(t: Tick, p: ActorState, def: ActorDef, input: InputSnapshot
   }
   const kind = chargeKindFor(input)
   if (kind === null || !cooldownReady(p.cooldown)) return undefined
-  // remake (fireRateScale): gun spells start on its rhythm (the pulse: 7 ticks in 10)
-  if (def.attack.gmgOn && !onGunRhythm(t.s.tick, def.attack.fireRateScale)) return undefined
+  // remake (gmgFireRateScale): gun spells start on its rhythm (the pulse: 7 ticks in 10)
+  if (def.attack.gmgOn && !onGunRhythm(t.s.tick, def.attack.gmgFireRateScale)) return undefined
   p.ai.mode = 'none' // ensureMode(#charge) ends a swing switched away from
   const spell = startSpell(t, p, def)
   stepMultistage(t, spell)

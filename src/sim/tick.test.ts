@@ -67,7 +67,7 @@ function def(over: Partial<ActorDef> & Pick<ActorDef, 'key' | 'name' | 'objType'
       reach: 25, cooldown: 0, power: { x: 5, y: -1 }, damageMultiplier: 1, bullet: null, firingType: 'proportional',
       hits: ['teamMembers'], chargeStart: 1, chargeMax: 5, chargeMaxBasic: 0, chargeMaxModifier: 1, chargeSpeed: 1,
       chargeSize: 1, chargeExplodeFactor: 4, explodeCharge: 10, chargeSpeedMax: null, explodeFunction: null, multistage: [], randomSummon: false, targetTileWhenNotBlank: false, targetAllegiance: 'enemy', targetCriteria: 'closestDistance', payloadFunction: ['takeHit'], payloadFunctionNonBlank: ['takeHit'], residentTeamCategory: null, chargeStartMax: null, releaseFunction: 'release', chargePerUnit: 5, fireDelay: 2, beam: false, glowTeal: false, freezeMultiplier: 1, chargeColour: { r: 255, g: 255, b: 255 }, spellSpeed: 2, limitMagic: false,
-      sound: null, releaseSound: null, explodeSound: null, volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, chargeVolumeTail: null, gmg: null, gmgOn: false, gmgMuzzleShift: 0, fireRateScale: 1, gmgStreamSlowdown: 0, gmgSummonsLowest: false,
+      sound: null, releaseSound: null, explodeSound: null, volume: 150, chargeVolumeMap: { charge: [1, 100], vol: [10, 255] }, chargeVolumeTail: null, gmg: null, gmgOn: false, gmgMuzzleShift: 0, fireRateScale: 1, gmgFireRateScale: 1, gmgStreamSlowdown: 0, gmgSummonsLowest: false,
     },
     takeHitSound: null, takeHitVolume: 150, dieSound: null, dieVolume: 100, musicTrack: null,
     raw: {},

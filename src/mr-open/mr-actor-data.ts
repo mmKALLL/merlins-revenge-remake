@@ -76,8 +76,10 @@ export interface AttackDef {
   gmgOn: boolean
   /** remake: fired through the gun, the spell launches this many px further out than its muzzle (owner: the pulse 4); 0 = at the muzzle */
   gmgMuzzleShift: number
-  /** remake: bullets come this many times as often: a #fireBullets spell's period / this, and its gun spells start on that rhythm; 1 = engine */
+  /** remake: bullets come this many times as often: a #fireBullets spell's period / this; 1 = engine */
   fireRateScale: number
+  /** remake: with the gun on, the spell's gun spells start on only this share of the ticks (owner: the pulse 0.7); 1 = engine (every tick) */
+  gmgFireRateScale: number
   /** remake: with the gun on the spell streams while held, charging at its own speed / this and sending a spell of chargePerUnit (one mine) whenever it holds one; 0 = engine (charged and let go by hand) */
   gmgStreamSlowdown: number
   /** remake (army summon): with the gun on the spell goes once it reaches the lowest stage with a unit in the reserve; false = engine (let go by hand) */
@@ -322,6 +324,7 @@ const ATTACK_DEFAULTS = {
   gmgChargeFullTicks: null, // remake: the gun version keeps the attack's chargeFullTicks
   gmgMuzzleShift: 0, // remake: a gun spell launches from the gun's muzzle
   fireRateScale: 1, // bullets every fireDelay ticks, as in the engine
+  gmgFireRateScale: 1, // a gun spell may start every tick, as in the engine
   gmgStreamSlowdown: 0, // the gun version is charged and let go by hand (unless it autofires), as in the engine
   gmgSummonsLowest: false, // a gun summon is let go by hand, as in the engine
 } as const
@@ -707,7 +710,7 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     volume: volumeOf(a, 'volume', ctx), chargeVolumeMap: chargeVolumeMap(a, 'chargeVolumeMap', ctx),
     chargeVolumeTail: a['chargeVolumeTail'] === null ? null : chargeVolumeMap(a, 'chargeVolumeTail', ctx),
     gmg: gmgChargeOf(a, ctx), gmgOn: false,
-    gmgMuzzleShift: num(a, 'gmgMuzzleShift', ctx), fireRateScale: num(a, 'fireRateScale', ctx),
+    gmgMuzzleShift: num(a, 'gmgMuzzleShift', ctx), fireRateScale: num(a, 'fireRateScale', ctx), gmgFireRateScale: num(a, 'gmgFireRateScale', ctx),
     gmgStreamSlowdown: num(a, 'gmgStreamSlowdown', ctx), gmgSummonsLowest: bool(a, 'gmgSummonsLowest', ctx),
   }
 }

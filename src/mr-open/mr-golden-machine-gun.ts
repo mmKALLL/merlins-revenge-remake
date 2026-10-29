@@ -76,7 +76,7 @@ export function gmgSummonDue(a: AttackDef, charge: number, lowest: number): bool
 }
 
 /**
- * Remake (fireRateScale below 1, the pulse): gun spells start only on `rate` of the ticks, spread
+ * Remake (gmgFireRateScale below 1, the pulse): gun spells start only on `rate` of the ticks, spread
  * evenly (the ticks on which floor(tick x rate) steps up), so a held gun fires that much slower.
  */
 export const onGunRhythm = (tick: number, rate: number): boolean => rate >= 1 || Math.floor(tick * rate) > Math.floor((tick - 1) * rate)

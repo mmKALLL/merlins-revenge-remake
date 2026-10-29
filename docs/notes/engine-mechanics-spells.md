@@ -992,3 +992,6 @@ the aim within it.
   projectile (`blastFromCharge` falloff), and its damage factor rises to 1.63 at the full charge
   (damageBase 0.1439, damagePerCharge 0.03804): a full charge from 3 Max Blast potions does about 180 at
   the centre, 130 halfway out and 80 at the edge (radius 48); a tap 12 / 9 / 6 (radius 20).
+- **Pulse rate split (owner, 2026-10-30):** without the gun the pulse fires 0.805 as often as the engine
+  (`fireRateScale`, one pulse every 6.2 ticks; 15% faster than the 0.7 of the round before); with the
+  gun its own `gmgFireRateScale` 0.7 (pulses on 7 ticks in 10) stays.

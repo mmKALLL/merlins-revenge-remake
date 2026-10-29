@@ -245,7 +245,8 @@
   },
   "energyPulseSpell": {
     "attack": {
-      "fireRateScale": 0.7,
+      "fireRateScale": 0.805,
+      "gmgFireRateScale": 0.7,
       "gmgMuzzleShift": 4
     }
   },

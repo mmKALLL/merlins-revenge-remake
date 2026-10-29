@@ -287,8 +287,8 @@ describe('the gun versions the owner tuned (remake)', () => {
     for (const gap of gaps(shotOn)) expect(Math.abs(gap - period)).toBeLessThan(1)
   })
 
-  it('fireRateScale: the gun pulse fires on that share of the ticks', () => {
-    const s0 = withGun(holding(tuned(world({}), 'energyPulseSpell', { fireRateScale: 0.7 }), 'energyPulseSpell'))
+  it('gmgFireRateScale: the gun pulse fires on that share of the ticks', () => {
+    const s0 = withGun(holding(tuned(world({}), 'energyPulseSpell', { gmgFireRateScale: 0.7 }), 'energyPulseSpell'))
     const { shot } = shots(s0, s0.defs['energyPulseSpell']!.attack.bullet!, 100)
     expect(Math.abs(shot.length - 70)).toBeLessThanOrEqual(1)
   })
