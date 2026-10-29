@@ -1,10 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { defs } from '../sim/test-data'
-import { gmgAttack, gmgAutoFires } from './mr-golden-machine-gun'
+import { NO_GMG, gmgAttack, gmgAutoFires, gmgCollected, gunAttack, setGmg } from './mr-golden-machine-gun'
 import { chargeLimits } from './mr-spell'
 
 const player = defs['player']!
 const limitsOf = (spell: string) => chargeLimits({ ...player, attack: gmgAttack(defs[spell]!.attack) })
+
+describe('the golden machine gun switch (modGoldenMachineGun)', () => {
+  it('the #gmg key does nothing before the gun is found', () => {
+    expect(setGmg(NO_GMG)).toEqual(NO_GMG)
+  })
+
+  it('found, it is on; the key (or a second pickup) flips it', () => {
+    const found = gmgCollected(NO_GMG)
+    expect(found).toEqual({ collected: true, on: true })
+    expect(setGmg(found).on).toBe(false)
+    expect(gmgCollected(found).on).toBe(false)
+  })
+
+  it('a spell without gmg* fields (a remake volley) keeps its charge, only marked as fired through the gun', () => {
+    const volley = defs['arrowRain']!.attack
+    expect(volley.gmg).toBeNull()
+    expect(gunAttack(volley)).toEqual({ ...volley, gmgOn: true })
+  })
+})
 
 describe('the golden machine gun charge (modAttack.gmgOn, #spellCharged)', () => {
   it("mana_flow cannot raise the gmg charge speed (chargeSpeedMax is gmgChargeSpeed)", () => {

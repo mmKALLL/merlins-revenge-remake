@@ -4,6 +4,7 @@ import { installStateExport } from './debug/state-export'
 import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { ARMY_SUMMON } from './mr-open/mr-army'
+import { GOLDEN_MACHINE_GUN } from './mr-open/mr-pickup'
 import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
@@ -509,6 +510,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     scene.draw(sim, alpha, fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
+    shell.touch?.showGun(sim.gmg.collected, sim.gmg.on)
     shell.touch?.showTarget(input.spaceMode)
     const endView = ending && endSequenceView(ending)
     scene.drawEndSequence(endView && run ? { ...endView, done: false } : endView) // a run's summary replaces the prompt
@@ -548,8 +550,10 @@ function main(): void {
     onChange: (move, blast) => input.setTouch(move, blast),
     onNextWeapon: () => input.nextWeapon(),
     onArmy: () => input.touchArmy(),
+    onGun: () => input.touchGun(),
     onTarget: () => input.toggleTouchTarget(),
     armyIconUrl: weaponIconUrl(ARMY_SUMMON),
+    gunIconUrl: weaponIconUrl(GOLDEN_MACHINE_GUN),
     weaponIconUrls: WEAPON_ICON_KEYS.map(weaponIconUrl),
   }) : null
 

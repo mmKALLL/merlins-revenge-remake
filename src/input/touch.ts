@@ -1,12 +1,13 @@
 // On-screen touch controls for phones and tablets (remake feature, not in the original): a movement
 // nub on the left that appears where a finger first presses, a blast button on the right with a
-// target button above it, and a weapon button and an army button beside it. They feed the same
+// target button above it, and a weapon button, an army button and a gun button beside it. They feed the same
 // InputTracker as the keyboard: the nub moves Merlin at any angle (a keyboard-speed analog of WASD),
 // the blast button acts as Space (charge while held, release by the Space mode; the mouse mode
 // without a mouse position fires at the nearest enemy), the target button switches the Space mode
 // between the nearest and the farthest enemy and shows which, the weapon button shows the current
 // weapon and steps to the next one on a tap, and the army button is R (a tap summons the whole
-// reserve at the nearest enemy, or sends the army back once the fight is over).
+// reserve at the nearest enemy, or sends the army back once the fight is over), and the gun button,
+// there once Merlin has the golden machine gun, is E (a tap switches it on or off; lit while on).
 // Shown on phones and tablets without a mouse (TOUCH_ONLY_QUERIES); ?touch=1 / ?touch=0 forces them on or off.
 import type { Vec } from '../mr-open/mr-geometry'
 import type { SpaceMode } from './keyboard'
@@ -105,28 +106,32 @@ export class TouchState {
 const TARGET_LABEL: Record<SpaceMode, string> = { nearest: 'NEAR', farthest: 'FAR', mouse: 'NEAR' }
 
 /**
- * Where the controls report (the nub and blast button's state, weapon, army and target button taps), the
- * army button's picture, and every picture the weapon button may show (loaded and decoded up front,
- * so a weapon switch shows its icon at once).
+ * Where the controls report (the nub and blast button's state, weapon, army, gun and target button
+ * taps), the army and gun buttons' pictures, and every picture the weapon button may show (loaded and
+ * decoded up front, so a weapon switch shows its icon at once).
  */
 export interface TouchOptions {
   onChange: TouchListener
   onNextWeapon: () => void
   onArmy: () => void
+  onGun: () => void
   onTarget: () => void
   armyIconUrl: string
+  gunIconUrl: string
   weaponIconUrls: readonly string[]
 }
 
 /**
  * The attached controls: `showWeapon` sets the weapon button's picture (an image URL), `showArmy`
- * shows or hides the army button, `showTarget` labels the target button with the Space mode, `release`
- * lets go of the nub and the blast button (a menu opened over them).
+ * shows or hides the army button, `showGun` shows or hides the gun button and lights it while the gun
+ * is on, `showTarget` labels the target button with the Space mode, `release` lets go of the nub and
+ * the blast button (a menu opened over them).
  */
 export interface TouchControls {
   detach: () => void
   showWeapon: (iconUrl: string) => void
   showArmy: (visible: boolean) => void
+  showGun: (visible: boolean, on: boolean) => void
   showTarget: (mode: SpaceMode) => void
   release: () => void
 }
@@ -139,7 +144,7 @@ export interface TouchControls {
  * left on the screen everything is let go.
  */
 export function attachTouchControls(parent: HTMLElement, options: TouchOptions): TouchControls {
-  const { onChange, onNextWeapon, onArmy, onTarget } = options
+  const { onChange, onNextWeapon, onArmy, onGun, onTarget } = options
   const root = el('div', 'touch')
   const zone = el('div', 'touch-nub-zone')
   const base = el('div', 'touch-nub')
@@ -155,14 +160,19 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
   army.setAttribute('aria-label', 'Army: summon the whole reserve, or send the army back')
   army.style.backgroundImage = `url("${options.armyIconUrl}")`
   army.hidden = true // shown only while R would act (showArmy: main.ts asks armyKeyAction)
+  const gun = el('div', 'touch-gun')
+  gun.setAttribute('role', 'button')
+  gun.setAttribute('aria-label', 'Golden machine gun on or off')
+  gun.style.backgroundImage = `url("${options.gunIconUrl}")`
+  gun.hidden = true // shown only once Merlin has the gun (showGun)
   const target = el('div', 'touch-target')
   target.setAttribute('role', 'button')
   target.setAttribute('aria-label', 'Blast target: the nearest or the farthest enemy')
   base.appendChild(knob)
   zone.appendChild(base)
-  root.append(zone, army, weapon, target, button)
+  root.append(zone, gun, army, weapon, target, button)
   parent.appendChild(root)
-  const icons = preload([options.armyIconUrl, ...options.weaponIconUrls]) // kept referenced: the browser keeps them decoded
+  const icons = preload([options.armyIconUrl, options.gunIconUrl, ...options.weaponIconUrls]) // kept referenced: the browser keeps them decoded
 
   const state = new TouchState()
   /** Shows the state and reports it, also when unchanged: the tracker may have let go of it meanwhile (a blur). */
@@ -204,12 +214,14 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
 
   const [weaponDown, weaponUp] = tapButton(weapon, onNextWeapon)
   const [armyDown, armyUp] = tapButton(army, onArmy)
+  const [gunDown, gunUp] = tapButton(gun, onGun)
   const [targetDown, targetUp] = tapButton(target, onTarget)
 
   // a lost capture ends the press too: the controls are hidden while a menu is open, even under a finger
   const listeners: [EventTarget, string, (e: never) => void][] = [
     [weapon, 'pointerdown', weaponDown], [weapon, 'pointerup', weaponUp], [weapon, 'pointercancel', weaponUp],
     [army, 'pointerdown', armyDown], [army, 'pointerup', armyUp], [army, 'pointercancel', armyUp],
+    [gun, 'pointerdown', gunDown], [gun, 'pointerup', gunUp], [gun, 'pointercancel', gunUp],
     [target, 'pointerdown', targetDown], [target, 'pointerup', targetUp], [target, 'pointercancel', targetUp],
     [zone, 'pointerdown', nubDown], [zone, 'pointermove', nubMove], [zone, 'lostpointercapture', pointerUp],
     [button, 'pointerdown', blastDown], [button, 'lostpointercapture', pointerUp],
@@ -236,6 +248,10 @@ export function attachTouchControls(parent: HTMLElement, options: TouchOptions):
     showArmy: (visible: boolean) => {
       if (army.hidden === !visible) return
       army.hidden = !visible
+    },
+    showGun: (visible: boolean, on: boolean) => {
+      if (gun.hidden === visible) gun.hidden = !visible
+      if (gun.classList.contains('on') !== on) gun.classList.toggle('on', on)
     },
     showTarget: (mode: SpaceMode) => {
       const label = TARGET_LABEL[mode]

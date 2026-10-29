@@ -153,8 +153,8 @@ floors over 500 seeds, the tower over 40), never on the player's tile, distinct 
 The scroll pickups are the original's `act_<spell>` files with `objType #objScroll`
 (`objScroll.collected` -> `objPlayerMerlinCharacter.newScrollCollected`: `addWeapon(character,
 attack)`, +25 energy, temporary invincibility; for `#gmg` `gmgCollected` instead), ported with
-Merlin's spells (`docs/notes/engine-mechanics-spells.md`), the golden machine gun too (2026-10-28,
-as a weapon; spells notes §6). Energy blast is left out (Merlin starts with it).
+Merlin's spells (`docs/notes/engine-mechanics-spells.md`), the golden machine gun too (2026-10-28;
+the engine's mode switched by E since 2026-10-29; spells notes §6). Energy blast is left out (Merlin starts with it).
 
 | Key | merlinOpenObjects | merlin4Objects | Spell |
 |---|---|---|---|

@@ -51,9 +51,10 @@ the volleys about 47 % (floor 1: 37, 9, 4.7 and 49 %, since East Woods' tiles ha
 or energy beam). A sword or energy punch reward comes with 4 faster-movement potions (`walkSpeed`),
 laid out beside its scroll and shown on its card.
 
-The golden machine gun (2026-10-28, owner: a reserved weapon offered in the spell slot) is a weapon
-in the remake (engine notes spells §6): held, it fires a charge-11 energy blast every second tick. It
-comes without potions: it shoots from afar, so Merlin has nothing to close in on. Whether the
+The golden machine gun (2026-10-28, owner: a reserved weapon offered in the spell slot) is, as in
+the engine, a mode over every spell switched by E (2026-10-29; engine notes spells §6): it is offered
+while Merlin has not found it, carries over between floors (on or off) and is listed last among the
+run summary's spells collected. It comes without potions: it shoots from afar, so Merlin has nothing to close in on. Whether the
 standalone Magic Maze floor (and the tower's) also hands it out at its start
 (`MAZE_GIVES_GOLDEN_MACHINE_GUN`) is the owner's call; a roguelite floor lays out only the picked
 reward, so the switch does not touch runs.

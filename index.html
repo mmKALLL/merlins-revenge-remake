@@ -221,7 +221,16 @@
         image-rendering: pixelated;
       }
       #touch-army[hidden] { display: none; }
-      #touch-weapon.active, #touch-army.active, #touch-target.active { border-color: rgba(255, 255, 255, 0.8); }
+      /* E: the golden machine gun on or off, above the army button once Merlin has it; lit while on */
+      #touch-gun {
+        position: absolute; right: var(--column); bottom: calc(var(--low) + 160px);
+        width: 72px; height: 64px; border-radius: 8px; pointer-events: auto; touch-action: none;
+        background: rgba(255, 200, 0, 0.06) center / 54px 48px no-repeat; border: 2px solid rgba(255, 200, 0, 0.35);
+        image-rendering: pixelated; opacity: 0.6;
+      }
+      #touch-gun.on { background-color: rgba(255, 200, 0, 0.3); border-color: rgba(255, 200, 0, 0.8); opacity: 1; }
+      #touch-gun[hidden] { display: none; }
+      #touch-weapon.active, #touch-army.active, #touch-gun.active, #touch-target.active { border-color: rgba(255, 255, 255, 0.8); }
       @media (orientation: portrait) {
         html.touch-controls[data-screen='playing'] body { padding-bottom: 40vh; }
         #touch {
@@ -230,6 +239,7 @@
         }
         #touch-weapon { bottom: calc(50% + 8px + 1em); }
         #touch-army { bottom: calc(50% - 72px + 1em); }
+        #touch-gun { bottom: calc(50% + 88px + 1em); }
         /* the ☰ button moves off the game into the band's top right corner, above the blast button */
         html.touch-controls #menu-button { top: auto; bottom: calc(40vh - 48px); }
       }

@@ -150,7 +150,7 @@ Charge figures below are for Merlin at the start (burst 1, capacity 10, flow 1, 
 | energyPunch | `act_energyPunch.txt:6-18` | melee `#magicMelee`, frame 3, `power point(3,1)`, `damageMultiplier 1.75`, `cooldown 0` | push (46, 15), 107 damage before inertia |
 | merlinSword | `act_merlinSword.txt:6-20` | melee `#weaponMelee`, frame 3, `power point(.5,.5)`, `damageMultiplier 16`, `collisionLoc point(16,1)` | push (4, 4), 128 damage before inertia |
 | (punch) | `act_player.txt` | the natural attack, `#naturalMelee` frame 3, `power point(2,0)` | push (16, 0), 16 damage |
-| gmg | `act_gmg.txt` | the golden machine gun: `gmgCollected`, not a weapon but a mode over every spell (§6) | the energy blast at charge 11 every second tick, held (remake: a weapon) |
+| gmg | `act_gmg.txt` | the golden machine gun: `gmgCollected`, not a weapon but a mode over every spell (§6) | E switches it; every spell in its gun version (§6), the remake's volleys as a stream |
 
 Details:
 
@@ -286,6 +286,11 @@ Sources: `script_objects/modGoldenMachineGun.txt`, `master_objects/gmgMaster.txt
   spell starts when the cooldown has run (Merlin's mana_regeneration 30 makes a cooldown of 30 one
   tick). So a held attack fires a spell whenever the counter finishes, at the charge one step short
   of the max. `#gmgTurnedOn` releases the spell in hand; `#gmgTurnedOff` releases it and charges anew.
+- **fireDelay 0 sticks.** `ensureSpell` sets `fireDelay = 0` on `me.getAttack()`, which returns
+  Merlin's own `pAttack` (`modAttack.txt:571-575`), not a copy, and `gmgOff` restores only the four
+  charge fields. So after the gun is switched off, the pulse and beam keep firing a bullet a tick
+  until another weapon is picked (`setAttack` takes a fresh duplicate from `pWeapons`). Not ported:
+  the remake's plain spells keep their own fireDelay.
 - **The gun in Merlin's hands.** `objCharacter.gmgOn` (`objCharacter.txt:236-254`):
   `chargeOffsetSide #side` and `chargeLoc = gmgChargeLoc` (act_player `point(10,-1)`, default
   `point(8,0)`). With `#side` (`objSpell.calcChargeOffset`, `objSpell.txt:90-105`) the ball sits at
@@ -410,9 +415,11 @@ a fire.
   weapons and the reserve army.
 - Drawing: `src/render/weapon-selector.ts` (the palettes, the current weapon icon), and in
   `scene.ts` the stage icons over summon spells, beams, teleports and the teal glow.
-- Every spell in the table is ported; the golden machine gun as a weapon (Remake decisions,
-  `src/mr-open/mr-golden-machine-gun.ts`). Test content: `?map=test_maps/spell_test`
-  (`tools/make-spells-test-map.mjs`; the gun is the last scroll of the row above Merlin).
+- Every spell in the table is ported, and the golden machine gun as the engine's mode
+  (`src/mr-open/mr-golden-machine-gun.ts`; `SimState.gmg`; the gun versions in
+  `tick-player-attack.ts`, the volley stream in `tick-spell.ts` `streamVolley`; Remake decisions).
+  Test content: `?map=test_maps/spell_test` (`tools/make-spells-test-map.mjs`; the gun is the last
+  scroll of the row above Merlin).
 - Left out: experience in the army details (not ported anywhere), the in-game wizards, the axe's
   `splashGraveOn` stamp, the engine's 50 px splash test (see the remake decision), the monk's ghost
   (`reincarnateAs #monkGhost`, objAiCPUGhost), and the enemies that fire pulses, beams or lay mines
@@ -420,21 +427,37 @@ a fire.
 
 ### Remake decisions
 
-- **The golden machine gun is a weapon (2026-10-28).** The engine's gun is a mode switched by its
-  own key (E) over whatever spell is current (§6). The remake's E charges a spell at the mouse, so
-  the gun is a weapon of Merlin's (arsenal key `gmg`): collecting it takes it up at once (no +25
-  energy, as `gmgCollected`), the number keys, the Q palette (the spells' row) and the touch weapon
-  button pick it like any weapon, and picking another weapon puts it away (the engine's "off").
-  E, a click or Space fire it. It fires the energy blast's gmg version (`GMG_SPELL`; Merlin's
-  tuned blast, `player.attack`, so `gmgChargeMax` and the rest can be tuned there): held, a blast
-  every second tick at the charge one step short of the gmg max (11 with the engine data and with
-  the tuning), from beside the gun's muzzle, Merlin drawn holding the gun. Everything else of the
-  gun is the engine's (the gmg* fields, autofire, the cooldown gate, the side offset, the strips);
-  the other spells keep their own charging, so the gun's pulse stream, beam stream and fast summons
-  are left out (an owner question). A second gun scroll selects it again (the engine's would switch
-  it off). The weapon icon `gmg_ws` is the remake's (`tools/gmg-icon.ts`: the scroll's gun on the
-  icons' black), shown at the wizard mark while the gun is current; `objGmgDisplayer` is not
-  ported (its `gmg_on` / `gmg_off` members are not in the cast dump).
+- **The golden machine gun is a mode, switched by E (owner, 2026-10-29; replaces the 2026-10-28
+  weapon).** As the engine (§6): collecting it (`gmgCollected`) finds it and switches it on, with no
+  weapon and no +25 energy; E (the original's `#gmg` key 14), or on touch screens the gun button,
+  switches it off and on again (nothing before it is found; a second gun scroll switches it, as the
+  engine's `setGmg`). E no longer charges or fires (a click and Space do). While it is on, every
+  spell Merlin starts is its gun version (`gunAttack`: the gmg* charge fields, fireDelay 0,
+  autofire, the charge beside the muzzle), so the energy blast fires a blast every second tick, the
+  pulse and beam a bullet a tick, the summons and mines charge faster and wait to be let go;
+  switching releases the spell in hand. The melee weapons are untouched. `SimState.gmg` carries over
+  between roguelite floors with the weapons. Merlin is drawn holding the gun (`weaponMagic`,
+  `weaponMagicWalk`) while it is on, alive, with a spell as his weapon; remake: not while a melee
+  weapon is current (the engine draws the gun over every mode, which would hide the swing whose
+  attack frame strikes) and not dead. The weapon icon `gmg_ws` (the remake's, `tools/gmg-icon.ts`)
+  is the touch gun button's picture; `objGmgDisplayer` is not ported (its `gmg_on` / `gmg_off`
+  members are not in the cast dump), so the top strip shows nothing for the gun.
+- **A volley in gun mode is a stream (owner rule, 2026-10-29).** The volleys have no gmg* fields.
+  With the gun on a volley keeps its own charge (its `chargeSpeed` x mana_flow, capped by
+  `chargeSpeedMax`; start as usual) and, while held, fires one projectile whenever the charge holds
+  one (`chargePerShot`), spending that share (`isVolleyStream`, `streamVolley`): one every
+  `chargePerShot / speed` ticks, the remainder carried, the first as soon as a tap would fire one.
+  Each is fired at one projectile's charge toward the current aim; the first of a held stream flies
+  straight at the aim at full speed, each later one at a random angle inside the fan a volley of
+  that many projectiles would have (`streamShotAngleDeg`, capped at maxShots), so a long stream
+  widens to the spell's own fan; letting go drops the leftover charge. The Fireball (lavaLob, one
+  projectile whose blast grows with the charge) streams tap-sized fireballs (blast at charge
+  `chargePerShot` 2) at the same rule. With Merlin's starting tuning (mana_flow 3), ticks per
+  projectile at 30 Hz: arrowRain and needleSpray 3, lavaLob 3.1, dragonFire 3.6, bunnyLob 4.2,
+  shurikenFan 4.8, boltFan and pinStorm 6, acidSplash 7.5, bombVolley 8.5, chillFlame 11,
+  darkRockBurst, poisonSmoke and skullToss 12, laserVolley 13, boulderLob and longbow 15,
+  frostBurst, iceBoulderLob and thunderBurst 19, lightningFan 30 (Max Blast potions do not change
+  them; mana flow potions do).
 
 - **Monster summon (owner requests, 2026-10-22).** It charges at 70 % of the engine's speed: the
   charge per tick is `chargeSpeed` 0.6 x Merlin's mana_flow capped at `chargeSpeedMax`, and with his

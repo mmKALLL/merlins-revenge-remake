@@ -16,7 +16,7 @@ Work top down; the sections below hold the details.
   - Less reel on Merlin: the same knockback, but more friction when he walks against his current
     movement vector.
   - Scoring mode (done 2026-10-25, in review; see Awaiting the owner's review).
-  - Golden machine gun (done 2026-10-28 on its branch, awaiting review; see Awaiting the owner's review).
+  - Golden machine gun (done 2026-10-28; reworked 2026-10-29 into the engine's mode, awaiting review; see Awaiting the owner's review).
   - The eight friendly wizards, as allies and as enemies.
   - **A proper roguelite mode** (all five slices done, in review), selectable from the main menu or `randomly_generated/tower-roguelite`:
     - Slice 1 (carry-over and floor flow) done 2026-10-24: floors one at a time, the exit room in
@@ -139,14 +139,17 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
-- Golden machine gun (2026-10-28; engine notes spells §6 and Remake decisions): a weapon of Merlin's
-  (number key, Q palette, touch weapon button; E/click/Space fire it) that, held, fires a charge-11
-  energy blast every second tick from beside the gun; the engine's gun was a mode over every spell,
-  toggled with E. A reserved roguelite reward (about 4.4 % of a floor's pick, no potions); on
-  `?map=test_maps/spell_test`. Needs `pnpm assets:copy` on the main checkout first (its actor file,
-  scroll, Merlin's gun strips and icon; the worktree had no archive). Owner questions: switch on
-  `MAZE_GIVES_GOLDEN_MACHINE_GUN`? Keep the gun to the blast, or let it also turn the other spells
-  into their gmg versions (the pulse and beam streams)?
+- Golden machine gun as a mode (2026-10-29; engine notes spells §6 and Remake decisions): as the
+  engine, collecting it switches it on and E switches it off and on (E no longer fires; a click and
+  Space do); on touch screens a gold gun button above the army button, shown once Merlin has the
+  gun, lit while on. With it on every spell starts in its gun version (the energy blast's blast
+  every second tick, a pulse or beam strike a tick, faster summons and mines released by hand) and
+  Merlin holds the gun; the remake's volleys stream one projectile per `chargePerShot` of charge
+  (arrow rain every 3 ticks, the Fireball's tap-sized fireballs every 3.1, lightning fan every 30).
+  A reserved roguelite reward (about 4.4 % of a floor's pick, no potions) while Merlin lacks it, and
+  listed in the run summary; on `?map=test_maps/spell_test`. Owner to check on a phone: the gun
+  button's place (landscape above the army button, portrait above the weapon button). Owner
+  question: switch on `MAZE_GIVES_GOLDEN_MACHINE_GUN`?
 
 - Melee units in larger numbers (2026-10-28; `docs/plans/2026-09-28-random-floor-design.md`, Owner
   decision 2026-10-28): a room's draws count a melee unit as 0.75 of a unit (`MELEE_UNIT_SHARE` in
@@ -219,8 +222,8 @@ floor; roguelite snapshots that record the floor.
   renamed Lava Toss; no fire left behind (`act_fire` not ported). Engine notes: spells, Fireball.
   Next: lizard and ostrich egg volleys whose hatched units fight for Merlin (owner, 2026-10-25).
 - Merlin's spells (`docs/notes/engine-mechanics-spells.md`, Remake decisions; test map
-  `?map=test_maps/spell_test`): every scroll gives its weapon (the golden machine gun too); Q opens the
-  original's weapon palettes, 1-9 pick the n-th spell, E/click/Space charge a spell or swing a melee
+  `?map=test_maps/spell_test`): every scroll gives its weapon (the golden machine gun its mode); Q opens the
+  original's weapon palettes, 1-9 pick the n-th spell, a click or Space charge a spell or swing a melee
   weapon. To confirm: the army summon's starting army (2 warriors, 2 archers, a monk, a dwarf; in
   `assets/tuning.json`), the current weapon icon in the top strip (the original only shows the Q
   palette), the touch weapon button (steps to the next weapon), a hit ending Merlin's swing, the
