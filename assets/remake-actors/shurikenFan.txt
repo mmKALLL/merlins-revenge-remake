@@ -26,8 +26,6 @@
 #reach: 9999,
 #releaseFunction: #volley,
 #releaseSound: "spell_release",
-#sound: "goblin_fire",
-#volume: 80,
 #volley: [#chargePerShot: 7.2, #maxShots: 10, #rangeFactor: 1.8, #damageMultiplier: 0.595, #spread: #even, #spreadMinDeg: 20, #spreadMaxDeg: 42, #pierce: 2]
 ],
 #character: #shurikenFan,
