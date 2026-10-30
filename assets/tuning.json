@@ -49,7 +49,7 @@
     "energy": 300
   },
   "fourArmGolem": {
-    "energy": 900
+    "energy": 800
   },
   "boulderCave": {
     "energy": 450
@@ -98,7 +98,7 @@
     "energy": 800
   },
   "vultureGuard": {
-    "energy": 600
+    "energy": 500
   },
   "bombMage": {
     "energy": 160
@@ -169,14 +169,8 @@
       "chargeSpeed": 0.12,
       "chargeFullTicks": 150,
       "chargeVolumeTail": {
-        "charge": [
-          15.75,
-          55
-        ],
-        "vol": [
-          46.5,
-          60
-        ]
+        "charge": [15.75, 55],
+        "vol": [46.5, 60]
       },
       "gmgChargeSpeed": 0.75,
       "gmgChargeFullTicks": 80
@@ -255,5 +249,44 @@
     "attack": {
       "gmgStreamSlowdown": 2.667
     }
+  },
+  "darkGolem": {
+    "energy": 650
+  },
+  "doubleDarkGolem": {
+    "energy": 900
+  },
+  "fangBunnyPortal": {
+    "energy": 300
+  },
+  "iceRock": {
+    "energy": 250
+  },
+  "lavaGolem": {
+    "energy": 450
+  },
+  "lavaDarkGolem": {
+    "energy": 550
+  },
+  "skelitonLord": {
+    "energy": 700
+  },
+  "fangBunny": {
+    "energy": 300
+  },
+  "undeadDragon": {
+    "energy": 400
+  },
+  "skeletonComando": {
+    "energy": 225
+  },
+  "skelitonUpper": {
+    "energy": 225
+  },
+  "fangBunnyBaby": {
+    "energy": 150
+  },
+  "karateGuy": {
+    "energy": 150
   }
 }

@@ -178,3 +178,7 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   (8 x 1.125 = 9, was 6.4) and `ninja.naturalAttack.shotSpeedScale` 0.75 (12 x 0.75 = 9, was 12); the
   ninja's sword is untouched. The sword ninja has no throw (multiAttack false, no #attack of its own).
   `quadranid.attack.shotSpeedScale` 0.9 -> 0.97 (laser 9 -> 9.7 px a tick).
+- **HP pass (owner, 2026-10-30, `assets/tuning.json` energy):** dark golem 650, four-armed golem 800,
+  double dark golem 900, fang bunny portal 300, ice rock 250 (it becomes a full-HP boulder monster on
+  death), lava golem 450, lava dark golem 550, skeleton lord 700, vulture guard 500, fang bunny 300,
+  undead dragon 400, skeleton commando and skeleton upper 225, fang bunny baby and karate guy 150.
