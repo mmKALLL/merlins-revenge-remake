@@ -1,7 +1,10 @@
 import { AudioEngine } from './audio/audio'
 import { InputLog } from './debug/sim-snapshot'
 import { installStateExport } from './debug/state-export'
-import { GAME_COMPLETE_SCRIPT, endSequenceView, startEndSequence, stepEndSequence, type EndSequence } from './cutscene/end-sequence'
+import {
+  ENDING_SCRIPTS, endSequenceView, restartDue, skipEndSequence, startEndSequence, stepEndSequence, type EndSequence, type EndingKind,
+} from './cutscene/end-sequence'
+import type { CutSceneScript } from './cutscene/script'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { ARMY_SUMMON } from './mr-open/mr-army'
 import { GOLDEN_MACHINE_GUN } from './mr-open/mr-pickup'
@@ -183,6 +186,12 @@ interface Shell {
 /** The original's credits music (final_stand_2: unused in Merlin Open), played on a won roguelite run's summary. */
 const CREDITS_MUSIC = 'final_stand_2_v1'
 
+/** Both endings' cut scenes: the map complete's and the game over's. */
+async function loadEndingScripts(): Promise<Record<EndingKind, CutSceneScript>> {
+  const [gameComplete, gameOver] = await Promise.all([loadCutScene(ENDING_SCRIPTS.gameComplete), loadCutScene(ENDING_SCRIPTS.gameOver)])
+  return { gameComplete, gameOver }
+}
+
 /** A weapon's selector icon as a URL (the touch weapon button). */
 const weaponIconUrl = (key: string): string => `${import.meta.env.BASE_URL}generated/hud/weapon-selector/${key}_ws.png`
 
@@ -231,7 +240,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const track: TrackLoad = (load) => files.add(load)
   onProgress('Loading', 0)
   // the rest loads while the map does; a generated map needs the actors' energies and attacks (room draws) first
-  const dataLoading = track(() => Promise.all([loadTeams(), loadExitArrows(), loadCutScene(GAME_COMPLETE_SCRIPT), loadHudTextures(), loadWeaponSelectorTextures()]))
+  const dataLoading = track(() => Promise.all([loadTeams(), loadExitArrows(), loadEndingScripts(), loadHudTextures(), loadWeaponSelectorTextures()]))
   const [loaded, defs] = await Promise.all([generated ? null : track(() => loadMap(mapId)), track(loadActors)])
   const spritesLoading = loadSprites(defs, track)
   spritesLoading.catch(() => {}) // a failure surfaces at its await below, unless an earlier step fails first
@@ -249,7 +258,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  const [passive, active, objects, [teams, exitArrows, endScript, hud, weaponTextures]] = await Promise.all([
+  const [passive, active, objects, [teams, exitArrows, endingScripts, hud, weaponTextures]] = await Promise.all([
     layerTileset('backgroundPassive'),
     layerTileset('backgroundActive'),
     layerTileset('objects'),
@@ -284,8 +293,9 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   /** the seed in the URL: the layout's, and the sim's for Restart map */
   let pageSeed = seed
   let runSeed = seed
-  // the map complete end sequence (fade, cut scene, prompt); the sim stops while it runs
-  let ending: EndSequence | null = sim.mapComplete ? startEndSequence() : null
+  // the map complete end sequence (fade, cut scene, prompt) or the game over (fade, cut scene,
+  // restart); the sim stops while it runs
+  let ending: EndSequence | null = sim.mapComplete ? startEndSequence('gameComplete') : null
   // the map's best score in the run's world mode (a run with the mode switched has no score): a run
   // counts as its rooms are banked, so a death keeps what it reached
   let bests = loadBestScores(browserStore)
@@ -313,7 +323,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     buildingFloor = false
     sim = startSim(runSeed, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
-    ending = sim.mapComplete ? startEndSequence() : null
+    ending = sim.mapComplete ? startEndSequence('gameComplete') : null
   }
   /** The pick screen's art: a sprite's first frame of an animation. */
   const spriteArt: SpriteArt = (name, anim) => {
@@ -341,7 +351,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       // the original's end (the jingle, the fade and the cut scene), then the run summary
       finishRun(run, 'won')
       audio.handle(MAP_COMPLETE_EVENTS)
-      ending = startEndSequence()
+      ending = startEndSequence('gameComplete')
       return
     }
     const from = run
@@ -400,8 +410,26 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   }
   /** Roguelite: the win's end sequence is over; the summary replaces the original's play-again prompt. */
   const winEndingOver = () => run?.status === 'won' && ending?.phase === 'done'
-  const restartAfterEnding = () => { if (shell.running() && ending?.phase === 'done') restart() }
-  window.addEventListener('keydown', (e) => { if (e.key === 'Enter') restartAfterEnding() })
+  const restartAfterEnding = () => { if (shell.running() && ending?.kind === 'gameComplete' && ending.phase === 'done') restart() }
+  /**
+   * gameMaster.gameOver after Merlin's death: the game stops (finishGame; the music fades out), the
+   * screen fades and the wasted cut scene plays; the map then starts again with a fresh seed.
+   */
+  const startGameOver = () => {
+    ending = startEndSequence('gameOver')
+    audio.playMusic(null)
+  }
+  /** Remake (owner): Enter, Space or a click/tap skips the game over straight to its restart. */
+  const skipGameOver = () => {
+    if (!shell.running() || !ending) return
+    ending = skipEndSequence(ending)
+    if (restartDue(ending)) restart()
+  }
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat) return // a key held from play skips nothing
+    if (e.key === 'Enter') restartAfterEnding()
+    if (e.key === 'Enter' || e.code === 'Space') skipGameOver()
+  })
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud, weaponTextures)
   await scene.init(document.getElementById('game') ?? document.body)
@@ -419,7 +447,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     restore: (s, seed) => {
       sim = s
       runSeed = seed
-      ending = s.mapComplete ? startEndSequence() : null // a loaded moment replaces any running end sequence
+      ending = s.mapComplete ? startEndSequence('gameComplete') : null // a loaded moment replaces any running end sequence
       // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
       setCamera(s.worldMode === 'continuous' ? 'follow' : 'room')
     },
@@ -431,7 +459,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   // a finger is no mouse: on a touch screen Space's mouse mode has no position (the blast button aims at the nearest enemy)
   canvas.addEventListener('pointermove', (e) => { pointer = e.pointerType === 'touch' ? null : { x: e.clientX, y: e.clientY } })
   canvas.addEventListener('pointerleave', () => { pointer = null })
-  canvas.addEventListener('pointerdown', restartAfterEnding)
+  canvas.addEventListener('pointerdown', () => {
+    restartAfterEnding()
+    skipGameOver()
+  })
   /** A client position in stage px (the logical 640x320 screen). */
   const toStage = (client: Vec): Vec => {
     const rect = canvas.getBoundingClientRect()
@@ -479,13 +510,14 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     if (input.takeWeaponSelector()) scene.openWeaponSelector(pointerStage() ?? playerStage(), sim.tick)
     for (let i = 0; i < ticks && !buildingFloor; i++) {
       if (ending) {
-        const r = stepEndSequence(ending, endScript, CUTSCENE_STAGE_X)
+        const r = stepEndSequence(ending, endingScripts[ending.kind], CUTSCENE_STAGE_X)
         ending = r.seq
         audio.handle(r.cues)
         if (winEndingOver()) {
           showRunSummary()
           break
         }
+        if (restartDue(ending)) restart() // the game over is over: the map starts again with a fresh seed
         continue
       }
       const tickInput = input.snapshot()
@@ -493,18 +525,18 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       sim = stepSim(sim, tickInput)
       audio.handle(sim.events) // every tick stepped this frame, not just the last
       recordBest()
-      if (sim.mapComplete) ending = startEndSequence()
+      if (sim.mapComplete) ending = startEndSequence('gameComplete')
       if (run && sim.events.some((e) => e.kind === 'floorExit')) {
         advanceFloor().catch((e: unknown) => showError(e, mapId))
         break
       }
-      if (sim.restartRequested) {
+      // the player died (unless the same tick completed the map, whose end then plays)
+      if (sim.restartRequested && !ending) {
         if (run) {
           endRunInDeath()
           break
         }
-        // the player died: start the map again with the loaded assets and a fresh seed
-        restart()
+        startGameOver()
       }
     }
     scene.musicTrack = audio.track
