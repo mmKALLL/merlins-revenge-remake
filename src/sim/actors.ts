@@ -63,6 +63,9 @@ export const isStepped = (a: ActorState): boolean => a.awake || a.ai.mode === 'i
 /** The actor's resolved definition; every actor is created from one (createActor), so it exists. */
 export const defOf = (s: SimState, a: ActorState): ActorDef => s.defs[a.def]!
 
+/** The friendly wizards' actor types (#wizard), sorted so every walk over them is deterministic. */
+export const wizardTypes = (defs: Readonly<Record<string, ActorDef>>): string[] => Object.keys(defs).filter((k) => defs[k]!.wizard).sort()
+
 /**
  * Merlin's definition with the potions he has drunk added to his stats (engine-mechanics-potions.md
  * §3) and his current weapon's attack installed (modWeaponManager.setCurrentWeapon -> setAttack).

@@ -18,7 +18,7 @@ import {
 import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
 import { spellAimPoint } from './player-aim'
-import { armyMembersInPlay, summonWholeReserve } from './tick-army'
+import { alliesInPlay, summonWholeReserve } from './tick-army'
 import { nextRandom, randomInt, roughly, spreadVec } from './rng'
 import type { ActorState, InputSnapshot } from './state'
 import { actorIn, hitTargetIn, playSound, spawn, type Tick } from './tick-context'
@@ -392,12 +392,13 @@ function depositMines(t: Tick, spell: ActorState, atk: AttackDef): void {
 
 /**
  * Remake (blankSummonsReserve, owner request): a blank army summon (it sends allies home) of Merlin's
- * lands with none of his army in play, so it summons the whole reserve there instead, as R does.
+ * lands with none of his allies (army or wizards) in play, so it summons the whole reserve there
+ * instead, as R does (the army only: the wizards come with R).
  */
 function blankSummonsReserve(t: Tick, spell: ActorState, atk: AttackDef): boolean {
   if (!atk.blankSummonsReserve || !sendsAlliesHome(spell.charge, atk) || spell.ownerId !== t.s.playerId) return false
   const owner = actorIn(t, spell.ownerId)
-  return owner !== undefined && isAlive(owner) && armyMembersInPlay(t, owner).length === 0
+  return owner !== undefined && isAlive(owner) && alliesInPlay(t, owner).length === 0
 }
 
 /** Remake (chargeDamageBonus): the attack with its damage scaled for the spell's charge at release. */

@@ -14,7 +14,7 @@ const KEYBOARD: Line[] = [
   ['1-9', 'pick a spell'],
   ['0', 'punch'],
   ['Q', 'show all spells'],
-  ['R', 'call or send home your army'],
+  ['R', 'call or send home your army and wizards'],
   ['E', 'golden gun on/off'],
   ['C', 'switch camera'],
   ['N', 'hide or show the map'],
@@ -26,7 +26,7 @@ const TOUCH: Line[] = [
   ['Yellow button', 'hold, then let go to fire'],
   ['NEAR / FAR', 'nearest or farthest enemy'],
   ['Weapon button', 'next spell'],
-  ['Blue button', 'call or send home your army'],
+  ['Blue button', 'call or send home your army and wizards'],
   ['Gun button', 'golden gun on/off'],
   ['☰', 'pause menu'],
 ]

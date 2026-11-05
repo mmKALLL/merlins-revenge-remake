@@ -1,6 +1,6 @@
 // The #army key (R): modAutoSummon.summonArmy summons the whole reserve around the mouse under the
-// team cap; with army members in play (remake) it sends them all back into the reserve once the
-// fight is over.
+// team cap, and (remake) every wizard in the reserve past the cap; with allies in play (remake) it
+// sends them all back into the reserve once the fight is over.
 import { describe, expect, it } from 'vitest'
 import { autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS } from '../mr-open/mr-army'
@@ -107,6 +107,45 @@ describe('R: the army key', () => {
     const s = stepSim(world('rooms', { warrior: 2 }), { ...NO_INPUT, mouseWorld: MOUSE })
     expect(allies(s)).toHaveLength(0)
     expect(reserveOf(s)).toEqual({ warrior: 2 })
+  })
+})
+
+describe('R and the friendly wizards (remake)', () => {
+  const WIZARDS = ['berlinInGame', 'ulinInGame']
+  const wizards = (s: SimState): ActorState[] => s.actors.filter((a) => WIZARDS.includes(a.def))
+  const fightEnds = (s: SimState): SimState => ({ ...s, exitsOpen: true, navMode: true })
+
+  it('summons every wizard in the reserve with the army, and sends them home with it after the fight', () => {
+    let s = stepSim(world('rooms', { warrior: 1, berlinInGame: 1, ulinInGame: 1 }), R)
+    expect(wizards(s).map((a) => a.def).sort()).toEqual(WIZARDS)
+    expect(allies(s)).toHaveLength(1)
+    for (const a of wizards(s)) expect(a.teleport).toBe('in')
+    expect(reserveOf(s)).toEqual({ warrior: 0, berlinInGame: 0, ulinInGame: 0 })
+    s = stepSim(fightEnds(s), R)
+    expect([...wizards(s), ...allies(s)].every((a) => a.teleport === 'out')).toBe(true)
+    for (let i = 0; i < TELEPORT_TICKS; i++) s = stepSim(s, NO_INPUT)
+    expect(reserveOf(s)).toEqual({ warrior: 1, berlinInGame: 1, ulinInGame: 1 })
+  })
+
+  it('summons the wizards past the team cap the army fills', () => {
+    const s = stepSim(world('rooms', { warrior: 20, archer: 20, monk: 20, dwarf: 20, kingInGame: 20, berlinInGame: 1, ulinInGame: 1 }), R)
+    const freeSlots = teams[playerOf(s).team]!.maxMembers! - 1 // Merlin takes a slot
+    expect(allies(s)).toHaveLength(MEMBERS.length * Math.floor(freeSlots / MEMBERS.length))
+    expect(wizards(s)).toHaveLength(WIZARDS.length)
+  })
+
+  it('offers a summon with only a wizard waiting', () => {
+    expect(armyKeyAction(world('rooms', { berlinInGame: 1 }))).toBe('summon')
+  })
+
+  it('a wizard killed in play does not come back to the reserve', () => {
+    let s = stepSim(world('rooms', { berlinInGame: 1 }), R)
+    const id = wizards(s)[0]!.id
+    s = { ...s, actors: s.actors.map((a) => (a.id === id ? { ...a, energy: 0 } : a)) }
+    for (let i = 0; i < 2 * TELEPORT_TICKS; i++) s = stepSim(s, NO_INPUT)
+    s = stepSim(fightEnds(s), R)
+    for (let i = 0; i < 2 * TELEPORT_TICKS; i++) s = stepSim(s, NO_INPUT)
+    expect(reserveOf(s)!['berlinInGame']).toBe(0)
   })
 })
 

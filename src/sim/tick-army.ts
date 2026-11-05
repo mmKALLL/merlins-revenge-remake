@@ -2,13 +2,13 @@
 // armyTeleportOut: hit by a blank army summon blast, or a #leaveWhenFinished unit whose AI finds no
 // target), and the army summon brings them back teleporting in (tick-spell.ts summonPayload). A
 // teleport plays for TELEPORT_TICKS (modTeleport) while the unit goes on acting. The #army key (R)
-// summons the whole reserve at once (modAutoSummon), or once the fight is over sends the army back
-// into it (remake).
+// summons the whole reserve at once (modAutoSummon) and, a remake change, every friendly wizard in
+// it; once the fight is over it sends the army and the wizards back into it (remake).
 import { AUTO_SUMMON_JITTER, autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/mr-army'
 import { tileOfPx } from '../mr-open/mr-collision'
 import { distance, type Vec } from '../mr-open/mr-geometry'
-import { defOf, isAlive, playerOf } from './actors'
+import { defOf, isAlive, playerOf, wizardTypes } from './actors'
 import { nearestHostileOnScreen } from './player-aim'
 import { randomInt } from './rng'
 import type { ActorState, InputSnapshot, SimState } from './state'
@@ -57,18 +57,23 @@ export function stepTeleports(t: Tick): void {
 /**
  * The #army key (R; objAiPlayer.interpretGameKeys -> modAutoSummon.summonArmy) while Merlin is
  * alive: the whole reserve summoned around the mouse (Merlin without a mouse position). Remake
- * (owner requests): while army members of Merlin's are in play, the key teleports them all out
- * into the reserve instead (armyTeleportOut each, as a blank army summon blast does), but only once
- * the fight is over; mid-fight it does nothing. Unless Space is in mouse mode the army is summoned
- * at the nearest hostile on screen (the mouse without one).
+ * (owner requests): R also summons every wizard in the reserve (the original's #wizard key,
+ * modSummonWizard.summonWizard, brought out one at a time); while army members or wizards of
+ * Merlin's are in play, the key teleports them all out into the reserve instead (armyTeleportOut
+ * each, as a blank army summon blast does), but only once the fight is over; mid-fight it does
+ * nothing. Unless Space is in mouse mode the army is summoned at the nearest hostile on screen (the
+ * mouse without one).
  */
 export function stepArmyKey(t: Tick, input: InputSnapshot, view: Size): void {
   if (!input.armyKey) return
   const p = playerIn(t)
   if (!isAlive(p)) return
-  const inPlay = armyMembersInPlay(t, p)
+  const inPlay = alliesInPlay(t, p)
   if (inPlay.length === 0) {
-    if (defOf(t.s, p).armyKeySummons) summonWholeReserve(t, p, summonPoint(t, p, input, view))
+    if (!defOf(t.s, p).armyKeySummons) return
+    const at = summonPoint(t, p, input, view)
+    summonWholeReserve(t, p, at)
+    summonReserveWizards(t, p, at)
   } else if (fightOver(t)) for (const a of inPlay) teleportOut(t, a)
 }
 
@@ -78,21 +83,30 @@ function summonPoint(t: Tick, p: ActorState, input: InputSnapshot, view: Size): 
 }
 
 /**
- * Remake: Merlin's army member nearest to him that he can see (in the room, or inside the play view
- * in a continuous world), the aim of a blank army summon that sends one ally home; undefined for none.
+ * Remake: Merlin's ally (army member or wizard) nearest to him that he can see (in the room, or
+ * inside the play view in a continuous world), the aim of a blank army summon that sends one ally
+ * home; undefined for none.
  */
 export function nearestAllyOnScreen(t: Tick, p: ActorState, view: Size): ActorState | undefined {
   const onScreen = t.s.worldMode === 'continuous' ? viewRect(t.s, p.pos, view) : null
-  const seen = armyMembersInPlay(t, p).filter((a) => !onScreen || insideRect(a.pos, onScreen))
+  const seen = alliesInPlay(t, p).filter((a) => !onScreen || insideRect(a.pos, onScreen))
   let nearest: ActorState | undefined
   for (const a of seen) if (!nearest || distance(a.pos, p.pos) < distance(nearest.pos, p.pos)) nearest = a
   return nearest
 }
 
-/** Merlin's living army members (his armyMembers types on his team) in the tick that can still teleport out. */
-export function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
-  const types = defOf(t.s, p).armyMembers
-  const canGo = (a: ActorState) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out' && defOf(t.s, a).teleportable
+/**
+ * The allies R calls and sends home: Merlin's army members (his armyMembers types) and, a remake
+ * change, his friendly wizards (#wizard), on his team. Merlin himself is neither.
+ */
+function isRCalled(s: SimState, p: ActorState, a: ActorState): boolean {
+  if (a.id === p.id || a.team !== p.team) return false
+  return (s.defs[p.def]?.armyMembers ?? []).includes(a.def) || (s.defs[a.def]?.wizard ?? false)
+}
+
+/** Merlin's living allies R calls (isRCalled) in the tick that can still teleport out. */
+export function alliesInPlay(t: Tick, p: ActorState): ActorState[] {
+  const canGo = (a: ActorState) => isRCalled(t.s, p, a) && isAlive(a) && a.teleport !== 'out' && defOf(t.s, a).teleportable
   return t.actors.filter((a) => !t.removed.has(a.id) && canGo(a))
 }
 
@@ -104,27 +118,49 @@ export function armyMembersInPlay(t: Tick, p: ActorState): ActorState[] {
  */
 export function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
   const types = autoSummonTypes(teamSlotsFree(t, p.team), defOf(t.s, p).armyMembers, (typ) => reserveCount(t.army, p.team, typ))
-  for (const typ of types) {
-    const [r, rng] = randomInt(t.rng, AUTO_SUMMON_JITTER)
-    t.rng = rng
-    const pos = { x: at.x, y: at.y + r - AUTO_SUMMON_JITTER / 2 }
-    const army = takeUnit(t.army, p.team, typ)
-    if (!army || !t.s.defs[typ] || t.s.grid.solidAt(tileOfPx(pos.x), tileOfPx(pos.y))) return
-    t.army = army
-    spawn(t, typ, pos, { teleport: 'in', teleportAge: 0 })
+  for (const typ of types) if (!summonFromReserve(t, p, typ, at)) return
+}
+
+/**
+ * Remake (owner request): every wizard of Merlin's reserve, all units of each type, teleporting in
+ * at `at` the way summonWholeReserve places the army. The original's wizard call
+ * (modSummonWizard.summonWizard) never asked the team cap, so neither does this; a wizard refused by
+ * a solid tile stays in the reserve and the rest still come.
+ */
+function summonReserveWizards(t: Tick, p: ActorState, at: Vec): void {
+  for (const typ of wizardTypes(t.s.defs)) {
+    for (let n = reserveCount(t.army, p.team, typ); n > 0; n--) summonFromReserve(t, p, typ, at)
   }
 }
 
 /**
- * What R would do now (the touch army button shows only then): send the army back (members in play
- * and the fight over), summon the reserve (no members in play and units waiting), or nothing.
+ * One unit of `typ` out of the reserve teleporting in (armyMaster.createUnitNum) at `at` moved up or
+ * down by random(30) - 15; false, with the unit left in the reserve, when there is none or a solid
+ * tile refuses it (actorMaster.newActor returns #none).
+ */
+function summonFromReserve(t: Tick, p: ActorState, typ: string, at: Vec): boolean {
+  const [r, rng] = randomInt(t.rng, AUTO_SUMMON_JITTER)
+  t.rng = rng
+  const pos = { x: at.x, y: at.y + r - AUTO_SUMMON_JITTER / 2 }
+  const army = takeUnit(t.army, p.team, typ)
+  if (!army || !t.s.defs[typ] || t.s.grid.solidAt(tileOfPx(pos.x), tileOfPx(pos.y))) return false
+  t.army = army
+  spawn(t, typ, pos, { teleport: 'in', teleportAge: 0 })
+  return true
+}
+
+/**
+ * What R would do now (the touch army button shows only then): send the allies back (army members
+ * or wizards in play and the fight over), summon the reserve (none in play and army units or
+ * wizards waiting), or nothing.
  */
 export function armyKeyAction(s: SimState): 'summon' | 'sendBack' | null {
   const p = playerOf(s)
-  const types = s.defs[p.def]?.armyMembers ?? []
-  const inPlay = s.actors.some((a) => a.id !== p.id && a.team === p.team && types.includes(a.def) && isAlive(a) && a.teleport !== 'out')
+  const inPlay = s.actors.some((a) => isRCalled(s, p, a) && isAlive(a) && a.teleport !== 'out')
   if (inPlay) return (s.worldMode === 'rooms' ? s.exitsOpen : s.navMode) ? 'sendBack' : null
   const summons = s.defs[p.def]?.armyKeySummons ?? true
-  return summons && types.some((typ) => reserveCount(s.army, p.team, typ) > 0) ? 'summon' : null
+  const waiting = Object.keys(s.army[p.team] ?? {}).filter((typ) => reserveCount(s.army, p.team, typ) > 0)
+  const called = (typ: string) => (s.defs[p.def]?.armyMembers ?? []).includes(typ) || (s.defs[typ]?.wizard ?? false)
+  return summons && waiting.some(called) ? 'summon' : null
 }
 
