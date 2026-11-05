@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
-  BLACK, TIME_BETWEEN_LINES, TITLE_COLOUR, TITLE_DISPLAY_FRAMES, cutSceneView, speechFrames, startCutScene, stepCutScene,
-  type CutSceneState,
+  BLACK, OFF_STAGE_DISTANCE, TIME_BETWEEN_LINES, TITLE_COLOUR, TITLE_DISPLAY_FRAMES, WASTED_BLEND, WASTED_HEIGHT, cutSceneView,
+  speechFrames, startCutScene, stepCutScene, type CutSceneState,
 } from './performer'
 import { parseCutScene } from './script'
 
@@ -79,6 +79,45 @@ describe('players', () => {
     let s = startCutScene(two, STAGE).state
     ;[s] = runUntil(s, (t) => t.finished)
     expect(cutSceneView(s).players.map((p) => p.character)).toEqual(['ulin'])
+  })
+})
+
+describe('walking (modMoveToLoc)', () => {
+  const walker = parseCutScene('characters\n#merlin - m\nlines\nsetStage\nm at 100\nm walkTo 300\nwait 200\n')
+
+  it('walks at 2 px a frame on the walk strip, facing the way it goes, and stands within the arrival distance', () => {
+    let s = startCutScene(walker, STAGE).state
+    expect(s.players[0]).toMatchObject({ x: 100, walkTarget: 300, facingLeft: false })
+    s = stepCutScene(s).state
+    expect(s.players[0]!.x).toBe(102)
+    expect(cutSceneView(s).players[0]!.strip).toBe('walk')
+    ;[s] = runUntil(s, (t) => t.players[0]!.walkTarget === null)
+    expect(Math.abs(300 - s.players[0]!.x!)).toBeLessThanOrEqual(5)
+    expect(cutSceneView(s).players[0]!.strip).toBe('stand')
+  })
+})
+
+describe('the game over cut scene (You Got Wasted!)', () => {
+  const wasted = parseCutScene(readFileSync('assets/cut-scenes/cut_scene_to_play_when_wasted.txt', 'utf8'))
+  const merlin = (s: CutSceneState) => s.players[0]!
+
+  it('goes wasted, enters from off stage right and turns to walk off stage left while the script runs on', () => {
+    let s = startCutScene(wasted, STAGE).state
+    ;[s] = runUntil(s, (t) => merlin(t).x !== null)
+    expect(merlin(s)).toMatchObject({ x: STAGE.right + OFF_STAGE_DISTANCE, blend: WASTED_BLEND, height: WASTED_HEIGHT, facingLeft: true })
+    ;[s] = runUntil(s, (t) => merlin(t).walkTarget === STAGE.left - OFF_STAGE_DISTANCE)
+    const entrance = (STAGE.right + (STAGE.left + STAGE.right) / 2) / 2 // getStageEntranceOnLoc
+    expect(merlin(s).x).toBeGreaterThan(entrance) // "wait 10": still on his way in
+    ;[s] = runUntil(s, (t) => cutSceneView(t).speech !== null)
+    const speech = cutSceneView(s).speech!
+    expect(speech.text).toBe('We must try again!')
+    expect(speech.x).toBeGreaterThan(STAGE.left)
+    expect(speech.x).toBeLessThan(STAGE.right)
+    ;[s] = runUntil(s, (t) => merlin(t).walkTarget === null)
+    expect(s.finished).toBe(false)
+    expect(Math.abs(merlin(s).x! - (STAGE.left - OFF_STAGE_DISTANCE))).toBeLessThanOrEqual(5)
+    ;[s] = runUntil(s, (t) => t.finished)
+    expect(merlin(s).blend).toBe(0)
   })
 })
 
