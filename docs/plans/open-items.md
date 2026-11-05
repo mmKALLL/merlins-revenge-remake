@@ -94,7 +94,7 @@ floor; roguelite snapshots that record the floor.
   medikit's writing) save/load of the pickups.
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
-  map-complete sequence (`src/cutscene/`); what a full system needs is in
+  map-complete and game over sequences (`src/cutscene/`); what a full system needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
 - **Turret summon.** A charge ladder of the original's stationary units fighting for Merlin: skeleton
   head -> plant -> goblin tower -> dwarf tower (monster summon's stage mechanism).
@@ -137,6 +137,15 @@ floor; roguelite snapshots that record the floor.
   Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
+
+- Game over sequence, "You Got Wasted!" (2026-11-06, branch `wasted-game-over`; engine notes
+  map-complete §2-3). A death on a normal map fades the game out (the music fades with it), plays
+  the original's wasted cut scene (Merlin, see-through and stretched tall, walks in from the right
+  and off to the left: "We must try again!"), then restarts the map with a fresh seed. Enter, Space
+  or a click/tap skips to the restart. Roguelite deaths keep their run summary. Cut scene players
+  now really walk (walkTo, enterStage*, exitStage*). To check: the look and timing, the off-stage
+  spot and the stage clipping (assumed), the speech staying where it went up while Merlin walks on,
+  and that a skip with Space or a click starts charging a spell on the new map while it is held.
 
 - Friendly wizards, slice 1: allies (2026-11-05; engine notes spells §7 and Remake decisions "R
   calls every wizard"; design `docs/plans/2026-11-05-friendly-wizards-design.md`). The eight
