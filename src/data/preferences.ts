@@ -1,7 +1,8 @@
 // Small player preferences kept in localStorage: the pixel size, the Space mode, the random maps mode, the debug
-// readout, the army display, the frame rate and the last map started. Storage
-// may be blocked; then a choice lasts for this page only.
+// readout, the army display, the frame rate, auto-save, the map list's scores, whether the Advanced
+// settings are open and the last map started. Storage may be blocked; then a choice lasts for this page only.
 import { SPACE_MODES, type SpaceMode } from '../input/keyboard'
+import { BEST_SCORE_KINDS, type BestScoreKind } from './best-scores'
 import { ARMY_DISPLAYS, type ArmyDisplayMode } from '../render/army-entries'
 import { ZOOM_SETTINGS, type ZoomSetting } from '../render/scene'
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '../sim/difficulty'
@@ -15,6 +16,9 @@ const FRAME_RATE_KEY = 'mr-remake.frameRate'
 const SEED_IN_URL_KEY = 'mr-remake.seedInUrl'
 const DIFFICULTY_KEY = 'mr-remake.difficulty'
 const ARMY_DISPLAY_KEY = 'mr-remake.armyDisplay'
+const AUTO_SAVE_KEY = 'mr-remake.autoSave'
+const MAP_LIST_SCORES_KEY = 'mr-remake.mapListScores'
+const ADVANCED_OPEN_KEY = 'mr-remake.advancedSettingsOpen'
 
 /** Whether each run of a generated map (a restart too) gets a new layout, or keeps the one it has. */
 export const RANDOM_MAPS_MODES = ['newEachRun', 'sameLayout'] as const
@@ -77,6 +81,21 @@ export const saveArmyDisplay = (m: ArmyDisplayMode): void => write(ARMY_DISPLAY_
 export const loadSeedInUrl = (): boolean => read(SEED_IN_URL_KEY) !== 'off'
 
 export const saveSeedInUrl = (on: boolean): void => write(SEED_IN_URL_KEY, on ? 'on' : 'off')
+
+/** Whether a room clear saves the map (on unless turned off). */
+export const loadAutoSave = (): boolean => read(AUTO_SAVE_KEY) !== 'off'
+
+export const saveAutoSave = (on: boolean): void => write(AUTO_SAVE_KEY, on ? 'on' : 'off')
+
+/** The best scores the map list shows: "with loading" unless "no loading" is chosen. */
+export const loadMapListScores = (): BestScoreKind => BEST_SCORE_KINDS.find((k) => k === read(MAP_LIST_SCORES_KEY)) ?? 'withLoading'
+
+export const saveMapListScores = (k: BestScoreKind): void => write(MAP_LIST_SCORES_KEY, k)
+
+/** Whether the Settings' Advanced part is unfolded (closed until opened). */
+export const loadAdvancedOpen = (): boolean => read(ADVANCED_OPEN_KEY) === 'open'
+
+export const saveAdvancedOpen = (open: boolean): void => write(ADVANCED_OPEN_KEY, open ? 'open' : 'closed')
 
 /**
  * Whether the debug readout shows: the `debug` URL parameter when given (`?debug` or `?debug=1` on,

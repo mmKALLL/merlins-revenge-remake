@@ -11,7 +11,10 @@ import { GOLDEN_MACHINE_GUN } from './mr-open/mr-pickup'
 import {
   loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
-import { framesPerSecond, loadArmyDisplay, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom, saveArmyDisplay, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom } from './data/preferences'
+import {
+  framesPerSecond, loadArmyDisplay, loadAutoSave, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadMapListScores, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom,
+  saveArmyDisplay, saveAutoSave, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveMapListScores, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom,
+} from './data/preferences'
 import { LoadQueue } from './data/load-queue'
 import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
 import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
@@ -47,7 +50,7 @@ import { loadingScreen, type LoadingScreen } from './ui/loading-screen'
 import { endRun, enterFloor, nextFloorPlan, runTimeText, startRun, visitedBiomeNames, type RunState } from './run/run'
 import { arrivalHeals, rewardPickups, rewardPools, rollRewards } from './run/rewards'
 import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt } from './ui/floor-pick'
-import { mapUrl, setupMapBrowser } from './ui/map-browser'
+import { mapUrl, setupMapBrowser, type ShownScores } from './ui/map-browser'
 import { runSummary, type RunSummary } from './ui/run-summary'
 import { mapsPanel } from './ui/maps-panel'
 import { menuButton } from './ui/menu-button'
@@ -81,8 +84,10 @@ const cfg: RenderConfig = {
 }
 /** The follow camera plays the map as one continuous room (remake feature); the room camera keeps the original rooms. */
 const worldModeFor = (camera: CameraMode): WorldMode => (camera === 'follow' ? 'continuous' : 'rooms')
-/** The map lists show the best scores of the player's camera, the next run's world mode. */
-const scoreModeShown = (): WorldMode => worldModeFor(cfg.cameraMode)
+/** Which best scores the map lists show (Settings, Map list scores). */
+let mapListScores = loadMapListScores()
+/** The map lists show the chosen table's bests of the player's camera, the next run's world mode. */
+const shownScores: ShownScores = (bests) => bests[mapListScores][worldModeFor(cfg.cameraMode)]
 
 /** Records a query parameter in the URL (without a reload), so reloading the page keeps it; null removes it. */
 function rememberParam(name: string, value: string | null): void {
@@ -567,7 +572,7 @@ function showError(e: unknown, mapId: string): void {
   mapList.id = 'maps'
   document.documentElement.dataset['screen'] = 'error'
   document.body.replaceChildren(pre, mapList)
-  void setupMapBrowser(mapList, mapId, scoreModeShown)
+  void setupMapBrowser(mapList, mapId, shownScores)
 }
 
 function main(): void {
@@ -600,6 +605,7 @@ function main(): void {
   let randomMaps = loadRandomMaps('newEachRun')
   let difficulty = loadDifficulty()
   let frameRate = loadFrameRate('60')
+  let autoSave = loadAutoSave()
   const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const pickPanel = floorPick()
   const summaryPanel = runSummary({
@@ -663,7 +669,7 @@ function main(): void {
       },
       quit: shell.quitToTitle,
     }, () => game?.mapId ?? ''),
-    maps: mapsPanel(mapToPlay(), back, scoreModeShown),
+    maps: mapsPanel(mapToPlay(), back, shownScores),
     settings: settingsPanel({
       zoom: () => zoom,
       setZoom: (z) => {
@@ -696,6 +702,16 @@ function main(): void {
         seedInUrl = on
         saveSeedInUrl(on)
         if (layoutSeedShown !== null) rememberSeed(layoutSeedShown)
+      },
+      autoSave: () => autoSave,
+      setAutoSave: (on) => {
+        autoSave = on
+        saveAutoSave(on)
+      },
+      mapListScores: () => mapListScores,
+      setMapListScores: (k) => {
+        mapListScores = k
+        saveMapListScores(k)
       },
       frameRate: () => frameRate,
       setFrameRate: (r) => {

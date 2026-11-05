@@ -73,6 +73,13 @@
       .setting input[type='range'] { flex: 1 1 10rem; max-width: 16rem; accent-color: var(--fg); }
       .setting .mute { display: inline-flex; align-items: center; gap: 4px; color: #aaa; cursor: pointer; }
       .setting .mute input { accent-color: var(--fg); }
+      /* a folded part of the settings (Advanced): its heading button, with an arrow showing the state */
+      .panel button.fold-toggle {
+        display: flex; justify-content: space-between; width: 100%; margin-top: 16px; padding: 10px 0; min-height: 44px;
+        font-size: 15px; color: #fff; background: none; border: 0; border-bottom: 1px solid #222; border-radius: 0; text-align: left;
+      }
+      .fold-toggle::after { content: '▸'; color: var(--dim); }
+      .fold-toggle[aria-expanded='true']::after { content: '▾'; }
 
       /* the roguelite floor pick (src/ui/floor-pick.ts): biome and reward cards, dimmed while locked */
       .floor-pick h3 { text-align: center; }

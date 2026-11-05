@@ -1,7 +1,11 @@
-// Settings: pixel size, camera, what Space (and the touch blast button) fires at, whether random
-// maps get a new layout each run, the frame rate, the reserve army display, the debug readout, music, effects and the master volume. The page owns the values (main.ts); this only shows and changes them.
+// Settings: the difficulty, pixel size, camera, auto-save, the frame rate, the reserve army display,
+// music and effects; folded away under Advanced: the seed in the URL, the map list's scores, what
+// Space (and the touch blast button) fires at, whether random maps get a new layout each run, the
+// debug readout and the resets. The page owns the values (main.ts); this only shows and changes
+// them, and remembers itself whether Advanced is open.
 import type { AudioEngine } from '../audio/audio'
-import type { FrameRate, RandomMapsMode } from '../data/preferences'
+import type { BestScoreKind } from '../data/best-scores'
+import { loadAdvancedOpen, saveAdvancedOpen, type FrameRate, type RandomMapsMode } from '../data/preferences'
 import type { SpaceMode } from '../input/keyboard'
 import type { ArmyDisplayMode } from '../render/army-entries'
 import type { CameraMode } from '../render/camera'
@@ -21,6 +25,10 @@ export interface SettingsHost {
   setRandomMaps(m: RandomMapsMode): void
   seedInUrl(): boolean // whether a generated map's seed goes into the page URL, to share or reload the layout
   setSeedInUrl(on: boolean): void
+  autoSave(): boolean // whether a room clear saves the map
+  setAutoSave(on: boolean): void
+  mapListScores(): BestScoreKind // the best scores the map list shows
+  setMapListScores(k: BestScoreKind): void
   frameRate(): FrameRate
   setFrameRate(r: FrameRate): void
   armyDisplay(): ArmyDisplayMode // where the reserve army shows on the HUD
@@ -137,26 +145,36 @@ function volumeRow(parent: HTMLElement, label: string, volume: () => number, set
   }
 }
 
+/** A heading button that folds a part of the panel away (`open`: unfolded at first); the part's rows go into the returned element. */
+function foldPart(parent: HTMLElement, label: string, open: boolean, onToggle: (open: boolean) => void): HTMLElement {
+  const part = el('div', 'fold-body')
+  part.id = `fold-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`
+  const toggle = button(label, () => {
+    part.hidden = !part.hidden
+    toggle.setAttribute('aria-expanded', String(!part.hidden))
+    onToggle(!part.hidden)
+  }, 'fold-toggle')
+  toggle.setAttribute('aria-controls', part.id)
+  part.hidden = !open
+  toggle.setAttribute('aria-expanded', String(open))
+  parent.append(toggle, part)
+  return part
+}
+
 export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
   const { root, body } = panel('Settings', back)
   const { audio } = host
-  const repaint = [
+  const regular = [
     difficultyRow(body, host.difficulty, host.setDifficulty),
     choiceRow(body, 'Pixel size', ZOOM_SETTINGS.map(zoomChoice), host.zoom, host.setZoom),
     choiceRow(body, 'Camera', [
       { value: 'room', label: 'Single room', title: 'Room by room, as in the original' },
       { value: 'follow', label: 'Open world', title: 'Follows Merlin through the whole map as one world (C)' },
     ], host.camera, host.setCamera),
-    choiceRow(body, 'Spacebar shot targeting', [
-      { value: 'nearest', label: 'Nearest', title: 'The nearest enemy on screen (F toggles with farthest)' },
-      { value: 'mouse', label: 'Mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy' },
-      { value: 'farthest', label: 'Farthest', title: 'The farthest enemy on screen (F toggles with nearest)' },
-    ], host.spaceMode, host.setSpaceMode),
-    choiceRow(body, 'Random maps', [
-      { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
-      { value: 'sameLayout', label: 'Same layout', title: 'Restarts keep the layout (Play from the title still builds a new one)' },
-    ], host.randomMaps, host.setRandomMaps),
-    choiceRow(body, 'Seed in URL', ON_OFF, host.seedInUrl, host.setSeedInUrl),
+    choiceRow(body, 'Auto-save', [
+      { value: true, label: 'on', title: 'Each room clear saves the map; a death carries on from there' },
+      { value: false, label: 'off', title: 'No new saves (a map saved earlier can still be continued)' },
+    ], host.autoSave, host.setAutoSave),
     choiceRow(body, 'Frame rate', [
       { value: '60', label: '60 fps', title: 'Draws 60 frames a second, blending between the 30 game ticks' },
       { value: 'display', label: 'Display rate', title: 'Draws at every refresh of the display (120 Hz and up on some screens)' },
@@ -166,11 +184,28 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
       { value: 'top', label: 'Top', title: 'The reserve army in a row above the play view' },
       { value: 'off', label: 'Off', title: 'No reserve army display' },
     ], host.armyDisplay, host.setArmyDisplay),
-    choiceRow(body, 'Debug info', ON_OFF, host.debugInfo, host.setDebugInfo),
     volumeRow(body, 'Music', () => audio.current.musicVolume, (v) => audio.setMusicVolume(v), () => audio.current.music, (on) => audio.setMusic(on)),
     volumeRow(body, 'Sound effects', () => audio.current.effectsVolume, (v) => audio.setEffectsVolume(v), () => audio.current.effects, (on) => audio.setEffects(on)),
   ]
-  resetRow(body, 'Reset roguelite statistics', 'Reset the roguelite statistics (runs, wins, streaks)? This cannot be undone.', host.resetRogueliteStats)
-  resetRow(body, 'Reset scores', 'Reset the best scores of every map? This cannot be undone.', host.resetBestScores)
-  return { root, onShow: () => { for (const r of repaint) r() } }
+  const advanced = foldPart(body, 'Advanced', loadAdvancedOpen(), saveAdvancedOpen)
+  const advancedRows = [
+    choiceRow(advanced, 'Seed in URL', ON_OFF, host.seedInUrl, host.setSeedInUrl),
+    choiceRow(advanced, 'Map list scores', [
+      { value: 'withLoading', label: 'With loading', title: 'The best of every run' },
+      { value: 'noLoading', label: 'No loading', title: 'The best of the runs that never loaded a save' },
+    ], host.mapListScores, host.setMapListScores),
+    choiceRow(advanced, 'Spacebar shot targeting', [
+      { value: 'nearest', label: 'Nearest', title: 'The nearest enemy on screen (F toggles with farthest)' },
+      { value: 'mouse', label: 'Mouse cursor', title: 'The mouse cursor, like E; the touch button without a mouse aims at the nearest enemy' },
+      { value: 'farthest', label: 'Farthest', title: 'The farthest enemy on screen (F toggles with nearest)' },
+    ], host.spaceMode, host.setSpaceMode),
+    choiceRow(advanced, 'Random maps', [
+      { value: 'newEachRun', label: 'New each run', title: 'Every restart of a generated map builds a new layout' },
+      { value: 'sameLayout', label: 'Same layout', title: 'Restarts keep the layout (Play from the title still builds a new one)' },
+    ], host.randomMaps, host.setRandomMaps),
+    choiceRow(advanced, 'Debug info', ON_OFF, host.debugInfo, host.setDebugInfo),
+  ]
+  resetRow(advanced, 'Reset roguelite statistics', 'Reset the roguelite statistics (runs, wins, streaks)? This cannot be undone.', host.resetRogueliteStats)
+  resetRow(advanced, 'Reset scores', 'Reset the best scores of every map (with and without loading)? This cannot be undone.', host.resetBestScores)
+  return { root, onShow: () => { for (const r of [...regular, ...advancedRows]) r() } }
 }
