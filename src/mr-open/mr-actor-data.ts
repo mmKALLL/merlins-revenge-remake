@@ -219,6 +219,7 @@ export interface ActorDef {
   totalResidents: number // residents a dwelling releases before it destroys itself
   // --- engine: allies (objCharacter, modArmyUnit, modBuilder)
   leaveWhenFinished: boolean // objCharacter: teleport out into the reserve army when the AI finds no target
+  wizard: boolean // objGameObject #wizard: a friendly wizard (wizardMaster.newWizardFound); R calls every one in the reserve (remake)
   teleportable: boolean // modArmyUnit: an army summon blast can teleport it out (false for Merlin and ghosts)
   unitToBuild: string[] // modBuilder: building types a builder (objAiCPUBuilder) picks from at random
   buildRate: number // modBuilder: build progress per tick; 100 advances the building one frame
@@ -380,6 +381,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     residentGroups: [], totalResidents: 10, // modResidents.addModParams
     // engine: allies
     leaveWhenFinished: false, // objCharacter.addModParams
+    wizard: false, // objGameObject.init: only #wizard actors reach wizardMaster
     teleportable: true, // modArmyUnit.addModParams
     unitToBuild: [], buildRate: 100, buildOne: true, // modBuilder.addModParams ([#none x 4])
     armyMembers: [], // modAutoSummon.addModParams
@@ -429,7 +431,7 @@ for (const k of [
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
   'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
   'collectSound', 'counterColour', 'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
-  'leaveWhenFinished', 'teleportable', 'ghost', 'unitToBuild', 'buildRate', 'buildOne', 'armyMembers',
+  'leaveWhenFinished', 'wizard', 'teleportable', 'ghost', 'unitToBuild', 'buildRate', 'buildOne', 'armyMembers',
   // engine properties kept in raw only
   'character', 'weight', 'miniMapStatus', 'teamName', 'category', 'hates', 'friends', 'maxMembers',
   // remake additions
@@ -848,7 +850,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       residentGroups: residentGroups(r, 'residentGroups', ctx).map((g) => ({ ...g, typ: actorKey(g.typ) })),
       totalResidents: num(r, 'totalResidents', ctx),
       // engine: allies (modArmyUnit.init: a ghost is never teleportable)
-      leaveWhenFinished: bool(r, 'leaveWhenFinished', ctx),
+      leaveWhenFinished: bool(r, 'leaveWhenFinished', ctx), wizard: bool(r, 'wizard', ctx),
       teleportable: bool(r, 'teleportable', ctx) && r['ghost'] !== true,
       unitToBuild: symbolList(r, 'unitToBuild', ctx).map(actorKey), buildRate: num(r, 'buildRate', ctx), buildOne: bool(r, 'buildOne', ctx),
       armyMembers: symbolList(r, 'armyMembers', ctx).map(actorKey),

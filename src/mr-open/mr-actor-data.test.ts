@@ -148,6 +148,12 @@ describe('resolveActors', () => {
     expect(defs['goblinArrow']!.energyRecoverDelay).toBe(1000)
   })
 
+  it('marks the friendly wizards (#wizard: true) and nobody else', () => {
+    expect(defs['berlinInGame']!.wizard).toBe(true)
+    expect(defs['berlinInGame']!.leaveWhenFinished).toBe(true)
+    expect(defs['goblinWarrior']!.wizard).toBe(false)
+  })
+
   it('fails loudly on a missing parent', () => {
     expect(() => resolveActors({ x: '[#name: "act_x", #type: #field]\n[#inherit: #nope]' })).toThrow(/x.*nope/)
   })
