@@ -300,7 +300,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   // counts as its rooms are banked, so a death keeps what it reached
   let bests = loadBestScores(browserStore)
   const recordBest = () => {
-    const improved = withRunScore(bests, mapId, sim.worldMode, sim.score)
+    const improved = withRunScore(bests, mapId, sim.worldMode, sim.score, false)
     if (!improved) return
     bests = improved
     saveBestScores(browserStore, improved)
@@ -394,7 +394,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       won: ended.status === 'won',
       floorsReached: ended.floor + 1,
       score: sim.score.valid ? sim.score.total : null,
-      bestScore: bests[sim.worldMode][mapId] ?? 0,
+      bestScore: bests.noLoading[sim.worldMode][mapId] ?? 0, // a roguelite run never loads
       time: runTimeText(sim.runTicks),
       spells: collectedScrolls(sim),
       wizards: wizardsFound(sim),

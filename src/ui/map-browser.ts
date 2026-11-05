@@ -117,7 +117,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, scor
   keepActivateKeys(list)
   keepActivateKeys(favList)
   let favourites = loadFavourites(browserStore)
-  let bests = loadBestScores(browserStore)[scoreMode()]
+  let bests = loadBestScores(browserStore).withLoading[scoreMode()]
 
   const showFavourites = (): void => {
     const entries = favouriteEntries(favourites, index)
@@ -172,7 +172,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, scor
   show(shown, false)
   showFavourites()
   return () => {
-    bests = loadBestScores(browserStore)[scoreMode()]
+    bests = loadBestScores(browserStore).withLoading[scoreMode()]
     show(shown, false)
     showFavourites()
   }
