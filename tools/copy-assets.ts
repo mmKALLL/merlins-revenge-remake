@@ -39,6 +39,8 @@ const copies: Copy[] = [
   // the end cut scene (gGameCompleteScript = #cut_scene_to_play_at_end): the archive's
   // cut_scene_to_play_at_end/ folder is empty, so the engine plays this built-in cast member
   { from: join(CASTS, 'scr_cut_scene_to_play_at_end.txt'), to: join(ASSETS, 'cut-scenes/cut_scene_to_play_at_end.txt'), why: 'map complete cut scene' },
+  // the game over cut scene (gGameOverScript = #cut_scene_to_play_when_wasted; its folder is empty too)
+  { from: join(CASTS, 'scr_cut_scene_to_play_when_wasted.txt'), to: join(ASSETS, 'cut-scenes/cut_scene_to_play_when_wasted.txt'), why: 'game over cut scene' },
 ]
 
 // combat slice: actor data, act_<name>.txt -> actors/<name>.txt

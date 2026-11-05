@@ -1,0 +1,98 @@
+[#name: "scr_cut_scene_to_play_when_wasted", #type: #field]
+characters
+#merlin - m
+
+lines
+
+setStage
+
+showTitle You Got Wasted!
+
+backgroundColourTo rgb(100,100,255)
+lightsUp
+
+wait 20
+
+m goWastedMode
+m enterStageRight
+
+wait 10
+
+m exitStageLeft
+
+wait 140
+
+m: We must try again!
+
+wait 30
+
+backgroundColourTo rgb(0,0,0)
+wait 50
+lightsDown
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -19,8 +19,8 @@ const SETTINGS_KEY = 'mr-remake.audio'
 const VOLUME_SETTING_MAX = 100
 /** Key or pointer presses that resume a suspended AudioContext (browsers need a user gesture). */
 const UNLOCK_EVENTS = ['keydown', 'pointerdown'] as const
-/** Music change on entering a room: fade the old track out, pause, then start the new one (user request). */
-const MUSIC_FADE_S = 1
+/** Music change on entering a room: fade the old track out, pause, then start the new one (user request; 3 s since 2026-11-06). */
+const MUSIC_FADE_S = 3
 const MUSIC_GAP_S = 0.5
 
 const DEFAULT_VOLUME_SETTING = 70
