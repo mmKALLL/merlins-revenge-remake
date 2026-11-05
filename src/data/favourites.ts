@@ -10,10 +10,16 @@ export interface FavouritesStore {
   setItem(key: string, value: string): void
 }
 
+/** The store with removal too, which the saves need (saves.ts). */
+export interface RemovableStore extends FavouritesStore {
+  removeItem(key: string): void
+}
+
 /** localStorage, looked up on each use: touching it at all throws when storage is blocked. */
-export const browserStore: FavouritesStore = {
+export const browserStore: RemovableStore = {
   getItem: (key) => localStorage.getItem(key),
   setItem: (key, value) => localStorage.setItem(key, value),
+  removeItem: (key) => localStorage.removeItem(key),
 }
 
 const isIdList = (v: unknown): v is string[] => Array.isArray(v) && v.every((id) => typeof id === 'string')

@@ -130,15 +130,20 @@ export function snapshotOf(s: SimState, extras: SnapshotExtras): SimSnapshot {
   }
 }
 
+/** JSON of a value holding snapshot data (a snapshot, or a save wrapping one) that keeps -0, NaN and Infinity. */
+export const toSnapshotJson = (v: unknown, space?: number): string => JSON.stringify(v, encodeNumbers, space)
+
+/** Parses toSnapshotJson's text, the special numbers restored. */
+export const fromSnapshotJson = (text: string): unknown => JSON.parse(text, decodeNumbers)
+
 /** The sim state as snapshot JSON; `space` pretty-prints it (test fixtures). */
 export function serializeSim(s: SimState, extras: SnapshotExtras, space?: number): string {
-  return JSON.stringify(snapshotOf(s, extras), encodeNumbers, space)
+  return toSnapshotJson(snapshotOf(s, extras), space)
 }
 
 /** Parses snapshot JSON (or deep-copies a parsed snapshot) and checks its version and shape. */
 export function parseSnapshot(json: string | SimSnapshot): SimSnapshot {
-  const text = typeof json === 'string' ? json : JSON.stringify(json, encodeNumbers)
-  const v: unknown = JSON.parse(text, decodeNumbers)
+  const v = fromSnapshotJson(typeof json === 'string' ? json : toSnapshotJson(json))
   if (!isObj(v)) throw new Error('state snapshot: not a JSON object')
   if (v['version'] !== SNAPSHOT_VERSION) throw new Error(`state snapshot: version ${String(v['version'])}, this build reads ${SNAPSHOT_VERSION}`)
   if (typeof v['mapId'] !== 'string' || typeof v['tick'] !== 'number' || !Array.isArray(v['actors']) || !isObj(v['rooms']) || !isObj(v['rng'])) {
