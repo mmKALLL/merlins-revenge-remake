@@ -12,6 +12,7 @@ import { EXPLODE_TICKS, spellBallPx } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
 import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
 import type { EndSequenceView } from '../cutscene/end-sequence'
+import type { CutSceneStrip } from '../cutscene/performer'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
 import { ArmyDisplay } from './army-display'
 import type { ArmyDisplayMode } from './army-entries'
@@ -228,7 +229,7 @@ export class Scene {
     const { healthSurround } = GAME_SCREEN
     this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, this.cfg.playOffset.y + this.cfg.view.h)
     this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.scoreHud.layer, this.armyDisplay.layer, this.debugText, this.weaponSelector.layer)
-    this.cutScene = new CutSceneOverlay(this.cfg.logical, (character) => this.cutSceneFrame(character))
+    this.cutScene = new CutSceneOverlay(this.cfg.logical, (character, strip, stripFrames) => this.cutSceneFrame(character, strip, stripFrames))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
     window.addEventListener('resize', this.onResize)
@@ -337,12 +338,17 @@ export class Scene {
     this.app.render()
   }
 
-  /** A cut scene character's stand frame: the sprite of the actor with its key (or its stand-in). */
-  private cutSceneFrame(character: string): CharacterFrame | undefined {
+  /**
+   * A cut scene character's frame of its strip, `stripFrames` frames into it (looped by the frame
+   * delays): the sprite of the actor with its key (or its stand-in).
+   */
+  private cutSceneFrame(character: string, strip: CutSceneStrip, stripFrames: number): CharacterFrame | undefined {
     const name = this.defs[CUTSCENE_ACTOR[character] ?? character]?.name
-    const texture = name ? this.frameFor(name, 'stand', 0) : undefined
-    if (!name || !texture) return undefined
-    return { texture, reg: this.regFor(name, 'stand', 0) ?? { x: texture.width / 2, y: texture.height / 2 } }
+    if (!name) return undefined
+    const frame = sleepingFrame(this.sprites[name]?.anims[strip], stripFrames)
+    const texture = this.frameFor(name, strip, frame)
+    if (!texture) return undefined
+    return { texture, reg: this.regFor(name, strip, frame) ?? { x: texture.width / 2, y: texture.height / 2 } }
   }
 
   private syncActors(s: SimState, lerp: (a: ActorState) => Vec): void {

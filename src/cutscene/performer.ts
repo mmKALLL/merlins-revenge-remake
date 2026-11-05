@@ -6,10 +6,12 @@
 //
 // Supported: setStage, at, atPlayer, gotoWings, turnToFace, speakLine, wait, showTitle,
 // backgroundColour, backgroundColourTo, lightsUp, lightsDown, fadeDown (a player), fadeUp/fadeDown
-// (the stage: no-ops as in the engine), playSound, playMusic. Walking is not animated: walkTo,
-// walkToPlayer, enterStage* and teleportInAt put the player at the destination, exitStage* and
-// teleportOut send it to the wings. Props, goMode, goWastedMode, walkScroll* and
+// (the stage: no-ops as in the engine), playSound, playMusic, goWastedMode, and the walks: walkTo,
+// walkToPlayer, enterStage* and exitStage* walk (modMoveToLoc) and the script runs on at once
+// (lineFinished does not wait for the walk). Teleporting is not animated: teleportInAt puts the
+// player at the destination, teleportOut sends it to the wings. Props, goMode, walkScroll* and
 // backgroundColourRandomFlash are skipped.
+import { arrived, frameMove } from '../mr-open/mr-pathfinding'
 import type { CutSceneScript, Rgb, ScriptLine, ScriptValue } from './script'
 
 /** objScriptPerformer #init defaults: speech shows for basic + letters * perLetter frames, then a gap. */
@@ -28,6 +30,22 @@ export const BLACK: Rgb = { r: 0, g: 0, b: 0 }
 /** modFader blend range (Director sprite blend). */
 const OPAQUE = 100
 const INVISIBLE = 0
+/** modWastedMode.wastedModeOn: the sprite's blend and its height in px (setSpriteHeight; the width stays). */
+export const WASTED_BLEND = 30
+export const WASTED_HEIGHT = 60
+/**
+ * modMoveToLoc.moveTowardsLocSpeed sets the walk vector to the actor's walkSpeed (act_merlin
+ * #walkSpeed 4, the cut scene Merlin), and objMoveXY's walking friction (50 %) halves it before the
+ * move, as for every CPU walker (engine-mechanics-combat.md): 2 px a frame, the playable Merlin's
+ * walking speed too. Only Merlin is drawn, so every character walks at his speed.
+ */
+const WALK_SPEED = 4
+const WALK_FRICTION = 0.5
+/**
+ * objScriptPerformer.calcStageLeftOffLoc / calcStageRightOffLoc: a spot just past the stage's edge.
+ * Assumed: one character width (Merlin's frames are 16 px) beyond it, so he is out of sight there.
+ */
+export const OFF_STAGE_DISTANCE = 16
 
 /** The stage the players stand on, in the renderer's coordinates (cutSceneMaster.pStageRect). */
 export interface StageRect { left: number; right: number }
@@ -60,6 +78,9 @@ function colourAt(c: ColourChange): Rgb {
   return { r: mix(c.from.r, c.to.r), g: mix(c.from.g, c.to.g), b: mix(c.from.b, c.to.b) }
 }
 
+/** The player's strip: modAnimSet shows the walk strip while modMoveToLoc moves it. */
+export type CutSceneStrip = 'stand' | 'walk'
+
 export interface CutScenePlayer {
   character: string
   /** stage x of the player's middle; null while it waits in the wings (off stage) */
@@ -68,9 +89,16 @@ export interface CutScenePlayer {
   blend: number
   fade: Transform | null
   facingLeft: boolean
+  /** modMoveToLoc pMoveToLocTarget: the stage x it walks to; null while it stands */
+  walkTarget: number | null
+  /** frames the current strip has played (the renderer loops it by its frame delays) */
+  stripFrames: number
+  /** modWastedMode: the sprite's height in px; null keeps the frame's own */
+  height: number | null
 }
 
-interface Speech { character: string; text: string; phase: 'display' | 'delay'; framesLeft: number }
+/** `x`: where the speech went up, centred on the speaker then (null: the speaker was in the wings). */
+interface Speech { character: string; text: string; x: number | null; phase: 'display' | 'delay'; framesLeft: number }
 
 interface Title {
   text: string
@@ -115,7 +143,7 @@ export function startCutScene(script: CutSceneScript, stage: StageRect): CutScen
     backgroundChange: null,
     title: { text: '', colour: BLACK, change: null, mode: 'none', pending: '', displayLeft: null },
     // createMissingPlayers: every player starts in the wings
-    players: script.players.map((p) => ({ character: p.character, x: null, blend: OPAQUE, fade: null, facingLeft: false })),
+    players: script.players.map((p) => ({ character: p.character, x: null, blend: OPAQUE, fade: null, facingLeft: false, walkTarget: null, stripFrames: 0, height: null })),
     speech: null,
     waitLeft: null,
     lightsPending: false,
@@ -137,7 +165,8 @@ export function stepCutScene(prev: CutSceneState): CutSceneStep {
   let fading = false
   s = {
     ...s,
-    players: s.players.map((p) => {
+    players: s.players.map((walker) => {
+      const p = stepWalk(walker)
       if (!p.fade) return p
       const r = stepTransform(p.fade)
       if (!r.done) fading = true
@@ -170,18 +199,22 @@ export function stepCutScene(prev: CutSceneState): CutSceneStep {
 export interface CutSceneView {
   background: Rgb
   title: { text: string; colour: Rgb }
-  players: { character: string; x: number; alpha: number; facingLeft: boolean }[]
+  /** `height`: the sprite stretched to this many px tall (null: as drawn) */
+  players: { character: string; x: number; alpha: number; facingLeft: boolean; strip: CutSceneStrip; stripFrames: number; height: number | null }[]
   speech: { character: string; x: number; text: string } | null
 }
 
 export function cutSceneView(s: CutSceneState): CutSceneView {
   const onStage = s.players.filter((p): p is CutScenePlayer & { x: number } => p.x !== null)
-  const speaker = s.speech?.phase === 'display' ? onStage.find((p) => p.character === s.speech!.character) : undefined
+  const speech = s.speech?.phase === 'display' && s.speech.x !== null ? { character: s.speech.character, x: s.speech.x, text: s.speech.text } : null
   return {
     background: s.background,
     title: { text: s.title.text, colour: s.title.colour },
-    players: onStage.map((p) => ({ character: p.character, x: p.x, alpha: p.blend / OPAQUE, facingLeft: p.facingLeft })),
-    speech: speaker && s.speech ? { character: speaker.character, x: speaker.x, text: s.speech.text } : null,
+    players: onStage.map((p) => ({
+      character: p.character, x: p.x, alpha: p.blend / OPAQUE, facingLeft: p.facingLeft,
+      strip: stripOf(p), stripFrames: p.stripFrames, height: p.height,
+    })),
+    speech,
   }
 }
 
@@ -235,29 +268,68 @@ function performLine(s: CutSceneState, line: ScriptLine, cues: CutSceneCue[]): C
       return s
     case 'speakLine':
       if (who === null) return s
-      return { ...autoTurn(s, who), speech: { character: who, text, phase: 'display', framesLeft: speechFrames(text) } }
+      return { ...autoTurn(s, who), speech: { character: who, text, x: playerX(s, who), phase: 'display', framesLeft: speechFrames(text) } }
   }
   if (who === null) return s // other stage commands (fadeUp, fadeDown, walkScroll*) only call lineFinished here
   return updatePlayer(s, who, (p) => {
     switch (line.command) {
-      case 'at': case 'propAt': case 'teleportInAt': case 'walkTo':
-        return { ...p, x: stageX(value) ?? p.x }
-      case 'atPlayer': case 'walkToPlayer':
-        return { ...p, x: playerX(s, other) ?? p.x }
-      case 'enterStageLeft':
-        return { ...p, x: entranceX(s, 'left') }
-      case 'enterStageRight':
-        return { ...p, x: entranceX(s, 'right') }
-      case 'gotoWings': case 'exitStageLeft': case 'exitStageRight': case 'teleportOut':
-        return { ...p, x: null }
+      case 'at': case 'propAt': case 'teleportInAt':
+        return placed(p, stageX(value) ?? p.x)
+      case 'atPlayer':
+        return placed(p, playerX(s, other) ?? p.x)
+      case 'walkTo':
+        return walkTo(p, stageX(value))
+      case 'walkToPlayer':
+        return walkTo(p, playerX(s, other))
+      case 'enterStageLeft': case 'enterStageRight': {
+        // modThespian.enterStage*: put at the off-stage spot, then walkTo the entrance
+        const side = line.command === 'enterStageLeft' ? 'left' : 'right'
+        return walkTo(placed(p, offStageX(s, side)), entranceX(s, side, p.character))
+      }
+      case 'exitStageLeft':
+        return walkTo(p, offStageX(s, 'left'))
+      case 'exitStageRight':
+        return walkTo(p, offStageX(s, 'right'))
+      case 'gotoWings': case 'teleportOut':
+        return placed(p, null)
       case 'turnToFace':
         return faceToward(p, playerX(s, other))
       case 'fadeDown':
         return { ...p, fade: transform(p.blend, INVISIBLE, LIGHTS_SPEED) }
+      case 'goWastedMode':
+        return { ...p, blend: WASTED_BLEND, height: WASTED_HEIGHT }
       default:
         return p
     }
   })
+}
+
+const stripOf = (p: CutScenePlayer): CutSceneStrip => (p.walkTarget === null ? 'stand' : 'walk')
+
+/** A player put somewhere (in the wings for null) at once: a walk stops there. */
+function placed(p: CutScenePlayer, x: number | null): CutScenePlayer {
+  return { ...p, x, walkTarget: null, stripFrames: p.walkTarget === null ? p.stripFrames : 0 }
+}
+
+/**
+ * modThespian.walkTo -> modMoveToLoc.moveToLoc: the player walks there from where it stands. One in
+ * the wings has no stage spot to walk from and is put there (a simplification of the port's).
+ */
+function walkTo(p: CutScenePlayer, x: number | null): CutScenePlayer {
+  if (x === null) return p
+  if (p.x === null) return placed(p, x)
+  const facingLeft = x === p.x ? p.facingLeft : x < p.x // modMoveToLoc.moveHorizReaction
+  return { ...p, walkTarget: x, facingLeft, stripFrames: p.walkTarget === null ? 0 : p.stripFrames }
+}
+
+/** modMoveToLoc.update: within the arrival distance the walk ends; else a frame's step toward the target. */
+function stepWalk(p: CutScenePlayer): CutScenePlayer {
+  const stripFrames = p.stripFrames + 1
+  if (p.walkTarget === null || p.x === null) return { ...p, stripFrames }
+  const at = { x: p.x, y: 0 }
+  const target = { x: p.walkTarget, y: 0 }
+  if (arrived(at, target)) return { ...p, walkTarget: null, stripFrames: 0 }
+  return { ...p, x: p.x + frameMove(at, target, WALK_SPEED).x * (1 - WALK_FRICTION), stripFrames }
 }
 
 const isRgb = (v: ScriptValue | undefined): v is Rgb => typeof v === 'object' && 'r' in v
@@ -269,13 +341,20 @@ function stageX(v: ScriptValue | undefined): number | null {
   return null
 }
 
+/** objScriptPerformer.calcStageLeftOffLoc / calcStageRightOffLoc. */
+const offStageX = (s: CutSceneState, side: 'left' | 'right'): number =>
+  side === 'left' ? s.stage.left - OFF_STAGE_DISTANCE : s.stage.right + OFF_STAGE_DISTANCE
+
 const playerX = (s: CutSceneState, character: string | null): number | null =>
   s.players.find((p) => p.character === character)?.x ?? null
 
-/** objScriptPerformer.getStageEntranceOnLoc: halfway between the stage edge and the outermost player on stage. */
-function entranceX(s: CutSceneState, side: 'left' | 'right'): number {
+/**
+ * objScriptPerformer.getStageEntranceOnLoc: halfway between the stage edge and the outermost player
+ * on stage (other than the one entering).
+ */
+function entranceX(s: CutSceneState, side: 'left' | 'right', entering: string): number {
   const centre = (s.stage.left + s.stage.right) / 2
-  const xs = s.players.flatMap((p) => (p.x === null ? [] : [p.x]))
+  const xs = s.players.flatMap((p) => (p.x === null || p.character === entering ? [] : [p.x]))
   const extreme = side === 'left' ? Math.min(centre, ...xs) : Math.max(centre, ...xs)
   const edge = side === 'left' ? s.stage.left : s.stage.right
   return (edge + extreme) / 2

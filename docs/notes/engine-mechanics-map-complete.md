@@ -90,26 +90,74 @@ built-in member plays (identical to `cut_scenes/mr4Complete.txt`):
 ### Port (src/cutscene/, src/render/cutscene-overlay.ts)
 
 `script.ts` parses scripts (converted to JSON by `pnpm assets:convert`), `performer.ts` plays them
-frame by frame, `end-sequence.ts` chains a 15-frame fade of the game screen, the cut scene and a
-prompt (Enter or click replays the map; the map browser stays usable). Assumptions: the fade length,
-the stage rect (x 32-608, y 112-288 on the 640x320 screen) and the title position/size, since the
-`animScreenEnd` score layout is not extracted. `#merlin` is drawn with the player's stand frame.
+frame by frame, `end-sequence.ts` chains a 15-frame fade of the game screen, the ending's cut scene
+(`ENDING_SCRIPTS`) and what follows it: for the map complete a prompt (Enter or click replays the
+map; the map browser stays usable), for the game over (§2a) the restart. Assumptions: the fade
+length, the stage rect (x 32-608, y 112-288 on the 640x320 screen) and the title position/size,
+since the `animScreenEnd`/`animScreenGameOver` score layouts are not extracted. `#merlin` is drawn
+with the player's sprite (`mer`; it has no stand strip, so standing shows the first walk frame).
+
+- **Walking.** `walkTo`, `walkToPlayer`, `enterStage*` and `exitStage*` walk (modMoveToLoc): each
+  frame `PointFrameMove` toward the target at act_merlin's `#walkSpeed` 4, halved by objMoveXY's
+  walking friction as for every CPU walker (2 px a frame, the playable Merlin's speed too), ending
+  within the arrival distance (5 px). The walk strip plays (looped by its frame delays) and the
+  player faces the way it walks (moveHorizReaction). The line finishes at once, so the script runs
+  on during the walk. `enterStage*` (modThespian.txt:271-276) puts the player at the off-stage spot
+  and walks it to `getStageEntranceOnLoc`; `exitStage*` walks it to the off-stage spot, where it
+  stays. `at`, `atPlayer`, `gotoWings` and the teleports stop a walk. A walk from the wings puts the
+  player at the destination (it has no stage spot to start from; the original walks from
+  point(-100,-100)). Assumptions: the off-stage spot (`calcStage*OffLoc`) is 16 px (a character's
+  width) past the stage's side, and the players are only seen between the stage's sides (the
+  overlay masks the rest), so walking off reads as leaving the stage.
+- **goWastedMode** (modThespian -> modWastedMode.wastedModeOn): blend 30 and `setSpriteHeight(60)`:
+  the sprite is drawn 60 px tall at its own width, stretched about its registration point (a
+  Director sprite's height keeps its loc). wastedModeOff (blend 100) is not ported.
+- **Speech position (assumption).** A spoken line stays where it went up, centred on the speaker
+  then, while the speaker walks on; it is not shown when the speaker was in the wings.
+
+## 2a. The game over sequence
+
+`objPlayerMerlinCharacter.stretchDeathFin` (the end of Merlin's death, `restartRequested` in the
+sim) calls `gameMaster.gameOver` (gameMaster.txt:102-111): `finishGame`, then
+`movieMaster.goScreen(#animScreenGameOver, #gameOver)` with a `#fade` transition; `goScreenAction
+#gameOver` plays `gGameOverScript = #cut_scene_to_play_when_wasted`, and when it finishes
+(`cutSceneMaster.scriptFinished` -> `movieMaster.cutSceneFinished`) `goScreen(#gameScreen,
+#loadGame)` loads the game again. The script (`assets/cut-scenes/cut_scene_to_play_when_wasted.txt`):
+
+    setStage / showTitle You Got Wasted! / backgroundColourTo rgb(100,100,255) / lightsUp / wait 20 /
+    m goWastedMode / m enterStageRight / wait 10 / m exitStageLeft / wait 140 /
+    m: We must try again! / wait 30 / backgroundColourTo rgb(0,0,0) / wait 50 / lightsDown
+
+Merlin is in the wings during lightsUp; `wait 10` after `enterStageRight` means the exit starts
+while he is still walking in, so he walks left across the whole stage, says his line about the
+middle and leaves just before the lights go down (about 14 s with the fade).
+
+### Port (src/cutscene/end-sequence.ts, src/main.ts)
+
+- A death on a normal map starts the `gameOver` sequence instead of the old immediate restart; the
+  sim stops while it runs. When the cut scene finishes (`restartDue`) the map restarts as before: a
+  fresh seed (a new layout on a generated map when Random maps says so).
+- `finishGame` stops the game: the music fades out (`audio.playMusic(null)`, the 3 s fade) as the
+  sequence starts; the restart's start room asks for its track again, from the beginning.
+- A map completed on the same tick as the death plays its end sequence instead.
+- Menus pause the sequence like the game; Restart map and a loaded state export replace it.
+- **Remake decisions (owner, 2026-11-06):** the game over is skippable: Enter, Space or a
+  click/tap (not a held key's repeats) goes straight to the restart (`skipEndSequence`; the map
+  complete sequence is not skippable). The restart follows by itself; the original reloads the
+  game, which the port's restart stands in for. Roguelite deaths are unchanged: the run summary at
+  once, no game over sequence.
 
 ## 3. What a full cut scene system still needs (Cutscenes backlog)
 
-- **Walking and exits**: `walkTo`, `walkToPlayer`, `enterStage*`, `exitStage*` use modMoveToLoc at
-  the character's walk speed with the walk strip; the port jumps to the destination (or the wings).
-  `walkScroll*` scrolls the scenery (`#treesRocks` props) under walking players.
-- **Teleport** (`teleportInAt`, `teleportOut`, modTeleport with modStretcher) and `goWastedMode`
-  (the wasted cut scene).
+- **walkScroll\***: scrolls the scenery (`#treesRocks` props) under walking players.
+- **Teleport** (`teleportInAt`, `teleportOut`, modTeleport with modStretcher).
 - **Props**: `produceProp`, `dropProp`, `putAwayProp`, `propAt` (modProp; the TV, scrolls, potion).
 - **More characters**: sprites and actor data for `#ulin #berlin #king #ochre #ochreHydra
   #scarletWizard #tv #goblinRunner` (only Merlin has an atlas now; others are skipped when drawn).
 - **backgroundColourRandomFlash**, `goMode`, speech variables (`#key <action>` shows the bound key).
 - **The stage layout** of `animScreenEnd`/`animScreenIntro`/`animScreenGameOver` from the Director
   score (stage rect, title member font and position), and the `#fade` screen transition length.
-- **Other scripts**: the intro (`gIntroScript`, `cut_scene_to_play`), game over
-  (`gGameOverScript = #cut_scene_to_play_when_wasted`, then reload), in-game scripts
+- **Other scripts**: the intro (`gIntroScript`, `cut_scene_to_play`), in-game scripts
   (`scr_stones*`, played on the map with speech bubbles above heads: `#ingame` speech mode), the
   credits screen after the end scene, and skipping (`scriptCancelled`).
 

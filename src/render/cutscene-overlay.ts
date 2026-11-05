@@ -1,11 +1,12 @@
-// Draws the end sequence over the whole canvas: the game fading to black, then the cut scene stage
-// (cutSceneMaster's background rect, objCutSceneTitle, the players and modThespian's cut scene
-// speech), then the "map complete" prompt. The animScreenEnd layout is not extracted, so the stage
-// and title positions below are assumptions within the 640x320 screen.
+// Draws the end and game over sequences over the whole canvas: the game fading to black, then the
+// cut scene stage (cutSceneMaster's background rect, objCutSceneTitle, the players and
+// modThespian's cut scene speech), then the "map complete" prompt. The animScreenEnd and
+// animScreenGameOver layouts are not extracted, so the stage and title positions below are
+// assumptions within the 640x320 screen.
 import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { EndSequenceView } from '../cutscene/end-sequence'
-import type { StageRect } from '../cutscene/performer'
+import type { CutSceneStrip, CutSceneView, StageRect } from '../cutscene/performer'
 import type { Rgb } from '../cutscene/script'
 import type { Size } from './camera'
 import { PIXEL_TEXT } from './text-options'
@@ -26,8 +27,10 @@ const TITLE_STYLE = { fontFamily: 'Verdana, sans-serif', fontSize: 20, fontWeigh
 const PROMPT_TEXT = 'Map complete. Press Enter or click to play it again,\nor open the menu (Esc or ☰) to pick another map.'
 const PROMPT_STYLE = { fill: '#aaaaaa', fontFamily: 'monospace', fontSize: 12, align: 'center' } as const
 
-/** A character's stand frame and registration point (the frame centre when unknown). */
+/** A character's frame and registration point (the frame centre when unknown). */
 export interface CharacterFrame { texture: Texture; reg: Vec }
+/** A character's frame of a strip, `stripFrames` frames into it. */
+export type CharacterFrameFor = (character: string, strip: CutSceneStrip, stripFrames: number) => CharacterFrame | undefined
 
 const hex = (c: Rgb): number => (c.r << 16) | (c.g << 8) | c.b
 
@@ -38,15 +41,20 @@ export class CutSceneOverlay {
   private title = new Text({ text: '', ...PIXEL_TEXT, style: TITLE_STYLE })
   private speech = new Text({ text: '', ...PIXEL_TEXT, style: SPEECH_STYLE })
   private prompt = new Text({ text: PROMPT_TEXT, ...PIXEL_TEXT, style: PROMPT_STYLE })
+  /** the players, seen only between the stage's sides (assumed): off stage is out of sight */
+  private cast = new Container()
   private players = new Map<string, Sprite>()
 
-  constructor(private screen: Size, private frameFor: (character: string) => CharacterFrame | undefined) {
+  constructor(private screen: Size, private frameFor: CharacterFrameFor) {
     this.title.anchor.set(0.5, 0)
     this.title.position.set(screen.w / 2, TITLE_Y)
     this.speech.anchor.set(0.5, 1)
     this.prompt.anchor.set(0.5)
     this.prompt.position.set(screen.w / 2, screen.h / 2)
-    this.layer.addChild(this.cover, this.stage, this.title, this.speech, this.prompt)
+    const { left, right } = CUTSCENE_STAGE
+    const wings = new Graphics().rect(left, 0, right - left, screen.h).fill(0xffffff)
+    this.cast.mask = wings
+    this.layer.addChild(this.cover, this.stage, this.title, wings, this.cast, this.speech, this.prompt)
     this.layer.visible = false
   }
 
@@ -63,14 +71,7 @@ export class CutSceneOverlay {
       this.stage.clear().rect(left, top, right - left, bottom - top).fill(hex(scene.background))
       this.title.text = scene.title.text
       this.title.style.fill = hex(scene.title.colour)
-      for (const p of scene.players) {
-        const spr = this.playerSprite(p.character)
-        if (!spr) continue
-        seen.add(p.character)
-        spr.position.set(Math.round(p.x), bottom - STAGE_FLOOR_HEIGHT - (spr.texture.height - spr.anchor.y * spr.texture.height))
-        spr.scale.x = p.facingLeft ? -1 : 1
-        spr.alpha = p.alpha
-      }
+      for (const p of scene.players) if (this.drawPlayer(p)) seen.add(p.character)
       this.speech.visible = scene.speech !== null
       if (scene.speech) {
         this.speech.text = scene.speech.text
@@ -82,15 +83,29 @@ export class CutSceneOverlay {
     for (const [character, spr] of this.players) spr.visible = seen.has(character)
   }
 
-  private playerSprite(character: string): Sprite | undefined {
+  /**
+   * The player's frame hung from its registration point, the frame's bottom on the stage floor; a
+   * set height stretches it about that point (a Director sprite's height keeps its loc).
+   */
+  private drawPlayer(p: CutSceneView['players'][number]): boolean {
+    const frame = this.frameFor(p.character, p.strip, p.stripFrames)
+    if (!frame) return false
+    const { texture, reg } = frame
+    const spr = this.playerSprite(p.character)
+    spr.texture = texture
+    spr.anchor.set(reg.x / texture.width, reg.y / texture.height)
+    spr.position.set(Math.round(p.x), CUTSCENE_STAGE.bottom - STAGE_FLOOR_HEIGHT - (texture.height - reg.y))
+    spr.scale.set(p.facingLeft ? -1 : 1, p.height === null ? 1 : p.height / texture.height)
+    spr.alpha = p.alpha
+    return true
+  }
+
+  private playerSprite(character: string): Sprite {
     let spr = this.players.get(character)
     if (spr) return spr
-    const frame = this.frameFor(character)
-    if (!frame) return undefined
-    spr = new Sprite(frame.texture)
-    spr.anchor.set(frame.reg.x / frame.texture.width, frame.reg.y / frame.texture.height)
+    spr = new Sprite()
     this.players.set(character, spr)
-    this.layer.addChildAt(spr, this.layer.getChildIndex(this.speech))
+    this.cast.addChild(spr)
     return spr
   }
 }
