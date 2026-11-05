@@ -15,7 +15,7 @@ import { tileCentre, type Vec } from '../mr-open/mr-geometry'
 import { chargeLimits, chargeStep, payloadFor, randomSummonMax } from '../mr-open/mr-spell'
 import { randomInt } from './rng'
 import { optimumMoveGoal, UNLIMITED_REACH, type Nearby } from '../mr-open/mr-spell-caster'
-import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
+import { hatedTeams, healTeams } from '../mr-open/mr-targeting'
 import { defOf, faceAlong, isAlive, isBullet, isCharacter, isSpell, walkSpeedOf } from './actors'
 import type { ActorState } from './state'
 import { actorIn, type Tick } from './tick-context'
@@ -94,11 +94,11 @@ const FULL_HEALTH_PERCENT = 100
 
 /**
  * teamMaster.findTarget with targetAllegiance #friendly and targetCriteria #lowestHealth: the living
- * member of a friendly team (the caster itself included) with the lowest energy percentage; none when
- * that is full (objAiCPU.refreshTarget's healBlast rule).
+ * member of a friendly team (the caster itself included; with healsNonHostile any healTeams team) with
+ * the lowest energy percentage; none when that is full (objAiCPU.refreshTarget's healBlast rule).
  */
 function mostHurtFriendId(t: Tick, a: ActorState, def: ActorDef): number | null {
-  const teams = friendlyTeams(a.team, t.s.teams)
+  const teams = healTeams(a.team, t.s.teams, def.attack)
   let best: ActorState | null = null
   let bestHealth = Infinity
   for (const o of t.actors) {

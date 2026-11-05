@@ -15,7 +15,7 @@ import { spellChargeVolume } from '../mr-open/mr-sound'
 import {
   armyReinIn, arrivedAtTarget, chargeDamageMultiplier, chargeLimits, chargeLoc, explode, payloadFor, payloadFunctionsFor, reinedInCharge, releaseVelocity, sendsAlliesHome, spellFlightSpeed, stageNumber,
 } from '../mr-open/mr-spell'
-import { friendlyTeams, hatedTeams } from '../mr-open/mr-targeting'
+import { hatedTeams, healTeams } from '../mr-open/mr-targeting'
 import { defOf, isAlive, isSpell } from './actors'
 import { spellAimPoint } from './player-aim'
 import { alliesInPlay, summonWholeReserve } from './tick-army'
@@ -419,8 +419,8 @@ function explodeSpell(t: Tick, spell: ActorState): void {
   const atk = spell.attack
   if (!atk) throw new Error(`spell ${spell.id} has no attack (setSpellProperties was not applied)`)
   if (spell.targetPoint) spell.pos = { ...spell.targetPoint }
-  // impactAttack's teams by the attack's allegiance: hated ones, or friends and the own team (heal)
-  const teams = atk.targetAllegiance === 'friendly' ? friendlyTeams(spell.team, t.s.teams) : hatedTeams(spell.team, t.s.teams)
+  // impactAttack's teams by the attack's allegiance: hated ones, or friends and the own team (heal; healTeams)
+  const teams = atk.targetAllegiance === 'friendly' ? healTeams(spell.team, t.s.teams, atk) : hatedTeams(spell.team, t.s.teams)
   const victims = splashVictims(t, teams, atk.hits)
   // objSpell.goMode(#explode) (objSpell.txt:146-155): the volume comes from the charge before chargeExplodeFactor
   const explodeVolume = spellChargeVolume(spell.charge, atk)

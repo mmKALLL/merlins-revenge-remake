@@ -182,3 +182,10 @@ Lower `energy` for several enemies, all in `assets/tuning.json` (deleting an ent
   double dark golem 900, fang bunny portal 300, ice rock 250 (it becomes a full-HP boulder monster on
   death), lava golem 450, lava dark golem 550, skeleton lord 700, vulture guard 500, fang bunny 300,
   undead dragon 400, skeleton commando and skeleton upper 225, fang bunny baby and karate guy 150.
+- **Druids heal every non-hostile unit (owner, 2026-11-06).** The druid (team monsters) casts the
+  heal blast (`targetAllegiance #friendly`), whose teams in the engine are calcTargetTeamsByAllegiance's
+  friends plus its own (monsters, goblins, swamp). With the remake's attack field `healsNonHostile`
+  (`tuning.json` druid.attack) a heal aims at and lands on every team with no hate either way between
+  it and the druid's too (`healTeams` in `src/mr-open/mr-targeting.ts`): orcs, cave, ice, karate,
+  ghosts and the like, never Merlin's side or anyone attacking the druids; `healNeverTeams` leaves the
+  undead out even if one day they stop hating the monsters. Ulin's heal blast is unchanged.

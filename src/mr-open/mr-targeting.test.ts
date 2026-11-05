@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findTarget, hatedTeams, type Targetable } from './mr-targeting'
+import { findTarget, hatedTeams, healTeams, type Targetable } from './mr-targeting'
 
 const me: Targetable = { id: 1, team: 'goblins', pos: { x: 0, y: 0 }, alive: true }
 const teams = { goblins: { hates: [['aldevar'], ['chatters']] }, aldevar: { hates: [] } }
@@ -43,5 +43,22 @@ describe('findTarget', () => {
       { id: 8, team: 'aldevar', pos: { x: -10, y: 0 }, alive: true },
     ]
     expect(findTarget(me, cands, hated)).toBe(7)
+  })
+})
+
+describe('healTeams', () => {
+  const world = {
+    monsters: { friends: ['goblins'], hates: [['aldevar', 'undead']] },
+    goblins: { friends: [], hates: [['aldevar']] },
+    orcs: { friends: [], hates: [['aldevar']] },
+    fire: { friends: [], hates: [['monsters']] },
+    undead: { friends: [], hates: [['goblins']] },
+    aldevar: { friends: [], hates: [['monsters']] },
+  }
+  it('is the friends and the own team, as in the engine', () => {
+    expect(healTeams('monsters', world, { healsNonHostile: false, healNeverTeams: [] }).sort()).toEqual(['goblins', 'monsters'])
+  })
+  it('with healsNonHostile adds every team with no hate either way, but the healNeverTeams', () => {
+    expect(healTeams('monsters', world, { healsNonHostile: true, healNeverTeams: ['undead'] }).sort()).toEqual(['goblins', 'monsters', 'orcs'])
   })
 })

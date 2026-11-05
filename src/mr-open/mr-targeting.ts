@@ -24,6 +24,22 @@ export function friendlyTeams(myTeam: string, teams: Record<string, { friends: s
   return [...(teams[myTeam]?.friends ?? []), myTeam]
 }
 
+/** What decides a heal's teams: the remake's AttackDef healsNonHostile and healNeverTeams. */
+export interface HealReach { healsNonHostile: boolean; healNeverTeams: readonly string[] }
+
+/**
+ * The teams a heal of `myTeam` aims at and lands on: friendlyTeams (the engine), or with
+ * healsNonHostile (remake, owner: druids) those plus every team with no hate either way between it
+ * and `myTeam`, but never the healNeverTeams.
+ */
+export function healTeams(myTeam: string, teams: Record<string, { friends: string[]; hates: string[][] }>, reach: HealReach): string[] {
+  const friends = friendlyTeams(myTeam, teams)
+  if (!reach.healsNonHostile) return friends
+  const mine = hatedTeams(myTeam, teams)
+  const peaceful = Object.keys(teams).filter((team) => !mine.includes(team) && !hatedTeams(team, teams).includes(myTeam))
+  return [...new Set([...friends, ...peaceful])].filter((team) => !reach.healNeverTeams.includes(team))
+}
+
 /** Nearest living member of any first-priority hated team by squared reg-point distance; ties keep the first. */
 export function findTarget(me: Targetable, candidates: Targetable[], hated: string[]): number | null {
   let best: number | null = null

@@ -25,6 +25,8 @@ export interface AttackDef {
   /** remake: a spell's damage x (1 + (charge - from) x perCharge), clamped to 1..max (owner: big energy blasts hit harder); perCharge 0 = engine */
   chargeDamageBonus: { from: number; perCharge: number; max: number }
   blankSummonsReserve: boolean // remake (army summon): a blank blast with no army ally in play summons the whole reserve where it lands, as R does; false = engine
+  healsNonHostile: boolean // remake (a #friendly healer, owner: druids): it heals every team with no hate either way between it and the healer's too, not only its friends; false = engine
+  healNeverTeams: string[] // remake: teams a healsNonHostile healer never heals (druids: the undead); empty = none
   /** a point for the player's natural punch (act_player); a number everywhere else */
   reach: number | Vec // AI trigger distance for ranged/magic attacks in px; unused for melee
   cooldown: number // counter length between attacks; advanced per tick by agility/dexterity/mana_regeneration
@@ -322,6 +324,8 @@ const ATTACK_DEFAULTS = {
   shotSpeedScale: 1, // bullets launch at performRangedAttack's speed and spells fly at spellSpeed, as in the engine
   chargeDamageBonus: NO_CHARGE_DAMAGE_BONUS, // a spell's damage is linear in its charge, as in the engine
   blankSummonsReserve: false, // a blank army summon only sends allies home, as in the engine
+  healsNonHostile: false, // a healer heals its friends and its own team, as in the engine
+  healNeverTeams: [], // no team is left out of a heal beside the engine's rule
   volley: null, // remake: no volley; the engine's spells fly, or fire bullets
   chargeVolumeTail: null, // the release/explode volume follows chargeVolumeMap at every charge, as in the engine
   gmgChargeFullTicks: null, // remake: the gun version keeps the attack's chargeFullTicks
@@ -689,6 +693,8 @@ function buildAttack(rawAttack: Plain | undefined, ctx: string): AttackDef {
     shotSpeedScale: num(a, 'shotSpeedScale', ctx),
     chargeDamageBonus: chargeDamageBonusOf(a, ctx),
     blankSummonsReserve: bool(a, 'blankSummonsReserve', ctx),
+    healsNonHostile: bool(a, 'healsNonHostile', ctx),
+    healNeverTeams: symbolList(a, 'healNeverTeams', ctx),
     reach: numOrVec(a, 'reach', ctx),
     cooldown: num(a, 'cooldown', ctx), power: numOrVec(a, 'power', ctx),
     damageMultiplier: num(a, 'damageMultiplier', ctx),

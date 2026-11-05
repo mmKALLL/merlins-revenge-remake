@@ -288,5 +288,11 @@
   },
   "karateGuy": {
     "energy": 150
+  },
+  "druid": {
+    "attack": {
+      "healsNonHostile": true,
+      "healNeverTeams": ["undead"]
+    }
   }
 }
