@@ -728,7 +728,8 @@ const EYE_PLANT = 95
 const TALL_REEDS = 96
 const FERNS = 97
 const GREEN_PINES = 101
-const LOG = 107
+// a short tree stump standing alone (107, 117 and 127 above it are a stump three tiles tall)
+const STUMP_SHORT = 126
 // blue, white and icy rocks (rows 10-12)
 const SNOW_ROCK = 100
 const BLUE_ROCK = 108
@@ -1342,7 +1343,7 @@ export const DEEP_FOREST: FloorTheme = {
     { name: 'undergrowth', weight: 2, tiles: [w(FERNS, 2), w(TALL_REEDS, 1), w(EYE_PLANT, 1), w(GRASSY_REEDS, 1)] },
     { name: 'haunted trees', weight: 2, tiles: [w(EYED_TREE, 2), w(EYED_TREE_B, 2), w(EYED_SHRUB, 1), w(EYED_SHRUB_B, 1)] },
   ],
-  stumps: [w(LOG, 2), w(EYED_SHRUB, 1)],
+  stumps: [w(STUMP_SHORT, 2), w(EYED_SHRUB, 1)],
   decorations: [w(LITTLE_PLANT, 3), w(DARK_PEBBLES, 1), w(YELLOW_SPRIG, 0.5)],
   // denser than the Goblin Forest: more and bigger thickets, and tree lines cutting in
   shape: {
@@ -1435,7 +1436,7 @@ export const HYDRA_MARSH: FloorTheme = {
     { name: 'ferns', weight: 2, tiles: [w(FERNS, 2), w(EYE_PLANT, 1)] },
     { name: 'wet rocks', weight: 1, tiles: [w(BLUE_ROCK, 1), w(BLUE_ROCKS, 1), w(STONE_BOULDER, 1)] },
   ],
-  stumps: [w(LOG, 1), w(EYE_PLANT, 1)],
+  stumps: [w(STUMP_SHORT, 1), w(EYE_PLANT, 1)],
   // more water: puddles everywhere
   decorations: [w(PUDDLE, 6), w(LITTLE_PLANT, 1)],
   shape: {
