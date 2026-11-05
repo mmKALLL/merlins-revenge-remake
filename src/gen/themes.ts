@@ -219,6 +219,8 @@ export interface UnitTuning {
   bosses: BossGroup[]
   /** potions for the two side corner rooms, drawn by weight (floor.ts potionTiles); no kits (owner rule) but on the roguelite's last floor (roguelite-biomes.ts) */
   potions: Weighted<string>[]
+  /** two potions drawn by weight in the room diagonally before the exit room (floor.ts preBossRoom), when set: the roguelite's last floor (owner) */
+  preBossPotions?: Weighted<string>[]
   startRewards: StartRewards
   /**
    * When set, a room draws one alliance (by weight) instead of one faction and takes choices of any

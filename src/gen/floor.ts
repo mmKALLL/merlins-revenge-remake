@@ -55,8 +55,31 @@ export function potionTiles(floorSize: Vec, room: Vec): Vec[] {
   return Array.from({ length: POTIONS_PER_CORNER }, (_, i) => ({ x: x + away * i, y }))
 }
 
-/** Tiles a room keeps open and reachable for its fixed placements: the boss's, or the corner potions'. */
-const reservedTiles = (floorSize: Vec, room: Vec): Vec[] => (sameVec(room, exitRoom(floorSize)) ? [BOSS_TILE] : potionTiles(floorSize, room))
+/**
+ * Owner (the roguelite's last floor, preBossPotions): the room diagonally before the exit room, on
+ * the direct route to the boss, as an alternative to the side corners' medikits.
+ */
+export const preBossRoom = (floorSize: Vec): Vec => ({ x: floorSize.x - 1, y: 2 })
+
+/**
+ * The pre-boss potions' tiles: in that room's corner toward the exit room, POTION_CORNER_INSET tiles
+ * in, stepping along x away from the corner (as a side corner's); none in any other room.
+ */
+function preBossPotionTiles(floorSize: Vec, room: Vec): Vec[] {
+  if (!sameVec(room, preBossRoom(floorSize))) return []
+  const x = ROOM_SIZE.x - 1 - POTION_CORNER_INSET
+  return Array.from({ length: POTIONS_PER_CORNER }, (_, i) => ({ x: x - i, y: POTION_CORNER_INSET }))
+}
+
+/** The fixed potions of a room: the side corners' (theme potions), or the pre-boss room's when the theme has preBossPotions. */
+function fixedPotions(theme: FloorTheme, room: Vec): { tiles: Vec[]; pool: Weighted<string>[] } {
+  const pre = theme.units.preBossPotions
+  const preTiles = pre ? preBossPotionTiles(theme.floorSize, room) : []
+  return preTiles.length > 0 && pre ? { tiles: preTiles, pool: pre } : { tiles: potionTiles(theme.floorSize, room), pool: theme.units.potions }
+}
+
+/** Tiles a room keeps open and reachable for its fixed placements: the boss's, or the potions'. */
+const reservedTiles = (theme: FloorTheme, room: Vec): Vec[] => (sameVec(room, exitRoom(theme.floorSize)) ? [BOSS_TILE] : fixedPotions(theme, room).tiles)
 /** Whole-floor attempts (each from a derived seed) before giving up. */
 const FLOOR_ATTEMPTS = 8
 const RETRY_SEED_STEP = 0x9e3779b9
@@ -170,7 +193,7 @@ function* buildFloor(theme: FloorTheme, seed: number, facts: UnitFacts, options:
   let arrival: Vec | null = null
   let locationSign: LocationSign | undefined
   for (const room of roomOrder(size, options.safeArrivalTiles !== undefined)) {
-    const keepOpen = reservedTiles(size, room)
+    const keepOpen = reservedTiles(theme, room)
     const roomEdges = edges[roomKey(room)]!
     const shape = generateRoomShape(rng, ROOM_SIZE, roomEdges, theme.shape, theme.edges.openingDepth, keepOpen)
     decorate(rng, shape, theme.shape.decorationChance)
@@ -644,11 +667,12 @@ const sharedCost = (costOf: EnergyOf, shareOf: (key: string) => number): EnergyO
 function placeUnits(rng: GenRandom, theme: FloorTheme, room: Vec, shape: RoomShape, edges: RoomEdges, facts: UnitFacts, options: FloorOptions, takenLeaders: Set<string>, isSafe: (tile: Vec) => boolean): Placement[] {
   const u = theme.units
   const cell = planCell(u.roomPlan, room)
-  const reserved = reservedTiles(theme.floorSize, room)
+  const reserved = reservedTiles(theme, room)
   const tiles = unitTiles(rng, shape).filter((t) => !reserved.some((r) => sameVec(r, t)) && isSafe(t))
   if (cell.kind === 'start') return placeStartRoom(rng, theme, room, tiles, edges, options)
   const units: Drawn[] = []
-  const fixed: Placement[] = potionTiles(theme.floorSize, room).map((tile) => ({ key: rng.weighted(u.potions), room, tile }))
+  const potions = fixedPotions(theme, room)
+  const fixed: Placement[] = potions.tiles.map((tile) => ({ key: rng.weighted(potions.pool), room, tile }))
   const boss = cell.kind === 'boss' ? pickGroup(rng, u.bosses, takenLeaders) : null
   const group = boss ?? (cell.groups?.length ? pickGroup(rng, cell.groups, takenLeaders) : null)
   const draws = group?.alone ? [] : roomDraws(rng, theme, cell)

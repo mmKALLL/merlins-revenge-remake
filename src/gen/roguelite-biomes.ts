@@ -38,11 +38,14 @@ function stretchedPlan(plan: RoomPlan): RoomPlan {
 /** Owner: the last floor's side corners hold medikits in place of the potions. */
 const LAST_FLOOR_CORNER_PICKUPS = [{ value: MEDIKIT_CHARACTER, weight: 1 }]
 
-/** A floor-4 biome as the roguelite's last floor: 4x4 rooms, medikits in its side corners. */
+/**
+ * A floor-4 biome as the roguelite's last floor: 4x4 rooms, medikits in its side corners and (owner,
+ * 2026-11-06) two of the biome's potions in the room diagonally before the boss room.
+ */
 const asLastFloor = (theme: FloorTheme): FloorTheme => ({
   ...theme,
   floorSize: LAST_FLOOR_SIZE,
-  units: { ...theme.units, roomPlan: stretchedPlan(theme.units.roomPlan), potions: LAST_FLOOR_CORNER_PICKUPS },
+  units: { ...theme.units, roomPlan: stretchedPlan(theme.units.roomPlan), potions: LAST_FLOOR_CORNER_PICKUPS, preBossPotions: theme.units.potions },
 })
 
 /** For each floor from the bottom, the biomes it may be, in their own tilesets (floor.test.ts checks them as it does the themes). */

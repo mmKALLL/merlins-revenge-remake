@@ -89,7 +89,9 @@ its own size, the large ones shrunk to fit; never scaled up).
 **The last floor is 4x4 rooms** (owner, 2026-10-26; the roguelite's only, `asLastFloor` in
 `src/gen/roguelite-biomes.ts`: the tower keeps its floors 3 wide). Its plan stretches the 3x3 one:
 the corners stay, the start-exit diagonal takes the centre cell, the rooms either side repeat their
-half's cells. Its side corners hold two medikits each in place of the potions.
+half's cells. Its side corners hold two medikits each in place of the potions. The room diagonally before
+the boss room (sketch room 3-3; engine room 3,2) holds two of the biome's potions, drawn by weight, as
+an alternative to the medikit routes (owner, 2026-11-06; `preBossPotions`, floor.ts `preBossRoom`).
 
 - **Deep Forest** (floor 1; dark grass, pines and green trees with many eyed "haunted" trees,
   ferns and reeds; denser thickets and tree lines; music Woods of Evil).

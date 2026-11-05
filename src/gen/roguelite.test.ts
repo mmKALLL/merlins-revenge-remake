@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { roomXYToNum } from '../mr-open/mr-map-format'
 import { pageDefs } from '../debug/snapshot-test-data'
 import type { Vec } from '../mr-open/mr-geometry'
-import { ROOM_SIZE, cornerRoom, unitFacts, inDoorway, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
+import { ROOM_SIZE, cornerRoom, preBossRoom, unitFacts, inDoorway, exitRoom, floorCells, floorIsConnected, themeIsSolid, worldTile, type GeneratedFloor } from './floor'
 import { ROGUELITE_MAP_ID, generateMap, isGeneratedMapId } from './generated-maps'
 import { floodOpen } from './grid'
 import { inOpeningBand, signTiles } from './location-sign'
@@ -60,6 +60,14 @@ describe('roguelite last floor (owner: 4x4, medikits in the side corners)', () =
           expect(keys.filter((k) => k === 'medikit'), `seed ${seed} ${corner}`).toHaveLength(2)
           expect(keys.filter((k) => potionKeys.has(k)), `seed ${seed} ${corner}`).toEqual([])
         }
+      }
+    })
+
+    it(`${theme.id}: two random potions in the room diagonally before the boss room (owner)`, () => {
+      for (const seed of SEEDS) {
+        const floor = runSteps(rogueliteFloor(theme, seed, facts, SOME_PICKUPS))
+        const keys = floor.placements.filter((p) => sameVec(p.room, preBossRoom(theme.floorSize))).map((p) => p.key)
+        expect(keys.filter((k) => potionKeys.has(k)), `seed ${seed}`).toHaveLength(2)
       }
     })
   }
