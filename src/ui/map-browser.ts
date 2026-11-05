@@ -2,11 +2,12 @@
 // reloads the page with ?map=<id> (which starts it), keeping the other query parameters but the seed and touch. Each map row
 // has a star that marks it as a favourite; the Favourites list beside the browser loads them the same way.
 // A map's best score (remake scoring) shows at the end of its row: the table chosen in Settings
-// (with or without loading), in the world mode of the player's camera.
+// (with or without loading), in the world mode of the player's camera. A map with a save is tagged.
 import { loadBestScores, type BestScores, type ScoreTable } from '../data/best-scores'
 import { shortScore } from './short-score'
 import { loadMapList } from '../data/map-list'
 import { browserStore, favouriteEntries, loadFavourites, saveFavourites, toggleFavourite } from '../data/favourites'
+import { savedMapIds } from '../data/saves'
 import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
 
 /** Keys a focused entry acts on; they must not reach the game's window listeners too. */
@@ -65,10 +66,26 @@ function bestScore(best: number | undefined): HTMLSpanElement[] {
   return [s]
 }
 
+/** The tag of a map with a save (opening it offers Continue). */
+function savedTag(saved: boolean): HTMLSpanElement[] {
+  if (!saved) return []
+  const s = document.createElement('span')
+  s.className = 'saved'
+  s.textContent = 'saved'
+  s.title = 'Saved: opening the map offers Continue'
+  return [s]
+}
+
+/** What a map row shows besides the map: the best scores and the maps with a save. */
+interface RowFacts {
+  bests: ScoreTable
+  saved: Set<string>
+}
+
 /** A button that loads a map, marked when it is the map being played. */
-const mapButton = (text: string, id: string, currentId: string, bests: ScoreTable): HTMLButtonElement => {
+const mapButton = (text: string, id: string, currentId: string, facts: RowFacts): HTMLButtonElement => {
   const b = button(text)
-  b.append(...bestScore(bests[id]))
+  b.append(...savedTag(facts.saved.has(id)), ...bestScore(facts.bests[id]))
   b.title = id
   b.addEventListener('click', () => location.assign(mapUrl(id)))
   if (id === currentId) b.setAttribute('aria-current', 'page')
@@ -120,7 +137,8 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, show
   keepActivateKeys(list)
   keepActivateKeys(favList)
   let favourites = loadFavourites(browserStore)
-  let bests = shownScores(loadBestScores(browserStore))
+  const rowFacts = (): RowFacts => ({ bests: shownScores(loadBestScores(browserStore)), saved: savedMapIds(browserStore) })
+  let facts = rowFacts()
 
   const showFavourites = (): void => {
     const entries = favouriteEntries(favourites, index)
@@ -130,7 +148,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, show
       empty.textContent = 'No favourites yet'
       favList.replaceChildren(empty)
     } else {
-      favList.replaceChildren(...entries.map((e) => row(mapButton(`${e.id} ${sizeLabel(e)}`, e.id, currentId, bests))))
+      favList.replaceChildren(...entries.map((e) => row(mapButton(`${e.id} ${sizeLabel(e)}`, e.id, currentId, facts))))
     }
     scrollToCurrent(favList)
   }
@@ -160,7 +178,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, show
   const show = (folder: MapFolder, focusFirst: boolean): void => {
     shown = folder
     const items = listFolder(folder).map((item) => {
-      if (item.kind === 'map') return row(starButton(item.entry.id), mapButton(label(item), item.entry.id, currentId, bests))
+      if (item.kind === 'map') return row(starButton(item.entry.id), mapButton(label(item), item.entry.id, currentId, facts))
       const b = button(label(item))
       const target = findFolder(root, item.path) ?? root
       // a click from the keyboard has detail 0
@@ -175,7 +193,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, show
   show(shown, false)
   showFavourites()
   return () => {
-    bests = shownScores(loadBestScores(browserStore))
+    facts = rowFacts()
     show(shown, false)
     showFavourites()
   }

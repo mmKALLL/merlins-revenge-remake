@@ -1,6 +1,6 @@
 // The in-game menu (gameMaster.escapePressed -> #ingameMenu; its options in menuOptionSelected).
-// The original's choose keys, save/load and show army have nothing to act on yet; sound on/off
-// lives in Settings.
+// The original's choose keys and show army have nothing to act on yet; its save and load are the
+// remake's autosave (Restart map drops the save: main.ts); sound on/off lives in Settings.
 import type { Panel } from './app-state'
 import { button, el, menuList, panel } from './dom'
 import type { MenuPanel } from './overlay'

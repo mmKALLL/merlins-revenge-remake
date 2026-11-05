@@ -76,4 +76,13 @@ describe('app state', () => {
     expect(nextAppState(summary, { kind: 'quit' })).toEqual(TITLE)
     expect(nextAppState(TITLE, { kind: 'runEnded' })).toEqual(TITLE)
   })
+
+  it('a saved map asks Continue or New game first, which no menu or Esc can leave', () => {
+    const choosing = nextAppState(TITLE, { kind: 'choose' })
+    expect(nextAppState(PLAYING, { kind: 'choose' })).toEqual(choosing) // a page opened on the map
+    expect(simRuns(choosing)).toBe(false)
+    expect(visiblePanel(choosing)).toBe('continueChoice')
+    expect(run(choosing, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'maps' })).toEqual(choosing)
+    expect(nextAppState(choosing, { kind: 'chosen' })).toEqual(PLAYING)
+  })
 })

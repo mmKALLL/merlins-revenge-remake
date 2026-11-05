@@ -2,11 +2,12 @@
 // in-game menu): the title screen, the game running, or the game paused under the in-game menu.
 // Each menu has sub-panels (maps, settings, help). A roguelite run's floor pick pauses the game
 // too, with no menu reachable from it, so the pick is never lost; so does the run's end, on its
-// summary, until New run or Main menu. Pure, so the transitions can be tested.
+// summary, until New run or Main menu. Opening a map with a save asks Continue or New game first,
+// likewise with no way around it. Pure, so the transitions can be tested.
 
 import type { AudioPause } from '../audio/audio'
 
-export type Screen = 'title' | 'playing' | 'paused' | 'picking' | 'summary'
+export type Screen = 'title' | 'playing' | 'paused' | 'picking' | 'summary' | 'choosing'
 export type Panel = 'main' | 'maps' | 'settings' | 'help'
 
 export interface AppState {
@@ -23,6 +24,8 @@ export type AppAction =
   | { kind: 'picked' } // the pick screen -> playing (both picks made)
   | { kind: 'runEnded' } // playing -> a roguelite run's summary (a death or the win)
   | { kind: 'newRun' } // the run summary -> playing (a new run has started)
+  | { kind: 'choose' } // the title, or a page opened on a map -> Continue or New game (the map has a save)
+  | { kind: 'chosen' } // Continue or New game -> playing (the map starts, or loads first)
   | { kind: 'open'; panel: Panel } // a sub-panel of the current menu
   | { kind: 'back' } // Esc in a menu: a sub-panel -> its menu; the in-game menu -> playing
 
@@ -31,8 +34,9 @@ export const PLAYING: AppState = { screen: 'playing', panel: 'main' }
 const PAUSED: AppState = { screen: 'paused', panel: 'main' }
 const PICKING: AppState = { screen: 'picking', panel: 'main' }
 const SUMMARY: AppState = { screen: 'summary', panel: 'main' }
+const CHOOSING: AppState = { screen: 'choosing', panel: 'main' }
 
-/** The title screen and the in-game menu have sub-panels; the game, the pick and the summary none. */
+/** The title screen and the in-game menu have sub-panels; the game, the pick, the summary and the choice none. */
 const hasMenu = (s: AppState): boolean => s.screen === 'title' || s.screen === 'paused'
 
 /** The next state; an action that does not apply to the current screen leaves it unchanged. */
@@ -54,6 +58,10 @@ export function nextAppState(s: AppState, a: AppAction): AppState {
       return s.screen === 'playing' ? SUMMARY : s
     case 'newRun':
       return s.screen === 'summary' ? PLAYING : s
+    case 'choose':
+      return s.screen === 'title' || s.screen === 'playing' ? CHOOSING : s
+    case 'chosen':
+      return s.screen === 'choosing' ? PLAYING : s
     case 'open':
       return hasMenu(s) ? { ...s, panel: a.panel } : s
     case 'back':
@@ -63,14 +71,15 @@ export function nextAppState(s: AppState, a: AppAction): AppState {
   }
 }
 
-/** A panel of the menu overlay: the title screen, the in-game menu, a sub-panel of either, or a roguelite run's screens. */
-export type PanelKey = 'title' | 'pause' | 'floorPick' | 'runSummary' | Exclude<Panel, 'main'>
+/** A panel of the menu overlay: the title screen, the in-game menu, a sub-panel of either, a roguelite run's screens, or Continue / New game. */
+export type PanelKey = 'title' | 'pause' | 'floorPick' | 'runSummary' | 'continueChoice' | Exclude<Panel, 'main'>
 
 /** The panel the overlay shows; null while playing (no overlay). */
 export function visiblePanel(s: AppState): PanelKey | null {
   if (s.screen === 'playing') return null
   if (s.screen === 'picking') return 'floorPick'
   if (s.screen === 'summary') return 'runSummary'
+  if (s.screen === 'choosing') return 'continueChoice'
   if (s.panel !== 'main') return s.panel
   return s.screen === 'title' ? 'title' : 'pause'
 }

@@ -1,5 +1,5 @@
 import { AudioEngine } from './audio/audio'
-import { InputLog } from './debug/sim-snapshot'
+import { InputLog, deserializeSim, hashData, snapshotOf } from './debug/sim-snapshot'
 import { installStateExport } from './debug/state-export'
 import {
   ENDING_SCRIPTS, endSequenceView, restartDue, skipEndSequence, startEndSequence, stepEndSequence, type EndSequence, type EndingKind,
@@ -19,6 +19,8 @@ import { LoadQueue } from './data/load-queue'
 import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
 import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
 import { browserStore } from './data/favourites'
+import { afterGameOver, savesMap, shouldAutoSave } from './data/autosave'
+import { dropSave, readSave, writeSave, type MapSave } from './data/saves'
 import { InputTracker } from './input/keyboard'
 import { attachTouchControls, wantsTouchControls, type TouchControls } from './input/touch'
 import { unitFacts, type UnitFacts } from './gen/floor'
@@ -53,6 +55,7 @@ import { floorPick, type PickArt, type PickOffer, type SpriteArt, type UnitArt }
 import { mapUrl, setupMapBrowser, type ShownScores } from './ui/map-browser'
 import { runSummary, type RunSummary } from './ui/run-summary'
 import { mapsPanel } from './ui/maps-panel'
+import { continueChoice } from './ui/continue-choice'
 import { menuButton } from './ui/menu-button'
 import { MenuOverlay, type MenuPanel } from './ui/overlay'
 import { pauseMenu } from './ui/pause-menu'
@@ -170,6 +173,8 @@ interface Shell {
   difficulty: () => Difficulty
   /** Frames a second to draw (Settings, Frame rate); null: every display refresh. */
   targetFps: () => number | null
+  /** Whether a room clear saves the map (Settings, Auto-save). */
+  autoSave: () => boolean
   /** The on-screen touch controls, when shown (their weapon button shows the current weapon). */
   touch: TouchControls | null
   /** The loading screen, shown again while a roguelite run builds its next floor. */
@@ -217,9 +222,11 @@ interface Game {
   /**
    * A new run of the same map: with the page's seed again (Restart map), or a fresh one (as after a
    * death). A generated map gets a new layout from a fresh seed either way, unless the Random maps
-   * setting keeps the layout.
+   * setting keeps the layout. The map's save is dropped: the new run must not reload the old one.
    */
   restart(seedChoice: 'same' | 'fresh'): void
+  /** Carries the run on from the map's save; false, changing nothing, when the save no longer fits the game. */
+  continueFrom(save: MapSave): boolean
   /** Switches the camera, and the world mode with it, between ticks. */
   setCamera(camera: CameraMode): void
   /** Forgets the best scores held in memory after Settings reset them, so a run cannot write them back. */
@@ -229,8 +236,9 @@ interface Game {
 /**
  * Loads a map and its assets (reporting the progress), puts the canvas in #game and starts the
  * frame loop. Every file starts loading as soon as it is known; a generated map is built meanwhile.
+ * `startSeed` is the first run's (and a generated map's layout's): the page's, or a save's layout seed.
  */
-async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress): Promise<Game> {
+async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, startSeed: number): Promise<Game> {
   const { audio, input } = shell
   const generated = isGeneratedMapId(mapId)
   let building = generated // the bar shows the build first, then the files
@@ -251,7 +259,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   spritesLoading.catch(() => {}) // a failure surfaces at its await below, unless an earlier step fails first
   const facts = unitFacts(defs)
   const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, facts)
-  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, seed, facts, (f) => onProgress('Building the map', f * MAP_SHARE))
+  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, startSeed, facts, (f) => onProgress('Building the map', f * MAP_SHARE))
   building = false
   showFiles()
   const layerTileset = async (layer: string) => {
@@ -285,19 +293,22 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const runDefs = () => withDifficultyDefs(defs, runDifficulty)
   const recordsCount = () => countsForRecords(runDifficulty)
   // a roguelite run: the map is its first floor; Merlin leaving a floor's exit builds the next one
-  let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(seed) : null
+  let run: RunState | null = mapId === ROGUELITE_MAP_ID ? startRun(startSeed) : null
   if (run && recordsCount()) shell.recordRunStart()
   /** A run's first sim of the current world, with the difficulty's head start; a roguelite run's without the starting weapon. */
   const startSim = (simSeed: number, worldMode: WorldMode): SimState => {
     const fresh = createSim(world.grid, runDefs(), teams, anims, simSeed, world.startPos, worldMode)
     return withDifficultyStart(run ? withRunStartArsenal(fresh) : fresh, runDifficulty)
   }
-  let sim = startSim(seed, worldModeFor(cfg.cameraMode))
+  let sim = startSim(startSeed, worldModeFor(cfg.cameraMode))
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
-  let pageSeed = seed
-  let runSeed = seed
+  let pageSeed = startSeed
+  let runSeed = startSeed
+  /** the run has loaded a save (Continue, or a death's reload): its score counts only "with loading" */
+  let runLoaded = false
+  const dataHash = hashData(defs, teams)
   // the map complete end sequence (fade, cut scene, prompt) or the game over (fade, cut scene,
   // restart); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence('gameComplete') : null
@@ -305,7 +316,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   // counts as its rooms are banked, so a death keeps what it reached
   let bests = loadBestScores(browserStore)
   const recordBest = () => {
-    const improved = withRunScore(bests, mapId, sim.worldMode, sim.score, false)
+    const improved = withRunScore(bests, mapId, sim.worldMode, sim.score, runLoaded)
     if (!improved) return
     bests = improved
     saveBestScores(browserStore, improved)
@@ -326,6 +337,8 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       if (recordsCount()) shell.recordRunStart()
     }
     buildingFloor = false
+    runLoaded = false
+    dropSave(browserStore, mapId)
     sim = startSim(runSeed, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence('gameComplete') : null
@@ -418,17 +431,26 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   const restartAfterEnding = () => { if (shell.running() && ending?.kind === 'gameComplete' && ending.phase === 'done') restart() }
   /**
    * gameMaster.gameOver after Merlin's death: the game stops (finishGame; the music fades out), the
-   * screen fades and the wasted cut scene plays; the map then starts again with a fresh seed.
+   * screen fades and the wasted cut scene plays; then the map's save loads (endGameOver).
    */
   const startGameOver = () => {
     ending = startEndSequence('gameOver')
     audio.playMusic(null)
   }
-  /** Remake (owner): Enter, Space or a click/tap skips the game over straight to its restart. */
+  /**
+   * The game over's cut scene is over: movieMaster.cutSceneFinished -> goScreen(#gameScreen,
+   * #loadGame) loads the map's save; without one (or with one that no longer loads) the map starts again.
+   */
+  const endGameOver = () => {
+    const next = afterGameOver(savesMap(mapId, world.grid.map.markExit ?? false) ? readSave(browserStore, mapId) : null)
+    if (next.kind === 'load' && continueFrom(next.save)) return
+    restart()
+  }
+  /** Remake (owner): Enter, Space or a click/tap skips the game over straight to its end. */
   const skipGameOver = () => {
     if (!shell.running() || !ending) return
     ending = skipEndSequence(ending)
-    if (restartDue(ending)) restart()
+    if (restartDue(ending)) endGameOver()
   }
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return // a key held from play skips nothing
@@ -446,17 +468,44 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     rememberParam('camera', camera)
   }
 
+  /** Replaces the running sim and run seed (a save, or mr.loadState). */
+  const restoreSim = (s: SimState, restoredSeed: number) => {
+    sim = s
+    runSeed = restoredSeed
+    ending = s.mapComplete ? startEndSequence('gameComplete') : null // a loaded moment replaces any running end sequence
+    // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
+    setCamera(s.worldMode === 'continuous' ? 'follow' : 'room')
+  }
   const inputLog = new InputLog()
   installStateExport({
-    mapId, getGrid: () => world.grid, defs, teams, anims, inputs: inputLog, getSim: () => sim, getSeed: () => runSeed,
-    restore: (s, seed) => {
-      sim = s
-      runSeed = seed
-      ending = s.mapComplete ? startEndSequence('gameComplete') : null // a loaded moment replaces any running end sequence
-      // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
-      setCamera(s.worldMode === 'continuous' ? 'follow' : 'room')
-    },
+    mapId, getGrid: () => world.grid, defs, teams, anims, inputs: inputLog, getSim: () => sim, getSeed: () => runSeed, restore: restoreSim,
   })
+
+  /** The autosave of the moment: the snapshot, and what the page needs besides to carry the run on. */
+  const writeMapSave = () => writeSave(browserStore, {
+    snapshot: snapshotOf(sim, { mapId, seed: runSeed, dataHash }),
+    loaded: runLoaded,
+    layoutSeed: generated ? pageSeed : null,
+    difficulty: runDifficulty,
+    music: audio.track,
+  })
+  const continueFrom = (save: MapSave): boolean => {
+    // a generated map's save fits only the layout it was made on
+    if (save.layoutSeed !== null && save.layoutSeed !== pageSeed) return false
+    let restored: SimState
+    try {
+      restored = deserializeSim(save.snapshot, world.grid, withDifficultyDefs(defs, save.difficulty), teams, anims)
+    } catch (e) {
+      console.warn(`the save of ${mapId} does not load:`, e) // an actor it names is no longer in the game
+      return false
+    }
+    if (save.snapshot.dataHash !== dataHash) console.info(`the save of ${mapId} was made with other actor/team data; it may play out differently`)
+    runDifficulty = save.difficulty
+    runLoaded = true
+    restoreSim(restored, save.snapshot.seed)
+    audio.playMusic(save.music)
+    return true
+  }
 
   // Pointer position on the canvas in CSS pixels; converted to world pixels each frame.
   let pointer: Vec | null = null
@@ -522,14 +571,16 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
           showRunSummary()
           break
         }
-        if (restartDue(ending)) restart() // the game over is over: the map starts again with a fresh seed
+        if (restartDue(ending)) endGameOver()
         continue
       }
       const tickInput = input.snapshot()
       inputLog.push(sim.tick, tickInput)
+      const before = sim
       sim = stepSim(sim, tickInput)
       audio.handle(sim.events) // every tick stepped this frame, not just the last
       recordBest()
+      if (shouldAutoSave({ autoSave: shell.autoSave(), mapId, markExit: world.grid.map.markExit ?? false, before, after: sim })) writeMapSave()
       if (sim.mapComplete) ending = startEndSequence('gameComplete')
       if (run && sim.events.some((e) => e.kind === 'floorExit')) {
         advanceFloor().catch((e: unknown) => showError(e, mapId))
@@ -557,7 +608,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
   }
   requestAnimationFrame(frame)
   const forgetBestScores = () => { bests = NO_BEST_SCORES }
-  return { mapId, scene, restart, setCamera, forgetBestScores }
+  return { mapId, scene, restart, continueFrom, setCamera, forgetBestScores }
 }
 
 /** Replaces the page with the error, keeping a map browser so another map can be picked. */
@@ -608,6 +659,7 @@ function main(): void {
   let autoSave = loadAutoSave()
   const mapToPlay = () => linkedMap ?? lastPlayedMap() ?? DEFAULT_MAP
   const pickPanel = floorPick()
+  const choicePanel = continueChoice()
   const summaryPanel = runSummary({
     newRun: () => {
       game?.restart('fresh')
@@ -629,6 +681,7 @@ function main(): void {
     newLayoutEachRun: () => randomMaps === 'newEachRun',
     difficulty: () => difficulty,
     targetFps: () => framesPerSecond(frameRate),
+    autoSave: () => autoSave,
     touch: touchControls,
     loading,
     quitToTitle: () => {
@@ -741,6 +794,7 @@ function main(): void {
     help: helpPanel(touch, back),
     floorPick: pickPanel,
     runSummary: summaryPanel,
+    continueChoice: choicePanel,
   }
   const overlay = new MenuOverlay(document.body, panels)
   menuButton(document.body, () => dispatch({ kind: 'pause' }))
@@ -764,11 +818,44 @@ function main(): void {
     render()
   }
 
+  /** The save opening a map offers (Continue): none for the roguelite. */
+  const offeredSave = (mapId: string): MapSave | null => (savesMap(mapId, false) ? readSave(browserStore, mapId) : null)
+
+  /**
+   * With a save, asks Continue or New game; resolves to the save to carry on from, or null for a new
+   * game (which drops the save). Without one, null at once.
+   */
+  function chooseRun(mapId: string, save: MapSave | null): Promise<MapSave | null> {
+    if (!save) return Promise.resolve(null)
+    return new Promise((resolve) => {
+      choicePanel.ask(mapId, (continued) => {
+        if (!continued) dropSave(browserStore, mapId)
+        dispatch({ kind: 'chosen' })
+        resolve(continued ? save : null)
+      })
+      dispatch({ kind: 'choose' })
+    })
+  }
+
+  /** Carries a started game on from a save; one that no longer loads is dropped, and the choice panel says so before `newGame`. */
+  function continueGame(g: Game, save: MapSave, newGame: () => void): void {
+    if (g.continueFrom(save)) return
+    dropSave(browserStore, g.mapId)
+    choicePanel.tellUnloadable(g.mapId, () => {
+      newGame()
+      dispatch({ kind: 'chosen' })
+    })
+    dispatch({ kind: 'choose' })
+  }
+
   async function play(mapId = mapToPlay()): Promise<void> {
     audio.setPause('none') // inside the click: browsers start audio only from a user gesture
     // a generated floor gets a fresh seed in a fresh page (mapUrl drops the seed)
     if (game?.mapId === mapId && !isGeneratedMapId(mapId)) {
-      game.restart('fresh')
+      const g = game
+      const save = await chooseRun(mapId, offeredSave(mapId))
+      if (save) continueGame(g, save, () => g.restart('fresh'))
+      else g.restart('fresh')
       rememberParam('map', mapId)
       dispatch({ kind: 'play' })
       return
@@ -777,17 +864,19 @@ function main(): void {
       location.assign(mapUrl(mapId)) // one map per page: another map loads in a fresh page
       return
     }
+    const save = await chooseRun(mapId, offeredSave(mapId))
     title.setLoading(true)
     rememberParam('map', mapId)
-    if (!(await load(mapId))) return
+    if (!(await load(mapId, save))) return
     title.setLoading(false)
     dispatch({ kind: 'play' })
   }
 
-  /** Starts a map; false (with the error on the page) when it failed to load. */
-  async function load(mapId: string): Promise<boolean> {
+  /** Starts a map, carried on from `save` if given; false (with the error on the page) when it failed to load. */
+  async function load(mapId: string, save: MapSave | null): Promise<boolean> {
     try {
-      game = await startGame(mapId, shell, loading.update)
+      // a generated map is built again on its save's layout
+      game = await startGame(mapId, shell, loading.update, save?.layoutSeed ?? seed)
     } catch (e) {
       showError(e, mapId)
       return false
@@ -795,7 +884,16 @@ function main(): void {
     loading.hide()
     game.scene.setZoom(zoom)
     saveLastMap(mapId)
+    if (save) continueGame(game, save, () => {})
     return true
+  }
+
+  /** A page opened on a map: with a save, the choice comes first (the loading screen shows again once the map loads). */
+  async function openLinkedMap(mapId: string): Promise<void> {
+    const save = offeredSave(mapId)
+    if (save) loading.hide()
+    await load(mapId, await chooseRun(mapId, save))
+    render()
   }
 
   window.addEventListener('keydown', (e) => {
@@ -805,7 +903,7 @@ function main(): void {
   })
 
   render()
-  if (linkedMap) void load(linkedMap).then(render)
+  if (linkedMap) void openLinkedMap(linkedMap)
 }
 
 main()

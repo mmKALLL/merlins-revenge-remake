@@ -7,8 +7,9 @@
 // - objPlayerMerlinCharacter.stretchDeathFin -> gameMaster.gameOver (gameMaster.txt:102-111):
 //   finishGame, then goScreen(#animScreenGameOver, #gameOver) plays gGameOverScript
 //   (#cut_scene_to_play_when_wasted); when it finishes (cutSceneMaster.scriptFinished ->
-//   movieMaster.cutSceneFinished) it goes to goScreen(#gameScreen, #loadGame): the map starts again.
-//   Remake: the game over can be skipped (skipEndSequence) straight to that restart.
+//   movieMaster.cutSceneFinished) it goes to goScreen(#gameScreen, #loadGame): the save loads
+//   (main.ts; without a save the map starts again). Remake: the game over can be skipped
+//   (skipEndSequence) straight to that end.
 import { cutSceneView, startCutScene, stepCutScene, type CutSceneCue, type CutSceneState, type CutSceneView, type StageRect } from './performer'
 import type { CutSceneScript } from './script'
 
@@ -60,10 +61,10 @@ export function stepEndSequence(seq: EndSequence, script: CutSceneScript, stage:
   }
 }
 
-/** The game over's cut scene is over: movieMaster.cutSceneFinished reloads the game. */
+/** The game over's cut scene is over: movieMaster.cutSceneFinished loads the save (or restarts the map). */
 export const restartDue = (seq: EndSequence): boolean => seq.kind === 'gameOver' && seq.phase === 'done'
 
-/** Remake (owner): a key or click skips the game over to its end, the restart; the map complete sequence plays on. */
+/** Remake (owner): a key or click skips the game over to its end, the load or restart; the map complete sequence plays on. */
 export const skipEndSequence = (seq: EndSequence): EndSequence => (seq.kind === 'gameOver' ? { kind: seq.kind, phase: 'done' } : seq)
 
 export function endSequenceView(seq: EndSequence): EndSequenceView {
@@ -73,6 +74,6 @@ export function endSequenceView(seq: EndSequence): EndSequenceView {
     case 'cutScene':
       return { fade: 1, cutScene: cutSceneView(seq.scene), done: false }
     case 'done':
-      return { fade: 1, cutScene: null, done: seq.kind === 'gameComplete' } // a game over restarts instead
+      return { fade: 1, cutScene: null, done: seq.kind === 'gameComplete' } // a game over loads or restarts instead
   }
 }
