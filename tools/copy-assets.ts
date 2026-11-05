@@ -1,7 +1,7 @@
 // Copies the original files this project uses from the (git-ignored) archive
 // into ./assets with a sensible structure. Run: pnpm assets:copy
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
@@ -176,6 +176,8 @@ const spellActors = [
   'armySummon', 'energyMines', 'energyPulseSpell', 'cBlast', 'energyPunch', 'monsterSummon', 'arcticBlast',
   'energyBeamSpell', 'merlinSword', 'energyPulse', 'energyBeam', 'energyMine', 'summonArcher', 'summonWarrior',
   'summonOrc', 'summonBoulder', 'summonGolem', 'dwarf', 'dwarfAxe', GOLDEN_MACHINE_GUN,
+  // the AI variants the friendly wizards Flaetorlin and Foelin cast
+  'cBlastAi', 'monsterSummonAi',
 ]
 for (const name of spellActors) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: Merlin\'s spells' })
@@ -184,6 +186,15 @@ for (const name of spellActors) {
 // spell casters whose weapons (undeadSummon, energyPulseSpell) are already copied above
 for (const name of ['scarletInGame', 'ochreInGame']) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: in-game wizard' })
+}
+// The friendly wizards (docs/plans/2026-11-05-friendly-wizards-design.md): Merlin's allies on the
+// original maps, CPU spell casters of team aldevar; actor key -> sprite name (#name)
+const FRIENDLY_WIZARDS: Record<string, string> = {
+  amotonlinInGame: 'amo', berlinInGame: 'ber', flaetorlinInGame: 'flaeto', foelinInGame: 'foe',
+  garonlinInGame: 'garo', prestotolinInGame: 'presto', ulinInGame: 'uli', verdanlinInGame: 'verdan',
+}
+for (const name of Object.keys(FRIENDLY_WIZARDS)) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: friendly wizard' })
 }
 // every team file (enemy teams also fight each other through their hate lists)
 for (const file of readdirSync(CASTS).sort()) {
@@ -213,6 +224,8 @@ const castSprites = [
   'undeadInvasion', 'vultureGuard', 'warrior',
   // the in-game wizards Scarlet (sprite name "scw") and Ochre
   'scw', 'ochreWizard',
+  // the friendly wizards
+  ...Object.values(FRIENDLY_WIZARDS),
   // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
   'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]
@@ -244,6 +257,19 @@ if (existsSync(CAST_BITMAPS)) {
     copyCastFrames(new RegExp(`^anm_${sprite}_[A-Za-z0-9]+_\\d+_\\d+\\.png$`), sprite, `${sprite} frames (Director cast dump)`)
   }
   copyCastFrames(new RegExp(`^anm_mer_(${MERLIN_CAST_STRIPS.join('|')})_\\d+_\\d+\\.png$`), 'mer', 'merlin cast-only frames (Director cast dump)')
+  // Berlin's main strips are named anm_ber_<action>_<n> without a frame part: animStripMaster.extractData
+  // reads <n> as the frame's delay and keeps the cast order, so each becomes anm_ber_<action>_<n>_<n>
+  const BERLIN_SHORT_FRAME = /^anm_ber_([A-Za-z]+)_(\d+)\.png$/
+  const berlinRows: string[] = []
+  for (const file of readdirSync(CAST_BITMAPS).sort()) {
+    const m = BERLIN_SHORT_FRAME.exec(file)
+    if (!m) continue
+    const renamed = `anm_ber_${m[1]}_${m[2]}_${m[2]}`
+    copies.push({ from: join(CAST_BITMAPS, file), to: join(ASSETS, `sprites/ber/${renamed}.png`), why: 'Berlin frame (Director cast dump, renamed)' })
+    const row = rows.find((r) => r.split('\t')[0] === file.slice(0, -4))
+    if (row) berlinRows.push([renamed, ...row.split('\t').slice(1)].join('\t'))
+  }
+  appendFileSync(join(ASSETS, 'sprites/ber/regpoints.tsv'), berlinRows.map((r) => r + '\n').join(''))
   // Spell scrolls by key: `<key>_scroll` (the pickup) and `<key>_writing` (shown once collected) become
   // the stand and writing strips of sprites/<key>/, as for the potions; `<key>_ws` is the weapon
   // selector icon (modWeaponSelector.getWeaponIcon). These members are not anm_* strips: dump them into

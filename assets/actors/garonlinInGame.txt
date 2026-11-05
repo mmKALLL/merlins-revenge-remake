@@ -1,0 +1,92 @@
+[#name: "act_garonlinInGame", #type: #field]
+[
+#objType: #objCPUCharacter,
+#AiType: #objAiCPUSpellCaster,
+#inherit: #CPUCharacter,
+#attack:
+[
+#animFrame: 14,
+#animType: #naturalMelee,
+#collisionLoc: point(35,-1),
+#cooldown: 10,
+#name: #punch,
+#power: point(30,0),
+#reach: point(25,10),
+#sound: "wizard_punch"
+],
+#character: #friendlyCharacter,
+#wizard: true,
+#damageSpeed: 4,
+#dexterity: 3,
+#energy: 200,
+#inertia: 60,
+#leaveWhenFinished: true,
+#mana_regeneration: 5,
+#mana_regenerationIncLevel: 1,
+#mana_capacityIncLevel: 1.25,
+#miniMapStatus: #fre,
+#stallSpeed: 0.5,
+#strength: 1,
+#team: #aldevar,
+#name: "garo",
+#walkSpeed: 5,
+#weapon: #darkBlast
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
