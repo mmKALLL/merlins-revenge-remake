@@ -22,11 +22,12 @@ describe('weapons', () => {
     expect(again.current).toBe('energyBlast')
   })
 
-  it('the number keys count the spells and melee weapons but not the punch, in the order collected', () => {
+  it('the number keys count the spells and melee weapons in the order collected; 0 is the punch', () => {
     expect(nthSpell(held, 1, 'punch')).toBe('energyBlast')
     expect(nthSpell(held, 2, 'punch')).toBe('merlinSword')
     expect(nthSpell(held, 3, 'punch')).toBe('cBlast')
     expect(nthSpell(held, 4, 'punch')).toBeNull()
+    expect(nthSpell(held, 0, 'punch')).toBe('punch')
   })
 
   it('the touch weapon button steps through every weapon but the skipped one (the punch) and wraps', () => {

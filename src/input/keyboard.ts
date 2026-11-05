@@ -9,7 +9,7 @@
 // so does R, the #army key (summon the whole reserve army, or send the army back; the original's C),
 // and E, the #gmg key (bnd_wasd 14: the golden machine gun on or off, once Merlin has it).
 // The weapon keys (objAiPlayer.interpretGameKeys, bnd_wasd): 1-9 pick the n-th spell (#spell1..9;
-// remake: or melee weapon, nthSpell) once per press; Q opens the weapon palettes (#weaponSelector 12; main.ts takes each press with
+// remake: or melee weapon, nthSpell) once per press, 0 Merlin's punch (remake); Q opens the weapon palettes (#weaponSelector 12; main.ts takes each press with
 // takeWeaponSelector), and a weapon picked on them (pickWeapon) reaches the next snapshot. The
 // on-screen touch controls (touch.ts) report through setTouch: the nub moves at any angle while no
 // direction key is held, the blast button counts as Space, except that in mouse mode a press without
@@ -27,8 +27,11 @@ const MOVE_KEYS: Record<string, Vec> = {
   KeyD: { x: 1, y: 0 }, ArrowRight: { x: 1, y: 0 },
 }
 
-/** Digit1..Digit9: the spell keys #spell1..#spell9 (bnd_wasd's Mac key codes 18-26, meant as 1-9). */
-const SPELL_KEY = /^Digit([1-9])$/
+/**
+ * Digit1..Digit9: the spell keys #spell1..#spell9 (bnd_wasd's Mac key codes 18-26, meant as 1-9).
+ * Remake (owner request): Digit0 picks Merlin's punch.
+ */
+const SPELL_KEY = /^Digit([0-9])$/
 
 /** What Space (and the touch blast button) fires at. */
 export const SPACE_MODES = ['nearest', 'mouse', 'farthest'] as const
@@ -58,7 +61,7 @@ export class InputTracker {
   private cheatMedikit = false // an M press not yet in a snapshot
   private armyKey = false // an R press (or army button tap) not yet in a snapshot
   private armyFromTouch = false // that press came from the army button: no mouse to summon at
-  private selectSpell: number | null = null // a 1-9 press not yet in a snapshot
+  private selectSpell: number | null = null // a 0-9 press not yet in a snapshot
   private selectWeapon: string | null = null // a palette pick not yet in a snapshot
   private cycleWeapon = false // a touch weapon button press not yet in a snapshot
   private gunKey = false // an E press (or gun button tap) not yet in a snapshot

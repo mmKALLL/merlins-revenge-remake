@@ -12,6 +12,7 @@ const KEYBOARD: Line[] = [
   ['Space', 'charge and fire at enemies'],
   ['F', 'nearest or farthest enemy'],
   ['1-9', 'pick a spell'],
+  ['0', 'punch'],
   ['Q', 'show all spells'],
   ['R', 'call or send home your army'],
   ['E', 'golden gun on/off'],

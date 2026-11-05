@@ -57,9 +57,11 @@ export const weaponsIn = (arsenal: Arsenal, group: WeaponGroup): WeaponSlot[] =>
 /**
  * modWeaponManager.selectSpell(num): the num-th spell (1-based), or null when there are fewer.
  * Remake (owner request): the number keys count the melee weapons too (the sword, the energy
- * punch), in the order Merlin took them: every weapon but the natural attack `natural`.
+ * punch), in the order Merlin took them: every weapon but the natural attack `natural`, which is
+ * number 0.
  */
 export function nthSpell(arsenal: Arsenal, num: number, natural: string): string | null {
+  if (num === 0) return natural
   return arsenal.weapons.filter((w) => w.key !== natural)[num - 1]?.key ?? null
 }
 
