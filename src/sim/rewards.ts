@@ -1,8 +1,10 @@
 // Roguelite (docs/plans/2026-10-25-roguelite-mode-design.md, Rewards): what Merlin holds, so the pick
-// screen offers no spell he has and the run summary lists the spells collected. The rewards
-// themselves are pickups in the next floor's start room.
+// screen offers no spell or wizard he has and the run summary lists the spells and wizards collected.
+// The rewards themselves are pickups (or the wizard) in the next floor's start room.
+import { reserveCount } from '../mr-open/mr-army'
 import { GOLDEN_MACHINE_GUN, SCROLL_OBJ_TYPE } from '../mr-open/mr-pickup'
 import { weaponOf } from '../mr-open/mr-weapons'
+import { isAlive, playerOf, wizardTypes } from './actors'
 import type { SimState } from './state'
 
 /** Whether Merlin holds the weapon a scroll gives (its #character, as collectScroll adds it), or has found the golden machine gun. */
@@ -29,3 +31,15 @@ export function collectedScrolls(s: SimState): string[] {
   })
   return s.gmg.collected ? [...weapons, GOLDEN_MACHINE_GUN] : weapons
 }
+
+/** Whether Merlin has the friendly wizard `key`: in his reserve, or alive in play on his team. */
+export function hasWizard(s: SimState, key: string): boolean {
+  const team = playerOf(s).team
+  return reserveCount(s.army, team, key) > 0 || s.actors.some((a) => a.def === key && a.team === team && isAlive(a))
+}
+
+/** The friendly wizards (actor keys) Merlin has (hasWizard), in wizardTypes order. */
+export const wizardsFound = (s: SimState): string[] => wizardTypes(s.defs).filter((key) => hasWizard(s, key))
+
+/** The friendly wizards Merlin does not have yet, those a floor-end reward may bring. */
+export const wizardsToFind = (s: SimState): string[] => wizardTypes(s.defs).filter((key) => !hasWizard(s, key))

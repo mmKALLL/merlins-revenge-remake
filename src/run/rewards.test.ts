@@ -87,6 +87,19 @@ describe('roguelite rewards', () => {
     expect(offered((k) => k === GOLDEN_MACHINE_GUN)).not.toContain(GOLDEN_MACHINE_GUN)
   })
 
+  it('offers a wizard Merlin does not have in place of the spell, now and then, and none once he has all', () => {
+    const wizards = ['berlinInGame', 'ulinInGame', 'foelinInGame']
+    const wizardOf = (options: RewardOption[]) => options.flatMap((o) => (o.kind === 'wizard' ? [o.wizard] : []))
+    const offered = (unfound: string[]) => MANY_SEEDS.flatMap((seed) => wizardOf(rollRewards(seed, 1, POOLS[1]!, holdsNothing, unfound)))
+    const all = offered(wizards)
+    expect(new Set(all)).toEqual(new Set(wizards))
+    expect(all.length).toBeLessThan(MANY_SEEDS.length / 4)
+    expect(offered(['ulinInGame']).every((w) => w === 'ulinInGame')).toBe(true)
+    expect(offered([])).toEqual([])
+    const withWizard = MANY_SEEDS.map((seed) => rollRewards(seed, 1, POOLS[1]!, holdsNothing, wizards)).find((o) => wizardOf(o).length > 0)!
+    expect(withWizard.map((o) => o.kind)).toEqual(['wizard', 'heal', 'potions'])
+  })
+
   it('rolls the same rewards for the same seed and floor', () => {
     for (const seed of SEEDS) {
       expect(rollRewards(seed, 2, POOLS[2]!, holdsNothing)).toEqual(rollRewards(seed, 2, POOLS[2]!, holdsNothing))
@@ -96,10 +109,11 @@ describe('roguelite rewards', () => {
 })
 
 describe('reward pickups', () => {
-  it('lays a spell out as its scroll, the heal as a medikit (its full energy comes on arrival), potions one by one', () => {
+  it('lays a spell out as its scroll, a wizard as itself, the heal as a medikit (its full energy comes on arrival), potions one by one', () => {
     expect(rewardPickups({ kind: 'spell', scroll: 'armySummon' })).toEqual(['armySummon'])
     expect(rewardPickups({ kind: 'spell', scroll: ENERGY_BLAST })).toEqual([ENERGY_BLAST])
     expect(rewardPickups({ kind: 'heal' })).toEqual(['medikit'])
+    expect(rewardPickups({ kind: 'wizard', wizard: 'berlinInGame' })).toEqual(['berlinInGame'])
     const potions = [{ character: 'manaFlow', count: 3 }, { character: 'walkSpeed', count: 2 }]
     expect(rewardPickups({ kind: 'potions', potions })).toEqual(['manaFlow', 'manaFlow', 'manaFlow', 'walkSpeed', 'walkSpeed'])
   })

@@ -32,7 +32,7 @@ import { playerOf } from './sim/actors'
 import { carryOver, withFullEnergy, withRunStartArsenal } from './sim/carry-over'
 import { countsForRecords, withDifficultyDefs, withDifficultyStart, type Difficulty } from './sim/difficulty'
 import { MAP_COMPLETE_EVENTS } from './sim/map-complete'
-import { collectedScrolls, holdsScroll } from './sim/rewards'
+import { collectedScrolls, holdsScroll, wizardsFound, wizardsToFind } from './sim/rewards'
 import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
@@ -177,7 +177,7 @@ interface Shell {
   /** Roguelite: the statistics as they stand (a run that does not count leaves them unchanged). */
   rogueliteStats: () => RogueliteStats
   /** Roguelite: pauses on the run summary (its spells drawn by `art`) until New run or Main menu. */
-  showRunSummary: (summary: RunSummary, art: SpriteArt) => void
+  showRunSummary: (summary: RunSummary, art: PickArt) => void
 }
 
 /** The original's credits music (final_stand_2: unused in Merlin Open), played on a won roguelite run's summary. */
@@ -346,7 +346,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
     }
     const from = run
     buildingFloor = true
-    const rewards = rollRewards(from.seed, plan.floor, rewardPools(plan.options), (scroll) => holdsScroll(sim, scroll))
+    const rewards = rollRewards(from.seed, plan.floor, rewardPools(plan.options), (scroll) => holdsScroll(sim, scroll), wizardsToFind(sim))
     const biomes = plan.options.map((b) => ({ name: b.name, showcase: b.showcase }))
     const picked = await shell.pickFloor({ floorNumber: plan.floor + 1, biomes, rewards }, pickArt)
     if (run !== from) return // the run was restarted meanwhile
@@ -387,9 +387,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress):
       bestScore: bests[sim.worldMode][mapId] ?? 0,
       time: runTimeText(sim.runTicks),
       spells: collectedScrolls(sim),
+      wizards: wizardsFound(sim),
       biomes: visitedBiomeNames(ended),
       stats,
-    }, spriteArt)
+    }, pickArt)
   }
   /** Roguelite: a death ends the run; there is no restart of the floor. */
   const endRunInDeath = () => {

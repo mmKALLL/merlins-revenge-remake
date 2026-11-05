@@ -574,6 +574,15 @@ export const GOBLIN_FOREST: FloorTheme = {
 /** merlinOpenObjects key indices (assets/tile-keys/merlinOpenObjects.txt, 10 per row). */
 export const MERLIN_OPEN_OBJECTS: Record<string, number> = {
   player: 2,
+  // the friendly wizards, a roguelite reward (src/run/rewards.ts)
+  berlinInGame: 3,
+  ulinInGame: 4,
+  prestotolinInGame: 5,
+  garonlinInGame: 6,
+  amotonlinInGame: 7,
+  foelinInGame: 8,
+  flaetorlinInGame: 9,
+  verdanlinInGame: 10,
   scarletInGame: 51,
   ochreInGame: 52,
   skeletonArcher: 81,

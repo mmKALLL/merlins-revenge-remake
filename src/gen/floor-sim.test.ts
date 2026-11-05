@@ -6,12 +6,14 @@ import { describe, expect, it } from 'vitest'
 import { tileCentre } from '../mr-open/mr-geometry'
 import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
 import { NO_INPUT, type InputSnapshot, type SimState, type WorldMode } from '../sim/state'
+import { playerOf } from '../sim/actors'
 import { anims } from '../sim/test-data'
 import { createSim, findStartPos, stepSim } from '../sim/tick'
 import { buildWorldGrid } from '../sim/world-grid'
 import { ROOM_SIZE, unitFacts, exitRoom, generateFloor } from './floor'
 import { ROGUELITE_THEMES, THEMES, type FloorTheme } from './themes'
-import { ROGUELITE_BIOMES } from './roguelite-biomes'
+import { ROGUELITE_BIOMES, ROGUELITE_FLOORS, rogueliteFloorMap } from './roguelite-biomes'
+import { runSteps } from './steps'
 import { generateTower } from './tower'
 import { TOWER_TILESETS } from './tower-tilesets'
 
@@ -77,6 +79,26 @@ describe('the tower in the sim', () => {
       if (mode === 'rooms') expect(s.exitsOpen).toBe(true)
       for (let i = 0; i < 90; i++) s = stepSim(s, NO_INPUT)
       expect(s.mapComplete).toBe(false)
+    }
+  })
+})
+
+describe('a wizard reward in the sim', () => {
+  const WIZARD = 'berlinInGame'
+  /** Long enough for the wizard to wake, find nothing to fight and teleport out. */
+  const SETTLE_TICKS = 150
+
+  it('laid out in the start room, teleports into the reserve (the fight there is over), in both world modes', () => {
+    const map = runSteps(rogueliteFloorMap(ROGUELITE_FLOORS[1]![0]!, 7, 1, facts, [WIZARD]))
+    const active = symbols(TOWER_TILESETS.backgroundActive)
+    const objects = symbols(TOWER_TILESETS.objects)
+    const grid = buildWorldGrid(map, (i) => i >= 1 && active[i - 1] === 'solid', objects)
+    for (const mode of ['rooms', 'continuous'] as const) {
+      let s = createSim(grid, pageDefs, pageTeams, anims, 7, findStartPos(grid, objects.indexOf('player') + 1), mode)
+      expect(s.actors.some((a) => a.def === WIZARD), mode).toBe(true)
+      for (let i = 0; i < SETTLE_TICKS; i++) s = stepSim(s, NO_INPUT)
+      expect(s.actors.some((a) => a.def === WIZARD), mode).toBe(false)
+      expect(s.army[playerOf(s).team]?.[WIZARD], mode).toBe(1)
     }
   })
 })

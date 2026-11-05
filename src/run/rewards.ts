@@ -6,17 +6,24 @@ import { GenRandom } from '../gen/random'
 import { ORIGINAL_SPELL_WEIGHT, type FloorTheme, type Weighted } from '../gen/themes'
 import { GOLDEN_MACHINE_GUN, MEDIKIT_CHARACTER, type PotionCount } from '../mr-open/mr-pickup'
 
-/** A reward: a scroll's spell (or reserved weapon), a full heal and a medikit, or potions. */
+/** A reward: a scroll's spell (or reserved weapon), a friendly wizard (actor key), a full heal and a medikit, or potions. */
 export type RewardOption =
   | { kind: 'spell'; scroll: string }
+  | { kind: 'wizard'; wizard: string }
   | { kind: 'heal' }
   | { kind: 'potions'; potions: PotionCount[] }
 
 /**
  * What a floor's rewards are drawn from: its biomes' start scrolls (the energy blast among them, the
- * reserved weapons not), the reserved weapons a floor's end may offer instead, and potions.
+ * reserved weapons not), the reserved weapons a floor's end may offer instead, the weight of a
+ * wizard offered instead, and potions.
  */
-export interface RewardPools { spellScrolls: Weighted<string>[]; reservedWeapons: Weighted<string>[]; potions: Weighted<string>[] }
+export interface RewardPools {
+  spellScrolls: Weighted<string>[]
+  reservedWeapons: Weighted<string>[]
+  wizardWeight: number
+  potions: Weighted<string>[]
+}
 
 /** Whether Merlin already holds the weapon of a scroll. */
 export type HoldsScroll = (scroll: string) => boolean
@@ -47,6 +54,12 @@ const MELEE_SPEED_POTIONS: PotionCount = { character: 'walkSpeed', count: 4 }
 export const scrollPotions = (scroll: string): PotionCount[] => (MELEE_WEAPONS.includes(scroll) ? [MELEE_SPEED_POTIONS] : [])
 /** A reserved weapon's weight per biome: an original spell's. */
 const RESERVED_WEAPON_WEIGHT = ORIGINAL_SPELL_WEIGHT
+/**
+ * Owner (2026-11-05): a floor's end may offer a friendly wizard Merlin does not have in place of the
+ * new spell. Its weight per biome, shared over every wizard still to find: a wizard is about as
+ * likely as one reserved weapon.
+ */
+const WIZARD_REWARD_WEIGHT = ORIGINAL_SPELL_WEIGHT
 /** Spells that do not fight (the heal blast only heals): never the kit's, which is Merlin's first attack beside the punch. */
 const NOT_ATTACKS: readonly string[] = ['healBlast']
 /** Keeps the reward rolls apart from the floor layout drawn from the same floor seed. */
@@ -70,6 +83,7 @@ export function rewardPools(biomes: readonly FloorTheme[]): RewardPools {
   return {
     spellScrolls: [...spells, perBiome(ENERGY_BLAST, ORIGINAL_SPELL_WEIGHT)],
     reservedWeapons: RESERVED_WEAPONS.map((key) => perBiome(key, RESERVED_WEAPON_WEIGHT)),
+    wizardWeight: WIZARD_REWARD_WEIGHT * biomes.length,
     potions: merged((t) => t.units.startRewards.potions),
   }
 }
@@ -80,6 +94,22 @@ const rewardRng = (runSeed: number, floor: number): GenRandom => new GenRandom((
 function newSpell(rng: GenRandom, candidates: readonly Weighted<string>[], holds: HoldsScroll): RewardOption | null {
   const unheld = candidates.filter((s) => !holds(s.value))
   return unheld.length === 0 ? null : { kind: 'spell', scroll: rng.weighted(unheld) }
+}
+
+/** Stands for "a wizard" among the scrolls of the floor end's weighted draw. */
+const A_WIZARD: unique symbol = Symbol('a wizard')
+
+/**
+ * The floor end's new spell: a scroll Merlin does not hold, by weight, or at the pools' wizardWeight
+ * one of the `unfoundWizards` (drawn evenly); null when there is neither.
+ */
+function newSpellOrWizard(rng: GenRandom, pools: RewardPools, holds: HoldsScroll, unfoundWizards: readonly string[]): RewardOption | null {
+  const scrolls = [...pools.spellScrolls, ...pools.reservedWeapons].filter((s) => !holds(s.value))
+  const wizard: Weighted<typeof A_WIZARD>[] = unfoundWizards.length > 0 && pools.wizardWeight > 0 ? [{ value: A_WIZARD, weight: pools.wizardWeight }] : []
+  const draws: Weighted<string | typeof A_WIZARD>[] = [...scrolls, ...wizard]
+  if (draws.length === 0) return null
+  const drawn = rng.weighted(draws)
+  return drawn === A_WIZARD ? { kind: 'wizard', wizard: rng.pick(unfoundWizards) } : { kind: 'spell', scroll: drawn }
 }
 
 /** `total` potions of POTION_TYPES distinct types (by weight), every split (1 + 4, 2 + 3, ...) equally likely. */
@@ -99,11 +129,12 @@ function potionSplit(rng: GenRandom, pools: RewardPools, total: number): RewardO
 
 /**
  * The three rewards offered when Merlin leaves for `floor` (1 = the second): a new spell (or a
- * reserved weapon he lacks), a heal and potions; two when he holds every spell and weapon.
+ * reserved weapon he lacks, or one of the `unfoundWizards`), a heal and potions; two when he holds
+ * every spell and weapon and has every wizard.
  */
-export function rollRewards(runSeed: number, floor: number, pools: RewardPools, holds: HoldsScroll): RewardOption[] {
+export function rollRewards(runSeed: number, floor: number, pools: RewardPools, holds: HoldsScroll, unfoundWizards: readonly string[] = []): RewardOption[] {
   const rng = rewardRng(runSeed, floor)
-  const spell = newSpell(rng, [...pools.spellScrolls, ...pools.reservedWeapons], holds)
+  const spell = newSpellOrWizard(rng, pools, holds, unfoundWizards)
   const potions = potionSplit(rng, pools, rng.int(...REWARD_POTIONS))
   return [...(spell ? [spell] : []), { kind: 'heal' }, potions]
 }
@@ -121,12 +152,14 @@ export function startingKit(runSeed: number, pools: RewardPools): RewardOption[]
 const potionPickups = (potions: readonly PotionCount[]): string[] => potions.flatMap(({ character, count }) => Array<string>(count).fill(character))
 
 /**
- * The pickups (object keys) a reward is laid out as: its scroll (and its scrollPotions), a medikit
+ * The pickups (object keys) a reward is laid out as: its scroll (and its scrollPotions), the wizard
+ * itself (with the start room's fight over it teleports into the reserve: leaveIfFinished), a medikit
  * (the heal's full energy comes on arrival, `arrivalHeals`, so nothing is worth leaving for later), or each potion.
  */
 export function rewardPickups(reward: RewardOption): string[] {
   switch (reward.kind) {
     case 'spell': return [reward.scroll, ...potionPickups(scrollPotions(reward.scroll))]
+    case 'wizard': return [reward.wizard]
     case 'heal': return [MEDIKIT_CHARACTER]
     case 'potions': return potionPickups(reward.potions)
   }

@@ -1,6 +1,6 @@
 // The roguelite floor pick (docs/plans/2026-10-25-roguelite-mode-design.md, Floor end): one panel
 // where the player picks the next floor's biome and a reward. Every card shows what it holds: the
-// biome's name and a row of its enemies, the spell's scroll and writing, the heal, the exact potions. The cards take
+// biome's name and a row of its enemies, the spell's scroll and writing, the wizard, the heal, the exact potions. The cards take
 // no pick for PICK_LOCK_MS after the panel opens (dimmed until then). Arrows or WASD (up and down
 // between the rows) or Tab and Enter, the number keys, a tap or a click pick; play goes on as soon as both picks are made.
 import { PICK_LOCK_MS, pickUnlocked } from '../run/pick'
@@ -72,11 +72,20 @@ const UNIT_NAMES: Record<string, string> = {
   kongFuChicken: 'Kung fu chicken',
   hydra1: 'Hydra',
   hydra3: 'Three-headed hydra',
+  // the friendly wizards (a reward)
+  amotonlinInGame: 'Amotonlin',
+  berlinInGame: 'Berlin',
+  flaetorlinInGame: 'Flaetorlin',
+  foelinInGame: 'Foelin',
+  garonlinInGame: 'Garonlin',
+  prestotolinInGame: 'Prestotolin',
+  ulinInGame: 'Ulin',
+  verdanlinInGame: 'Verdanlin',
 }
-const unitName = (key: string): string => UNIT_NAMES[key] ?? wordsOf(key)
+export const unitName = (key: string): string => UNIT_NAMES[key] ?? wordsOf(key)
 
-/** A biome card's row of enemy icons, each named on hover; a name stands in for a missing sprite. */
-function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
+/** A row of unit icons (a biome card's enemies, the run summary's wizards), each named on hover; a name stands in for a missing sprite. */
+export function unitRow(keys: readonly string[], art: UnitArt): HTMLElement {
   const row = el('span', 'pick-units')
   for (const key of keys) {
     const icon = art(key) ?? el('span', 'pick-detail', unitName(key))
@@ -89,6 +98,8 @@ function showcaseRow(keys: readonly string[], art: UnitArt): HTMLElement {
 /** A scroll reward's heading: a reserved weapon (melee, or the golden machine gun) is a new weapon, the rest new spells. */
 const scrollHeading = (scroll: string): string => (RESERVED_WEAPONS.includes(scroll) ? 'New weapon' : 'New spell')
 
+const WIZARD_HEADING = 'New wizard'
+
 const potionsLabel = (potions: readonly PotionCount[]): string => potions.map((p) => `${p.count} ${potionName(p.character)}`).join(', ')
 
 /** What a reward card says, for its label and screen readers. */
@@ -98,6 +109,7 @@ function rewardLabel(r: RewardOption): string {
       const potions = scrollPotions(r.scroll)
       return `${scrollHeading(r.scroll)}: ${scrollName(r.scroll)}${potions.length > 0 ? ` and ${potionsLabel(potions)}` : ''}`
     }
+    case 'wizard': return `${WIZARD_HEADING}: ${unitName(r.wizard)}`
     case 'heal': return HEAL_LABEL
     case 'potions': return `${potionTotal(r.potions)} potions: ${potionsLabel(r.potions)}`
   }
@@ -139,14 +151,14 @@ export function floorPick(now: () => number = () => performance.now()): FloorPic
       onPicked(picked.biome, picked.reward)
     }
     const biomeCards = offer.biomes.map((b, i) => {
-      const card = pickCard(choosesBiome ? ++numberKey : null, [el('span', 'pick-title', b.name), showcaseRow(b.showcase, art.unit)])
+      const card = pickCard(choosesBiome ? ++numberKey : null, [el('span', 'pick-title', b.name), unitRow(b.showcase, art.unit)])
       card.setAttribute('aria-label', `${b.name}: ${b.showcase.map(unitName).join(', ')}`)
       if (choosesBiome) card.addEventListener('click', () => pick('biome', i, card))
       else markChosen(card)
       return card
     })
     const rewardCards = offer.rewards.map((r, i) => {
-      const card = pickCard(++numberKey, rewardContent(r, art.sprite))
+      const card = pickCard(++numberKey, rewardContent(r, art))
       card.setAttribute('aria-label', rewardLabel(r))
       card.addEventListener('click', () => pick('reward', i, card))
       return card
@@ -203,15 +215,21 @@ function markChosen(card: HTMLButtonElement): void {
   card.classList.add('only')
 }
 
-/** What a reward card shows: the scroll and its writing (and its potions), the medikit, or each potion type with its count. */
-function rewardContent(r: RewardOption, art: SpriteArt): HTMLElement[] {
+/**
+ * What a reward card shows: the scroll and its writing (and its potions), the wizard and its name,
+ * the medikit, or each potion type with its count.
+ */
+function rewardContent(r: RewardOption, art: PickArt): HTMLElement[] {
+  const sprite = art.sprite
   switch (r.kind) {
     case 'spell':
-      return [el('span', 'pick-detail', scrollHeading(r.scroll)), scrollArt(r.scroll, art), ...scrollPotions(r.scroll).map((p) => potionRow(p, art))]
+      return [el('span', 'pick-detail', scrollHeading(r.scroll)), scrollArt(r.scroll, sprite), ...scrollPotions(r.scroll).map((p) => potionRow(p, sprite))]
+    case 'wizard':
+      return [el('span', 'pick-detail', WIZARD_HEADING), artRow(art.unit(r.wizard), el('span', 'pick-title', unitName(r.wizard)))]
     case 'heal':
-      return [el('span', 'pick-detail', 'Heal'), artRow(art(MEDIKIT_SPRITE, 'stand'), el('span', 'pick-title', HEAL_LABEL))]
+      return [el('span', 'pick-detail', 'Heal'), artRow(sprite(MEDIKIT_SPRITE, 'stand'), el('span', 'pick-title', HEAL_LABEL))]
     case 'potions':
-      return [el('span', 'pick-detail', `${potionTotal(r.potions)} potions`), ...r.potions.map((p) => potionRow(p, art))]
+      return [el('span', 'pick-detail', `${potionTotal(r.potions)} potions`), ...r.potions.map((p) => potionRow(p, sprite))]
   }
 }
 
