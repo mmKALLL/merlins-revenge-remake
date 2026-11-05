@@ -1,5 +1,5 @@
 // Merlin's reserve army on the HUD (remake; docs/notes/engine-mechanics-hud.md §6): each unit type
-// waiting in the reserve as its stand frame, shrunk to fit, with its count ("x2"). Two layouts to
+// waiting in the reserve (the friendly wizards first) as its stand frame, shrunk to fit, with its count ("x2"). Two layouts to
 // compare (Settings, Army display): a column in the right margin, where the original's
 // armyMaster.displayNextSummons drew (the prg_armyMaster mark), or a row in the strip above the play
 // view, between the current weapon icon and the potions. Hidden while the reserve is empty.
@@ -7,7 +7,7 @@ import { Container, Sprite, Text, type Texture } from 'pixi.js'
 import type { LoadedSprite } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { GAME_SCREEN } from '../mr-open/mr-hud'
-import { playerOf } from '../sim/actors'
+import { playerOf, wizardTypes } from '../sim/actors'
 import type { SimState } from '../sim/state'
 import { armyDisplayEntries, type ArmyDisplayMode, type ArmyEntry } from './army-entries'
 import { PIXEL_TEXT } from './text-options'
@@ -39,12 +39,15 @@ const ROW = {
 export class ArmyDisplay {
   readonly layer = new Container()
   private drawn = ''
+  private readonly wizards: string[]
 
   constructor(
     private sprites: Record<string, LoadedSprite>,
     private defs: Record<string, ActorDef>,
     private mode: ArmyDisplayMode,
-  ) {}
+  ) {
+    this.wizards = wizardTypes(defs)
+  }
 
   setMode(mode: ArmyDisplayMode): void {
     this.mode = mode
@@ -52,7 +55,7 @@ export class ArmyDisplay {
 
   update(s: SimState): void {
     const p = playerOf(s)
-    const entries = this.mode === 'off' ? [] : armyDisplayEntries(s.army[p.team], this.defs[p.def]?.armyMembers ?? [])
+    const entries = this.mode === 'off' ? [] : armyDisplayEntries(s.army[p.team], this.defs[p.def]?.armyMembers ?? [], this.wizards)
     const key = `${this.mode} ${entries.map((e) => `${e.typ}:${e.count}`).join(' ')}`
     if (key === this.drawn) return
     this.drawn = key
