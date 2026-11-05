@@ -58,7 +58,7 @@ Work top down; the sections below hold the details.
       a Roguelite button with the stats. Abandoned runs reset the streak only. The whole roguelite
       card awaits the owner's review.
     - Hades-like gameplay ideas are welcome.
-- **Backlog:** level ups, save and load, check Ochre's pulse aim.
+- **Backlog:** level ups, check Ochre's pulse aim. (Save and load: done, awaiting review.)
 - **Low priority:** the energy -> health rename, random midbosses and bosses, Steve's lock-up, cutscenes,
   "army might be OP".
 
@@ -91,7 +91,7 @@ floor; roguelite snapshots that record the floor.
   medikit, maxikit, pickup, writing fade, temporary invincibility and the HUD. Open: wire in the real
   `maxikit_potion` / `maxikit_writing` members (gfx cast members 679/680, dumpable with
   `tools/director-extract/dump_bitmaps.py maxikit_`; stand-ins now: the objects tile and the
-  medikit's writing) save/load of the pickups.
+  medikit's writing). The pickups save with the map (engine notes save-load).
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
   in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
   map-complete and game over sequences (`src/cutscene/`); what a full system needs is in
@@ -108,8 +108,6 @@ floor; roguelite snapshots that record the floor.
   (`docs/plans/2026-11-05-friendly-wizards-design.md` covers slice 1, the allies).
 - **Online leaderboard.** An online leaderboard per map (and per world mode, as the local bests).
   The open-world score is done (2026-10-25, see Awaiting the owner's review).
-- **Save and load the state of a map.** Original: `saveMaster` (save/load menu options,
-  `addSaveData`/`restoreFromSave` on every object). Builds on the snapshot code in `src/debug/`.
 
 ## Player feedback
 
@@ -137,6 +135,14 @@ floor; roguelite snapshots that record the floor.
   Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
+
+- Save and load (2026-11-06, design `docs/plans/2026-11-06-save-load-design.md`; engine notes
+  save-load). Each room clear autosaves the map (Settings, Auto-save, on by default; never the
+  roguelite). Opening a saved map asks Continue or New game; a death loads the save after "You Got
+  Wasted!". Restart map and New game drop the save. Two best-score tables, with and without loading;
+  the map list shows the one chosen in Settings, Advanced, and tags saved maps. The rarer settings
+  fold under Advanced. To check: the save points (a room clear only, the map-complete tick too),
+  playing a completed map again drops its save, and the Advanced grouping.
 
 - Game over sequence, "You Got Wasted!" (2026-11-06, branch `wasted-game-over`; engine notes
   map-complete §2-3). A death on a normal map fades the game out (the music fades with it), plays
@@ -280,7 +286,8 @@ floor; roguelite snapshots that record the floor.
 
 - The 11 decisions at the top of `docs/plans/2026-09-27-enemies-progress.md`.
 - Title screen and in-game menu (`docs/plans/2026-09-28-menus-design.md`), mainly for phones. The
-  original menu's choose keys, save/load and show army are left out until those features exist.
+  original menu's choose keys and show army are left out until those features exist (save and load
+  are the autosave, 2026-11-06).
 
 - Mini-map (`modMiniMap`, `docs/notes/engine-mechanics-minimap.md`): ported as in the original
   (all rooms shown from the start, only in nav mode, fading near Merlin or the mouse). Remake

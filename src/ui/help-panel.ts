@@ -41,7 +41,7 @@ function controls(title: string, lines: Line[]): HTMLElement {
 
 export function helpPanel(touch: boolean, back: () => void): MenuPanel {
   const { root, body } = panel('How to play', back)
-  const goal = el('p', '', 'Defeat the enemies in every room. Don\'t let your health bar run out!')
+  const goal = el('p', '', 'Defeat the enemies in every room. Don\'t let your health bar run out! The game saves each time you clear a room.')
   const sections = [controls('Touch', TOUCH), controls('Keyboard and mouse', KEYBOARD)]
   body.append(goal, ...(touch ? sections : sections.reverse()))
   return { root }

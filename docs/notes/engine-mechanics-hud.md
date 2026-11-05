@@ -80,6 +80,9 @@ leftwards. Both draw on `gGlobalDisplayLayer`, in the strip above the room, not 
 
 ## 5. Scoring (remake feature, owner request)
 
+Saves (engine notes save-load) split the bests in two tables: "with loading" (every run) and "no
+loading" (runs that never loaded a save); the map list shows the one chosen in Settings.
+
 The original has no score. The remake's rules (`src/sim/score.ts`, `SimState.score`):
 
 - Every room with something to clear is worth up to 9999 points, counting down linearly to 0 over

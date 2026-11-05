@@ -135,17 +135,18 @@ middle and leaves just before the lights go down (about 14 s with the fade).
 ### Port (src/cutscene/end-sequence.ts, src/main.ts)
 
 - A death on a normal map starts the `gameOver` sequence instead of the old immediate restart; the
-  sim stops while it runs. When the cut scene finishes (`restartDue`) the map restarts as before: a
+  sim stops while it runs. When the cut scene finishes (`restartDue`) the map's autosave loads, as
+  the original's `#loadGame` does (engine notes save-load). Without a save the map restarts: a
   fresh seed (a new layout on a generated map when Random maps says so).
 - `finishGame` stops the game: the music fades out (`audio.playMusic(null)`, the 3 s fade) as the
-  sequence starts; the restart's start room asks for its track again, from the beginning.
+  sequence starts; the restart's start room asks for its track again, from the beginning (a loaded
+  save plays the track it was saved with).
 - A map completed on the same tick as the death plays its end sequence instead.
 - Menus pause the sequence like the game; Restart map and a loaded state export replace it.
 - **Remake decisions (owner, 2026-11-06):** the game over is skippable: Enter, Space or a
-  click/tap (not a held key's repeats) goes straight to the restart (`skipEndSequence`; the map
-  complete sequence is not skippable). The restart follows by itself; the original reloads the
-  game, which the port's restart stands in for. Roguelite deaths are unchanged: the run summary at
-  once, no game over sequence.
+  click/tap (not a held key's repeats) goes straight to the load or restart (`skipEndSequence`; the
+  map complete sequence is not skippable). It follows by itself. Roguelite deaths are unchanged:
+  the run summary at once, no game over sequence and no save.
 
 ## 3. What a full cut scene system still needs (Cutscenes backlog)
 
