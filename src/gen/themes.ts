@@ -433,7 +433,7 @@ export const MERLIN4_OBJECTS: Record<string, number> = {
   healBlast: 101,
   energyPunch: 103,
   monsterSummon: 104,
-  ...REMAKE_OBJECT_TILES['merlin4Objects'], // the volley spells' scrolls, the power ostrich
+  ...REMAKE_OBJECT_TILES['merlin4Objects'], // the volley spells' scrolls, the power ostrich, the wizards
 }
 
 export const MERLIN4_TILESETS: Record<LayerName, string> = {

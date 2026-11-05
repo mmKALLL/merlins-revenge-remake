@@ -1,4 +1,4 @@
-// Generates assets/maps/test_maps/enemies_test.txt (4x2 rooms, the second row only below the first two;
+// Generates assets/maps/test_maps/enemies_test.txt (4x2 rooms, the second row only below the first three;
 // 18x9 tiles, merlin4 tilesets): one room per enemy-slice showcase. Run: node tools/make-enemies-test-map.mjs
 const W = 18, H = 9
 const grid = (f) => Array.from({ length: H }, (_, r) => Array.from({ length: W }, (_, c) => f(c + 1, r + 1)))
@@ -25,10 +25,10 @@ const active = (room, made) =>
   })
 const objects = (placed) => grid((c, r) => placed.find((p) => p.c === c && p.r === r)?.id ?? 0)
 // merlin4Objects key indices
-const PLAYER = 1, GOBLIN_HUT = 20, GOBLIN_MAGE_HUT = 23, GOBLIN_MAGE = 24, BOW_ORC = 66, SWORD_ORC = 68, ORC_HOUSE = 69, BABY_OSTRICH = 98
+const PLAYER = 1, BERLIN = 2, GOBLIN_ARCHER = 21, GOBLIN_WARRIOR = 22, GOBLIN_HUT = 20, GOBLIN_MAGE_HUT = 23, GOBLIN_MAGE = 24, BOW_ORC = 66, SWORD_ORC = 68, ORC_HOUSE = 69, BABY_OSTRICH = 98
 const UNDEAD_INVASION = 87, ORC_INVASION = 88
-// a remake object tile (src/gen/remake-object-tiles.ts)
-const POWER_OSTRICH = 197
+// remake object tiles (src/gen/remake-object-tiles.ts)
+const POWER_OSTRICH = 197, ULIN = 198, FOELIN = 202, FLAETORLIN = 203
 const MUSIC_WOODS = 78, MUSIC_LAST_STAND = 77
 const rooms = [
   // goblin mages: two in the open, a mage hut in the far corner
@@ -43,6 +43,15 @@ const rooms = [
   { num: roomAt(1, 2), objs: [{ c: 12, r: 5, id: POWER_OSTRICH }] },
   // the invasions: invisible dwellings that keep sending orc and undead waves (the two armies hate each other)
   { num: roomAt(2, 2), objs: [{ c: 5, r: 3, id: ORC_INVASION }, { c: 14, r: 7, id: UNDEAD_INVASION }] },
+  // friendly wizards close to goblins (inside the continuous world's wake distance of the top doorway):
+  // they fight, then teleport into Merlin's reserve (R calls them)
+  {
+    num: roomAt(3, 2),
+    objs: [
+      { c: 5, r: 3, id: BERLIN }, { c: 5, r: 5, id: ULIN }, { c: 7, r: 4, id: FOELIN }, { c: 7, r: 6, id: FLAETORLIN },
+      { c: 12, r: 3, id: GOBLIN_WARRIOR }, { c: 12, r: 6, id: GOBLIN_WARRIOR }, { c: 14, r: 4, id: GOBLIN_ARCHER }, { c: 14, r: 6, id: GOBLIN_ARCHER },
+    ],
+  },
 ]
 const made = new Set(rooms.map((r) => r.num))
 const roomText = ({ num, objs }) =>

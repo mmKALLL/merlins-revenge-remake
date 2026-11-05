@@ -30,7 +30,7 @@ is frame 240).
 | `prg_medikitmaster` | 32, 0 | medikit display, from the top-left of the strip above the room |
 | `prg_potionmaster` | 470, 0, 138 x 16 | potions drunk, right-aligned to x 608 (the room's right edge) above the room |
 | `prg_armyMaster` | 608, 16, 32 x 288 | the right margin (army display; the remake's reserve display, §6) |
-| `prg_wizardmaster`, `prg_gmgmaster` | 72, 0 / 90, 0 | wizard and GMG displays in the top strip (not ported; the remake draws Merlin's current weapon icon at the wizard mark; nothing shows the golden machine gun, a mode: `engine-mechanics-spells.md` §6) |
+| `prg_wizardmaster`, `prg_gmgmaster` | 72, 0 / 90, 0 | wizard and GMG displays in the top strip (not ported, the wizard bar left out by the owner: spells §7; the remake draws Merlin's current weapon icon at the wizard mark; nothing shows the golden machine gun, a mode: `engine-mechanics-spells.md` §6) |
 | `health_grey_locz151` | 32, 306, 68 x 13 | the word "health" (8-bit grey, ink copy) |
 | `health_bar_surround` | 104, 305, 100 x 14 | the health bar's frame (ink 36, background transparent) |
 | `help_locz151` | left margin, top | the help button (not ported) |
@@ -155,8 +155,10 @@ Settings, Army display (`mr-remake.armyDisplay`, default Right):
   potions drunk display can reach left of 470 with many potion types; the two may then touch.
 - **Off:** none. Either layout shows only while the reserve has a unit; it redraws when a count
   changes (teleports in and out, the R key).
-- Order (`src/render/army-entries.ts`): the types in Merlin's `#armyMembers` order (warrior, archer,
-  monk, dwarf, kingInGame), then any other type by name.
+- Order (`src/render/army-entries.ts`): the friendly wizards in the reserve first (by actor key; the
+  original showed the selected wizard apart, on `prg_wizardmaster`, which is not ported:
+  `engine-mechanics-spells.md` §7), then the types in Merlin's `#armyMembers` order (warrior,
+  archer, monk, dwarf, kingInGame), then any other type by name.
 - Only the reserve ("next summons"), not the army units in play.
 - Touch: in landscape the ☰ button (40 px, top right of the window) sits over the margin's top
   when the game fills the window's width, and the blast and target buttons (bottom right) can cover

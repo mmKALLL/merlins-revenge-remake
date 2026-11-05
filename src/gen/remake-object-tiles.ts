@@ -1,5 +1,5 @@
 // Remake object tiles: objects-layer symbols the original keys do not have (the volley spells'
-// scrolls, the power ostrich), so maps and floors can place them. tools/convert-assets.ts writes them into the
+// scrolls, the power ostrich, the wizards merlin4's key lacks), so maps and floors can place them. tools/convert-assets.ts writes them into the
 // converted keys: on merlinOpenObjects into empty slots (beside the original scrolls first; painted with
 // the scroll's art), on merlin4Objects after the key's last slot (its sheet has no empty slot; the
 // game never draws the objects layer, so those tiles need no art).
@@ -22,6 +22,8 @@ export const REMAKE_OBJECT_TILES: Readonly<Record<string, Readonly<Record<string
     skullToss: 189, frostBurst: 190, iceBoulderLob: 191, chillFlame: 192, laserVolley: 193,
     musicFinalStand2: 194, musicMerl2319: 195, musicUltimateSongThing: 196,
     powerOstrich: 197,
+    // the friendly wizards the key lacks (it has only Berlin, tile 2), for the enemies test map
+    ulinInGame: 198, prestotolinInGame: 199, garonlinInGame: 200, amotonlinInGame: 201, foelinInGame: 202, flaetorlinInGame: 203, verdanlinInGame: 204,
   },
 }
 

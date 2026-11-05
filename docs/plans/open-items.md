@@ -17,15 +17,16 @@ Work top down; the sections below hold the details.
     movement vector.
   - Scoring mode (done 2026-10-25, in review; see Awaiting the owner's review).
   - Golden machine gun (done 2026-10-28; reworked 2026-10-29 into the engine's mode, awaiting review; see Awaiting the owner's review).
-  - The eight friendly wizards, as allies and as enemies.
+  - The eight friendly wizards, as allies and as enemies: slice 1 (allies) done 2026-11-05,
+    awaiting review (see Awaiting the owner's review); slice 2 (enemy wizards) open, under Backlog.
   - **A proper roguelite mode** (all five slices done, in review), selectable from the main menu or `randomly_generated/tower-roguelite`:
     - Slice 1 (carry-over and floor flow) done 2026-10-24: floors one at a time, the exit room in
       yellow, Merlin's record carried over; plan `docs/plans/2026-10-25-roguelite-mode.md`.
     - Slice 2 (the pick screen and the rewards) done 2026-10-24: at each floor end one screen picks
       the next biome and one of three rewards (a new spell, a full heal plus a medikit, or 4-5
       potions of two types), locked for 0.8 s; the run starts with the full kit (a spell, the heal,
-      5 potions of two types). A wizard ally in lieu of a spell is an idea; run any other reward
-      types past the owner.
+      5 potions of two types). A wizard can take the spell's place (2026-11-05, friendly wizards
+      slice 1); run any other reward types past the owner.
     - Rewards as pickups done 2026-10-25 (owner decision): the picked reward and floor 1's kit stand
       as pickups in a row in front of Merlin in the start room (a scroll; a maxikit and a medikit;
       the potions), off the sign and the doorways; roguelite floors drop the usual start-room
@@ -102,10 +103,9 @@ floor; roguelite snapshots that record the floor.
   under ~30.
 - **Enemy-only spell scrolls for Merlin.** Dark blast, goblin / Scarlet / skeleton / undead summon:
   the mechanics work (enemies cast them), so it is mostly data.
-- **The eight friendly wizards.** Amotonlin, Berlin, Flaetorlin, Foelin, Garonlin, Prestotolin,
-  Ulin, Verdanlin (`act_*InGame`, team aldevar, 200 HP, sprites in the cast dump; each casts one of
-  Merlin's ported spells): as allies (wizardMaster / modSummonWizard, tower rewards) and as enemies
-  (a palette swap at convert time, boss-level HP).
+- **Enemy wizards (friendly wizards, slice 2; Medium on the board).** The eight wizards as enemies
+  in the roguelite: a palette swap at convert time, boss-level HP. Its own design round
+  (`docs/plans/2026-11-05-friendly-wizards-design.md` covers slice 1, the allies).
 - **Online leaderboard.** An online leaderboard per map (and per world mode, as the local bests).
   The open-world score is done (2026-10-25, see Awaiting the owner's review).
 - **Save and load the state of a map.** Original: `saveMaster` (save/load menu options,
@@ -124,10 +124,9 @@ floor; roguelite snapshots that record the floor.
   dying unit could be dropped or left unstepped (now always stepped and stored with its room).
   Fuzzing goblin maps in the continuous world with K and blasts timed at sleep transitions found no
   goblin freeze; if it recurs, ask for an `mr.exportState()` paste.
-- **Wizard allies and the army list.** Ulin, Prestotolin and Verdanlin (`act_*InGame`,
-  `wizardMaster`, `modSummonWizard`) and the original's Show army menu (`showArmyMaster`: the reserve
-  army as unit figures in rows and pages). Wizards are separate from the army in the original: found
-  wizards are called in with their own key and selector and fight as AI spell casters. Not started.
+- **The army list.** The original's Show army menu (`showArmyMaster`: the reserve army as unit
+  figures in rows and pages). Not started. (The wizard allies are done: friendly wizards slice 1,
+  Awaiting the owner's review.)
 - **Morph (MR2 spell).** Only its art is in the archive (scroll, writing, `gfx/morph` forms); no data or
   Lingo, so it would be a remake design; waiting for the owner's description of how it worked.
 - **Low priority:** call "energy" "health" in the UI and code, if not too entangled with the
@@ -138,6 +137,16 @@ floor; roguelite snapshots that record the floor.
   Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
+
+- Friendly wizards, slice 1: allies (2026-11-05; engine notes spells §7 and Remake decisions "R
+  calls every wizard"; design `docs/plans/2026-11-05-friendly-wizards-design.md`). The eight
+  wizards are on the original maps (Ulin on `works/mriiidemoii`, all eight on `not_fully_tested/very_big_map`); they
+  fight beside Merlin, then teleport into his reserve. R calls the army plus every reserve wizard
+  (past the team cap) and sends them all home after the fight; reserve wizards show first in the
+  reserve army display. Roguelite: a floor-end reward can bring a wizard Merlin lacks in the
+  spell's place (a reserved weapon's weight); the run summary lists the wizards. Test room:
+  `?map=test_maps/enemies_test`, below the goblin hut (Berlin, Ulin, Foelin, Flaetorlin beside
+  goblins). Left out by the owner: the wizard key and selector and the wizard bar.
 
 - Golden machine gun as a mode (2026-10-29; engine notes spells §6 and Remake decisions): as the
   engine, collecting it switches it on and E switches it off and on (E no longer fires; a click and

@@ -320,6 +320,46 @@ start (burst 1, capacity 10, flow 1, mana_regeneration 30):
 | monsterSummon | 8 / 17 / 3 / no | likewise (chargeStartMax 14) |
 | armySummon | 7 / 17 / 5 / no | likewise |
 
+## 7. The friendly wizards
+
+Design: `docs/plans/2026-11-05-friendly-wizards-design.md` (slice 1, allies; enemy wizards are slice 2).
+
+**The original.**
+
+- Eight wizards, `act_<name>InGame` (casts/data): `#objCPUCharacter`, `#objAiCPUSpellCaster`,
+  team `#aldevar`, `#character #friendlyCharacter`, 200 energy, `#wizard: true`,
+  `#leaveWhenFinished: true`, a punch as the natural attack and one of Merlin's spells as `#weapon`:
+  Amotonlin (sprite `amo`) arcticBlast, Berlin (`ber`) energyBlast, Flaetorlin (`flaeto`) cBlastAi,
+  Foelin (`foe`) monsterSummonAi, Garonlin (`garo`) darkBlast, Prestotolin (`presto`)
+  energyPulseSpell, Ulin (`uli`) healBlast, Verdanlin (`verdan`) energyMines. `act_cBlastAi` (a
+  slower cBlast) and `act_monsterSummonAi` (the random-stage `randomSummon`) are the AI variants.
+- Found: `objGameObject.init` calls `wizardMaster.newWizardFound` for any `#wizard` actor entering
+  play (objGameObject.txt:141); the first one found becomes the selected wizard.
+- Reserve: as every `leaveWhenFinished` ally, a wizard teleports out into the reserve army
+  (`armyTeleportOut`) once its AI finds no target (objAiCPU.txt:232-236).
+- Summon: `modSummonWizard.summonWizard` (key `#wizard`, bnd_wasd 3 = F) brings out one wizard at a
+  time, at the mouse: the selected one if the reserve holds it, else the next one there; pressing
+  again while one is out sends it home. `#wizardSelector` (bnd_wasd 15 = R) steps to the next found
+  wizard. The army key (`modAutoSummon.summonArmy`, §5) never includes wizards.
+- HUD: `prg_wizardmaster` (top strip 72, 0) shows the selected wizard's `<name>_off` bar, lit while
+  one is out (`objWizardDisplayer`).
+- Maps: about 25 original maps place wizards; Berlin is on most, Ulin on mriiidemoii and
+  roads_to_aldevar, Foelin and Flaetorlin on tvsDemo, all eight on very_big_map.
+
+**The port.** The actors, the two AI spells and the sprite sets are copied (`tools/copy-assets.ts`),
+so the original maps' wizard tiles resolve. `ActorDef.wizard` reads `#wizard`. A wizard is found as
+in the original, by entering play: it fights beside Merlin and, with nothing left to fight,
+teleports into the reserve (`leaveIfFinished`); one that dies is gone. R calls and sends home every
+reserve wizard with the army (Remake decisions, "R calls every wizard"); the reserve army display
+lists the reserve's wizards first (HUD notes §6). In the roguelite a floor-end reward can bring one
+(`src/run/rewards.ts`, below). merlin4's objects key holds only Berlin (tile 2); the others are
+remake object tiles 198-204 there (`src/gen/remake-object-tiles.ts`), for `test_maps/enemies_test`
+(its wizard room, below the goblin hut).
+
+**Left out (owner, 2026-11-05):** the separate wizard key and selector (`modSummonWizard`,
+`#wizardSelector`), the wizard bar (`prg_wizardmaster`, `objWizardDisplayer`), and wizard
+experience and levels (`#mana_regenerationIncLevel`, `#mana_capacityIncLevel`).
+
 ## Volley spells (remake)
 
 Owner design (2026-10-24), not in the engine: eight scrolls that fire a fan of an enemy's
@@ -611,8 +651,8 @@ a fire.
   from its map patch: `assets/map-patches/<map id>.json` with `"noStartingWeapon": true` (the
   patch's `objects` list is optional), applied by `tools/convert-assets.ts`.
 - **The current weapon in the HUD.** The original shows the weapon only in the Q palette; the
-  remake draws the current weapon's `_ws` icon at the `prg_wizardMaster` mark (72, 0), free until
-  the wizards are ported.
+  remake draws the current weapon's `_ws` icon at the `prg_wizardMaster` mark (72, 0), free since
+  the wizard bar is left out (§7).
 - **Keys.** 1-9 select the n-th spell (`Digit1`-`Digit9`; bnd_wasd's codes 22-26 are 6, 5, =, 9, 7,
   evidently meant as 5-9). Q opens the palettes at the mouse, or around Merlin without a mouse
   position; a click on an icon picks it and charges nothing. E, a click and Space work for every
@@ -634,6 +674,17 @@ a fire.
   clear (`exitsOpen`, as #noTargetFound's room test) or, in a continuous world, nav mode on (no
   awake hostile near Merlin); with army members out mid-fight R does nothing (it does not fall
   through to summoning). The same `fightOver` test sends allies home by themselves.
+- **R calls every wizard** (owner decision, 2026-11-05; §7). The original calls one wizard at a
+  time with its own key (`modSummonWizard`); here R summons, after the army, every wizard in the
+  reserve, all units of each type (by actor key), at the same spot with the same random(30) - 15
+  offset, teleporting in (`summonReserveWizards` in `src/sim/tick-army.ts`). Wizards bypass the
+  team cap (the original's wizard call never asked it) and are not among `autoSummonTypes`; a
+  wizard refused by a solid tile stays in the reserve and the rest still come. Merlin's wizards in
+  play count with his army members for the send-back (`alliesInPlay`): once the fight is over R
+  sends them all home together, and the touch army button shows for a reserve holding only
+  wizards. A blank army summon also aims at, and sends home, a wizard (the blast's
+  `#armyTeleportOut` reaches any teleportable ally, as in the engine), and its remake reserve
+  summon (`blankSummonsReserve`) brings only the army.
 - **The touch army button** (owner request, 2026-10-22; no such control in the original): a blue
   button with the army summon's `_ws` icon above the weapon button (below it in portrait) is R,
   once per tap; with no mouse on a touch screen it always summons at the nearest enemy on screen,

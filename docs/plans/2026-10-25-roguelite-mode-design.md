@@ -41,8 +41,14 @@ the picked reward, and on floor 1 the whole starting kit, stands as ordinary pic
 floor's start room, in a row in front of Merlin (off his tile, the sign and the doorways), and he
 collects them himself: a spell as its scroll, the heal as full energy on arriving plus a medikit
 pickup (so no pickup is worth leaving behind for later; owner, 2026-10-25), the potions one by one. Roguelite floors place none of the usual start-room pickups (3 potions, a medikit and a
-scroll); the side corner rooms' potions stay. A wizard ally in place of a spell is a later idea. Any
-other reward type goes to the owner first.
+scroll); the side corner rooms' potions stay. Any other reward type goes to the owner first.
+
+A friendly wizard (owner, 2026-11-05; engine notes spells §7) takes the spell's place like a
+reserved weapon: the new-spell draw holds one more entry, "a wizard", at a reserved weapon's weight
+(`WIZARD_REWARD_WEIGHT`, 2 per biome), while Merlin lacks a wizard (none in his reserve or alive in
+play); drawn, it is one of those at random. It is laid out as the wizard itself in the start row;
+the start room's fight is over, so it teleports straight into the reserve, and R calls it. Wizards
+carry over with the army, and the run summary lists those Merlin has at the end ("Wizards").
 
 Owner (2026-10-26): no biome favours its own spells any more. Every original spell (the energy blast
 and the reserved weapons included) weighs 2 and every volley 1, so of a floor's pick the original
