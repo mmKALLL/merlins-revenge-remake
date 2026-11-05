@@ -23,9 +23,10 @@ Design: `docs/plans/2026-11-06-save-load-design.md` (the owner's decisions). Cod
   index `mr-remake.saves` lists the saves by when they were written; at most `MAX_SAVES` (20) are
   kept, and a write that fails (storage full) drops the oldest other save and tries once more. A
   save is 10-30 kB in the rooms, up to about 120 kB in the open world.
-- **When.** After every tick that clears a room: the exits opened (`exitsOpened`), the map completed
-  (`mapComplete`), or, in the open world (which opens no exits), a room with hostiles in it had its
-  points banked. Not with Auto-save off, not on roguelite floors (`markExit` maps and the roguelite
+- **When.** After every tick that clears a room: the exits opened (`exitsOpened`), or, in the open
+  world (which opens no exits), a room with hostiles in it had its points banked. Not on the
+  map-complete tick (owner, 2026-11-06): the save stays the previous room clear's, so Continue on a
+  completed map picks up before its last fight. Not with Auto-save off, not on roguelite floors (`markExit` maps and the roguelite
   map id), and not while Merlin is dying (a save of his death would replay it on every load).
 - **Opening a map with a save** (a page opened on it, a reload, Play on the title) asks Continue or
   New game. New game drops the save. Continue restores it as `mr.loadState` does; a save naming an

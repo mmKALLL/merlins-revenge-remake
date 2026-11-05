@@ -40,6 +40,11 @@ describe('autosave', () => {
     expect(shouldAutoSave({ ...moment, autoSave: false })).toBe(false)
   })
 
+  it('never saves the map-complete tick: the save stays the previous room clear', () => {
+    const completing = { ...cleared.after, events: [...cleared.after.events, { kind: 'mapComplete' as const }] }
+    expect(shouldAutoSave({ ...moment, after: completing })).toBe(false)
+  })
+
   it('never saves a roguelite floor', () => {
     expect(shouldAutoSave({ ...moment, markExit: true })).toBe(false)
     expect(shouldAutoSave({ ...moment, mapId: ROGUELITE_MAP_ID })).toBe(false)
