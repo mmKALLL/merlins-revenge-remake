@@ -139,11 +139,9 @@
       #maps .star { flex: none; width: 28px; padding: 4px 0; font-size: 18px; line-height: 1; text-align: center; }
       #maps button.star[aria-pressed='true'] { color: var(--accent); }
       /* a row with a best score: the score keeps to the right end of the same line */
-      #maps button:has(.best, .saved), #favourites button:has(.best, .saved) { display: flex; align-items: baseline; }
+      #maps button:has(.best), #favourites button:has(.best) { display: flex; }
       #maps .best, #favourites .best { margin-left: auto; padding-left: 2ch; color: #5c5; font-variant-numeric: tabular-nums; }
       /* a map with a save: a small tag before its best score */
-      #maps .saved, #favourites .saved { margin-left: auto; padding-left: 2ch; font-size: 11px; color: var(--accent); }
-      #maps .saved + .best, #favourites .saved + .best { margin-left: 0; }
       #maps [aria-current='page'] .best, #favourites [aria-current='page'] .best { color: inherit; }
       #favourites li.empty { padding: 6px 8px; line-height: 1.25; color: #666; white-space: nowrap; }
       #maps button:hover, #maps button:focus-visible, #favourites button:hover, #favourites button:focus-visible { color: #fff; background: var(--hover); }

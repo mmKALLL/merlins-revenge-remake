@@ -33,7 +33,7 @@ archive's `casts/`; the MR4 globals are in the `GameInitGlobals` movie script in
   with `gGameCompleteSound = "end_level"` (MR4; the default is `#none`). `objPowerUp` `#superHairConditioner`
   (Rapunzel) calls gameComplete directly.
 - A map with nothing hostile anywhere therefore completes as its start room activates: in the
-  archive only `new_map` and `wont_work/merlinart` do.
+  archive only `new_map` and `merlin_art/merlinart` (the archive's `wont_work/merlinart`) do.
 
 ### Port (src/sim/map-complete.ts, src/mr-open/mr-map-clear.ts)
 

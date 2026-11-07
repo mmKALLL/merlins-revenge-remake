@@ -716,8 +716,9 @@ a fire.
   blast does); only units in the tick count, so an ally left asleep far away in the continuous
   world stays where it is. **Only once the fight is over** (owner request, 2026-10-22): the room
   clear (`exitsOpen`, as #noTargetFound's room test) or, in a continuous world, nav mode on (no
-  awake hostile near Merlin); with army members out mid-fight R does nothing (it does not fall
-  through to summoning). The same `fightOver` test sends allies home by themselves.
+  awake hostile near Merlin). Mid-fight, R summons what the reserve holds even with allies already
+  out (owner, 2026-11-08: more of the army every press; until then it did nothing). The same
+  `fightOver` test sends allies home by themselves.
 - **R calls every wizard** (owner decision, 2026-11-05; §7). The original calls one wizard at a
   time with its own key (`modSummonWizard`); here R summons, after the army, every wizard in the
   reserve, all units of each type (by actor key), at the same spot with the same random(30) - 15

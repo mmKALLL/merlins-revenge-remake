@@ -66,7 +66,7 @@ import { stepSpells } from './tick-spell'
 import { stepArmyKey, stepTeleports } from './tick-army'
 import { stepBuilders } from './tick-builder'
 import { stepMines } from './tick-mine'
-import { playViewFor } from './view'
+import { openWorldOnly, playViewFor } from './view'
 import type { WorldGrid } from './world-grid'
 
 export const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }
@@ -184,8 +184,10 @@ function stepPlayerMove(t: Tick, input: InputSnapshot, cfg: SimConfig): Vec {
   const p = playerIn(t)
   const def = playerStatsOf(s, p)
   const dir = isAlive(p) ? input.move : { x: 0, y: 0 }
-  // modFreeze halves the acceleration of a character with modNavMode (Merlin)
-  const accel = speedWhileFrozen(s.navMode && def.navModeAcceleration > 0 ? def.navModeAcceleration : def.walkAcceleration, p.freezeTicks > 0)
+  // modFreeze halves the acceleration of a character with modNavMode (Merlin); owner: no nav mode
+  // speed on a map played in the open world only (the merlinart maps), where he walks the picture
+  const navSpeed = s.navMode && def.navModeAcceleration > 0 && !openWorldOnly(s.grid.map)
+  const accel = speedWhileFrozen(navSpeed ? def.navModeAcceleration : def.walkAcceleration, p.freezeTicks > 0)
   const walkVel = stepVelocity(p.vel, dir, accel, p.frictionPercent)
   // hit knockback slides on top of walking and decays by frictionReel (see applyHit)
   const knock = p.knockback

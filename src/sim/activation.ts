@@ -5,7 +5,8 @@
 // the view a sleeper may walk an idle wander (idle-wander.ts), still asleep; waking ends it. The
 // distances and the hold after a far hit come from the player's ActorDef (wakeDistance,
 // sleepDistance, hitWakeTicks, navModeClearRadius); every distance is elliptical, shorter up and down
-// by activationVerticalScale (activationDistance). Bullets and spells are never put to sleep.
+// by activationVerticalScale (activationDistance). Bullets and spells are never put to sleep. On a map
+// played in the open world only (the merlinart maps, one huge room each; owner) the whole map is awake.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import type { Vec } from '../mr-open/mr-geometry'
 import { hostileTeamsTo } from '../mr-open/mr-team-data'
@@ -15,6 +16,7 @@ import type { ActorState, SimState } from './state'
 import { bringIn, playerIn, waitingSleepers, type Tick } from './tick-context'
 import { startAttackGrace } from './attack-grace'
 import { chargingSpellOf } from './tick-spell'
+import { openWorldOnly } from './view'
 
 export type ActivationRules = Pick<ActorDef, 'wakeDistance' | 'sleepDistance' | 'hitWakeTicks'>
 export type Activation = Pick<ActorState, 'awake' | 'wakeHold'>
@@ -25,6 +27,15 @@ export type Activation = Pick<ActorState, 'awake' | 'wakeHold'>
  */
 export function activationDistance(a: Vec, b: Vec, verticalScale: number): number {
   return Math.hypot(b.x - a.x, (b.y - a.y) / verticalScale)
+}
+
+/** Owner: on a map played in the open world only, every unit is within reach and none sleeps. */
+const WHOLE_MAP: Pick<ActivationRules, 'wakeDistance' | 'sleepDistance'> = { wakeDistance: Infinity, sleepDistance: Infinity }
+
+/** The wake and sleep rules for the map: the player's, or WHOLE_MAP on an open-world-only map. */
+function activationRules(s: SimState, p: ActorState): ActivationRules {
+  const def = defOf(s, p)
+  return openWorldOnly(s.grid.map) ? { ...WHOLE_MAP, hitWakeTicks: def.hitWakeTicks } : def
 }
 
 /** activationDistance from Merlin with the player's rules. */
@@ -58,7 +69,7 @@ export function activateAtStart(s: SimState): SimState {
 
 /** Whether `a` is close enough to Merlin (`p`) to wake. */
 export const withinWakeDistance = (s: SimState, p: ActorState, a: ActorState): boolean =>
-  fromMerlin(s, p, a) < defOf(s, p).wakeDistance
+  fromMerlin(s, p, a) < activationRules(s, p).wakeDistance
 
 /**
  * Applies the wake/sleep rule to every unit at the end of the tick, with this tick's hits (a sleeper
@@ -66,7 +77,7 @@ export const withinWakeDistance = (s: SimState, p: ActorState, a: ActorState): b
  */
 export function stepActivation(t: Tick): void {
   const p = playerIn(t)
-  const rules = defOf(t.s, p)
+  const rules = activationRules(t.s, p)
   for (const sleeper of waitingSleepers(t)) {
     if (withinWakeDistance(t.s, p, sleeper)) wake(t, bringIn(t, sleeper))
   }

@@ -88,13 +88,15 @@ for (const [name, why] of actors) {
 
 
 // maps: every map under the archive's maps/ keeps its subfolder (a map's id is its path there),
-// plus the archive's playable demo map at the top level
+// but those assets/map-list.json moves (owner), plus the archive's playable demo map at the top level
+const MAP_RENAMES = (JSON.parse(readFileSync(join(ASSETS, 'map-list.json'), 'utf8')) as { renamed: Record<string, string> }).renamed
 function copyMapsRecursive(dir: string): void {
   for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const from = join(dir, entry.name)
     if (entry.isDirectory()) copyMapsRecursive(from)
     else if (entry.name.endsWith('.txt')) {
-      copies.push({ from, to: join(ASSETS, 'maps', relative(join(ARCHIVE, 'maps'), from)), why: 'map' })
+      const id = relative(join(ARCHIVE, 'maps'), from).slice(0, -'.txt'.length)
+      copies.push({ from, to: join(ASSETS, 'maps', `${MAP_RENAMES[id] ?? id}.txt`), why: 'map' })
     }
   }
 }

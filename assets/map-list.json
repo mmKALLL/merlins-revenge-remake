@@ -1,0 +1,25 @@
+{
+  "why": "Owner (2026-11-08): maps kept but left out of the map selection (still loadable with ?map=), and maps moved to another folder. tools/copy-assets.ts copies the archive's maps to the renamed paths; tools/convert-assets.ts leaves the hidden ones out of the map index.",
+  "hidden": [
+    "new_map",
+    "not_fully_tested/new_map",
+    "some_bugs/new_map",
+    "not_fully_tested/merliniiiBlank",
+    "some_bugs/magicLimit",
+    "works/magicLimit",
+    "works/playing_with_fire-note",
+    "wont_work/merliniiidemo",
+    "merlin_art/merlinartv"
+  ],
+  "renamed": {
+    "new/roads_to_aldevar": "not_fully_tested/roads_to_aldevar_2",
+    "works/teamtest": "test_maps/teamtest",
+    "works/test": "test_maps/test",
+    "works/testScarletKing": "test_maps/testScarletKing",
+    "wont_work/merlinart": "merlin_art/merlinart",
+    "wont_work/merlinartii": "merlin_art/merlinartii",
+    "wont_work/merlinartiii": "merlin_art/merlinartiii",
+    "wont_work/merlinartiiv": "merlin_art/merlinartiiv",
+    "wont_work/merlinartv": "merlin_art/merlinartv"
+  }
+}

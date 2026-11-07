@@ -7,7 +7,6 @@ import { loadBestScores, type BestScores, type ScoreTable } from '../data/best-s
 import { shortScore } from './short-score'
 import { loadMapList } from '../data/map-list'
 import { browserStore, favouriteEntries, loadFavourites, saveFavourites, toggleFavourite } from '../data/favourites'
-import { savedMapIds } from '../data/saves'
 import { buildMapTree, findFolder, folderOf, listFolder, type FolderItem, type MapEntry, type MapFolder } from '../data/map-tree'
 
 /** Keys a focused entry acts on; they must not reach the game's window listeners too. */
@@ -66,26 +65,15 @@ function bestScore(best: number | undefined): HTMLSpanElement[] {
   return [s]
 }
 
-/** The tag of a map with a save (opening it offers Continue). */
-function savedTag(saved: boolean): HTMLSpanElement[] {
-  if (!saved) return []
-  const s = document.createElement('span')
-  s.className = 'saved'
-  s.textContent = 'saved'
-  s.title = 'Saved: opening the map offers Continue'
-  return [s]
-}
-
-/** What a map row shows besides the map: the best scores and the maps with a save. */
+/** What a map row shows besides the map: the best scores. */
 interface RowFacts {
   bests: ScoreTable
-  saved: Set<string>
 }
 
 /** A button that loads a map, marked when it is the map being played. */
 const mapButton = (text: string, id: string, currentId: string, facts: RowFacts): HTMLButtonElement => {
   const b = button(text)
-  b.append(...savedTag(facts.saved.has(id)), ...bestScore(facts.bests[id]))
+  b.append(...bestScore(facts.bests[id]))
   b.title = id
   b.addEventListener('click', () => location.assign(mapUrl(id)))
   if (id === currentId) b.setAttribute('aria-current', 'page')
@@ -137,7 +125,7 @@ export async function setupMapBrowser(list: HTMLElement, currentId: string, show
   keepActivateKeys(list)
   keepActivateKeys(favList)
   let favourites = loadFavourites(browserStore)
-  const rowFacts = (): RowFacts => ({ bests: shownScores(loadBestScores(browserStore)), saved: savedMapIds(browserStore) })
+  const rowFacts = (): RowFacts => ({ bests: shownScores(loadBestScores(browserStore)) })
   let facts = rowFacts()
 
   const showFavourites = (): void => {

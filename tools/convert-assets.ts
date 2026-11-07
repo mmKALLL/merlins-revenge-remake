@@ -54,6 +54,10 @@ interface ConvertedMap {
 }
 
 /** Every map under assets/maps, keeping its subfolder: assets/maps/<id>.txt -> maps/<id>.json. */
+/** assets/map-list.json: maps left out of the map selection, and maps moved (tools/copy-assets.ts). */
+interface MapList { hidden: string[]; renamed: Record<string, string> }
+const mapList = (): MapList => JSON.parse(readFileSync(join(ASSETS, 'map-list.json'), 'utf8')) as MapList
+
 function convertMaps(): ConvertedMap[] {
   const out = join(OUT, 'maps')
   rmSync(out, { recursive: true, force: true }) // no stale maps from an earlier layout
@@ -85,9 +89,10 @@ function convertMaps(): ConvertedMap[] {
     writeFileSync(target, JSON.stringify(def))
     console.log(`map ${id}: ${def.mapSize.x}x${def.mapSize.y} rooms${patched}`)
   }
-  // the map browser below the game lists every converted map
+  // the map browser lists every converted map but the hidden ones (assets/map-list.json; ?map= still loads them)
+  const hidden = new Set(mapList().hidden)
   const index = [
-    ...maps.map(({ id, def }) => ({ id, mapSize: { x: def.mapSize.x, y: def.mapSize.y } })),
+    ...maps.filter(({ id }) => !hidden.has(id)).map(({ id, def }) => ({ id, mapSize: { x: def.mapSize.x, y: def.mapSize.y } })),
     ...GENERATED_MAPS, // built in the browser from ?seed= (src/gen)
   ]
   writeFileSync(join(out, 'index.json'), JSON.stringify(index))

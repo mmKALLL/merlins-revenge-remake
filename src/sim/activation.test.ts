@@ -235,3 +235,25 @@ describe('Space in a continuous world (targets on screen only)', () => {
     expect(releasedAt(world([OFF_SCREEN], MERLIN))).toEqual({ x: MERLIN.x + 100, y: MERLIN.y })
   })
 })
+
+describe('a map played in the open world only (owner: the merlinart maps)', () => {
+  /** One huge 40x20 room with a goblin in its far corner, much farther than sleepDistance. */
+  function hugeRoom(): SimState {
+    const fill = (v: number) => Array.from({ length: 20 }, () => Array(40).fill(v))
+    const objects = fill(0)
+    objects[18]![38] = tileOf('goblinWarrior')
+    const map: MapDefinition = {
+      mapSize: { x: 1, y: 1 }, roomSize: { x: 40, y: 20 }, startRoom: { x: 1, y: 1 },
+      layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
+      rooms: [{ num: 1, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects } }],
+    }
+    return createSim(buildWorldGrid(map, () => false, SYMBOLS), defs, teams, anims, 1, PLAYER, 'continuous')
+  }
+
+  it('keeps every unit awake, however far from Merlin', () => {
+    const s = run(hugeRoom(), 5)
+    const goblin = ofDef(s, 'goblinWarrior')[0]!
+    expect(activationDistance(playerOf(s).pos, goblin.pos, 1)).toBeGreaterThan(SLEEP)
+    expect(goblin.awake).toBe(true)
+  })
+})

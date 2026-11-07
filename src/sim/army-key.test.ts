@@ -1,6 +1,6 @@
 // The #army key (R): modAutoSummon.summonArmy summons the whole reserve around the mouse under the
-// team cap, and (remake) every wizard in the reserve past the cap; with allies in play (remake) it
-// sends them all back into the reserve once the fight is over.
+// team cap, and (remake) every wizard in the reserve past the cap, allies out or not; with allies in
+// play (remake) it sends them all back into the reserve once the fight is over.
 import { describe, expect, it } from 'vitest'
 import { autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS } from '../mr-open/mr-army'
@@ -71,16 +71,17 @@ describe('R: the army key', () => {
         expect(Math.abs(a.pos.y - MOUSE.y)).toBeLessThanOrEqual(15)
       }
       expect(reserveOf(s)).toEqual({ warrior: 0, archer: 0, dwarf: 0 })
-      // the army is out and the goblin near Merlin still fights: R does nothing, not even summon
-      s = stepSim(stepSim(s, NO_INPUT), R)
+      // the army is out and the goblin near Merlin still fights: R sends nobody back, and summons
+      // what has come into the reserve since (owner: more of the army every press)
+      s = stepSim(stepSim({ ...s, army: { [playerOf(s).team]: { ...reserveOf(s), monk: 1 } } }, NO_INPUT), R)
       expect(allies(s).some((a) => a.teleport === 'out')).toBe(false)
-      expect(allies(s)).toHaveLength(4)
+      expect(allies(s).map((a) => a.def).sort()).toEqual(['archer', 'dwarf', 'monk', 'warrior', 'warrior'])
       // the fight is over (the room clear, nav mode in the continuous world): R sends every member back
       s = stepSim({ ...s, exitsOpen: true, navMode: true }, R)
       expect(allies(s).every((a) => a.teleport === 'out')).toBe(true)
       for (let i = 0; i < TELEPORT_TICKS; i++) s = stepSim(s, NO_INPUT)
       expect(allies(s)).toHaveLength(0)
-      expect(reserveOf(s)).toEqual({ warrior: 2, archer: 1, dwarf: 1 })
+      expect(reserveOf(s)).toEqual({ warrior: 2, archer: 1, dwarf: 1, monk: 1 })
     })
   }
 
@@ -207,12 +208,13 @@ describe('the army summon spell released blank (remake)', () => {
 })
 
 describe('armyKeyAction: when R (and the touch army button) would act', () => {
-  it('summons with units in reserve, does nothing with the army out mid-fight or an empty reserve, sends back after the fight', () => {
+  it('summons with units in reserve (allies out or not), does nothing with an empty reserve mid-fight, sends back after the fight', () => {
     expect(armyKeyAction(world('rooms', {}))).toBeNull()
     const s0 = world('rooms', { warrior: 2 })
     expect(armyKeyAction(s0)).toBe('summon')
     const out = stepSim(s0, R)
-    expect(armyKeyAction(out)).toBeNull() // a goblin is still in the room
+    expect(armyKeyAction(out)).toBeNull() // a goblin is still in the room and the reserve is empty
+    expect(armyKeyAction({ ...out, army: { [playerOf(out).team]: { archer: 1 } } })).toBe('summon')
     expect(armyKeyAction({ ...out, exitsOpen: true })).toBe('sendBack')
   })
 })

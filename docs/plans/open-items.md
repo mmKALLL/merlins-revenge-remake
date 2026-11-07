@@ -147,11 +147,11 @@ floor; roguelite snapshots that record the floor.
 
 - Map compatibility: other room sizes and the merlinart maps (2026-11-08, branch of this session;
   engine notes walking-and-rooms §8, hud §2a, minimap §7). The play view is one of the map's rooms,
-  as the original drew it: 16x9 rooms (`new/roads_to_aldevar`, `not_fully_tested/roads_to_aldevar`,
+  as the original drew it: 16x9 rooms (`not_fully_tested/roads_to_aldevar_2`, `not_fully_tested/roads_to_aldevar`,
   `not_fully_tested/merlindemoviii`) show a 512x288 view on a 576x320 screen, 16x12 rooms
   (`wont_work/merliniiidemo`) 512x384 on 576x416; the HUD keeps its margins and strips around the
-  room and the page zoom fits the new screen; 18x9 maps are unchanged. The merlinart maps (one huge
-  room each) play in the open world only: C does nothing there and Settings shows Single room
+  room and the page zoom fits the new screen; 18x9 maps are unchanged. The merlinart maps (`merlin_art/`; one huge
+  room each) play in the open world only, all awake and without nav mode's speed: C does nothing there and Settings shows Single room
   disabled; merlinartii and merlinartiiv got map patches starting Merlin away from the hostiles
   around the room's centre (a guess at a spot). The open world mini-map now shows the room camera's
   statuses, pickups included (a spell scroll's room is yellow until it is collected). To check: the
@@ -308,7 +308,8 @@ floor; roguelite snapshots that record the floor.
 - R and M (2026-10, owner request): R summons the whole reserve army at the nearest enemy on
   screen, or the mouse in the mouse cursor Space mode (modAutoSummon, the original's C key; at most 2 of each type with Merlin's 12-member team cap),
   and sends the whole army back into the reserve while any of it is out once the fight is over
-  (room clear / nav mode; mid-fight R does nothing); M gives one medikit (as collecting one: +25
+  (room clear / nav mode); mid-fight it summons what the reserve holds even with allies already out
+  (owner, 2026-11-08: more of the army every press; balance to watch); M gives one medikit (as collecting one: +25
   energy and invincibility too) instead of the full heal. Touch: a blue army button above the
   weapon button (below it in portrait) acts as R, at the nearest enemy, shown only while R would act
   (`armyKeyAction`). A blank army summon (below

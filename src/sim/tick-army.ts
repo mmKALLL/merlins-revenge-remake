@@ -3,7 +3,8 @@
 // target), and the army summon brings them back teleporting in (tick-spell.ts summonPayload). A
 // teleport plays for TELEPORT_TICKS (modTeleport) while the unit goes on acting. The #army key (R)
 // summons the whole reserve at once (modAutoSummon) and, a remake change, every friendly wizard in
-// it; once the fight is over it sends the army and the wizards back into it (remake).
+// it, even with allies already out (owner, 2026-11-08); once the fight is over it sends the army and
+// the wizards back into it instead (remake).
 import { AUTO_SUMMON_JITTER, autoSummonTypes } from '../mr-open/mr-auto-summon'
 import { TELEPORT_TICKS, recordUnits, reserveCount, takeUnit } from '../mr-open/mr-army'
 import { tileOfPx } from '../mr-open/mr-collision'
@@ -58,23 +59,25 @@ export function stepTeleports(t: Tick): void {
  * The #army key (R; objAiPlayer.interpretGameKeys -> modAutoSummon.summonArmy) while Merlin is
  * alive: the whole reserve summoned around the mouse (Merlin without a mouse position). Remake
  * (owner requests): R also summons every wizard in the reserve (the original's #wizard key,
- * modSummonWizard.summonWizard, brought out one at a time); while army members or wizards of
- * Merlin's are in play, the key teleports them all out into the reserve instead (armyTeleportOut
- * each, as a blank army summon blast does), but only once the fight is over; mid-fight it does
- * nothing. Unless Space is in mouse mode the army is summoned at the nearest hostile on screen (the
- * mouse without one).
+ * modSummonWizard.summonWizard, brought out one at a time), and it summons what the reserve holds
+ * even while allies are already out (owner, 2026-11-08: more of the army every press). Once the
+ * fight is over and army members or wizards of Merlin's are in play, the key teleports them all out
+ * into the reserve instead (armyTeleportOut each, as a blank army summon blast does). Unless Space is
+ * in mouse mode the army is summoned at the nearest hostile on screen (the mouse without one).
  */
 export function stepArmyKey(t: Tick, input: InputSnapshot, view: Size): void {
   if (!input.armyKey) return
   const p = playerIn(t)
   if (!isAlive(p)) return
   const inPlay = alliesInPlay(t, p)
-  if (inPlay.length === 0) {
-    if (!defOf(t.s, p).armyKeySummons) return
-    const at = summonPoint(t, p, input, view)
-    summonWholeReserve(t, p, at)
-    summonReserveWizards(t, p, at)
-  } else if (fightOver(t)) for (const a of inPlay) teleportOut(t, a)
+  if (inPlay.length > 0 && fightOver(t)) {
+    for (const a of inPlay) teleportOut(t, a)
+    return
+  }
+  if (!defOf(t.s, p).armyKeySummons) return
+  const at = summonPoint(t, p, input, view)
+  summonWholeReserve(t, p, at)
+  summonReserveWizards(t, p, at)
 }
 
 function summonPoint(t: Tick, p: ActorState, input: InputSnapshot, view: Size): Vec {
@@ -151,13 +154,13 @@ function summonFromReserve(t: Tick, p: ActorState, typ: string, at: Vec): boolea
 
 /**
  * What R would do now (the touch army button shows only then): send the allies back (army members
- * or wizards in play and the fight over), summon the reserve (none in play and army units or
- * wizards waiting), or nothing.
+ * or wizards in play and the fight over), summon the reserve (army units or wizards waiting, allies
+ * out or not), or nothing.
  */
 export function armyKeyAction(s: SimState): 'summon' | 'sendBack' | null {
   const p = playerOf(s)
   const inPlay = s.actors.some((a) => isRCalled(s, p, a) && isAlive(a) && a.teleport !== 'out')
-  if (inPlay) return (s.worldMode === 'rooms' ? s.exitsOpen : s.navMode) ? 'sendBack' : null
+  if (inPlay && (s.worldMode === 'rooms' ? s.exitsOpen : s.navMode)) return 'sendBack'
   const summons = s.defs[p.def]?.armyKeySummons ?? true
   const waiting = Object.keys(s.army[p.team] ?? {}).filter((typ) => reserveCount(s.army, p.team, typ) > 0)
   const called = (typ: string) => (s.defs[p.def]?.armyMembers ?? []).includes(typ) || (s.defs[typ]?.wizard ?? false)
