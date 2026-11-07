@@ -1,4 +1,5 @@
 // Converts ./assets into ./public/generated for the browser. Run: pnpm assets:convert
+import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,7 +14,7 @@ import { TOWER_TILESETS, TOWER_TILESET_PARTS, TOWER_TILES_PER_ROW } from '../src
 import { parseTeams, withTeamTuning } from '../src/mr-open/mr-team-data'
 import { parseTileKey } from '../src/mr-open/mr-tile-key'
 import { appIcon } from './app-icon'
-import { buildAtlas, parseFrameName, type AtlasFrame } from './atlas'
+import { packSprites, parseFrameName, type AtlasFrame } from './atlas'
 import { combineTilesets } from './combined-tileset'
 import { applyMapPatch, type MapPatch } from './map-patch'
 import { decodeBmp, type RgbaImage } from './bmp'
@@ -278,12 +279,18 @@ function readFrame(dir: string, file: string, regs: Map<string, { x: number; y: 
 }
 
 /**
- * One atlas per folder under assets/sprites; the folder name is the sprite name.
+ * Every folder under assets/sprites packed into shared pages (tools/atlas.ts): sprites/index.json
+ * names the pages and holds each sprite's strips, keyed by folder name. A page's file name carries
+ * a hash of its content, so a browser may keep it cached: a new layout gets a new name.
  * Returns the names an actor's `name` may refer to: the folder names plus the
  * `chr` part of the frame file names (folders are named after the actor `name`, e.g. "mer").
  */
 function convertSprites(): Set<string> {
+  const out = join(OUT, 'sprites')
+  rmSync(out, { recursive: true, force: true }) // no pages of an earlier layout
+  mkdirSync(out, { recursive: true })
   const names = new Set<string>()
+  const framesBySprite: Record<string, AtlasFrame[]> = {}
   for (const sprite of sortedDir(join(ASSETS, 'sprites'))) {
     const dir = join(ASSETS, 'sprites', sprite)
     const regs = readRegPoints(dir)
@@ -291,18 +298,28 @@ function convertSprites(): Set<string> {
       .filter((f) => f.endsWith('.bmp') || f.endsWith('.png'))
       .map((f) => readFrame(dir, f, regs))
     if (frames.length === 0) continue
-    const atlas = buildAtlas(frames)
-    writePng(join(OUT, 'sprites', `${sprite}.png`), atlas.sheet)
-    writeFileSync(join(OUT, 'sprites', `${sprite}.json`), JSON.stringify({ animations: atlas.animations }))
-    console.log(`sprites ${sprite}: ${Object.keys(atlas.animations).length} animations`)
+    framesBySprite[sprite] = frames
     names.add(sprite)
     for (const f of frames) {
       const chr = parseFrameName(f.name)?.chr
       if (chr) names.add(chr)
     }
   }
+  const bundle = packSprites(framesBySprite)
+  const pages = bundle.pages.map((page, i) => {
+    const png = encodePng(page)
+    const file = `page-${i}-${contentHash(png)}.png`
+    writeFileSync(join(out, file), png)
+    return { file, width: page.width, height: page.height }
+  })
+  writeFileSync(join(out, 'index.json'), JSON.stringify({ pages, sprites: bundle.sprites }))
+  console.log(`sprites: ${Object.keys(bundle.sprites).length} packed into ${pages.length} pages (${pages.map((p) => `${p.width}x${p.height}`).join(', ')})`)
   return names
 }
+
+/** Hex characters of a content hash kept in a file name. */
+const CONTENT_HASH_CHARS = 10
+const contentHash = (data: Buffer): string => createHash('sha256').update(data).digest('hex').slice(0, CONTENT_HASH_CHARS)
 
 
 /** Every character, bullet and spell that the data names must have frames; abstract bases (no #name) are skipped. */
@@ -428,14 +445,17 @@ function readPng(path: string): RgbaImage {
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
 }
 
-function writePng(path: string, img: RgbaImage): void {
+function encodePng(img: RgbaImage): Buffer {
   const png = new PNG({ width: img.width, height: img.height })
   png.data = Buffer.from(img.rgba)
-  writeFileSync(path, PNG.sync.write(png))
+  return PNG.sync.write(png)
+}
+
+function writePng(path: string, img: RgbaImage): void {
+  writeFileSync(path, encodePng(img))
 }
 
 mkdirSync(join(OUT, 'tilesets'), { recursive: true })
-mkdirSync(join(OUT, 'sprites'), { recursive: true })
 
 // maps first, so tilesets can be sized to the highest index any map uses
 const maps = convertMaps()

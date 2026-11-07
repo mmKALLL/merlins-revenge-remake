@@ -1,5 +1,6 @@
 // Loads public/generated JSON and PNG (produced by tools/convert-assets.ts) into typed structures
-// and PixiJS textures. Tile and frame textures are sub-rectangles of one shared sheet texture.
+// and PixiJS textures. Tile and frame textures are sub-rectangles of shared sheet textures: a
+// tileset's sheet, and the few pages that hold every sprite's frames.
 import { Assets, Rectangle, Texture } from 'pixi.js'
 import { missingDefaultFields, type ActorDef } from '../mr-open/mr-actor-data'
 import { TILE_PX } from '../mr-open/mr-geometry'
@@ -36,7 +37,13 @@ export interface LoadedSprite {
 }
 
 interface SpriteAtlas {
-  animations: Record<string, { delay: number; frames: { x: number; y: number; w: number; h: number; delay?: number; reg?: { x: number; y: number } }[] }>
+  animations: Record<string, { delay: number; frames: { page: number; x: number; y: number; w: number; h: number; delay?: number; reg?: { x: number; y: number } }[] }>
+}
+
+/** sprites/index.json (tools/convert-assets.ts): every sprite's strips, their frames on a few shared pages. */
+export interface SpriteIndex {
+  pages: { file: string; width: number; height: number }[]
+  sprites: Record<string, SpriteAtlas>
 }
 
 /** A generated file that is not there (never converted, or pnpm assets:convert not run). */
@@ -74,6 +81,10 @@ const isTileset = (v: unknown): v is TilesetData =>
 const isSpriteAtlas = (v: unknown): v is SpriteAtlas =>
   isObj(v) && isObj(v['animations']) &&
   Object.values(v['animations']).every((a) => isObj(a) && isNum(a['delay']) && Array.isArray(a['frames']) && a['frames'].length > 0)
+
+const isSpriteIndex = (v: unknown): v is SpriteIndex =>
+  isObj(v) && Array.isArray(v['pages']) && v['pages'].every((p) => isObj(p) && typeof p['file'] === 'string') &&
+  isObj(v['sprites']) && Object.values(v['sprites']).every(isSpriteAtlas)
 
 const isActorDef = (v: unknown): v is ActorDef =>
   isObj(v) && typeof v['key'] === 'string' && typeof v['name'] === 'string' && typeof v['objType'] === 'string' &&
@@ -176,9 +187,20 @@ export async function loadTileset(name: string): Promise<LoadedTileset> {
   return { data, textures }
 }
 
-export async function loadSprite(name: string): Promise<LoadedSprite> {
-  const atlas = await json(`${GENERATED}sprites/${name}.json`, isSpriteAtlas)
-  const sheet = nearest(await Assets.load<Texture>(`${GENERATED}sprites/${name}.png`))
+/** Where every sprite's frames are (sprites/index.json); its pages load with loadSpritePage. */
+export async function loadSpriteIndex(): Promise<SpriteIndex> {
+  return json(`${GENERATED}sprites/index.json`, isSpriteIndex)
+}
+
+/** A page of sprite frames; its file name changes with its content, so it is not versioned. */
+export async function loadSpritePage(file: string): Promise<Texture> {
+  return nearest(await Assets.load<Texture>(`${GENERATED}sprites/${encodeURIComponent(file)}`))
+}
+
+/** A sprite by name from the index, its frames cut from the loaded pages (in the index's order). */
+export function spriteFromPages(index: SpriteIndex, pages: Texture[], name: string): LoadedSprite {
+  const atlas = index.sprites[name]
+  if (!atlas) throw new MissingAssetError(`no sprite "${name}" in ${GENERATED}sprites/index.json; run pnpm assets:convert`)
   const anims: AnimationSet = {}
   const frames: Record<string, Texture[]> = {}
   const regs: LoadedSprite['regs'] = {}
@@ -190,7 +212,7 @@ export async function loadSprite(name: string): Promise<LoadedSprite> {
       ...(delays.some((d) => d !== def.delay) ? { delays } : {}),
       ...(first.reg ? { reg: first.reg } : {}),
     }
-    frames[anim] = def.frames.map((f) => subTexture(sheet, f.x, f.y, f.w, f.h))
+    frames[anim] = def.frames.map((f) => subTexture(pageOf(pages, f.page, name), f.x, f.y, f.w, f.h))
     regs[anim] = def.frames.map((f) => f.reg)
   }
   // objAnimSet.symExistsOrDefault falls back to #stand; Merlin's export has no stand strip, so alias walk frame 1
@@ -201,6 +223,12 @@ export async function loadSprite(name: string): Promise<LoadedSprite> {
     regs['stand'] = [regs['walk']?.[0]]
   }
   return { anims, frames, regs }
+}
+
+function pageOf(pages: Texture[], page: number, sprite: string): Texture {
+  const texture = pages[page]
+  if (!texture) throw new Error(`sprite "${sprite}" names page ${page}; ${GENERATED}sprites/index.json has ${pages.length}`)
+  return texture
 }
 
 /** Arrow textures by colour and edge (structMaster.structExitArrowMembers). */

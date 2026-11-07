@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Vec } from '../mr-open/mr-geometry'
@@ -13,6 +13,7 @@ import { ROGUELITE_BIOMES } from './roguelite-biomes'
 import { GENERATED_MAPS, currentMapId, floorMapId, generateMap, isGeneratedMapId } from './generated-maps'
 import { VOLLEY_SCROLLS } from '../mr-open/mr-pickup'
 import { hatedTeams } from '../mr-open/mr-targeting'
+import { anims } from '../sim/test-data'
 import { GOLDEN_FORT, GOLDEN_PALACE, MAGIC_MAZE, ROGUELITE_THEMES, SPELL_SCROLLS, THEMES, TOWER_THEMES, type DrawSpec, type FloorTheme, type TierDraw, type UnitGroup } from './themes'
 
 /** Every theme: the generated maps', the roguelite run's own biomes and its 4x4 last floors. */
@@ -536,7 +537,7 @@ describe('Magic Maze corner and boss groups', () => {
     for (const key of new Set(groups.flatMap((g) => Object.keys(g.units)))) {
       const def = pageDefs[key]
       expect(def, key).toBeDefined()
-      expect(existsSync(`public/generated/sprites/${def!.name}.json`), `${key}: sprite ${def!.name}`).toBe(true)
+      expect(anims[def!.name], `${key}: sprite ${def!.name}`).toBeDefined()
     }
   })
 

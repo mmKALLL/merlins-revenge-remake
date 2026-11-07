@@ -9,13 +9,15 @@ import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { ARMY_SUMMON } from './mr-open/mr-army'
 import { GOLDEN_MACHINE_GUN } from './mr-open/mr-pickup'
 import {
-  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
+  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSpriteIndex, loadSpritePage, loadTeams, loadTileset, loadWeaponSelectorTextures,
+  spriteFromPages, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
 import {
   framesPerSecond, loadArmyDisplay, loadAutoSave, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadMapListScores, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom,
   saveArmyDisplay, saveAutoSave, saveDebugInfo, saveDifficulty, saveFrameRate, saveLastMap, saveMapListScores, saveRandomMaps, saveSeedInUrl, saveSpaceMode, saveZoom,
 } from './data/preferences'
 import { LoadQueue } from './data/load-queue'
+import { LoadStage, loadedFraction } from './data/load-progress'
 import { loadBestScores, NO_BEST_SCORES, saveBestScores, withRunScore } from './data/best-scores'
 import { loadRogueliteStats, saveRogueliteStats, withRunEnded, withRunStarted, withStatsReset, type RogueliteStats } from './data/roguelite-stats'
 import { browserStore } from './data/favourites'
@@ -129,11 +131,15 @@ function buildGeneratedMapWithSeedInUrl(mapId: string, layoutSeed: number, facts
 
 /** Reports the step under way and how far the whole load has got (0..1), for the loading screen. */
 type LoadProgress = (step: string, fraction: number) => void
-/** The loading bar: building a generated map fills it up to MAP_SHARE, the asset files up to FILES_END; starting the game is the rest. */
-const MAP_SHARE = 0.3
+/**
+ * The loading bar's stages by weight (src/data/load-progress.ts): a generated map's build, the data
+ * files (the map, actors, teams, HUD images...), the sprite index, the sprite pages and the map's
+ * tilesets. They fill it up to FILES_END; starting the game is the rest.
+ */
+const LOAD_WEIGHTS = { build: 30, data: 10, spriteIndex: 5, spritePages: 40, tilesets: 15 }
 const FILES_END = 0.95
 
-/** Queues a file load so the loading bar counts it as it arrives. */
+/** Queues a file load so the loading bar counts it, in its stage, as it arrives. */
 type TrackLoad = <T>(load: () => Promise<T>) => Promise<T>
 /** File loads running at once (a browser opens about six connections to a host anyway). */
 const LOADS_AT_ONCE = 6
@@ -149,14 +155,16 @@ const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0
 /** Atlases no actor is named after: objSpellIcons' summon stage icons. */
 const EFFECT_SPRITES = [SPELL_ICONS]
 
-/** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist), and the effects'. */
-async function loadSprites(defs: Record<string, ActorDef>, track: TrackLoad): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
+/** The sprite of every character, bullet and spell (convert-assets checks they exist), and the effects', from the sprite pages. */
+async function loadSprites(defs: Record<string, ActorDef>, track: { index: TrackLoad; pages: TrackLoad }): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
   const spriteNames = [...new Set([...Object.values(defs).filter(needsSprite).map((d) => d.name), ...EFFECT_SPRITES])]
+  const index = await track.index(loadSpriteIndex)
+  const pages = await Promise.all(index.pages.map((page) => track.pages(() => loadSpritePage(page.file))))
   const sprites: Record<string, LoadedSprite> = {}
   const anims: Record<string, AnimationSet> = {}
-  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await track(() => loadSprite(n))] as const))) {
-    sprites[name] = sprite
-    anims[name] = sprite.anims
+  for (const name of spriteNames) {
+    sprites[name] = spriteFromPages(index, pages, name)
+    anims[name] = sprites[name].anims
   }
   return { sprites, anims }
 }
@@ -241,32 +249,51 @@ interface Game {
 async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, startSeed: number): Promise<Game> {
   const { audio, input } = shell
   const generated = isGeneratedMapId(mapId)
-  let building = generated // the bar shows the build first, then the files
-  const filesFrom = generated ? MAP_SHARE : 0
-  let filesShown = filesFrom // files found later add to the count: the bar never goes back
-  const showFiles = () => {
-    if (building) return
-    filesShown = Math.max(filesShown, filesFrom + (FILES_END - filesFrom) * (files.done / files.total))
-    onProgress('Loading graphics', filesShown)
+  const stages = {
+    build: new LoadStage(generated ? LOAD_WEIGHTS.build : 0),
+    data: new LoadStage(LOAD_WEIGHTS.data),
+    spriteIndex: new LoadStage(LOAD_WEIGHTS.spriteIndex),
+    spritePages: new LoadStage(LOAD_WEIGHTS.spritePages),
+    tilesets: new LoadStage(LOAD_WEIGHTS.tilesets),
   }
-  const files = new LoadQueue(LOADS_AT_ONCE, showFiles)
-  const track: TrackLoad = (load) => files.add(load)
+  let shown = 0 // the bar never goes back
+  const show = () => {
+    shown = Math.max(shown, FILES_END * loadedFraction(Object.values(stages)))
+    onProgress(generated && stages.build.fraction < 1 ? 'Building the map' : 'Loading graphics', shown)
+  }
+  const files = new LoadQueue(LOADS_AT_ONCE)
+  const trackIn = (stage: LoadStage): TrackLoad => (load) => {
+    stage.total++
+    const loading = files.add(load)
+    const count = () => {
+      stage.done++
+      show()
+    }
+    loading.then(count, count)
+    return loading
+  }
+  const trackData = trackIn(stages.data)
   onProgress('Loading', 0)
   // the rest loads while the map does; a generated map needs the actors' energies and attacks (room draws) first
-  const dataLoading = track(() => Promise.all([loadTeams(), loadExitArrows(), loadEndingScripts(), loadHudTextures(), loadWeaponSelectorTextures()]))
-  const [loaded, defs] = await Promise.all([generated ? null : track(() => loadMap(mapId)), track(loadActors)])
-  const spritesLoading = loadSprites(defs, track)
+  const mapAndActors = Promise.all([generated ? null : trackData(() => loadMap(mapId)), trackData(loadActors)])
+  const dataLoading = Promise.all([trackData(loadTeams), trackData(loadExitArrows), trackData(loadEndingScripts), trackData(loadHudTextures), trackData(loadWeaponSelectorTextures)])
+  const [loaded, defs] = await mapAndActors
+  const spritesLoading = loadSprites(defs, { index: trackIn(stages.spriteIndex), pages: trackIn(stages.spritePages) })
   spritesLoading.catch(() => {}) // a failure surfaces at its await below, unless an earlier step fails first
   const facts = unitFacts(defs)
   const mapFor = (layoutSeed: number): MapDefinition => loaded ?? generatedMapWithSeedInUrl(mapId, layoutSeed, facts)
-  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, startSeed, facts, (f) => onProgress('Building the map', f * MAP_SHARE))
-  building = false
-  showFiles()
+  const showBuild = (fraction: number) => {
+    stages.build.setFraction(fraction)
+    show()
+  }
+  const map = loaded ?? await buildGeneratedMapWithSeedInUrl(mapId, startSeed, facts, showBuild)
+  if (generated) showBuild(1)
+  const trackTileset = trackIn(stages.tilesets)
   const layerTileset = async (layer: string) => {
     const name = map.layers.find((l) => l.name === layer)?.tileSet
     if (!name) throw new Error(`map ${mapId} has no ${layer} layer`)
     try {
-      return await track(() => loadTileset(name))
+      return await trackTileset(() => loadTileset(name))
     } catch (e) {
       throw new Error(`map ${mapId} (${layer} layer): ${e instanceof Error ? e.message : String(e)}`)
     }

@@ -136,6 +136,14 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
+- Faster map loading (2026-11-08, branch `sprite-pages-loading`; owner: the bar stalled at 63%).
+  The converter packs every sprite's frames into six 1024 px pages named by a content hash
+  (cacheable) plus one versioned `sprites/index.json` (tools/atlas.ts), so a map loads 7 sprite
+  files instead of 338: 467 requests became 136, and at 100 ms latency the load took 2.8 s instead
+  of 8.8 s. The bar fills by stages of fixed weight (a generated map's build, the data files, the
+  sprite index and pages, the tilesets; `src/data/load-progress.ts`), so it no longer stands at 63%.
+  Left: the ~38 HUD and weapon selector images and the 32 sounds still load one file each.
+
 - Save and load (2026-11-06, design `docs/plans/2026-11-06-save-load-design.md`; engine notes
   save-load). Each room clear autosaves the map (Settings, Auto-save, on by default; never the
   roguelite). Opening a saved map asks Continue or New game; a death loads the save after "You Got
