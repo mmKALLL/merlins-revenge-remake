@@ -91,6 +91,7 @@ export class CutSceneOverlay {
       this.speech.visible = scene.speech !== null
       if (scene.speech) {
         this.speech.text = scene.speech.text
+        this.speech.style.fill = hex(scene.speech.colour) // modThespian: the speaker's #speechColor
         // displaySpeechCutScene: centred on the speaker, kept inside the stage
         const half = this.speech.width / 2
         this.speech.position.set(Math.max(left + half, Math.min(right - half, scene.speech.x)), top - SPEECH_GAP)

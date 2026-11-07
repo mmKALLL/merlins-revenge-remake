@@ -66,10 +66,14 @@ export interface CastMember {
   propCarryLoc: Vec
   /** #initFaceDir -1: it starts facing left */
   startsFacingLeft: boolean
+  /** modThespian #speechColor: the colour of its lines */
+  speechColour: Rgb
 }
 /** Character -> its actor's data; a character not listed takes DEFAULT_CAST_MEMBER. */
 export type Cast = Readonly<Record<string, CastMember>>
-export const DEFAULT_CAST_MEMBER: CastMember = { walkSpeed: WALK_SPEED, propCarryLoc: DEFAULT_PROP_CARRY_LOC, startsFacingLeft: false }
+/** modThespian #init: #speechColor rgb(255,255,255) */
+const DEFAULT_SPEECH_COLOUR: Rgb = { r: 255, g: 255, b: 255 }
+export const DEFAULT_CAST_MEMBER: CastMember = { walkSpeed: WALK_SPEED, propCarryLoc: DEFAULT_PROP_CARRY_LOC, startsFacingLeft: false, speechColour: DEFAULT_SPEECH_COLOUR }
 
 /**
  * objTransformer: `curr` moves toward `target` by `speed` per frame, skipping the first frame (so
@@ -232,7 +236,7 @@ export interface CutSceneView {
   background: Rgb
   title: { text: string; colour: Rgb }
   players: CutScenePlayerView[]
-  speech: { character: string; x: number; text: string } | null
+  speech: { character: string; x: number; text: string; colour: Rgb } | null
 }
 
 export interface CutScenePlayerView {
@@ -250,7 +254,10 @@ export interface CutScenePlayerView {
 }
 
 export function cutSceneView(s: CutSceneState): CutSceneView {
-  const speech = s.speech?.phase === 'display' && s.speech.x !== null ? { character: s.speech.character, x: s.speech.x, text: s.speech.text } : null
+  const shown = s.speech?.phase === 'display' && s.speech.x !== null ? s.speech : null
+  const speech = shown && shown.x !== null
+    ? { character: shown.character, x: shown.x, text: shown.text, colour: castMember(s.cast, shown.character).speechColour }
+    : null
   return {
     background: s.background,
     title: { text: s.title.text, colour: s.title.colour },

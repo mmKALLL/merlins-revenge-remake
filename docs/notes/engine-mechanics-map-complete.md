@@ -85,7 +85,9 @@ built-in member plays (identical to `cut_scenes/mr4Complete.txt`):
   holds it 150 frames, then fades it back to black.
 - objTransformer skips its first frame, so a 0-100 fade at speed 2 takes 51 frames.
 - With `pAutoTurn` every other player turns to face the speaker. Speech in a cut scene is Verdana 10
-  bold white, 300 px wide, centred on the speaker and bottom-aligned 4 px above the stage rect.
+  bold in the speaker's `#speechColor` (modThespian.txt:121; white by default: Merlin rgb(100,100,255),
+  Ulin white, the TV rgb(182,95,64), Ochre's hydra rgb(215,209,49)), 300 px wide, centred on the
+  speaker and bottom-aligned 4 px above the stage rect.
 
 ### Port (src/cutscene/, src/render/cutscene-overlay.ts)
 

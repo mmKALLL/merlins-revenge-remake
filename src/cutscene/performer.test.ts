@@ -24,6 +24,13 @@ function runUntil(s: CutSceneState, done: (s: CutSceneState) => boolean, limit =
 }
 
 describe('the end cut scene (Map Cleared!)', () => {
+  it("colours a line with its speaker's #speechColor (modThespian)", () => {
+    const merlinBlue = { r: 100, g: 100, b: 255 }
+    const cast: Cast = { merlin: { ...DEFAULT_CAST_MEMBER, speechColour: merlinBlue } }
+    const [s] = runUntil(startCutScene(endScene, STAGE, cast).state, (t) => t.speech !== null)
+    expect(cutSceneView(s).speech?.colour).toEqual(merlinBlue)
+  })
+
   it('sets the stage and waits for the lights: Merlin at 300, faded out, the background on its way to grey', () => {
     const { state } = startCutScene(endScene, STAGE)
     expect(state.lightsPending).toBe(true)
@@ -38,7 +45,7 @@ describe('the end cut scene (Map Cleared!)', () => {
     expect(frames).toBe(FADE_FRAMES)
     expect(s.players[0]!.blend).toBe(100)
     expect(s.background).toEqual({ r: 220, g: 220, b: 220 })
-    expect(cutSceneView(s).speech).toEqual({ character: 'merlin', x: 300, text: 'Woo hoo!' })
+    expect(cutSceneView(s).speech).toEqual({ character: 'merlin', x: 300, text: 'Woo hoo!', colour: DEFAULT_CAST_MEMBER.speechColour })
     ;[s, frames] = runUntil(s, (t) => t.speech === null)
     expect(frames).toBe(speechFrames('Woo hoo!') + TIME_BETWEEN_LINES)
     expect(s.waitLeft).toBe(20)
