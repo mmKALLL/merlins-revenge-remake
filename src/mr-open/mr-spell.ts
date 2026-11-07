@@ -4,6 +4,7 @@
 // #magic (circle-vs-circle splash with linear falloff).
 import type { Vec } from './mr-geometry'
 import type { ActorDef, AttackDef } from './mr-actor-data'
+import { DEFAULT_MAGIC_LIMIT } from './mr-magic-limit'
 import { volleyFullCharge } from '../sim/volley'
 
 export interface ChargeLimits {
@@ -19,7 +20,7 @@ export interface ChargeLimits {
  * Remake: with a `chargeFullTicks` the max is also what the charge reaches in that many ticks; a
  * volley's max stops where it fires its most projectiles.
  */
-export function chargeLimits(caster: ActorDef, magicLimitPercent = 100): ChargeLimits {
+export function chargeLimits(caster: ActorDef, magicLimitPercent = DEFAULT_MAGIC_LIMIT): ChargeLimits {
   const a = caster.attack
   let max = Math.min(a.chargeMax, caster.mana_capacity * a.chargeMaxModifier + a.chargeMaxBasic)
   if (a.limitMagic) max = (max * magicLimitPercent) / 100

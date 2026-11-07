@@ -18,17 +18,19 @@
 // 11. removed actors dropped, graves stored in the room; exits open (and nav mode starts) when no
 //     hostile team member was left at the start of the tick, i.e. one tick after the last #finish
 // 12. room change: the room's characters stored (a dying one finishes when the room is back), the new room restored or spawned (combat notes §2);
-//     the new room's music tile (if any) emits a `music` event, as createSim does for the start room
+//     the new room's music tile (if any) emits a `music` event, as createSim does for the start room;
+//     the old room's magic limiters finish and the new room's set the magic limit (magic-limit.ts)
 // 13. remake: the score (score.ts): the room's countdown, a cleared room's points banked
 // In a continuous world (remake feature, engine notes walking-and-rooms "Continuous world") every
 // room is spawned at the start and steps 11-12 give way to: units woken or put to sleep
-// (activation.ts), graves stored in their own room, nav mode by distance, and the music of the room
-// Merlin walks into; there are no exits and no room store/restore. switchWorldMode (world-mode.ts)
+// (activation.ts), graves stored in their own room, nav mode by distance, and the music and magic
+// limiters of the room Merlin walks into; there are no exits and no room store/restore. switchWorldMode (world-mode.ts)
 // changes between the two between ticks.
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { NO_ARMY } from '../mr-open/mr-army'
 import { currentAttack, naturalArsenal, startingArsenal } from '../mr-open/mr-weapons'
 import { NO_GMG, gmgStrip } from '../mr-open/mr-golden-machine-gun'
+import { DEFAULT_MAGIC_LIMIT } from '../mr-open/mr-magic-limit'
 import { sweepTileCollision } from '../mr-open/mr-collision'
 import { TILE_PX, tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { ROOM_CLEARED_SOUND, DEFAULT_VOLUME } from '../mr-open/mr-sound'
@@ -39,6 +41,7 @@ import type { TeamDef } from '../mr-open/mr-team-data'
 import { stepTechnique } from '../mr-open/mr-weapon-technique'
 import { activateAtStart, navModeClear, stepActivation } from './activation'
 import { withAttackGrace } from './attack-grace'
+import { actorsInRoom, withMagicLimiters } from './magic-limit'
 import { checkMapCleared, completeMap, isEndRoom, isWholeMapClear } from './map-complete'
 import {
   collisionRectFor, createActor, defOf, faceAlong, isAlive, isKeptWithRoom, isSpell, isStepped, isUnit, playerOf, playerStatsOf, roomMusicTrack, spawnAllRooms,
@@ -101,19 +104,23 @@ export function createSim(
     arsenal: grid.map.noStartingWeapon ? naturalArsenal(defs['player']!) : startingArsenal(defs['player']!),
     gmg: NO_GMG,
     army: NO_ARMY,
+    magicLimit: DEFAULT_MAGIC_LIMIT,
     score: NEW_SCORE,
     events: [],
   }
   const [player, s] = createActor(empty, 'player', startPos)
   const withPlayer: SimState = { ...s, playerId: player.id, actors: [player] }
   if (worldMode === 'continuous') {
-    const started = withAttackGrace(activateAtStart(spawnAllRooms(withPlayer)))
+    const started = withStartMagicLimit(withAttackGrace(activateAtStart(spawnAllRooms(withPlayer))))
     return withStartScore(checkMapCleared(withRoomMusic({ ...started, navMode: navModeClear(started) })))
   }
-  return withStartScore(withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(withPlayer, s.room)))))
+  return withStartScore(withRoomMusic(withExitsEvaluated(withAttackGrace(withStartMagicLimit(spawnRoomActors(withPlayer, s.room))))))
 }
 
 const withStartScore = (s: SimState): SimState => ({ ...s, score: startScore(s) })
+
+/** The start room's magic limiters come into play with it (objMagicLimit.init). */
+const withStartMagicLimit = (s: SimState): SimState => withMagicLimiters(s, [], actorsInRoom(s, s.room))
 
 /** Where characters are kept: the current room, or the whole map in a continuous world. */
 function playAreaRect(s: SimState): Rect {
@@ -336,6 +343,7 @@ function stepWeaponTechnique(t: Tick): void {
 /**
  * 12. Store the old room's characters, then restore the new room's or spawn it on a first visit. A
  * dying character is stored too: its death goes on to #finish and its grave once the room is back.
+ * The old room's magic limiters finish with it and the new room's come into play (magic-limit.ts).
  */
 function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
   const fromKey = roomKey(from)
@@ -355,10 +363,10 @@ function changeRoom(s: SimState, from: Vec, to: Vec): SimState {
     rooms: { ...s.rooms, [fromKey]: { ...stored, actors: survivors } },
   }
   const target = next.rooms[toKey]
-  if (target?.spawned) {
-    return withRoomMusic(withExitsEvaluated(withAttackGrace({ ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } })))
-  }
-  return withRoomMusic(withExitsEvaluated(withAttackGrace(spawnRoomActors(next, to))))
+  const entered = target?.spawned
+    ? { ...next, actors: [...carried, ...target.actors], rooms: { ...next.rooms, [toKey]: { ...target, actors: [] } } }
+    : spawnRoomActors(next, to)
+  return withRoomMusic(withExitsEvaluated(withAttackGrace(withMagicLimiters(entered, survivors, entered.actors))))
 }
 
 /**
@@ -420,7 +428,7 @@ function afterTick(t: Tick): SimState {
 
 /**
  * 11-12 in a continuous world: units woken or put to sleep, graves stored in their own room, nav
- * mode by distance, and the music of a room Merlin has walked into.
+ * mode by distance, and the music and magic limiters of a room Merlin has walked into.
  */
 function settleContinuous(t: Tick, room: Vec): SimState {
   stepActivation(t)
@@ -432,7 +440,8 @@ function settleContinuous(t: Tick, room: Vec): SimState {
     rooms = { ...rooms, [key]: { ...stored, graves: [...stored.graves, g] } }
   }
   const settled = checkMapCleared({ ...next, rooms, navMode: navModeClear(next) })
-  return room.x !== next.room.x || room.y !== next.room.y ? withRoomMusic({ ...settled, room }) : settled
+  if (room.x === next.room.x && room.y === next.room.y) return settled
+  return withRoomMusic(withMagicLimiters({ ...settled, room }, actorsInRoom(settled, next.room), actorsInRoom(settled, room)))
 }
 
 export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFAULT_SIM_CONFIG): SimState {

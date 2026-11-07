@@ -62,7 +62,7 @@ const withGun = (def: ActorDef, gmg: GmgState): ActorDef => (gmg.on && def.attac
 /** A charge step (objAiAttack.chargeSpell); false while the cooldown holds it (objAiAttack.attack). */
 function continueCharge(t: Tick, p: ActorState, def: ActorDef, spell: ActorState): boolean {
   if (!cooldownReady(p.cooldown)) return false // objAiAttack.attack
-  const limits = chargeLimits({ ...def, attack: spell.attack ?? def.attack }) // magic limit fixed at 100 %
+  const limits = chargeLimits({ ...def, attack: spell.attack ?? def.attack }, t.s.magicLimit)
   p.mode = 'charge' // ensureMode(#charge)
   spell.charge = chargeStep(spell.charge, limits.speed, limits.max)
   // the player's AI only resets its charge counter on #chargeLimited (objAiAttack.eventNotification)
@@ -84,7 +84,7 @@ function autoFire(t: Tick, p: ActorState, def: ActorDef, spell: ActorState, inpu
   const aim = () => spellAimPoint(t, p, input, p.ai.chargeKind, view, atk)
   if (isVolleyStream(atk)) streamVolley(t, p, spell, aim())
   else if (isSpellStream(atk)) streamSpell(t, p, spell, aim())
-  else if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk })) || summonDue(t, spell, atk)) releaseSpell(t, p, def, spell, input, view)
+  else if (gmgAutoFires(atk, spell.charge, chargeLimits({ ...def, attack: atk }, t.s.magicLimit)) || summonDue(t, spell, atk)) releaseSpell(t, p, def, spell, input, view)
 }
 
 /**

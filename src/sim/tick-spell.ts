@@ -133,7 +133,7 @@ export function startSpell(t: Tick, caster: ActorState, def: ActorDef): ActorSta
   const created = spawn(t, 'spell', chargeLoc(caster.pos, def, caster.facingLeft), {
     mode: 'charge',
     ownerId: caster.id,
-    charge: chargeLimits(def).start,
+    charge: chargeLimits(def, t.s.magicLimit).start,
     team: caster.team,
     attack: def.attack,
   })

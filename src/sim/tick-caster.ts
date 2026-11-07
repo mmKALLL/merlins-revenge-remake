@@ -60,7 +60,7 @@ function stepCasting(t: Tick, a: ActorState, def: ActorDef): void {
   if (!cooldownReady(a.cooldown)) return // objAiAttack.attack: nothing until the cooldown is done
   if (heldByAttackGrace(a, def.attack)) return // remake: no charge yet (attack-grace.ts)
   const target = actorIn(t, a.ai.targetId!)!
-  const limits = chargeLimits(def)
+  const limits = chargeLimits(def, t.s.magicLimit)
   let spell = chargingSpellOf(t, a)
   if (!spell) {
     // ensureSpell: the charge counter runs to calcAttackChargeMax, drawn afresh for a random summoner

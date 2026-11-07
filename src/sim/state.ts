@@ -238,6 +238,7 @@ export interface SimState {
   arsenal: Arsenal // Merlin's weapons (modWeaponManager)
   gmg: GmgState // the golden machine gun: found, and on (modGoldenMachineGun)
   army: ArmyReserve // armyMaster.pReserveArmy
+  magicLimit: number // magicLimitMaster.pMagicLimit: the percentage of the charge max #limitMagic spells reach (magic-limit.ts)
   score: ScoreState // remake: the room countdowns and the map's total (score.ts)
   events: SimEvent[] // per tick, for rendering/sound (cleared each tick)
 }
