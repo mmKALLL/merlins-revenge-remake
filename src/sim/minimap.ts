@@ -2,14 +2,15 @@
 // Merlin is in nav mode, and each room's cell takes the room's minimap status. The engine caches
 // the statuses (pMapData: every room at map init, the four neighbours and #cur on each display);
 // rooms are frozen while Merlin is elsewhere, so computing them when drawn gives the same picture.
-// The continuous world (remake feature) has no current room: every room's cell comes from the
-// living units standing in it, and the renderer marks the view instead.
+// The continuous world (remake feature) has no current room: every room's cell comes from what
+// stands in it now (what a room would keep on Merlin's leaving it), and the renderer marks the view
+// instead.
 import type { Vec } from '../mr-open/mr-geometry'
 import { miniMapStatus, type MiniMapStatus } from '../mr-open/mr-map-clear'
 import type { MiniMapCell } from '../mr-open/mr-minimap'
-import { isAlive, isUnit } from './actors'
+import { isAlive, isKeptWithRoom, isUnit } from './actors'
 import { miniMapStatusOf, roomObjectKeys } from './map-complete'
-import { roomKey, type SimState } from './state'
+import { roomKey, type ActorState, type SimState } from './state'
 
 /**
  * modMiniMap.displayMiniMap runs on gameMaster.goNavMode and miniMapOffScreen on leaveNavMode;
@@ -44,11 +45,15 @@ function roomsModeCell(s: SimState, room: Vec): MiniMapCell {
   return miniMapStatus(defs.map((def) => miniMapStatusOf(s, def)))
 }
 
-/** Continuous world: each room's status over the living units whose position is in it. */
+/**
+ * Continuous world: each room's status over the actors whose position is in it and that a room
+ * keeps in its saved state (getMiniMapStatusFromRoomState): the living units and the uncollected
+ * pickups, so a spell scroll's room shows #spe as in the room camera.
+ */
 function liveRoomStatuses(s: SimState): (room: Vec) => MiniMapStatus {
   const statuses = new Map<string, (string | undefined)[]>()
   for (const a of s.actors) {
-    if (!isUnit(s, a) || !isAlive(a)) continue
+    if (!showsOnMiniMap(s, a)) continue
     const key = roomKey(s.grid.roomOfPoint(a.pos.x, a.pos.y))
     const list = statuses.get(key) ?? []
     list.push(miniMapStatusOf(s, a.def))
@@ -56,3 +61,6 @@ function liveRoomStatuses(s: SimState): (room: Vec) => MiniMapStatus {
   }
   return (room) => miniMapStatus(statuses.get(roomKey(room)) ?? [])
 }
+
+/** What a room keeps when Merlin leaves it (isKeptWithRoom), less the units already dying. */
+const showsOnMiniMap = (s: SimState, a: ActorState): boolean => isKeptWithRoom(s, a) && (isAlive(a) || !isUnit(s, a))

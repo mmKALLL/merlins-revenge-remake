@@ -62,6 +62,13 @@ describe('mini-map (continuous world)', () => {
     expect(miniMapCells(moved)).toEqual([['clr', 'clr', 'inf']])
   })
 
+  it('shows the same statuses as the room camera: a spell scroll\'s room is #spe until it is collected', () => {
+    const s = sim(map([[], [GOBLIN], [GOBLIN, FRIENDLY_WARRIOR], [SCROLL, GOBLIN], []]), 'continuous')
+    expect(miniMapCells(s)).toEqual([['clr', 'inf', 'fre', 'spe', 'clr']])
+    const collected = { ...s, actors: s.actors.map((a) => (a.def === 'energyBlast' ? { ...a, mode: 'collected' as const } : a)) }
+    expect(miniMapCells(collected)).toEqual([['clr', 'inf', 'fre', 'inf', 'clr']])
+  })
+
   it('switching to rooms marks Merlin\'s room #cur again', () => {
     const s = switchWorldMode(sim(map([[], [GOBLIN]]), 'continuous'), 'rooms')
     expect(miniMapCells(s)).toEqual([['cur', 'inf']])

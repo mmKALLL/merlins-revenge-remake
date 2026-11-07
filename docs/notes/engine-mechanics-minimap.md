@@ -125,8 +125,12 @@ images (`miniClear.tif`, `miniCurr.tif`, `miniFriendly.bmp`, `miniInfest.tif`,
 
 ### Remake decisions
 
-- **Continuous world.** There is no current room. Each cell takes the status of the living units
-  whose position is in that room at the moment (asleep or awake). A solid miniCurrent-yellow
+- **Continuous world.** There is no current room. Each cell takes the status of what a room would
+  keep in its saved state on Merlin's leaving it (`isKeptWithRoom`), counted by position at the
+  moment: the living units (asleep or awake), the uncollected pickups, chatters and recorded mines.
+  So the cells show the room camera's statuses: a spell scroll's room is miniSpecial (#spe) until
+  the scroll is collected, a friendly's #fre, a hostile's #inf (until 2026-11-08 only units counted,
+  and a scroll's room showed clear). A solid miniCurrent-yellow
   marker the size of the view (one cell, as the view is one room) slides over the cells at the
   camera's position, snapped to map image px, so it straddles rooms as the camera does. The map
   shows while nav mode is on, i.e. no awake hostile within `navModeClearRadius`.
