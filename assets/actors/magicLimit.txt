@@ -1,0 +1,74 @@
+[#name: "act_magicLimit", #type: #field]
+[
+#objType: #objMagicLimit,
+#inherit: #game,
+#character: #magicLimit,
+#minimapStatus: #clr,
+#weight: 1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

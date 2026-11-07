@@ -1,0 +1,3 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_magicLimit50_stand_03_01	gfx	2725	32	32	32	16	16	alpha=255..255
+anm_magicLimit50_stand_03_02	gfx	2726	32	32	32	16	16	alpha=255..255

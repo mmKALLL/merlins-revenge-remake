@@ -205,6 +205,12 @@ for (const name of Object.keys(FRIENDLY_WIZARDS)) {
 for (const name of ['pitMonster', 'berlinTV', 'chatter']) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: merliniii object' })
 }
+// The magic limiters (objMagicLimit: while one is in play, magicLimitMaster cuts every #limitMagic
+// spell's charge max to its percentage) and their parent act_magicLimit
+const MAGIC_LIMITS = ['magicLimit1', 'magicLimit25', 'magicLimit50', 'magicLimit75']
+for (const name of ['magicLimit', ...MAGIC_LIMITS]) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: magic limiter' })
+}
 // The cut scene players of the MR3 intro (#inherit #actorPlayer): Merlin, Ulin, the TV, the scenery,
 // Ochre as a hydra and the props
 const CUT_SCENE_PLAYERS = ['merlin', 'ulin', 'tv', 'treesRocks', 'ochreHydra', 'blackPotion', 'horriblePotion', 'whiteScroll']
@@ -243,6 +249,8 @@ const castSprites = [
   ...Object.values(FRIENDLY_WIZARDS),
   // merliniii's pit monsters and TV; the MR3 intro's TV, scenery, Ochre as a hydra and props
   'pitMonster', 'tv', 'tvProp', 'treesRocks', 'ochreHydra', 'horriblePotion', 'whiteScroll',
+  // the magic limiters
+  ...MAGIC_LIMITS,
   // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
   'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]
