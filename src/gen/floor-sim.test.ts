@@ -1,7 +1,7 @@
 // Generated floors and the tower in the real sim, with the page's converted data (pnpm assets:convert): they
 // start clear in the start room, clearing the exit room completes the map, and every unit a theme
 // can place (the pending scrolls aside) is a ported actor with sprites.
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { tileCentre } from '../mr-open/mr-geometry'
 import { pageDefs, pageTeams } from '../debug/snapshot-test-data'
@@ -62,7 +62,7 @@ describe.each([...THEMES, ...ROGUELITE_THEMES, ...ROGUELITE_BIOMES[3]!])('random
       const def = pageDefs[key]
       expect(def, key).toBeDefined()
       if (def!.objType === MUSIC_OBJ_TYPE) continue
-      expect(existsSync(`public/generated/sprites/${def!.name}.json`), `${key} (${def!.name})`).toBe(true)
+      expect(anims[def!.name], `${key} (${def!.name})`).toBeDefined()
     }
   })
 })

@@ -9,7 +9,8 @@ import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { ARMY_SUMMON } from './mr-open/mr-army'
 import { GOLDEN_MACHINE_GUN } from './mr-open/mr-pickup'
 import {
-  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSprite, loadTeams, loadTileset, loadWeaponSelectorTextures, WEAPON_ICON_KEYS, type LoadedSprite,
+  loadActors, loadCutScene, loadExitArrows, loadHudTextures, loadMap, loadSpriteIndex, loadSpritePage, loadTeams, loadTileset, loadWeaponSelectorTextures,
+  spriteFromPages, WEAPON_ICON_KEYS, type LoadedSprite,
 } from './data/loaders'
 import {
   framesPerSecond, loadArmyDisplay, loadAutoSave, loadDebugInfo, loadDifficulty, loadFrameRate, loadLastMap, loadMapListScores, loadRandomMaps, loadSeedInUrl, loadSpaceMode, loadZoom,
@@ -149,14 +150,16 @@ const nextRunSeed = (seed: number): number => (Math.imul(seed ^ (seed >>> 15), 0
 /** Atlases no actor is named after: objSpellIcons' summon stage icons. */
 const EFFECT_SPRITES = [SPELL_ICONS]
 
-/** One atlas per sprite name of every character, bullet and spell (convert-assets checks they exist), and the effects'. */
+/** The sprite of every character, bullet and spell (convert-assets checks they exist), and the effects', from the sprite pages. */
 async function loadSprites(defs: Record<string, ActorDef>, track: TrackLoad): Promise<{ sprites: Record<string, LoadedSprite>; anims: Record<string, AnimationSet> }> {
   const spriteNames = [...new Set([...Object.values(defs).filter(needsSprite).map((d) => d.name), ...EFFECT_SPRITES])]
+  const index = await track(loadSpriteIndex)
+  const pages = await Promise.all(index.pages.map((page) => track(() => loadSpritePage(page.file))))
   const sprites: Record<string, LoadedSprite> = {}
   const anims: Record<string, AnimationSet> = {}
-  for (const [name, sprite] of await Promise.all(spriteNames.map(async (n) => [n, await track(() => loadSprite(n))] as const))) {
-    sprites[name] = sprite
-    anims[name] = sprite.anims
+  for (const name of spriteNames) {
+    sprites[name] = spriteFromPages(index, pages, name)
+    anims[name] = sprites[name].anims
   }
   return { sprites, anims }
 }
