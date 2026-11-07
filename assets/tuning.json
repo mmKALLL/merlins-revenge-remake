@@ -10,9 +10,13 @@
     "medikitRestRate": 3,
     "medikitPickupEnergy": 0,
     "activationAttackGraceTicks": 24,
+    "frictionReel": {
+      "x": 20,
+      "y": 20
+    },
     "frictionReelAgainstWalk": {
-      "x": 30,
-      "y": 30
+      "x": 60,
+      "y": 60
     },
     "attack": {
       "chargeMaxBasic": 6,

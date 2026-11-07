@@ -320,3 +320,8 @@ walks against the slide it decays by `frictionReelAgainstWalk` instead (player: 
 `assets/tuning.json`; engine default null = frictionReel), so steering back cuts a slide short while a
 hit he doesn't fight slides as far as before (`knockbackFriction` in `src/sim/tick.ts`).
 
+Half the slide (owner, 2026-11-08): Merlin moves the knockback, then loses the friction's share of it,
+so a slide covers about its first tick's push / friction. The player's `frictionReel` 10 -> 20 and
+`frictionReelAgainstWalk` 30 -> 60 halve both slides; the first tick's jolt (and so the wall-impact
+damage, `damageSpeed`) is unchanged.
+
