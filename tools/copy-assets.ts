@@ -101,7 +101,7 @@ function copyMapsRecursive(dir: string): void {
   }
 }
 copyMapsRecursive(join(ARCHIVE, 'maps'))
-copies.push({ from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, 'maps/tvsDemo.txt'), why: 'map (the archive\'s map_to_play)' })
+copies.push({ from: join(ARCHIVE, 'map_to_play', 'tvsDemo.txt'), to: join(ASSETS, `maps/${MAP_RENAMES['tvsDemo'] ?? 'tvsDemo'}.txt`), why: 'map (the archive\'s map_to_play)' })
 
 // every file in fromDir matching pattern -> toDir/<same name>
 function copyGlob(fromDir: string, pattern: RegExp, toDir: string, why: string): void {

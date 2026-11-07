@@ -9,7 +9,7 @@ import { cutSceneView, startCutScene, stepCutScene, type Cast, type CutSceneCue,
 import type { CutSceneScript } from './script'
 
 /** Map id -> the cut scene played before it (assets/cut-scenes/<name>.txt). */
-export const MAP_INTROS: Readonly<Record<string, string>> = { 'some_bugs/merliniii': 'mr3IntroFull' }
+export const MAP_INTROS: Readonly<Record<string, string>> = { merliniii: 'mr3IntroFull' }
 
 export const introFor = (mapId: string): string | null => MAP_INTROS[mapId] ?? null
 

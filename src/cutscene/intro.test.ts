@@ -6,12 +6,12 @@ import { MAP_INTROS, introFor, introOver, introView, skipIntro, startIntro, step
 import { parseCutScene } from './script'
 
 const STAGE = { left: 32, right: 608 }
-const script = parseCutScene(readFileSync(`assets/cut-scenes/${MAP_INTROS['some_bugs/merliniii']}.txt`, 'utf8'))
+const script = parseCutScene(readFileSync(`assets/cut-scenes/${MAP_INTROS['merliniii']}.txt`, 'utf8'))
 
 describe('map intros (remake: owner decision)', () => {
   it("only merliniii has one, MR3's intro", () => {
-    expect(introFor('some_bugs/merliniii')).toBe('mr3IntroFull')
-    expect(Object.keys(MAP_INTROS)).toEqual(['some_bugs/merliniii'])
+    expect(introFor('merliniii')).toBe('mr3IntroFull')
+    expect(Object.keys(MAP_INTROS)).toEqual(['merliniii'])
     expect(introFor('works/sam')).toBeNull()
   })
 

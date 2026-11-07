@@ -25,7 +25,7 @@ archive's `casts/`; the MR4 globals are in the `GameInitGlobals` movie script in
   hostile. A key without a status is skipped (getPos of VOID is 0).
 - **End room.** `gameMaster.teamDied`: if the exits opened and `objMap.isEndRoom()` (the current room
   is the map's `#endRoom`, objMap.txt:499-508), `gameEvent(#mapClear)` too, whatever the other rooms
-  hold. Only two archive maps set `#endRoom` (`some_bugs/merliniii`, `not_fully_tested/mriiilongii`);
+  hold. Only two archive maps set `#endRoom` (`merliniii`, `not_fully_tested/mriiilongii`);
   the rest say `#endRoom: #none`. Room activation never takes this path.
 - **gameEvent.** `gGameCompleteEvent = #mapClear` (defaultGameGlobals), so `gameEvent(#mapClear)`
   calls `gameMaster.gameComplete` (gameMaster.txt:81-99): `finishGame` (every actor, the enemy energy
@@ -144,7 +144,7 @@ with act_merlin's sprite (`mer`; it has no stand strip, so standing shows the fi
 `gIntroScript` plays on the original's intro screen before the game; Merlin Open's own
 (`cut_scene_to_play`) is empty. **Owner decision (2026-11-08):** MR3's intro
 (`cut_scenes/mr3IntroFull`: the Wizard's Council, then Ochre's potion at the end of MR2) plays
-before `some_bugs/merliniii` only (`MAP_INTROS`, `src/cutscene/intro.ts`). It plays when a new game
+before `merliniii` only (`MAP_INTROS`, `src/cutscene/intro.ts`). It plays when a new game
 of the map starts: from the title, the map list (New game too) or a page opened on it; not on Restart
 map, a death, Continue or the game over's reload. Enter, Space or a click/tap skips it. It is drawn
 like an ending's cut scene over a black screen (no fade-in or fade-out: assumed), the sim waits,

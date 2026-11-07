@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseMapFile, roomNumToXY, roomXYToNum } from './mr-map-format'
 
-const tvsDemo = readFileSync('assets/maps/tvsDemo.txt', 'utf8')
+const tvsDemo = readFileSync('assets/maps/test_maps/tvsDemo.txt', 'utf8')
 const sam = readFileSync('assets/maps/works/sam.txt', 'utf8')
 
 describe('roomNumToXY', () => {

@@ -98,7 +98,7 @@ enemies: plain `objCPUCharacter` / `objAiCPUSpellCaster` units with 1000 energy 
 
 ## Pit monsters and other merliniii objects
 
-`some_bugs/merliniii` places 80 `pitMonster` tiles, one `berlinTV` and one `ochreWizard`.
+`merliniii` places 80 `pitMonster` tiles, one `berlinTV` and one `ochreWizard`.
 
 - **Pit monsters** (`act_pitMonster`) are `#objMine`s like Merlin's energy mines (spells notes §5,
   Mines), from their data: team `#pitMonsters` (category `#enemies`; its first hate group holds
