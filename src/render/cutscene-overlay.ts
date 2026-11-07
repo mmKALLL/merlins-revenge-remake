@@ -1,6 +1,6 @@
-// Draws the end and game over sequences over the whole canvas: the game fading to black, then the
-// cut scene stage (cutSceneMaster's background rect, objCutSceneTitle, the players and
-// modThespian's cut scene speech), then the "map complete" prompt. The animScreenEnd and
+// Draws the end and game over sequences and a map's intro over the whole canvas: the game fading
+// to black, then the cut scene stage (cutSceneMaster's background rect, objCutSceneTitle, the
+// players and modThespian's cut scene speech), then the "map complete" prompt. The animScreenEnd and
 // animScreenGameOver layouts are not extracted, so the stage and title positions below are
 // assumptions within the 640x320 screen.
 import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js'
@@ -33,6 +33,9 @@ export interface CharacterFrame { texture: Texture; reg: Vec }
 /** A character's frame of a strip, `stripFrames` frames into it. */
 export type CharacterFrameFor = (character: string, strip: CutSceneStrip, stripFrames: number) => CharacterFrame | undefined
 
+/** Held props draw in front of the players. */
+const HELD_PROP_Z = 1
+
 const hex = (c: Rgb): number => (c.r << 16) | (c.g << 8) | c.b
 
 export class CutSceneOverlay {
@@ -55,6 +58,7 @@ export class CutSceneOverlay {
     const { left, right } = CUTSCENE_STAGE
     const wings = new Graphics().rect(left, 0, right - left, screen.h).fill(0xffffff)
     this.cast.mask = wings
+    this.cast.sortableChildren = true // held props in front of their holders
     this.layer.addChild(this.cover, this.stage, this.title, wings, this.cast, this.speech, this.prompt)
     this.layer.visible = false
   }
@@ -137,6 +141,7 @@ export class CutSceneOverlay {
     spr.position.set(at.x, at.y)
     spr.scale.set(p.facingLeft ? -1 : 1, 1)
     spr.alpha = p.alpha
+    spr.zIndex = p.heldBy ? HELD_PROP_Z : 0
     return spr
   }
 

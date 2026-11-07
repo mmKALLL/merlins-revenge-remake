@@ -4,6 +4,8 @@ import { installStateExport } from './debug/state-export'
 import {
   ENDING_SCRIPTS, endSequenceView, restartDue, skipEndSequence, startEndSequence, stepEndSequence, type EndSequence, type EndingKind,
 } from './cutscene/end-sequence'
+import { cutSceneCast } from './cutscene/cast'
+import { introFor, introOver, introView, startIntro, stepIntro, type Intro } from './cutscene/intro'
 import type { CutSceneScript } from './cutscene/script'
 import { needsSprite, type ActorDef } from './mr-open/mr-actor-data'
 import { ARMY_SUMMON } from './mr-open/mr-army'
@@ -239,6 +241,8 @@ interface Game {
   setCamera(camera: CameraMode): void
   /** Forgets the best scores held in memory after Settings reset them, so a run cannot write them back. */
   forgetBestScores(): void
+  /** Plays the map's intro before its run (src/cutscene/intro.ts): the sim waits until it is over or skipped. */
+  playIntro(script: CutSceneScript): void
 }
 
 /**
@@ -339,6 +343,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
   // the map complete end sequence (fade, cut scene, prompt) or the game over (fade, cut scene,
   // restart); the sim stops while it runs
   let ending: EndSequence | null = sim.mapComplete ? startEndSequence('gameComplete') : null
+  // the map's intro (playIntro), over a black screen; the sim waits, and the start room's music with it
+  let intro: Intro | null = null
+  let musicAfterIntro: string | null = null
+  const cast = cutSceneCast(defs)
   // the map's best score in the run's world mode (a run with the mode switched has no score): a run
   // counts as its rooms are banked, so a death keeps what it reached
   let bests = loadBestScores(browserStore)
@@ -369,6 +377,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     sim = startSim(runSeed, worldModeFor(scene.cameraMode))
     audio.handle(sim.events) // the start room's music again
     ending = sim.mapComplete ? startEndSequence('gameComplete') : null
+    intro = null
   }
   /** The pick screen's art: a sprite's first frame of an animation. */
   const spriteArt: SpriteArt = (name, anim) => {
@@ -479,10 +488,29 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     ending = skipEndSequence(ending)
     if (restartDue(ending)) endGameOver()
   }
+  const playIntro = (script: CutSceneScript) => {
+    const started = startIntro(script, CUTSCENE_STAGE_X, cast)
+    intro = started.intro
+    musicAfterIntro = audio.track
+    audio.playMusic(null) // the script asks for no music; the start room's plays once the map starts
+    audio.handle(started.cues)
+    if (introOver(intro)) endIntro()
+  }
+  const endIntro = () => {
+    intro = null
+    audio.playMusic(musicAfterIntro)
+  }
+  /** Remake (owner): Enter, Space or a click/tap skips the intro; the map starts. */
+  const skipIntro = () => {
+    if (shell.running() && intro) endIntro()
+  }
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return // a key held from play skips nothing
     if (e.key === 'Enter') restartAfterEnding()
-    if (e.key === 'Enter' || e.code === 'Space') skipGameOver()
+    if (e.key === 'Enter' || e.code === 'Space') {
+      skipGameOver()
+      skipIntro()
+    }
   })
 
   const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud, weaponTextures)
@@ -500,6 +528,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     sim = s
     runSeed = restoredSeed
     ending = s.mapComplete ? startEndSequence('gameComplete') : null // a loaded moment replaces any running end sequence
+    intro = null
     // the camera follows the loaded world mode (switchWorldMode keeps a sim already in it)
     setCamera(s.worldMode === 'continuous' ? 'follow' : 'room')
   }
@@ -543,6 +572,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
   canvas.addEventListener('pointerdown', () => {
     restartAfterEnding()
     skipGameOver()
+    skipIntro()
   })
   /** A client position in stage px (the logical 640x320 screen). */
   const toStage = (client: Vec): Vec => {
@@ -590,8 +620,15 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     if (input.takeMiniMapToggle()) scene.toggleMiniMap()
     if (input.takeWeaponSelector()) scene.openWeaponSelector(pointerStage() ?? playerStage(), sim.tick)
     for (let i = 0; i < ticks && !buildingFloor; i++) {
+      if (intro) {
+        const r = stepIntro(intro)
+        intro = r.intro
+        audio.handle(r.cues)
+        if (introOver(intro)) endIntro()
+        continue
+      }
       if (ending) {
-        const r = stepEndSequence(ending, endingScripts[ending.kind], CUTSCENE_STAGE_X)
+        const r = stepEndSequence(ending, endingScripts[ending.kind], CUTSCENE_STAGE_X, cast)
         ending = r.seq
         audio.handle(r.cues)
         if (winEndingOver()) {
@@ -623,19 +660,32 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
       }
     }
     scene.musicTrack = audio.track
-    // the end sequence (and a floor being built) holds the sim: draw its last tick, not a slide between the last two
-    scene.draw(sim, drawAlpha(alpha, ending !== null || buildingFloor), fps, mouse, pointerStage())
+    // the intro, the end sequence (and a floor being built) hold the sim: draw its last tick, not a slide between the last two
+    scene.draw(sim, drawAlpha(alpha, intro !== null || ending !== null || buildingFloor), fps, mouse, pointerStage())
     shell.touch?.showWeapon(weaponIconUrl(sim.arsenal.current))
     shell.touch?.showArmy(armyKeyAction(sim) !== null)
     shell.touch?.showGun(sim.gmg.collected, sim.gmg.on)
     shell.touch?.showTarget(input.spaceMode)
     const endView = ending && endSequenceView(ending)
-    scene.drawEndSequence(endView && run ? { ...endView, done: false } : endView) // a run's summary replaces the prompt
+    if (intro) scene.drawEndSequence(introView(intro))
+    else scene.drawEndSequence(endView && run ? { ...endView, done: false } : endView) // a run's summary replaces the prompt
     scene.present()
   }
   requestAnimationFrame(frame)
   const forgetBestScores = () => { bests = NO_BEST_SCORES }
-  return { mapId, scene, restart, continueFrom, setCamera, forgetBestScores }
+  return { mapId, scene, restart, continueFrom, setCamera, forgetBestScores, playIntro }
+}
+
+/** The map's intro script (MAP_INTROS), or null; one that fails to load is left out with a warning. */
+async function loadIntro(mapId: string): Promise<CutSceneScript | null> {
+  const name = introFor(mapId)
+  if (!name) return null
+  try {
+    return await loadCutScene(name)
+  } catch (e) {
+    console.warn(`the intro of ${mapId} does not load; the map starts without it:`, e)
+    return null
+  }
 }
 
 /** Replaces the page with the error, keeping a map browser so another map can be picked. */
@@ -882,7 +932,7 @@ function main(): void {
       const g = game
       const save = await chooseRun(mapId, offeredSave(mapId))
       if (save) continueGame(g, save, () => g.restart('fresh'))
-      else g.restart('fresh')
+      else await newGameWithIntro(g)
       rememberParam('map', mapId)
       dispatch({ kind: 'play' })
       return
@@ -901,6 +951,7 @@ function main(): void {
 
   /** Starts a map, carried on from `save` if given; false (with the error on the page) when it failed to load. */
   async function load(mapId: string, save: MapSave | null): Promise<boolean> {
+    const intro = save ? null : loadIntro(mapId) // a new game plays the map's intro first
     try {
       // a generated map is built again on its save's layout
       game = await startGame(mapId, shell, loading.update, save?.layoutSeed ?? seed)
@@ -912,7 +963,16 @@ function main(): void {
     game.scene.setZoom(zoom)
     saveLastMap(mapId)
     if (save) continueGame(game, save, () => {})
+    const script = await intro
+    if (script) game.playIntro(script)
     return true
+  }
+
+  /** A new game of the map already loaded, after its intro (the restart waits for the script, so the map never shows first). */
+  async function newGameWithIntro(g: Game): Promise<void> {
+    const script = await loadIntro(g.mapId)
+    g.restart('fresh')
+    if (script) g.playIntro(script)
   }
 
   /** A page opened on a map: with a save, the choice comes first (the loading screen shows again once the map loads). */
