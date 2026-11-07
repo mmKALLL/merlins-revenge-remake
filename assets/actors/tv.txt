@@ -1,0 +1,74 @@
+[#name: "act_tv", #type: #field]
+[
+#inherit: #actorPlayer,
+#character: #prop,
+#name: "tvProp",
+#speechColor: rgb(182,95,64),
+#team: #collectables
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,75 @@
+[#name: "act_merlin", #type: #field]
+[
+#inherit: #actorPlayer,
+#name: "mer",
+#overlapToLeaveRoom: 14,
+#speechColor: rgb(100,100,255),
+#team: #aldevar,
+#walkSpeed: 4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

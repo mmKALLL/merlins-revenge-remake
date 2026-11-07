@@ -41,6 +41,8 @@ const copies: Copy[] = [
   { from: join(CASTS, 'scr_cut_scene_to_play_at_end.txt'), to: join(ASSETS, 'cut-scenes/cut_scene_to_play_at_end.txt'), why: 'map complete cut scene' },
   // the game over cut scene (gGameOverScript = #cut_scene_to_play_when_wasted; its folder is empty too)
   { from: join(CASTS, 'scr_cut_scene_to_play_when_wasted.txt'), to: join(ASSETS, 'cut-scenes/cut_scene_to_play_when_wasted.txt'), why: 'game over cut scene' },
+  // merliniii's intro (owner: that map only): the archive's MR3 intro, all five parts in one script
+  { from: join(ARCHIVE, 'cut_scenes', 'mr3IntroFull.txt'), to: join(ASSETS, 'cut-scenes/mr3IntroFull.txt'), why: 'MR3 intro cut scene' },
 ]
 
 // combat slice: actor data, act_<name>.txt -> actors/<name>.txt
@@ -198,6 +200,17 @@ const FRIENDLY_WIZARDS: Record<string, string> = {
 for (const name of Object.keys(FRIENDLY_WIZARDS)) {
   copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: friendly wizard' })
 }
+// merliniii's objects (docs/plans/open-items.md): the pit monsters (hidden mines of team pitMonsters) and
+// Berlin's TV (a chatter, with its parent act_chatter; its script, rescueBerlin_002, is not in the archive)
+for (const name of ['pitMonster', 'berlinTV', 'chatter']) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: merliniii object' })
+}
+// The cut scene players of the MR3 intro (#inherit #actorPlayer): Merlin, Ulin, the TV, the scenery,
+// Ochre as a hydra and the props
+const CUT_SCENE_PLAYERS = ['merlin', 'ulin', 'tv', 'treesRocks', 'ochreHydra', 'blackPotion', 'horriblePotion', 'whiteScroll']
+for (const name of CUT_SCENE_PLAYERS) {
+  copies.push({ from: join(CASTS, `act_${name}.txt`), to: join(ASSETS, `actors/${name}.txt`), why: 'actor: cut scene player' })
+}
 // every team file (enemy teams also fight each other through their hate lists)
 for (const file of readdirSync(CASTS).sort()) {
   const m = /^tem_(.+)\.txt$/.exec(file)
@@ -228,6 +241,8 @@ const castSprites = [
   'scw', 'ochreWizard',
   // the friendly wizards
   ...Object.values(FRIENDLY_WIZARDS),
+  // merliniii's pit monsters and TV; the MR3 intro's TV, scenery, Ochre as a hydra and props
+  'pitMonster', 'tv', 'tvProp', 'treesRocks', 'ochreHydra', 'horriblePotion', 'whiteScroll',
   // Merlin's spells: pulse and beam bullets, mines, the summon stage icons, the dwarf and its axe
   'energyPulse', 'energyBeam', 'energyMine', 'spellIcons', 'dwarf', 'axe',
 ]

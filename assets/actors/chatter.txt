@@ -1,0 +1,75 @@
+[#name: "act_chatter", #type: #field]
+[
+#objType: #objChatter,
+#AiType: #objAiChatter,
+#inherit: #actor,
+#collisionDetection:false,
+#collisionRect: rect(-60, -2, 60, 2),
+#createOnSolid: true
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

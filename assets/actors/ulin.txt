@@ -1,0 +1,79 @@
+[#name: "act_ulin", #type: #field]
+[
+#inherit: #actorPlayer,
+#collisionRect: rect(-60, -2, 60, 2),
+#initFaceDir: -1,
+#miniMapStatus: #spe,
+#name: "uli",
+#scriptToPerform: #demo_006_ulin,
+#speechColor: rgb(255,255,255),
+#startOffset: point(-16, -16),
+#walkSpeed: 2,
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

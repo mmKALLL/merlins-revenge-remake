@@ -1,0 +1,10 @@
+name	cast	member	width	height	bpp	regX	regY	note
+anm_ochreHydra_stand_03_01	gfx	2701	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_01	gfx	2702	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_02	gfx	2703	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_03	gfx	2704	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_04	gfx	2705	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_05	gfx	2706	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_06	gfx	2707	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_07	gfx	2708	63	45	32	31	22	alpha=255..255
+anm_ochreHydra_walk_03_08	gfx	2709	63	45	32	31	22	alpha=255..255

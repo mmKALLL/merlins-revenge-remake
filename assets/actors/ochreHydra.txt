@@ -1,0 +1,80 @@
+[#name: "act_ochreHydra", #type: #field]
+[
+#inherit: #actorPlayer,
+#character: #ochreWizard,
+#collisionRect: rect(-60, -2, 60, 2),
+#initFaceDir: -1,
+#miniMapStatus: #spe,
+#name: "ochreHydra",
+#propCarryLoc: point(10,-10),
+#team: #collectables,
+#speechColor: rgb(215,209,49),
+#startOffset: point(-16, -16),
+#walkSpeed: 4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

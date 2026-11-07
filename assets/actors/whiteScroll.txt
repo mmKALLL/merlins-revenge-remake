@@ -1,0 +1,74 @@
+[#name: "act_whiteScroll", #type: #field]
+[
+#inherit: #actorPlayer,
+#character: #prop,
+#name: "whiteScroll",
+#speechColor: rgb(255,255,255),
+#team: #collectables
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

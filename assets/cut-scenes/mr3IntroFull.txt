@@ -1,0 +1,514 @@
+characters
+#treesRocks - tr
+#tv - tv
+#merlin - m
+#ulin - u
+#ochreHydra - o
+#blackPotion - bp
+#horriblePotion - hp
+#whiteScroll - ws
+
+lines
+
+setStage
+m at 250
+u at 300
+tv propAt 200
+tv turnToFace u
+u turnToFace tv
+m turnToFace tv
+
+showTitle At the Wizard's Council...
+
+backgroundColourTo rgb(100,100,255)
+lightsUp
+
+wait 20
+
+tv: bleh, bleh, blah
+
+m: long programme, this.
+
+tv: meh, meh, moo
+
+u: yep. I feel like I've been watching it for ever.
+
+m: do you think level 3 is done yet?
+
+u: Yes... yes I do.
+
+u: I can feel it in me bones.
+
+tv: >Click< ...
+
+m turnToFace u
+
+m: Right then, so what should we do?
+
+u: eh?
+
+m: You said you'd know what to do when level 3 was done.
+
+u: I did?
+
+m: Yeah, well I'm pretty sure you did.
+
+u: Oh right. Erm. Er.
+
+m: You don't have a clue do you?
+
+u: Yes I do! Er, I think we should gather all the wizards together and then go after the Black Sorcerer.
+
+m: And the evil ones?
+
+u: We'll have to defeat them, and convert them back to good again.
+
+m: Right Ok. That sounds good.
+
+m: Where are they?
+
+u: Sorry?
+
+m: The wizards, where are they?
+
+u: Er, um. 
+
+u: I dunno, I think I better read some magical tomes or something.
+
+u produceProp ws
+
+u: Maybe that'll help.
+
+u walkTo 400
+
+m: Yeah maybe.
+
+m: Well, while you're doing that I'm going to head back to the end of MR2, maybe I'll find some clues or something.
+
+u: Ok.
+
+m exitStageLeft
+
+wait 60
+
+backgroundColourTo rgb(0,0,0)
+lightsDown
+
+u gotoWings
+ws gotoWings
+tv gotoWings
+
+wait 30
+
+setStage
+m at 650
+o at 650
+tr propAt 250
+m turnToFace tr
+
+showTitle At the End of MR2...
+
+backgroundColourTo rgb(141,111,95)
+lightsUp
+
+m walkTo 399
+
+wait 160
+
+m: Well, here I am.
+
+m walkTo 250
+
+m: Hmm...
+
+m walkTo 230
+
+m: Mmm..
+
+m walkTo 235
+
+m: Interesting...
+
+m walkTo 260
+
+wait 20
+
+m walkTo 259
+
+m: Ah ha!
+
+m: Nothing there.
+
+o: Returning to the scene eh, Merlin?
+
+m: Who's there?
+
+o: 'Tis I!
+
+o: The Ochre Wizard!
+
+m: Ulp...
+
+m: Er,
+
+m: I can't see you.
+
+o: Hang on a sec, I can't get this damn animal to move...
+
+o: Ah-ha! That's better!
+
+o walkTo 500
+
+o: 'Tis I! The Ochre Wizard!
+
+m: Ulp!
+
+
+o: So...
+
+o: ...it must be hot work looking through all that er, background.
+
+o walkTo 400
+
+o produceProp bp
+
+o: Fancy a drink?
+
+m: Ooh, I am a bit thirsty as it happens.
+
+o dropProp
+
+o: Here try some...
+
+o walkTo 500
+
+m: Hah! No chance!
+
+m: You must think I'm an idiot!
+
+m: An evil wizard offers you a black bottle with a skull on it?
+
+m: What do you take me for?
+
+m: It's obviously going to kill me!
+
+o: No it won't, I swear!
+
+o: It's just for the thirst.
+
+o: Hang on a sec, I've got some testimonials here.
+
+o produceProp ws
+
+o: These are from other wizards who have drunk that potion.
+
+o: Er, I mean innocent drink. Hehe.
+
+o: Ahem!
+
+o: "Nope I'm definitely not dead," says one.
+
+o: Another says, "Hmm... well I guess I am still alive."
+
+o: And yet another: "Well, technically I am still alive I suppose."
+
+o: I could go on...
+
+o putAwayProp
+
+m: I'm sure you could!
+
+m: I'm sure that you could make up testimonials all day!
+
+o: I'm offended! These are all real!
+
+o: For example, that last one was from er...
+
+o produceProp ws
+
+o: hang on...
+
+o: Berlin the Purple.
+
+o: Do you know him?
+
+o putAwayProp
+
+m: You bounder! You know where Berlin is?
+
+o: Oh dear, are you alright? You suddenly seem a little agitated!
+
+m: Tell me where he is! Is he safe?
+
+o: Ho ho, don't worry he's alive... for now.
+
+o: I don't know how long he'll be able to hold out though.
+
+m: Hold out against what? You tell me where he is right now!
+
+o: The drink, Merlin.
+
+m: You rotter!
+
+m walkTo 200
+
+wait 30
+
+m: Hmph!
+
+m walkTo 250
+
+wait 30
+
+m: And if I drink this accursed thing, you'll tell me where Berlin is?
+
+o: Well, put it this way, I won't if you don't.
+
+m: Very well.
+
+
+m walkToPlayer bp
+
+wait 37
+
+hp atPlayer bp
+bp gotoWings
+hp fadeDown
+playSound collect_powerup_01 255
+
+wait 30
+
+backgroundColourTo rgb(85,243,133)
+
+m: oo er..
+
+backgroundColourTo rgb(48,216,99)
+
+m: I don't feel so good.
+
+backgroundColourTo rgb(12,194,89)
+
+m: urghhh...
+
+backgroundColourTo rgb(141,111,95)
+
+m: Well, that was horrible.
+
+m: I do still seem to be alive, though.
+
+o produceProp ws
+
+o: Thank you. Another testimonial!
+
+o: "I - do - still - seem - to - be - alive - though".
+
+o putAwayProp
+
+m: So what did that do to me?
+
+o: Not much, just took away all your powers and spells from the last game.
+
+m: Oh poo.
+
+u teleportInAt 50
+
+u turnToFace m
+
+u: Not so fast Ochre!
+
+u walkTo 100
+
+m: Ulin!
+
+o: Ulin!
+
+u: Merlin! Be careful! 
+
+u: He means to steal your powers! 
+
+m: It's too late. He's already done it!
+
+o: Right, well I'll be off...
+
+o walkTo 650
+
+m: Hey! You come back here Ochre!
+
+o: or what?
+
+u: Let him go, we have more urgent matters to attend to.
+
+u: Tell me how he stole your powers.
+
+u: Did he use a black potion?
+
+m: Yes!
+
+u: With a skull on it?
+
+m: Yes!
+
+u: Then I must act quickly!
+
+u: Back in a tick.
+
+u teleportOut
+
+m walkTo 400
+
+o exitStageRight
+
+m: Blast! I can't believe I fell for that potion trick.
+
+m: He didn't even tell me where Berlin was.
+
+u teleportInAt 50
+
+u: Right...
+
+u walkTo 100
+
+u: ...well I couldn't get it all but I managed to turn some of your power back into potions and such.
+
+u: You'll find most of it on the first few screens.
+
+m: Great! Thanks!
+
+m: I'll be off then...
+
+m walkTo 500
+
+u: Hold up there Speedy Gonzales!
+
+u walkTo 300
+
+u: I need to tell you some other stuff.
+
+m walkTo 400
+
+u: Ochre has got in with a bad crowd.
+
+m: Who?
+
+u: The Magical Alliance!
+
+m: Gasp!
+
+m: So?
+
+u: So, they are hiding out in the Magical Forest.
+
+m: So?
+
+u: So, they have drained all the Magic out of it!
+
+m: Gulp!
+
+m: Nope still don't get it.
+
+u: That's bad because when you go in there, you won't be able to summon your spells as well as normal.
+
+u: No magic around see?
+
+m: Oh dear, that's not good.
+
+u: Indeed not. 
+
+u: You will need an alternative weapon for when you face them.
+
+u: To be more precise, you will need to use the most powerful weapon known to this world!
+
+m: Wow! Sounds cool, what is it?
+
+u: A Bloke With A Sword!
+
+m: ?
+
+m: Q'est que ce que ca?
+
+m: Come again?
+
+u: Blokes with swords are not affected by magic reducing situations.
+
+u: Surely you know that?
+
+m: Well not affected no, but they're not great at staying in one piece in the face of an energy blast either are they?
+
+u: Well no.
+
+m: And presumably the Magical Alliance has something similar to an Energy Blast do they?
+
+u: Similar yes, slightly more powerful in fact.
+
+m: Great.
+
+u: But look, so long as you train them up sufficiently they should be able to handle it.
+
+u: And you can always use monks to heal them.
+
+m: Hmmm. And how do I train them up?
+
+u: By letting them kill stuff, the more stuff they kill, the stronger and better they will get.
+
+m: Ok, that sounds good.
+
+u: You'll need the army summon spell to summon and unsummon your units.
+
+m: Right, and where is that?
+
+u: It's in the Scarlet Wizard's storeroom due north of here.
+
+u: Fire a 'blank' blast at a unit to unsummon them.
+
+u: I will lurk in the ether and instantly heal any units you unsummon.
+
+m: Thanks, that will be useful.
+
+m: And how do I summon?
+
+u: Charge a blast until you see the icon representing the unit you want to summon.
+
+u: Then fire it where you want the unit to appear.
+
+u: Don't fire at trees or rock or the unit won't appear.
+
+u: If the icon is faded out, it means there are none of that unit type in your army.
+
+u: If you have 8 units on screen already, the army summon won't charge past 'blank'.
+
+m: Right, ok. All understood.
+
+u: Have you got the Golden Machine Gun with you?
+
+m: Dang, I left it back at the flat!
+
+m: Er, I mean at the Towers Of The Aldevar.
+
+u: Well, there's no time to go back for it now.
+
+u: You'd best get started.
+
+m: One more thing before I go.
+
+m: Do you know where Berlin is?
+
+u: He is nearby but I cannot tell you more than that.
+
+u: The blue squares in the mini-map indicate where you can find blokes with swords and other people to add to your army.
+
+u: Berlin will also show up blue. That should get you started.
+
+u: Good luck!
+
+m: Thanks, boss!
+
+m exitStageRight
+
+wait 30
+
+u teleportOut
+
+wait 30
+
+backgroundColourTo rgb(0,0,0)
+lightsDown

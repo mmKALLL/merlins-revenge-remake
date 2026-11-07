@@ -1,0 +1,82 @@
+[#name: "act_berlinTV", #type: #field]
+[
+#inherit: #chatter,
+#character: #berlinTV,
+#collisionRect: rect(-100, -1, 100, 100),
+#ghost: true,
+#initFaceDir: 1,
+#member: member("anm_tv_stand_3_01", "gfx"),
+#miniMapStatus: #clr,
+#name: "tv",
+#propStatus: #prop,
+#scriptToPerform: #rescueBerlin_002,
+#speechColor: rgb(182,95,64),
+#startOffset: point(-16, -16),
+#weight: 0
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

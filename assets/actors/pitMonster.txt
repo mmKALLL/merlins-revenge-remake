@@ -1,0 +1,95 @@
+[#name: "act_pitMonster", #type: #field]
+[
+#inherit: #actor,
+#objType: #objMine,
+#attack:
+[
+#damageMultiplier: 40,
+#explodeCharge: 100,
+#hits: [#teamMembers],
+#power: 0.05,
+#type: #explode
+],
+#character: #mine,
+#collideWithTarget: false,
+#dieOnExplode: false,
+#explodeEvents: [#mineTriggered],
+#explodeSound: #none,
+#explodeVolume: 50,
+#miniMapStatus: #clr,
+#name: "pitMonster",
+#friction: point(9,9),
+#recordInRoomState: true,
+#rotational: false,
+#team: #pitMonsters,
+#teamRole: #teamMines,
+#timeToPrime: 120,
+#triggerRadius: 50,
+#weight: 0.4
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
