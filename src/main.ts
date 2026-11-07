@@ -69,7 +69,9 @@ import { titleScreen } from './ui/title-screen'
 
 const params = new URLSearchParams(location.search)
 /** The map Play starts when none has been played yet. */
-const DEFAULT_MAP = 'works/mriiidemoiv'
+/** chooseRun's answer when the player went back to the title screen instead of playing. */
+const BACK_TO_MENU = 'menu'
+const DEFAULT_MAP = 'demos/mriiidemoiv'
 /** A map id from the URL or storage, with an id from before a rename brought up to date. */
 const upToDate = (id: string | null): string | null => (id === null ? null : currentMapId(id))
 /**
@@ -903,16 +905,22 @@ function main(): void {
   const offeredSave = (mapId: string): MapSave | null => (savesMap(mapId, false) ? readSave(browserStore, mapId) : null)
 
   /**
-   * With a save, asks Continue or New game; resolves to the save to carry on from, or null for a new
-   * game (which drops the save). Without one, null at once.
+   * With a save, asks Continue, New game or Back to menu; resolves to the save to carry on from, null
+   * for a new game (which drops the save), or BACK_TO_MENU (the title screen is up again). Without a
+   * save, null at once.
    */
-  function chooseRun(mapId: string, save: MapSave | null): Promise<MapSave | null> {
+  function chooseRun(mapId: string, save: MapSave | null): Promise<MapSave | null | typeof BACK_TO_MENU> {
     if (!save) return Promise.resolve(null)
     return new Promise((resolve) => {
-      choicePanel.ask(mapId, (continued) => {
-        if (!continued) dropSave(browserStore, mapId)
+      choicePanel.ask(mapId, (choice) => {
+        if (choice === 'menu') {
+          shell.quitToTitle()
+          resolve(BACK_TO_MENU)
+          return
+        }
+        if (choice === 'newGame') dropSave(browserStore, mapId)
         dispatch({ kind: 'chosen' })
-        resolve(continued ? save : null)
+        resolve(choice === 'continue' ? save : null)
       })
       dispatch({ kind: 'choose' })
     })
@@ -922,7 +930,11 @@ function main(): void {
   function continueGame(g: Game, save: MapSave, newGame: () => void): void {
     if (g.continueFrom(save)) return
     dropSave(browserStore, g.mapId)
-    choicePanel.tellUnloadable(g.mapId, () => {
+    choicePanel.tellUnloadable(g.mapId, (choice) => {
+      if (choice === 'menu') {
+        shell.quitToTitle()
+        return
+      }
       newGame()
       dispatch({ kind: 'chosen' })
     })
@@ -935,6 +947,7 @@ function main(): void {
     if (game?.mapId === mapId && !isGeneratedMapId(mapId)) {
       const g = game
       const save = await chooseRun(mapId, offeredSave(mapId))
+      if (save === BACK_TO_MENU) return
       if (save) continueGame(g, save, () => g.restart('fresh'))
       else await newGameWithIntro(g)
       rememberParam('map', mapId)
@@ -946,6 +959,7 @@ function main(): void {
       return
     }
     const save = await chooseRun(mapId, offeredSave(mapId))
+    if (save === BACK_TO_MENU) return
     title.setLoading(true)
     rememberParam('map', mapId)
     if (!(await load(mapId, save))) return
@@ -983,7 +997,8 @@ function main(): void {
   async function openLinkedMap(mapId: string): Promise<void> {
     const save = offeredSave(mapId)
     if (save) loading.hide()
-    await load(mapId, await chooseRun(mapId, save))
+    const chosen = await chooseRun(mapId, save)
+    if (chosen !== BACK_TO_MENU) await load(mapId, chosen)
     render()
   }
 

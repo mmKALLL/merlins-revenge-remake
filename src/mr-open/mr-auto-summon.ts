@@ -16,9 +16,11 @@ const DROPPED_HIGHER_TYPES = 2
  * number of army types (over two fewer when the slots do not cover every type; integer division,
  * at least 1), then for each type in `armyMembers` order as many as the slots per unit, the units
  * of that type in the reserve and the slots left allow. `availableSlots` is
- * reservationsMaster.getAvailableSlots (Infinity for a team without a cap).
+ * reservationsMaster.getAvailableSlots (Infinity for a team without a cap). Remake (`fillCap`, owner):
+ * the slots the share leaves free are then filled from the rest of the reserve, one of each type in
+ * `armyMembers` order at a time, so R brings out the whole reserve up to the team cap.
  */
-export function autoSummonTypes(availableSlots: number, armyMembers: readonly string[], inReserve: (typ: string) => number): string[] {
+export function autoSummonTypes(availableSlots: number, armyMembers: readonly string[], inReserve: (typ: string) => number, fillCap = false): string[] {
   if (availableSlots <= 0 || armyMembers.length === 0) return []
   const shareOver = availableSlots >= armyMembers.length ? armyMembers.length : Math.max(1, armyMembers.length - DROPPED_HIGHER_TYPES)
   const slotsPerUnit = Math.max(1, Math.floor(availableSlots / shareOver))
@@ -29,6 +31,24 @@ export function autoSummonTypes(availableSlots: number, armyMembers: readonly st
     for (let i = 0; i < n; i++) out.push(typ)
     slotsLeft -= n
     if (slotsLeft <= 0) break
+  }
+  return fillCap ? [...out, ...fillFreeSlots(slotsLeft, armyMembers, (typ) => inReserve(typ) - out.filter((o) => o === typ).length)] : out
+}
+
+/** Up to `slots` more units, one of each type with units left in turn, until the slots or the units run out. */
+function fillFreeSlots(slots: number, armyMembers: readonly string[], left: (typ: string) => number): string[] {
+  const remaining = new Map(armyMembers.map((typ) => [typ, Math.max(0, left(typ))]))
+  const out: string[] = []
+  while (out.length < slots) {
+    const before = out.length
+    for (const typ of armyMembers) {
+      if (out.length >= slots) break
+      const n = remaining.get(typ) ?? 0
+      if (n === 0) continue
+      out.push(typ)
+      remaining.set(typ, n - 1)
+    }
+    if (out.length === before) break
   }
   return out
 }

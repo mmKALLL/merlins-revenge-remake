@@ -52,6 +52,12 @@ describe('modAutoSummon.summonArmy: which units one press summons', () => {
     expect(autoSummonTypes(11, MEMBERS, inReserve({ warrior: 20 }))).toEqual(['warrior', 'warrior'])
   })
 
+  it('with fillCap (remake) fills the free slots from the rest of the reserve, a type at a time', () => {
+    expect(autoSummonTypes(11, MEMBERS, inReserve({ warrior: 20 }), true)).toEqual(Array(11).fill('warrior'))
+    expect(autoSummonTypes(7, MEMBERS, inReserve({ warrior: 5, archer: 3 }), true)).toEqual(['warrior', 'archer', 'warrior', 'archer', 'warrior', 'archer', 'warrior'])
+    expect(autoSummonTypes(12, MEMBERS, inReserve({ warrior: 1, monk: 2 }), true)).toEqual(['warrior', 'monk', 'monk'])
+  })
+
   it('with fewer slots than types, shares them over all but the last two until they run out', () => {
     const plenty = inReserve({ warrior: 5, archer: 5, monk: 5, dwarf: 5, kingInGame: 5 })
     expect(autoSummonTypes(4, MEMBERS, plenty)).toEqual(['warrior', 'archer', 'monk', 'dwarf'])

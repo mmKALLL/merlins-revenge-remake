@@ -85,7 +85,7 @@ The 16-bit decode of `tlk_merlin4Objects` was wrong (stretched 2-4x vertically, 
 ## Update 2026-09-27: MR3 sheets recovered, the "8/16-bit" members were 32-bit
 
 `tlk_merlinPassive`, `tlk_merlinActive`, `tlk_merlinObjects` (the MR3 sheets, used by 25 maps:
-most of `works/`, all of `wont_work/`, `not_fully_tested/merlindemoviii`, ...) are now in
+most of `works/`, all of `wont_work/`, `demos/merlindemoviii`, ...) are now in
 `assets/tilesets/merlin{Passive,Active,Objects}.png` with correct colours.
 
 What was wrong: not the 16-bit decoder or a palette. The D5+ bitmap CASt specific data is

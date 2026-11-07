@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseMapFile, roomNumToXY, roomXYToNum } from './mr-map-format'
 
 const tvsDemo = readFileSync('assets/maps/test_maps/tvsDemo.txt', 'utf8')
-const sam = readFileSync('assets/maps/works/sam.txt', 'utf8')
+const sam = readFileSync('assets/maps/fan_maps/sam.txt', 'utf8')
 
 describe('roomNumToXY', () => {
   it('maps 1-based room numbers row-major', () => {
@@ -37,7 +37,7 @@ describe('parseMapFile', () => {
   })
 
   it('reads #endRoom: a point, or absent for #none and maps without one', () => {
-    expect(parseMapFile(readFileSync('assets/maps/not_fully_tested/mriiilongii.txt', 'utf8')).endRoom).toEqual({ x: 16, y: 1 })
+    expect(parseMapFile(readFileSync('assets/maps/adventures/mriiilongii.txt', 'utf8')).endRoom).toEqual({ x: 16, y: 1 })
     expect(parseMapFile(tvsDemo).endRoom).toBeUndefined()
     expect(parseMapFile(mapText({ rooms: `[${room(1)}]` })).endRoom).toBeUndefined()
   })

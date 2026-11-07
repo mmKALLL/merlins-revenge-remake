@@ -176,8 +176,8 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - Where `pLocation` comes from: screens are defined by "mark" sprites placed in the Director score; `screenMaster.getMarks` (`screenMaster.txt:105-128`) records each sprite's member, loc, width, height. `objScreen.startObjects` (`objScreen.txt:391-408`) creates one controller object per mark whose member name matches `p[#objectKey] = [#map: "dd_map_", ...]` (`objScreen.txt:36`), passing `nLocation = nMark.loc` -> `mapController.newObject(defMember, location)` -> `objMap.pLocation`. So the map definition text member is named `dd_map_<mapName>` and its sprite position on the game-screen frame is the play-area origin. **The numeric position is not in the text export.** Constraints: the stage is 640 x 320 (`../dir_template.html:12`: `width=640 height=320`); `collisionMaster.initPlayArea` fallback `rect(0,0,gStageSize[1], 288)` implies the room occupies the top 288 px and the bottom 32 px are HUD; horizontally 640-576 leaves 64 px (either a 32 px margin on each side or a side bar).
 - HUD elements referenced: `health_bar_surround` (player energy bar, `objPlayerMerlinCharacter.txt:57-60`, locZ raised by `gMapBoundaryLayer`) and `room_bar_surround` (room init progress, `objMap.txt:135`); their positions are also score sprites. `gMapBoundary > 0` draws four `dot` sprites as a frame `inflate(mapRect, gMapBoundary, gMapBoundary)` around the room (`modBoundary.displayBoundary`, `modBoundary.txt:34-51`).
 - **Remake: room sizes.** 43 of the archive's 52 maps have 18x9 rooms. The others: 16x9
-  (`not_fully_tested/roads_to_aldevar_2`, the archive's `new/roads_to_aldevar`; `not_fully_tested/roads_to_aldevar`,
-  `not_fully_tested/merlindemoviii`), 16x12 (`wont_work/merliniiidemo`, hidden from the map list) and the
+  (`adventures/roads_to_aldevar_2`, the archive's `adventures/roads_to_aldevar_2`; `adventures/roads_to_aldevar`,
+  `demos/merlindemoviii`), 16x12 (`wont_work/merliniiidemo`, hidden from the map list) and the
   single rooms of the merlinart maps (`merlin_art/`, the archive's `wont_work/`; 35x18,
   37x25, 64x64). The map, the world grid, room-from-position, the room rect, exits, room changes and
   spawning all read the map's `roomSize`; the play view is one room (`playViewFor`, `src/sim/view.ts`:
@@ -190,7 +190,7 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   (`cameraFor`); C does nothing there, and Settings, Camera shows Single room disabled ("This map is
   one huge room: open world only"). The player's camera choice is kept for other maps. The merlinart
   maps have no `#player` tile, so Merlin starts at the room's centre (`findStartPos`); on
-  `merlinartii` and `merlinartiiv` that is among hostiles (dead within seconds), so map patches
+  `merlinartii` and `merlinartiv` that is among hostiles (dead within seconds), so map patches
   (`assets/map-patches/merlin_art/`) put a player tile at a quieter spot. Owner (2026-11-08): on these
   maps the whole map is awake (`activationRules` in `src/sim/activation.ts`: no wake or sleep
   distance), and Merlin never takes nav mode's speed (`stepPlayerMove`), walking the picture at his

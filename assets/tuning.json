@@ -10,6 +10,7 @@
     "medikitRestRate": 3,
     "medikitPickupEnergy": 0,
     "activationAttackGraceTicks": 24,
+    "armyKeyFillsCap": true,
     "frictionReel": {
       "x": 20,
       "y": 20

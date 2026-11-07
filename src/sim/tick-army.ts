@@ -120,7 +120,8 @@ export function alliesInPlay(t: Tick, p: ActorState): ActorState[] {
  * returns #none) and summonArmy stops there (`exit`).
  */
 export function summonWholeReserve(t: Tick, p: ActorState, at: Vec): void {
-  const types = autoSummonTypes(teamSlotsFree(t, p.team), defOf(t.s, p).armyMembers, (typ) => reserveCount(t.army, p.team, typ))
+  const def = defOf(t.s, p)
+  const types = autoSummonTypes(teamSlotsFree(t, p.team), def.armyMembers, (typ) => reserveCount(t.army, p.team, typ), def.armyKeyFillsCap)
   for (const typ of types) if (!summonFromReserve(t, p, typ, at)) return
 }
 

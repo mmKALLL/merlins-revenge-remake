@@ -718,7 +718,11 @@ a fire.
   clear (`exitsOpen`, as #noTargetFound's room test) or, in a continuous world, nav mode on (no
   awake hostile near Merlin). Mid-fight, R summons what the reserve holds even with allies already
   out (owner, 2026-11-08: more of the army every press; until then it did nothing). The same
-  `fightOver` test sends allies home by themselves.
+  `fightOver` test sends allies home by themselves. **The whole reserve up to the cap** (owner,
+  2026-11-08; `armyKeyFillsCap`, player true in `assets/tuning.json`): summonArmy's share per type
+  (free slots / types: at most 2 of each type with the 12 cap) comes first, then the slots it leaves
+  free are filled from the rest of the reserve, one of each type in `armyMembers` order at a time
+  (`autoSummonTypes` in `src/mr-open/mr-auto-summon.ts`), so 5 warriors alone all come out.
 - **R calls every wizard** (owner decision, 2026-11-05; §7). The original calls one wizard at a
   time with its own key (`modSummonWizard`); here R summons, after the army, every wizard in the
   reserve, all units of each type (by actor key), at the same spot with the same random(30) - 15

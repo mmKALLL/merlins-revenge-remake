@@ -84,5 +84,6 @@ describe('app state', () => {
     expect(visiblePanel(choosing)).toBe('continueChoice')
     expect(run(choosing, { kind: 'pause' }, { kind: 'back' }, { kind: 'resume' }, { kind: 'open', panel: 'maps' })).toEqual(choosing)
     expect(nextAppState(choosing, { kind: 'chosen' })).toEqual(PLAYING)
+    expect(nextAppState(choosing, { kind: 'quit' })).toEqual(TITLE) // Back to menu
   })
 })

@@ -274,6 +274,7 @@ export interface ActorDef {
   medikitRestRate: number // the player: medikit heal steps per tick out of battle (cleared room / nav mode); 1 = engine
   medikitPickupEnergy: number // the player: energy a collected medikit restores at once (it also goes into stock); 25 = engine
   armyKeySummons: boolean // the player: R summons the whole reserve when no army member is in play; true = engine (modAutoSummon)
+  armyKeyFillsCap: boolean // remake (the player): after summonArmy's share per type, R fills the team's free slots from the rest of the reserve; false = engine
   frozenAttackSlowdown: number // remake: a frozen unit's attack strips play this many times slower (owner: 3; modFreeze only slows walking)
   damageDealtMultiplier: number // the player: multiplies the damage of all he deals (swings, spells, their bullets and mines); 1 = engine
   explosionsLinger: boolean // remake, the player: his bullets' and mines' blasts also hit units that enter them until the explode strip ends; false = engine (one tick)
@@ -427,6 +428,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     medikitRestRate: 1, // the medikit heals at the same rate in and out of battle, as in the engine
     medikitPickupEnergy: 25, // medikitCollected's increaseEnergy(25), as in the engine
     armyKeySummons: true, // the #army key summons the reserve, as in the engine
+    armyKeyFillsCap: false, // summonArmy's share per type only, as in the engine
     keepAttackOnTargetLoss: false, // the attack lands only on a living target, as in the engine
     startingArmy: {}, // a scroll brings no units, as in the engine
     splashRadius: null, // bullets hit their target on contact (the port's splashDamageOn was left out)
@@ -461,7 +463,7 @@ for (const k of [
   'detourDistance', 'detourMinTargetDistance', 'projectileSpreadDeg', 'knockbackSpreadDeg', 'productionTimeScale',
   'idleWanderIntervalTicks', 'idleWanderChancePerSecond', 'idleWanderRadius',
   'wakeDistance', 'sleepDistance', 'hitWakeTicks', 'navModeClearRadius', 'activationVerticalScale',
-  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'exitOpenDelayTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'keepAttackOnTargetLoss', 'startingArmy',
+  'idleWanderMarginTiles', 'idleWanderScanTicks', 'killAllCheatRadius', 'activationAttackGraceTicks', 'exitOpenDelayTicks', 'passiveEnergyRecovery', 'damageDealtMultiplier', 'explosionsLinger', 'frozenAttackSlowdown', 'medikitRestRate', 'medikitPickupEnergy', 'armyKeySummons', 'armyKeyFillsCap', 'keepAttackOnTargetLoss', 'startingArmy',
   'splashRadius', 'splashGraveOn', 'landedTicks',
   'volley', 'chargePerShot', 'maxShots', 'rangeFactor', 'staggerTicks', 'spreadMinDeg', 'spreadMaxDeg', 'speedJitter', 'minLandingSpeedShare', 'launchFrom', 'spread', 'chill', 'pierce', 'fullCharge', 'blastFromCharge', 'base', 'perCharge', 'damageBase', 'damagePerCharge', 'falloff', 'burstOnContact', 'growingIconPx', 'gmgShotCharge',
 ]) {
@@ -905,7 +907,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       frozenAttackSlowdown: num(r, 'frozenAttackSlowdown', ctx),
       medikitRestRate: num(r, 'medikitRestRate', ctx),
       medikitPickupEnergy: num(r, 'medikitPickupEnergy', ctx),
-      armyKeySummons: bool(r, 'armyKeySummons', ctx),
+      armyKeySummons: bool(r, 'armyKeySummons', ctx), armyKeyFillsCap: bool(r, 'armyKeyFillsCap', ctx),
       keepAttackOnTargetLoss: bool(r, 'keepAttackOnTargetLoss', ctx),
       startingArmy: Object.fromEntries(Object.entries(unitCounts(r, 'startingArmy', ctx)).map(([unit, n]) => [actorKey(unit), n])),
       splashRadius: r['splashRadius'] === null ? null : num(r, 'splashRadius', ctx),

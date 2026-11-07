@@ -147,12 +147,12 @@ floor; roguelite snapshots that record the floor.
 
 - Map compatibility: other room sizes and the merlinart maps (2026-11-08, branch of this session;
   engine notes walking-and-rooms §8, hud §2a, minimap §7). The play view is one of the map's rooms,
-  as the original drew it: 16x9 rooms (`not_fully_tested/roads_to_aldevar_2`, `not_fully_tested/roads_to_aldevar`,
-  `not_fully_tested/merlindemoviii`) show a 512x288 view on a 576x320 screen, 16x12 rooms
+  as the original drew it: 16x9 rooms (`adventures/roads_to_aldevar_2`, `adventures/roads_to_aldevar`,
+  `demos/merlindemoviii`) show a 512x288 view on a 576x320 screen, 16x12 rooms
   (`wont_work/merliniiidemo`) 512x384 on 576x416; the HUD keeps its margins and strips around the
   room and the page zoom fits the new screen; 18x9 maps are unchanged. The merlinart maps (`merlin_art/`; one huge
   room each) play in the open world only, all awake and without nav mode's speed: C does nothing there and Settings shows Single room
-  disabled; merlinartii and merlinartiiv got map patches starting Merlin away from the hostiles
+  disabled; merlinartii and merlinartiv got map patches starting Merlin away from the hostiles
   around the room's centre (a guess at a spot). The open world mini-map now shows the room camera's
   statuses, pickups included (a spell scroll's room is yellow until it is collected). To check: the
   screen sizes (or would a fixed 640x320 screen with the room centred in it look better?), the
@@ -197,7 +197,7 @@ floor; roguelite snapshots that record the floor.
 
 - Friendly wizards, slice 1: allies (2026-11-05; engine notes spells §7 and Remake decisions "R
   calls every wizard"; design `docs/plans/2026-11-05-friendly-wizards-design.md`). The eight
-  wizards are on the original maps (Ulin on `works/mriiidemoii`, all eight on `not_fully_tested/very_big_map`); they
+  wizards are on the original maps (Ulin on `demos/mriiidemoii`, all eight on `adventures/very_big_map`); they
   fight beside Merlin, then teleport into his reserve. R calls the army plus every reserve wizard
   (past the team cap) and sends them all home after the fight; reserve wizards show first in the
   reserve army display. Roguelite: a floor-end reward can bring a wizard Merlin lacks in the

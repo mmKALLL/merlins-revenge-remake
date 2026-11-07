@@ -28,8 +28,8 @@ Design: `docs/plans/2026-11-06-save-load-design.md` (the owner's decisions). Cod
   map-complete tick (owner, 2026-11-06): the save stays the previous room clear's, so Continue on a
   completed map picks up before its last fight. Not with Auto-save off, not on roguelite floors (`markExit` maps and the roguelite
   map id), and not while Merlin is dying (a save of his death would replay it on every load).
-- **Opening a map with a save** (a page opened on it, a reload, Play on the title) asks Continue or
-  New game. New game drops the save. Continue restores it as `mr.loadState` does; a save naming an
+- **Opening a map with a save** (a page opened on it, a reload, Play on the title) asks Continue,
+  New game or Back to menu (owner, 2026-11-08: back to the title screen, the save kept). New game drops the save. Continue restores it as `mr.loadState` does; a save naming an
   actor the game no longer has is dropped, and the panel says so before the new game. A save of
   another `SNAPSHOT_VERSION`, or one that does not parse, is dropped quietly when read; one taken
   with other tuning (`dataHash`) still loads (console.info).
