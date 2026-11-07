@@ -3,13 +3,13 @@
 // assets/actors (no tuning) and the converted atlases in public/generated/sprites (pnpm assets:convert).
 import { describe, expect, it } from 'vitest'
 import type { MapDefinition } from '../mr-open/mr-map-format'
-import { playerOf } from './actors'
+import { isKeptWithRoom, isUnit, playerOf } from './actors'
 import { NO_INPUT, type ActorState, type InputSnapshot, type SimState } from './state'
 import { anims, defs, teams } from './test-data'
 import { createSim, stepSim } from './tick'
 import { buildWorldGrid } from './world-grid'
 
-const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk', 'scarletInGame', 'ochreInGame']
+const SYMBOLS = ['none', 'player', 'bowOrc', 'swordOrc', 'goblinMage', 'goblinHut', 'goblinMageHut', 'orcHouse', 'goblinWarrior', 'hydra3', 'plant', 'bat', 'darkGolem', 'fourArmGolem', 'ninja', 'necromancer', 'monk', 'scarletInGame', 'ochreInGame', 'pitMonster', 'berlinTV', 'ochreWizard', 'energyMine']
 const tileOf = (symbol: string) => SYMBOLS.indexOf(symbol) + 1
 
 /**
@@ -317,5 +317,63 @@ describe('multistage and special units', () => {
       if (bat.ai.mode === 'runReload' && bat.vel.x !== 0) backedOff = Math.sign(bat.vel.x) === Math.sign(bat.pos.x - 100)
     }
     expect(backedOff).toBe(true)
+  })
+})
+
+describe("merliniii's objects", () => {
+  const pit = (s: SimState): ActorState => ofDef(s, 'pitMonster')[0]!
+  const pitDef = defs['pitMonster']!
+  /** A pit monster on tile (5, 5): 44 px from Merlin, inside its trigger radius. */
+  const nearPit = [{ x: 5, y: 5, symbol: 'pitMonster' }]
+
+  it('a pit monster stands while it primes, then goes off on Merlin within its trigger radius (objMine)', () => {
+    let s = sim(nearPit)
+    expect(pit(s).mode).toBe('stand')
+    s = run(s, pitDef.timeToPrime - 1, pinPlayer)
+    expect(pit(s).mode).toBe('stand')
+    s = run(s, 1, pinPlayer)
+    expect(pit(s).mode).toBe('primed')
+    let hurt = false
+    for (let i = 0; i < pitDef.timeToCheck && pit(s).mode === 'primed'; i++) {
+      s = stepSim(s, NO_INPUT)
+      hurt ||= playerOf(s).energy < 200
+      s = pinPlayer(s)
+    }
+    expect(pit(s).mode).toBe('explode')
+    expect(hurt).toBe(true)
+  })
+
+  it('a pit monster stays primed while nothing comes near, and primes again after going off (dieOnExplode false)', () => {
+    let far = sim([{ x: 8, y: 5, symbol: 'pitMonster' }])
+    far = run(far, pitDef.timeToPrime + 30, pinPlayer)
+    expect(pit(far).mode).toBe('primed')
+    let s = run(sim(nearPit), pitDef.timeToPrime + pitDef.timeToCheck, pinPlayer)
+    expect(pit(s).mode).toBe('explode')
+    for (let i = 0; i < 300 && pit(s).mode === 'explode'; i++) s = pinPlayer(stepSim(s, NO_INPUT))
+    expect(pit(s).mode).toBe('stand')
+    expect(pit(s).age).toBeLessThan(pitDef.timeToPrime)
+  })
+
+  it('pit monsters keep no exit shut and stay with their room; Merlin\'s energy mines do not', () => {
+    const s = run(sim([...nearPit, { x: 10, y: 5, symbol: 'energyMine' }]), 1)
+    expect(s.exitsOpen).toBe(true)
+    expect(isKeptWithRoom(s, pit(s))).toBe(true)
+    expect(isKeptWithRoom(s, ofDef(s, 'energyMine')[0]!)).toBe(false)
+  })
+
+  it("Berlin's TV stands as a prop: drawn, not a unit, passable, kept with its room (its script is not in the archive)", () => {
+    let s = sim([{ x: 6, y: 5, symbol: 'berlinTV' }])
+    const tv = ofDef(s, 'berlinTV')[0]!
+    expect(tv.mode).toBe('stand')
+    expect(tv.anim).toBe('stand')
+    expect(isUnit(s, tv)).toBe(false)
+    expect(isKeptWithRoom(s, tv)).toBe(true)
+    s = run(s, 60, (x) => x, { ...NO_INPUT, move: { x: 1, y: 0 } })
+    expect(playerOf(s).pos.x).toBeGreaterThan(tv.pos.x + 32)
+  })
+
+  it('the ochreWizard tile places nothing (it has no actor file in the original either)', () => {
+    const s = sim([{ x: 6, y: 5, symbol: 'ochreWizard' }])
+    expect(s.actors.map((a) => a.def)).toEqual(['player'])
   })
 })

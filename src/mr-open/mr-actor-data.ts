@@ -4,6 +4,7 @@
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
 import type { GmgCharge } from './mr-golden-machine-gun'
+import { MINE } from './mr-mine'
 import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLLS_WITH_ART, SCROLL_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
 
@@ -210,6 +211,12 @@ export interface ActorDef {
   explodeEvents: string[] // bullet events that set it off: bulletCollidedWithTarget, bulletLanded
   exploderSound: string | null // modExploder #explodeSound (the actor's own, not the attack's)
   exploderVolume: number // modExploder #explodeVolume, default 50
+  // --- engine: mines (objMine)
+  timeToPrime: number // ticks a mine stands before it is #primed
+  timeToCheck: number // ticks between a primed mine's trigger checks
+  triggerRadius: number // px: a primed mine goes off when the nearest hated unit is closer than this
+  dieOnExplode: boolean // false: the mine stands and primes again once its explode strip has played
+  recordInRoomState: boolean // objGameObject: kept with its room when Merlin leaves (read for mines; units and pickups always are)
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
   // --- engine: pickups (objPowerUp, objPotion)
@@ -286,7 +293,7 @@ export interface ActorDef {
 }
 
 /** Object types drawn with an animation atlas. */
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine'])
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine', 'objChatter'])
 /** Pickups: their atlas is named after the actor key (assets/sprites/<key>/, from its gfx members). */
 const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_TYPE])
 
@@ -366,6 +373,8 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     runReload: false, // objCPUCharacter
     chargeLoc: { x: 0, y: -8 }, gmgChargeLoc: { x: 8, y: 0 }, // objCharacter
     explodeEvents: [], exploderVolume: 50, // modExploder
+    ...MINE, // objMine.new
+    recordInRoomState: true, // objGameObject (act_bullet says TRUE; most bullets and act_energyMine turn it off)
     // engine: movement
     walkSpeed: 0, walkAcceleration: 0.5, // modMoveToLoc
     navModeAcceleration: 0, // only Merlin installs modNavMode
@@ -430,6 +439,7 @@ for (const k of [
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'frictionReelAgainstWalk', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
   'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
   'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc', 'gmgChargeLoc',
+  'timeToPrime', 'timeToCheck', 'triggerRadius', 'dieOnExplode', 'recordInRoomState',
   'gmgChargeMax', 'gmgChargeSpeed', 'gmgChargeStart', 'gmgAutoFire',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
@@ -849,6 +859,9 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       // engine: exploding bullets (the actor-level #explodeSound / #explodeVolume, not the attack's)
       explodeEvents: symbolList(r, 'explodeEvents', ctx), exploderSound: strOrNull(r['explodeSound']),
       exploderVolume: volumeOf(r, r['explodeVolume'] !== undefined ? 'explodeVolume' : 'exploderVolume', ctx),
+      // engine: mines
+      timeToPrime: num(r, 'timeToPrime', ctx), timeToCheck: num(r, 'timeToCheck', ctx), triggerRadius: num(r, 'triggerRadius', ctx),
+      dieOnExplode: bool(r, 'dieOnExplode', ctx), recordInRoomState: bool(r, 'recordInRoomState', ctx),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
       // engine: pickups
       character: strOrNull(r['character']), collectSound: strOrNull(r['collectSound']), counterColour: rgb(r, 'counterColour', ctx),

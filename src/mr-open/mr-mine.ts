@@ -2,11 +2,12 @@
 // timing (docs/notes/engine-mechanics-spells.md §5).
 import type { AttackDef } from './mr-actor-data'
 
-/** objMine.new defaults (no mine data overrides them). */
+/** objMine.new defaults; a mine's data may set its own (act_pitMonster: timeToPrime 120, triggerRadius 50). */
 export const MINE = {
   timeToPrime: 30, // ticks in #stand before it is #primed
   timeToCheck: 3, // ticks between trigger checks while #primed
   triggerRadius: 20, // px: the nearest hated unit closer than this sets it off
+  dieOnExplode: true, // gone once its explode strip has played; false: it primes again (the pit monster)
 } as const
 
 export const MINE_OBJ_TYPE = 'objMine'

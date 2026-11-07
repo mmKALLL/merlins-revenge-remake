@@ -186,7 +186,9 @@ Details:
   (`teamMaster.findTargetWithin`) is within `triggerRadius` 20 px; then `#mineTriggered` ->
   modExploder: `explodeCharge 50` (radius 25), `power 1.5`, `damageMultiplier 5`, `spell_explode`
   at 50, the `explode` strip, then gone (`dieOnExplode`). Mines are team `#aldevar`, role
-  `#teamMines`: nothing targets them, they do not count as units, `recordInRoomState false`.
+  `#teamMines`: nothing targets them, they do not count as units, `recordInRoomState false`. The
+  timings, radius and `dieOnExplode` are read from the mine's data over these defaults (the pit
+  monsters set their own: engine-mechanics-enemies-3.md, Pit monsters).
 - **Summoning** (`modSpellMultistage.summonPayload`, `armyMaster.createUnitFromSummonSpell`,
   `armyMaster.txt:80-149`): `createUnit(spell team, payload, spell loc, spell name)`; a new actor of
   the payload type at the spell's loc (no offset; a solid tile cancels it). For the army summon it

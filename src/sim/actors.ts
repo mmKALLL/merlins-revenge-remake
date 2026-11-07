@@ -19,8 +19,17 @@ import { roomKey, type ActorMode, type ActorState, type AnimationStrip, type Sim
 /** objDwelling: a building that releases residents (modResidents); hittable, no AI. */
 const DWELLING_OBJ_TYPE = 'objDwelling'
 const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_TYPE])
+/**
+ * objChatter: a character that performs its in-game cut scene (#scriptToPerform) when Merlin walks
+ * into its collision rect. The only one placed, Berlin's TV (act_berlinTV), names a script the
+ * archive does not hold, so it plays nothing: the port stands chatters as props (drawn, not hit,
+ * not in the way).
+ */
+const CHATTER_OBJ_TYPE = 'objChatter'
 /** objTypes an objects-layer symbol may spawn in this slice; others are skipped with a warning. */
-const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
+const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
+/** objTypes that start standing still (objGameObject initMode #stand) and stay so unless their own step moves them on. */
+const STANDING_OBJ_TYPES = new Set([MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
 /** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts; the builder its building, tick-builder.ts). */
 export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster', BUILDER_AI])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
@@ -36,8 +45,10 @@ export const isCharacter = (s: SimState, a: ActorState): boolean => CHARACTER_OB
 export const isBullet = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objBullet'
 export const isSpell = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === 'objSpell'
 export const isDwelling = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === DWELLING_OBJ_TYPE
-/** Energy mines (objMine): Merlin's, exploding when a hated unit comes near; not team units. */
+/** Mines (objMine): Merlin's energy mines and the pit monsters, exploding when a hated unit comes near; not team units. */
 export const isMine = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === MINE_OBJ_TYPE
+/** Chatters (objChatter) stood as props: drawn, never hit or targeted, passable. */
+export const isChatter = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === CHATTER_OBJ_TYPE
 /**
  * Team units: characters (#teamMembers) and dwellings (#teamBuildings). They have energy, can be
  * targeted and hit, keep exits closed while alive and stay in their room when the player leaves.
@@ -46,10 +57,12 @@ export const isUnit = (s: SimState, a: ActorState): boolean => isCharacter(s, a)
 /** Potions, medikits and spell scrolls (objPowerUp): Merlin collects them by walking over them; nothing hits them. */
 export const isPickup = (s: SimState, a: ActorState): boolean => PICKUP_OBJ_TYPES.has(s.defs[a.def]?.objType ?? '')
 /**
- * What a room keeps when Merlin leaves it: its units and its uncollected pickups (a collected one
- * fading out is not recorded, objPowerUpWriting.collected -> setRecordInRoomState(false)).
+ * What a room keeps when Merlin leaves it: its units, its uncollected pickups (a collected one
+ * fading out is not recorded, objPowerUpWriting.collected -> setRecordInRoomState(false)), its
+ * chatters and the mines whose data records them (the pit monsters; not Merlin's energy mines).
  */
-export const isKeptWithRoom = (s: SimState, a: ActorState): boolean => isUnit(s, a) || (isPickup(s, a) && a.mode !== 'collected')
+export const isKeptWithRoom = (s: SimState, a: ActorState): boolean =>
+  isUnit(s, a) || (isPickup(s, a) && a.mode !== 'collected') || isChatter(s, a) || (isMine(s, a) && defOf(s, a).recordInRoomState)
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
 export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
 
@@ -98,7 +111,7 @@ export function playerOf(s: SimState): ActorState {
   return p
 }
 
-const initialMode = (def: ActorDef): ActorMode => (FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : PICKUP_OBJ_TYPES.has(def.objType) ? 'stand' : 'walk')
+const initialMode = (def: ActorDef): ActorMode => (FLYING_OBJ_TYPES.has(def.objType) ? 'fly' : STANDING_OBJ_TYPES.has(def.objType) ? 'stand' : 'walk')
 /** The strip an actor starts on: characters stand still (objGameObject initMode #stand), bullets and spells fly. */
 const initialAnim = (s: SimState, def: ActorDef): string =>
   stripNameFor(s.anims[def.name], initialMode(def), false, def.objType === 'objSpell')

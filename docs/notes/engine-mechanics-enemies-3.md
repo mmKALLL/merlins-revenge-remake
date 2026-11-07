@@ -96,6 +96,33 @@ enemies: plain `objCPUCharacter` / `objAiCPUSpellCaster` units with 1000 energy 
 - Neither has a `#wizard` role or the wizard selector here: those belong to the player's wizard
   allies (open items).
 
+## Pit monsters and other merliniii objects
+
+`some_bugs/merliniii` places 80 `pitMonster` tiles, one `berlinTV` and one `ochreWizard`.
+
+- **Pit monsters** (`act_pitMonster`) are `#objMine`s like Merlin's energy mines (spells notes §5,
+  Mines), from their data: team `#pitMonsters` (category `#enemies`; its first hate group holds
+  `#aldevar`, the village and most enemy teams), role `#teamMines`, `timeToPrime` 120 (4 s of
+  `#stand`), `triggerRadius` 50, the explode attack `explodeCharge` 100 (radius 50), `power` 0.05,
+  `damageMultiplier` 40, `hits [#teamMembers]`, `explodeSound #none` (a silent blast) and the 48-frame
+  `anm_pitMonster_explode` strip (the monster leaping out of its pit). The data's `#timeToPrime`,
+  `#timeToCheck`, `#triggerRadius` and `#dieOnExplode` are `ActorDef` fields over objMine.new's
+  defaults (30, 3, 20, TRUE), so the energy mine plays as before.
+- **dieOnExplode false**: the pit monster is not removed after its explode strip; it goes back to
+  `#stand` and primes again (assumed: objMine's Lingo is not in the port's notes, so whether it
+  re-primes or goes straight back to `#primed` is a guess; re-priming gives Merlin 4 s to pass).
+- **recordInRoomState true** (`objGameObject`, default TRUE; act_energyMine sets FALSE): a pit
+  monster stays with its room when Merlin leaves (`isKeptWithRoom`); his energy mines do not. Mines
+  are not units: nothing targets or hits them and they keep no exit shut (the pit monsters never die).
+- **Berlin's TV** (`act_berlinTV`, `#inherit #chatter`: `objChatter` with `objAiChatter`) should
+  perform `#scriptToPerform #rescueBerlin_002` when Merlin walks into its collision rect
+  rect(-100,-1,100,100). No such script is in the archive, so the original showed the TV and could
+  play nothing. The port spawns chatters as props: drawn on their stand strip (`anm_tv_stand_3_01`,
+  sprite `tv`), never targeted or hit, passable (ghost), kept with their room; no script runs.
+- **ochreWizard** tiles have no `act_ochreWizard` in the archive (Ochre in game is
+  `act_ochreInGame`), so the engine creates nothing there; the port skips the tile like any symbol
+  without an actor file (one console warning per symbol).
+
 ## Teams
 
 All team files are copied. Enemy teams hate each other too (undead hate goblins and orcs, karate hates
