@@ -4,36 +4,36 @@
 // red -> yellow -> green with the energy.
 import { Container, Graphics, Sprite } from 'pixi.js'
 import type { HudTextures } from '../data/loaders'
-import { GAME_SCREEN, energyBarLength, energyBarRect, energyPercent, multicolourBarColour } from '../mr-open/mr-hud'
-
-const BAR = energyBarRect(GAME_SCREEN.healthSurround)
+import { energyBarLength, energyBarRect, energyPercent, multicolourBarColour, type GameScreen, type MarkRect } from '../mr-open/mr-hud'
 
 export class PlayerHealthBar {
   readonly layer = new Container()
   private bar = new Graphics()
   private drawn = ''
+  private readonly barRect: MarkRect
 
   /** `textures` null (not converted): the bar alone, without its label and surround. */
-  constructor(textures: HudTextures | null) {
+  constructor(textures: HudTextures | null, marks: GameScreen) {
     if (textures) {
       const label = new Sprite(textures.healthLabel)
-      label.position.set(GAME_SCREEN.healthLabel.x, GAME_SCREEN.healthLabel.y)
+      label.position.set(marks.healthLabel.x, marks.healthLabel.y)
       const surround = new Sprite(textures.healthSurround)
-      surround.position.set(GAME_SCREEN.healthSurround.x, GAME_SCREEN.healthSurround.y)
+      surround.position.set(marks.healthSurround.x, marks.healthSurround.y)
       this.layer.addChild(label, surround)
     }
-    this.bar.position.set(BAR.x, BAR.y)
+    this.barRect = energyBarRect(marks.healthSurround)
+    this.bar.position.set(this.barRect.x, this.barRect.y)
     this.layer.addChild(this.bar) // the bar sprite sits one locZ above its surround
   }
 
   update(energy: number, maxEnergy: number): void {
     const percent = energyPercent(energy, maxEnergy)
-    const length = energyBarLength(percent, BAR.w)
+    const length = energyBarLength(percent, this.barRect.w)
     const { r, g, b } = multicolourBarColour(percent)
     const key = `${length} ${r} ${g} ${b}`
     if (key === this.drawn) return
     this.drawn = key
     this.bar.clear()
-    if (length > 0) this.bar.rect(0, 0, length, BAR.h).fill((r << 16) | (g << 8) | b)
+    if (length > 0) this.bar.rect(0, 0, length, this.barRect.h).fill((r << 16) | (g << 8) | b)
   }
 }

@@ -5,7 +5,7 @@
 import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js'
 import type { LoadedSprite } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { GAME_SCREEN } from '../mr-open/mr-hud'
+import type { GameScreen } from '../mr-open/mr-hud'
 import { WRITING_FADE_TICKS, medikitsHeld } from '../mr-open/mr-pickup'
 import type { ActorState, SimState } from '../sim/state'
 import { PIXEL_TEXT } from './text-options'
@@ -37,8 +37,6 @@ const LAYOUT = {
   counterDrop: 3, // counters sit this much lower than the icons
   titleDrop: 5, // "POTIONS DRUNK" sits this much lower
 }
-/** potionMaster.displayAlignRight starts from its display rect's top-right corner. */
-const POTIONS_TOP_RIGHT = { x: GAME_SCREEN.potions.x + GAME_SCREEN.potions.w, y: GAME_SCREEN.potions.y }
 const MEDIKIT_BAR = { colour: 0x00c800, border: 0x000000, background: 0x202020 } // rgb(0,200,0), 1 px border
 const TITLE = { text: 'POTIONS DRUNK', colour: 0xa0a0a0 } // potionMaster pTitleText in #smallgrey
 const FONT = { fontFamily: 'monospace', fontSize: 9 }
@@ -51,6 +49,7 @@ export class PickupHud {
   constructor(
     private sprites: Record<string, LoadedSprite>,
     private defs: Record<string, ActorDef>,
+    private marks: GameScreen,
   ) {}
 
   update(s: SimState): void {
@@ -67,8 +66,10 @@ export class PickupHud {
   private addPotionsDrunk(s: SimState): void {
     const { potionsDrunk } = s.pickups
     if (potionsDrunk.length === 0) return
-    const top = POTIONS_TOP_RIGHT.y
-    let x = POTIONS_TOP_RIGHT.x
+    // potionMaster.displayAlignRight starts from its display rect's top-right corner
+    const { potions } = this.marks
+    const top = potions.y
+    let x = potions.x + potions.w
     for (const { character, count } of [...potionsDrunk].reverse()) {
       x = this.addText(String(count), x, top + LAYOUT.counterDrop, this.counterColour(character))
       x = this.addIcon(this.frame(this.defs[character]?.name, 'stand'), x, top)
@@ -81,7 +82,7 @@ export class PickupHud {
     const { medikits } = s.pickups
     const icon = this.frame('medikit', medikits.active ? 'hudOn' : 'hudOff')
     if (!icon) return
-    const { x: left, y: top } = GAME_SCREEN.medikit
+    const { x: left, y: top } = this.marks.medikit
     const spr = new Sprite(icon)
     spr.position.set(left, top)
     this.layer.addChild(spr)

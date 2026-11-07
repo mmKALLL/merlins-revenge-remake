@@ -7,7 +7,7 @@ export interface MarkRect { x: number; y: number; w: number; h: number }
 
 /**
  * The sprites on the score's gameScreen frame (240) of merlin_engine_76_speed.dir, in stage px
- * (the stage is 640x320). screenMaster.getMarks reads them; objScreen.startObjects / startPrgs hand
+ * (the stage is 640x320; screenLayoutFor moves them for other room sizes). screenMaster.getMarks reads them; objScreen.startObjects / startPrgs hand
  * each loc to its object.
  */
 export const GAME_SCREEN = {
@@ -32,6 +32,48 @@ export const GAME_SCREEN = {
   /** health_bar_surround: the bar's frame (ink background transparent: its white inside shows the stage). */
   healthSurround: { x: 104, y: 305, w: 100, h: 14 },
 } as const
+
+/** The stage (the movie's DRCF rect), around the gameScreen marks' 576x288 room. */
+export const GAME_STAGE = { w: 640, h: 320 } as const
+const STANDARD_ROOM_PX = { w: 576, h: 288 } as const
+
+type Marks = typeof GAME_SCREEN
+/** The gameScreen marks for one play view size. */
+export type GameScreen = { readonly [K in keyof Marks]: { readonly [P in keyof Marks[K]]: number } }
+
+/** The stage, the play view on it and the marks around it. */
+export interface ScreenLayout {
+  stage: { w: number; h: number }
+  view: { w: number; h: number }
+  marks: GameScreen
+}
+
+/**
+ * Remake: the game screen around a play view of another size (a map of 16x9 or 16x12 rooms; the
+ * original's stage stayed 640x320 and such a room left a gap or ran off its bottom). The room keeps
+ * its mark; the marks right of it (the potions, the army margin) move with its right edge and those
+ * below it (Merlin's health) with its bottom edge, and the stage grows or shrinks by the same, so
+ * every margin and strip keeps its size and the room stays centred. A 576x288 view gives the
+ * original screen unchanged.
+ */
+export function screenLayoutFor(view: { w: number; h: number }): ScreenLayout {
+  const dx = view.w - STANDARD_ROOM_PX.w
+  const dy = view.h - STANDARD_ROOM_PX.h
+  const right = <T extends { x: number }>(m: T): T => ({ ...m, x: m.x + dx })
+  const below = <T extends { y: number }>(m: T): T => ({ ...m, y: m.y + dy })
+  const { map, medikit, potions, wizard, army, healthLabel, healthSurround } = GAME_SCREEN
+  return {
+    stage: { w: GAME_STAGE.w + dx, h: GAME_STAGE.h + dy },
+    view: { ...view },
+    marks: {
+      map, medikit, wizard,
+      potions: right(potions),
+      army: { ...right(army), h: army.h + dy },
+      healthLabel: below(healthLabel),
+      healthSurround: below(healthSurround),
+    },
+  }
+}
 
 /** objEnergyBar #barBorder default: the bar is the surround rect inflated by -2. */
 export const ENERGY_BAR_BORDER = 2

@@ -2,17 +2,19 @@
 // to black, then the cut scene stage (cutSceneMaster's background rect, objCutSceneTitle, the
 // players and modThespian's cut scene speech), then the "map complete" prompt. The animScreenEnd and
 // animScreenGameOver layouts are not extracted, so the stage and title positions below are
-// assumptions within the 640x320 screen.
+// assumptions within the 640x320 screen. On the stage of a map with other room sizes (remake) that
+// screen is centred, so the scripts' stage x keep their places on the cut scene stage.
 import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js'
 import { teleportLook } from '../mr-open/mr-army'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { EndSequenceView } from '../cutscene/end-sequence'
 import type { CutScenePlayerView, CutSceneStrip, StageRect } from '../cutscene/performer'
 import type { Rgb } from '../cutscene/script'
+import { GAME_STAGE } from '../mr-open/mr-hud'
 import type { Size } from './camera'
 import { PIXEL_TEXT } from './text-options'
 
-/** The stage rect (assumed): the play view's width, below room for the title and speech. */
+/** The stage rect (assumed), on the original 640x320 screen: the play view's width, below room for the title and speech. */
 export const CUTSCENE_STAGE = { left: 32, top: 112, right: 608, bottom: 288 }
 export const CUTSCENE_STAGE_X: StageRect = { left: CUTSCENE_STAGE.left, right: CUTSCENE_STAGE.right }
 /** cutSceneMaster.pStageFloorHeight: players stand this far above the stage rect's bottom. */
@@ -45,21 +47,26 @@ export class CutSceneOverlay {
   private title = new Text({ text: '', ...PIXEL_TEXT, style: TITLE_STYLE })
   private speech = new Text({ text: '', ...PIXEL_TEXT, style: SPEECH_STYLE })
   private prompt = new Text({ text: PROMPT_TEXT, ...PIXEL_TEXT, style: PROMPT_STYLE })
+  /** the original 640x320 screen's cut scene (stage, title, players, speech), centred on the screen */
+  private theatre = new Container()
   /** the players, seen only between the stage's sides (assumed): off stage is out of sight */
   private cast = new Container()
   private players = new Map<string, Sprite>()
 
   constructor(private screen: Size, private frameFor: CharacterFrameFor) {
+    const offset = { x: Math.round((screen.w - GAME_STAGE.w) / 2), y: Math.round((screen.h - GAME_STAGE.h) / 2) }
+    this.theatre.position.set(offset.x, offset.y)
     this.title.anchor.set(0.5, 0)
-    this.title.position.set(screen.w / 2, TITLE_Y)
+    this.title.position.set(GAME_STAGE.w / 2, TITLE_Y)
     this.speech.anchor.set(0.5, 1)
     this.prompt.anchor.set(0.5)
     this.prompt.position.set(screen.w / 2, screen.h / 2)
     const { left, right } = CUTSCENE_STAGE
-    const wings = new Graphics().rect(left, 0, right - left, screen.h).fill(0xffffff)
+    const wings = new Graphics().rect(left, -offset.y, right - left, screen.h).fill(0xffffff)
     this.cast.mask = wings
     this.cast.sortableChildren = true // held props in front of their holders
-    this.layer.addChild(this.cover, this.stage, this.title, wings, this.cast, this.speech, this.prompt)
+    this.theatre.addChild(this.stage, this.title, wings, this.cast, this.speech)
+    this.layer.addChild(this.cover, this.theatre, this.prompt)
     this.layer.visible = false
   }
 

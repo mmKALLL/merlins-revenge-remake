@@ -38,6 +38,21 @@ is frame 240).
 So the stage has a 16 px strip above the room (medikit at the left, potions at the right), a 16 px
 strip below it (Merlin's health) and 32 px margins at the sides.
 
+### 2a. Rooms of other sizes (remake)
+
+The stage is fixed at 640x320 in the original and the room is drawn at the `dd_map_to_play` mark at
+scale 1, so a map of 16x9 rooms (512x288) left 64 px of black right of the room and a 16x12 room
+(512x384) ran off the stage's bottom. The remake sizes the screen to the map instead
+(`screenLayoutFor`, `src/mr-open/mr-hud.ts`): the play view is one room (`playViewFor`,
+`src/sim/view.ts`), the room keeps its mark at (32, 16), the marks right of it (the potions' right
+edge, the army margin) follow its right edge and those below it (the health label and bar) its bottom
+edge, and the stage is the view plus the same margins and strips: 576x320 for 16x9 rooms, 576x416
+for 16x12. The room is centred on the stage as before, and the page's zoom (fit, scale, 1x-4x) picks
+its multiple for that stage. A 576x288 view gives the marks and the 640x320 stage unchanged, so the
+43 maps of 18x9 rooms look as before. The score, the debug readout and the cut scenes (engine notes
+map-complete §3; the original 640x320 screen centred on the stage) follow. With the narrower 16x9
+view the debug readout's first line can touch the score when the actor count has four digits.
+
 ## 3. Merlin's health bar
 
 - `objPlayerMerlinCharacter.init` (`objPlayerMerlinCharacter.txt:60-69`) makes an
@@ -70,7 +85,9 @@ leftwards. Both draw on `gGlobalDisplayLayer`, in the strip above the room, not 
 - `src/mr-open/mr-hud.ts`: the marks (`GAME_SCREEN`), `energyBarRect`, `energyPercent`,
   `energyBarLength` and `multicolourBarColour` (VarFloor, VarColRange).
 - The remake's logical screen is the original stage (640 x 320) and its play view offset is the
-  `dd_map_to_play` mark (32, 16). It was (32, 0) before, with a 32 px strip below the room.
+  `dd_map_to_play` mark (32, 16). It was (32, 0) before, with a 32 px strip below the room. Maps of
+  other room sizes get a screen around their rooms (§2a); the HUD layers take the marks from
+  `screenLayoutFor` rather than `GAME_SCREEN`.
 - `src/render/player-health-bar.ts`: the label and surround members (`assets/hud/`, dumped from
   the cast with `dump_bitmaps.py health_`) at their marks, the bar inside. `src/render/pickups.ts`:
   the medikit and potions at their marks.

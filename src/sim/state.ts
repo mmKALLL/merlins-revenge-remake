@@ -10,7 +10,7 @@ import type { Arsenal } from '../mr-open/mr-weapons'
 import type { GmgState } from '../mr-open/mr-golden-machine-gun'
 import type { Rng } from './rng'
 import type { ScoreState } from './score'
-import { PLAY_VIEW, type Size } from './view'
+import type { Size } from './view'
 import type { WorldGrid } from './world-grid'
 
 export const TICKS_PER_SECOND = 30
@@ -251,8 +251,11 @@ export const isSleepWandering = (a: ActorState): boolean => !a.awake && a.ai.mod
 export interface SimConfig {
   // TODO(Task 8): derive from frame via collisionRectFor; the player uses this fixed rect until then
   collisionRect: CollisionRect
-  /** the play view in px: in a continuous world, Space's nearest-enemy shot only aims at units inside it */
-  view: Size
+  /**
+   * the play view in px: in a continuous world, Space's nearest-enemy shot only aims at units inside
+   * it; unset, the map's own (playViewFor)
+   */
+  view?: Size
 }
 
-export const DEFAULT_SIM_CONFIG: SimConfig = { collisionRect: PLAYER_COLLISION_RECT, view: PLAY_VIEW }
+export const DEFAULT_SIM_CONFIG: SimConfig = { collisionRect: PLAYER_COLLISION_RECT }

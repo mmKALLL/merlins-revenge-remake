@@ -3,14 +3,14 @@ import type { ExitArrowTextures, HudTextures, LoadedSprite, LoadedTileset, Weapo
 import type { ActorDef } from '../mr-open/mr-actor-data'
 import { ARMY_SUMMON, reserveCount, teleportLook } from '../mr-open/mr-army'
 import { TILE_PX, type Vec } from '../mr-open/mr-geometry'
-import { GAME_SCREEN } from '../mr-open/mr-hud'
+import type { ScreenLayout } from '../mr-open/mr-hud'
 import type { LayerName } from '../mr-open/mr-map-format'
 import { payloadFor, stageNumber } from '../mr-open/mr-spell'
 import { isPickup, isSpell, isStepped, playerOf } from '../sim/actors'
 import { sleepingFrame } from '../sim/anim'
 import { EXPLODE_TICKS, spellBallPx } from '../sim/tick-spell'
 import { roomKey, type ActorState, type SimState } from '../sim/state'
-import { cameraOrigin, chooseZoom, type CameraMode, type Size } from './camera'
+import { cameraOrigin, chooseZoom, type CameraMode } from './camera'
 import type { EndSequenceView } from '../cutscene/end-sequence'
 import type { CutSceneStrip } from '../cutscene/performer'
 import { CutSceneOverlay, type CharacterFrame } from './cutscene-overlay'
@@ -27,9 +27,8 @@ import { WeaponSelectorLayer } from './weapon-selector'
 import { PIXEL_TEXT } from './text-options'
 
 export interface RenderConfig {
-  logical: Size // e.g. 640x320
-  playOffset: { x: number; y: number } // where the room area sits on the logical screen, e.g. (32, 0)
-  view: Size // play view size in px, e.g. 576x288
+  /** the logical screen (the stage), the play view on it (one of the map's rooms) and the HUD marks around it */
+  screen: ScreenLayout
   cameraMode: CameraMode
   spriteScale: number // 1: frames drawn at native size
   debug: boolean
@@ -174,14 +173,15 @@ export class Scene {
     hud: HudTextures | null = null,
     weaponTextures: WeaponSelectorTextures | null = null,
   ) {
-    this.weaponSelector = new WeaponSelectorLayer(weaponTextures)
+    const { marks, view } = cfg.screen
+    this.weaponSelector = new WeaponSelectorLayer(weaponTextures, marks)
     this.healthBars = new HealthBars(defs)
-    this.healthBar = new PlayerHealthBar(hud)
-    this.pickupHud = new PickupHud(sprites, defs)
-    this.scoreHud = new ScoreHud(cfg.logical, cfg.view)
-    this.armyDisplay = new ArmyDisplay(sprites, defs, cfg.armyDisplay)
+    this.healthBar = new PlayerHealthBar(hud, marks)
+    this.pickupHud = new PickupHud(sprites, defs, marks)
+    this.scoreHud = new ScoreHud(cfg.screen)
+    this.armyDisplay = new ArmyDisplay(sprites, defs, cfg.armyDisplay, marks)
     this.exitArrows = new ExitArrowLayer(exitArrows)
-    this.miniMap = new MiniMapLayer(cfg.view)
+    this.miniMap = new MiniMapLayer(view)
   }
 
   /** Redraws the tiles on the next draw, for a new grid (a generated map's new layout). */
@@ -195,9 +195,10 @@ export class Scene {
   }
 
   async init(parent: HTMLElement): Promise<void> {
+    const { stage, view, marks } = this.cfg.screen
     await this.app.init({
-      width: this.cfg.logical.w,
-      height: this.cfg.logical.h,
+      width: stage.w,
+      height: stage.h,
       background: '#000',
       antialias: false,
       roundPixels: true,
@@ -206,10 +207,10 @@ export class Scene {
       autoStart: false, // the game's frame loop draws (present), so every frame shows that frame's positions
     })
     parent.appendChild(this.app.canvas)
-    this.world.position.set(this.cfg.playOffset.x, this.cfg.playOffset.y)
+    this.world.position.set(marks.map.x, marks.map.y)
     this.app.stage.addChild(this.world)
     // Clip tiles and actors to the play view so nothing spills into the HUD margins.
-    const mask = new Graphics().rect(0, 0, this.cfg.view.w, this.cfg.view.h).fill(0xffffff)
+    const mask = new Graphics().rect(0, 0, view.w, view.h).fill(0xffffff)
     this.world.addChild(mask)
     this.world.mask = mask
     for (const name of TILE_LAYERS) {
@@ -224,10 +225,10 @@ export class Scene {
     const spellFrame = this.sprites[this.defs['spell']?.name ?? '']?.frames['charge']?.[0]
     if (spellFrame) this.spellTexture = whiteDisc(spellFrame)
     // the HUD on the stage around the play view, at the original's gameScreen marks
-    const { healthSurround } = GAME_SCREEN
-    this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, this.cfg.playOffset.y + this.cfg.view.h)
+    const { healthSurround } = marks
+    this.debugText.position.set(healthSurround.x + healthSurround.w + DEBUG_TEXT.gap, marks.map.y + view.h)
     this.app.stage.addChild(this.healthBar.layer, this.pickupHud.layer, this.scoreHud.layer, this.armyDisplay.layer, this.debugText, this.weaponSelector.layer)
-    this.cutScene = new CutSceneOverlay(this.cfg.logical, (character, strip, stripFrames) => this.cutSceneFrame(character, strip, stripFrames))
+    this.cutScene = new CutSceneOverlay(stage, (character, strip, stripFrames) => this.cutSceneFrame(character, strip, stripFrames))
     this.app.stage.addChild(this.cutScene.layer)
     this.applyZoom()
     window.addEventListener('resize', this.onResize)
@@ -280,13 +281,14 @@ export class Scene {
    */
   applyZoom(): void {
     const room = { w: window.innerWidth, h: window.innerHeight }
+    const { stage } = this.cfg.screen
     const z = this.zoom === 'fit'
-      ? chooseZoom(this.cfg.logical, room)
+      ? chooseZoom(stage, room)
       : this.zoom === 'scale'
-        ? Math.max(0.25, Math.min(room.w / this.cfg.logical.w, room.h / this.cfg.logical.h))
+        ? Math.max(0.25, Math.min(room.w / stage.w, room.h / stage.h))
         : this.zoom
-    this.app.canvas.style.width = `${this.cfg.logical.w * z}px`
-    this.app.canvas.style.height = `${this.cfg.logical.h * z}px`
+    this.app.canvas.style.width = `${stage.w * z}px`
+    this.app.canvas.style.height = `${stage.h * z}px`
   }
 
   /**
@@ -301,7 +303,7 @@ export class Scene {
     })
     const ipos = lerp(p)
     const worldSize = { w: s.grid.widthTiles * TILE_PX, h: s.grid.heightTiles * TILE_PX }
-    const origin = cameraOrigin(this.cfg.cameraMode, s.grid.roomRectPx(s.room), ipos, this.cfg.view, worldSize)
+    const origin = cameraOrigin(this.cfg.cameraMode, s.grid.roomRectPx(s.room), ipos, this.cfg.screen.view, worldSize)
     if (origin.x !== this.lastOrigin.x || origin.y !== this.lastOrigin.y) {
       this.rebuildTiles(s, origin)
       this.lastOrigin = origin
@@ -583,8 +585,8 @@ export class Scene {
     let used = 0
     const firstTx = Math.floor(origin.x / TILE_PX) + 1
     const firstTy = Math.floor(origin.y / TILE_PX) + 1
-    const cols = Math.ceil(this.cfg.view.w / TILE_PX) + 1
-    const rows = Math.ceil(this.cfg.view.h / TILE_PX) + 1
+    const cols = Math.ceil(this.cfg.screen.view.w / TILE_PX) + 1
+    const rows = Math.ceil(this.cfg.screen.view.h / TILE_PX) + 1
     for (const name of TILE_LAYERS) {
       const container = this.layers[name]!
       container.removeChildren()

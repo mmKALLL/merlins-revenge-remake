@@ -96,7 +96,9 @@ frame by frame, `end-sequence.ts` chains a 15-frame fade of the game screen, the
 (`ENDING_SCRIPTS`) and what follows it: for the map complete a prompt (Enter or click replays the
 map; the map browser stays usable), for the game over (§2a) the restart. Assumptions: the fade
 length, the stage rect (x 32-608, y 112-288 on the 640x320 screen) and the title position/size,
-since the `animScreenEnd`/`animScreenGameOver` score layouts are not extracted. `#merlin` is drawn
+since the `animScreenEnd`/`animScreenGameOver` score layouts are not extracted. On the larger or
+smaller screen of a map with 16x9 or 16x12 rooms (engine notes hud §2a) that 640x320 screen is
+centred, the fade covering the whole screen, so the scripts' stage x keep their places. `#merlin` is drawn
 with act_merlin's sprite (`mer`; it has no stand strip, so standing shows the first walk frame).
 
 - **Walking.** `walkTo`, `walkToPlayer`, `enterStage*` and `exitStage*` walk (modMoveToLoc): each
