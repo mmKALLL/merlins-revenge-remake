@@ -6,6 +6,7 @@ import { collisionRectForFrame, type CollisionRect } from '../mr-open/mr-collisi
 import { tileCentre, type Rect, type Vec } from '../mr-open/mr-geometry'
 import { BUILDER_AI } from '../mr-open/mr-builder'
 import { speedWhileFrozen } from '../mr-open/mr-freeze'
+import { MAGIC_LIMIT_OBJ_TYPE } from '../mr-open/mr-magic-limit'
 import { MINE_OBJ_TYPE } from '../mr-open/mr-mine'
 import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLL_OBJ_TYPE, withPotions } from '../mr-open/mr-pickup'
 import { currentAttack, type Arsenal } from '../mr-open/mr-weapons'
@@ -27,9 +28,9 @@ const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_
  */
 const CHATTER_OBJ_TYPE = 'objChatter'
 /** objTypes an objects-layer symbol may spawn in this slice; others are skipped with a warning. */
-const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
+const SPAWNABLE_OBJ_TYPES = new Set(['objCPUCharacter', DWELLING_OBJ_TYPE, MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, MAGIC_LIMIT_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
 /** objTypes that start standing still (objGameObject initMode #stand) and stay so unless their own step moves them on. */
-const STANDING_OBJ_TYPES = new Set([MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
+const STANDING_OBJ_TYPES = new Set([MINE_OBJ_TYPE, CHATTER_OBJ_TYPE, MAGIC_LIMIT_OBJ_TYPE, ...PICKUP_OBJ_TYPES])
 /** AI classes that run objAiCPU (the spell caster adds its movement layer on top, tick-caster.ts; the builder its building, tick-builder.ts). */
 export const CPU_AI_TYPES = new Set(['objAiCPU', 'objAiCPUSpellCaster', BUILDER_AI])
 const FLYING_OBJ_TYPES = new Set(['objBullet', 'objSpell'])
@@ -49,6 +50,8 @@ export const isDwelling = (s: SimState, a: ActorState): boolean => s.defs[a.def]
 export const isMine = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === MINE_OBJ_TYPE
 /** Chatters (objChatter) stood as props: drawn, never hit or targeted, passable. */
 export const isChatter = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === CHATTER_OBJ_TYPE
+/** Magic limiters (objMagicLimit): props that set the magic limit while in play (magic-limit.ts); never hit, targeted or in the way. */
+export const isMagicLimiter = (s: SimState, a: ActorState): boolean => s.defs[a.def]?.objType === MAGIC_LIMIT_OBJ_TYPE
 /**
  * Team units: characters (#teamMembers) and dwellings (#teamBuildings). They have energy, can be
  * targeted and hit, keep exits closed while alive and stay in their room when the player leaves.
@@ -59,10 +62,12 @@ export const isPickup = (s: SimState, a: ActorState): boolean => PICKUP_OBJ_TYPE
 /**
  * What a room keeps when Merlin leaves it: its units, its uncollected pickups (a collected one
  * fading out is not recorded, objPowerUpWriting.collected -> setRecordInRoomState(false)), its
- * chatters and the mines whose data records them (the pit monsters; not Merlin's energy mines).
+ * chatters and magic limiters, and the mines whose data records them (the pit monsters; not Merlin's
+ * energy mines).
  */
 export const isKeptWithRoom = (s: SimState, a: ActorState): boolean =>
-  isUnit(s, a) || (isPickup(s, a) && a.mode !== 'collected') || isChatter(s, a) || (isMine(s, a) && defOf(s, a).recordInRoomState)
+  isUnit(s, a) || (isPickup(s, a) && a.mode !== 'collected') || isChatter(s, a) || isMagicLimiter(s, a) ||
+  (isMine(s, a) && defOf(s, a).recordInRoomState)
 /** Alive for targeting, exits and hits: not dying, dead or finished (modEnergy.checkDead + death modes). */
 export const isAlive = (a: ActorState): boolean => a.mode !== 'die' && a.mode !== 'dead' && a.mode !== 'finish' && !isDead(a.energy)
 
@@ -212,7 +217,7 @@ function warnOnce(symbol: string, why: string): void {
  * Spawns the actors of `room`'s objects layer (row-major, reg point at the tile centre) unless the
  * room was spawned before. `player` tiles spawn nothing while a player exists; symbols without a
  * definition or with an unported objType are skipped; a solid tile under the spawn point cancels it
- * (actorMaster.checkCollisionsWithSolidArea).
+ * (actorMaster.checkCollisionsWithSolidArea) unless the actor is createOnSolid.
  */
 export function spawnRoomActors(s: SimState, room: Vec): SimState {
   const key = roomKey(room)
@@ -241,7 +246,7 @@ export function spawnRoomActors(s: SimState, room: Vec): SimState {
         warnOnce(symbol, `objType ${def.objType} is not spawnable yet`)
         continue
       }
-      if (s.grid.solidAt(wx, wy)) continue
+      if (!def.createOnSolid && s.grid.solidAt(wx, wy)) continue
       const [actor, after] = createActor(next, symbol, tileCentre(wx, wy))
       spawned.push(actor)
       next = after

@@ -4,6 +4,7 @@
 import { isIdent, isSymbol, parseLingo, type LingoValue } from './mr-lingo-plist'
 import type { Vec } from './mr-geometry'
 import type { GmgCharge } from './mr-golden-machine-gun'
+import { MAGIC_LIMIT_OBJ_TYPE } from './mr-magic-limit'
 import { MINE } from './mr-mine'
 import { MEDIKIT_OBJ_TYPE, POTION_OBJ_TYPE, SCROLLS_WITH_ART, SCROLL_OBJ_TYPE } from './mr-pickup'
 import { DEFAULT_CHARGE_VOLUME_MAP, DEFAULT_VOLUME, musicTrackFromName, type ChargeVolumeMap } from './mr-sound'
@@ -173,6 +174,7 @@ export interface ActorDef {
   stallSpeed: number // objMoveXY: a tick moving |dx| + |dy| <= this counts as stalled (ends a reel after 10)
   reelProof: boolean // modReel: a hit still pushes and damages but never starts a reel
   collisionDetection: boolean // objGameObject: false = ignores tiles (bats, ghosts), still kept in the room
+  createOnSolid: boolean // objGameObject: true = spawns on a solid tile too (actorMaster.startActor's placement check is skipped)
   minEnergy: number // modEnergy: dies at energy <= this (multistage enemies: hydra3 dies at 1000 into a hydra2)
   maxEnergy: number // modEnergy: regeneration cap; #auto = the starting energy
   teamRole: string // teamMembers (characters), teamBuildings (dwellings), teamBullets (bullets, spells)
@@ -219,6 +221,8 @@ export interface ActorDef {
   recordInRoomState: boolean // objGameObject: kept with its room when Merlin leaves (read for mines; units and pickups always are)
   /** objMusic only: the track its room activation plays (#musicName), null for musicOff ("stopMusic"); null on other actors. */
   musicTrack: string | null
+  /** objMagicLimit only: the percentage of the charge max its #limitMagic spells reach while it is in play (#magicLimit); null on other actors. */
+  magicLimit: number | null
   // --- engine: pickups (objPowerUp, objPotion)
   character: string | null // #character: which pickup (manaBurst, medikit, maxikit, ...); the actor's kind elsewhere
   collectSound: string | null // objPowerUp #collectSound, played when Merlin collects it
@@ -293,7 +297,7 @@ export interface ActorDef {
 }
 
 /** Object types drawn with an animation atlas. */
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine', 'objChatter', 'objActorPlayer'])
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine', 'objChatter', 'objActorPlayer', MAGIC_LIMIT_OBJ_TYPE])
 /** Cut scene players (objActorPlayer) with no art: no anm_blackPotion_* member is in the archive, so the black potion draws nothing. */
 const PLAYERS_WITHOUT_ART: readonly string[] = ['blackPotion']
 /** Pickups: their atlas is named after the actor key (assets/sprites/<key>/, from its gfx members). */
@@ -369,7 +373,7 @@ const OBJECT_DEFAULTS: Record<string, Plain> = {
     energy: 100, energyRecoverDelay: 1000, // modEnergy
     friction: { x: 50, y: 50 }, frictionReel: { x: 10, y: 10 }, inertia: 0, damageSpeed: 5, // objMoveXY
     frictionReelAgainstWalk: null, // remake: walking against a knockback slows it like any reel (engine)
-    stallSpeed: 0.2, teamRole: 'teamMembers', collisionDetection: true, // objGameObject
+    stallSpeed: 0.2, teamRole: 'teamMembers', collisionDetection: true, createOnSolid: false, // objGameObject
     reelProof: false, // modReel
     minEnergy: 0, maxEnergy: 'auto', // modEnergy
     graveOn: true, // modGrave
@@ -441,13 +445,13 @@ for (const k of [
   // engine properties read by the port
   'objType', 'AiType', 'inherit', 'attack', 'team', 'name', 'layerZ', 'startOffset', 'experienceImWorth',
   'energy', 'energyRecoverDelay', 'friction', 'frictionReel', 'frictionReelAgainstWalk', 'inertia', 'damageSpeed', 'stallSpeed', 'teamRole',
-  'reelProof', 'collisionDetection', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
+  'reelProof', 'collisionDetection', 'createOnSolid', 'minEnergy', 'maxEnergy', 'graveOn', 'reincarnateAs', 'runReload',
   'explodeEvents', 'exploderVolume', 'explodeVolume', 'chargeLoc', 'gmgChargeLoc',
   'timeToPrime', 'timeToCheck', 'triggerRadius', 'dieOnExplode', 'recordInRoomState',
   'gmgChargeMax', 'gmgChargeSpeed', 'gmgChargeStart', 'gmgAutoFire',
   'walkSpeed', 'walkAcceleration', 'navModeAcceleration', 'pathFindingStallTime',
   'strength', 'agility', 'dexterity', 'eyestrain', 'mana_burst', 'mana_capacity', 'mana_flow', 'mana_regeneration',
-  'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName',
+  'weapon', 'weaponTechnique', 'multiAttack', 'bufferDist', 'takeHitSound', 'takeHitVolume', 'dieSound', 'dieVolume', 'musicName', 'magicLimit',
   'collectSound', 'counterColour', 'residentGroups', 'totalResidents', 'typ', 'buildTime', 'groupSize', 'releaseInterval',
   'leaveWhenFinished', 'wizard', 'teleportable', 'ghost', 'unitToBuild', 'buildRate', 'buildOne', 'armyMembers',
   // engine properties kept in raw only
@@ -844,7 +848,7 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       frictionReelAgainstWalk: r['frictionReelAgainstWalk'] === null ? null : vec(r, 'frictionReelAgainstWalk', ctx),
       inertia: num(r, 'inertia', ctx), damageSpeed: num(r, 'damageSpeed', ctx),
       stallSpeed: num(r, 'stallSpeed', ctx), teamRole: str(r, 'teamRole', ctx),
-      reelProof: bool(r, 'reelProof', ctx), collisionDetection: bool(r, 'collisionDetection', ctx),
+      reelProof: bool(r, 'reelProof', ctx), collisionDetection: bool(r, 'collisionDetection', ctx), createOnSolid: bool(r, 'createOnSolid', ctx),
       minEnergy: num(r, 'minEnergy', ctx), maxEnergy: r['maxEnergy'] === 'auto' ? num(r, 'energy', ctx) : num(r, 'maxEnergy', ctx),
       // engine: movement
       walkSpeed: num(r, 'walkSpeed', ctx), walkAcceleration: num(r, 'walkAcceleration', ctx),
@@ -867,6 +871,8 @@ export function resolveActors(files: Record<string, string>, tuning: Record<stri
       timeToPrime: num(r, 'timeToPrime', ctx), timeToCheck: num(r, 'timeToCheck', ctx), triggerRadius: num(r, 'triggerRadius', ctx),
       dieOnExplode: bool(r, 'dieOnExplode', ctx), recordInRoomState: bool(r, 'recordInRoomState', ctx),
       musicTrack: objType === 'objMusic' && typeof r['musicName'] === 'string' ? musicTrackFromName(r['musicName']) : null,
+      // the abstract act_magicLimit sets no percentage
+      magicLimit: objType === MAGIC_LIMIT_OBJ_TYPE && r['magicLimit'] !== undefined ? num(r, 'magicLimit', ctx) : null,
       // engine: pickups
       character: strOrNull(r['character']), collectSound: strOrNull(r['collectSound']), counterColour: rgb(r, 'counterColour', ctx),
       // engine: dwellings
