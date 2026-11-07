@@ -137,6 +137,14 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
+- Magic limiters (2026-11-08; engine notes spells §8). The limiter tiles (1, 25, 50 and 75 %) now
+  spawn as drawn, animated props; while Merlin is in a limiter's room the spells with `limitMagic`
+  (his energy blast, arctic blast, pulse, beam, mines and monster summon, the wizards' and goblin
+  mages' blasts, and the remake's volleys) charge to that share of their max; leaving the room lifts
+  it. In the continuous world the limit follows the room Merlin is in (a remake decision). To
+  check on `?map=some_bugs/magicLimit`: the limiters' look and placement (they stand on the top
+  wall, which the engine allows), the smaller blasts, and whether the volleys should be limited.
+
 - merliniii at full parity (2026-11-08, branch of this session; engine notes enemies-3 "Pit
   monsters", map-complete §2b-3). Its 80 pit monsters work from their data (an objMine: 4 s to
   prime, then a silent 50 px blast when Merlin or another hated unit comes within 50 px; it primes

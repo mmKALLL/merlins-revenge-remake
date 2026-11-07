@@ -362,6 +362,48 @@ remake object tiles 198-204 there (`src/gen/remake-object-tiles.ts`), for `test_
 `#wizardSelector`), the wizard bar (`prg_wizardmaster`, `objWizardDisplayer`), and wizard
 experience and levels (`#mana_regenerationIncLevel`, `#mana_capacityIncLevel`).
 
+## 8. Magic limiters
+
+**The original.**
+
+- `act_magicLimit` (casts/data): `#objType #objMagicLimit`, `#inherit #game` (so `#createOnSolid
+  true`, team `#game`), `#character #magicLimit`, `#minimapStatus #clr`, `#weight 1`. Four placed
+  kinds, `act_magicLimit1/25/50/75`, each with its `#name` (sprite) and `#magicLimit: N`. The
+  merlinObjects key holds them as tiles 73-76 (75, 50, 25, 1).
+- `objMagicLimit` (script_objects/objMagicLimit.txt): ancestor `objGameObject`, `addModule
+  modAnimSet` (drawn, animating its `stand` strip: `anm_magicLimitN_stand_03_01..02`, two frames,
+  delay 3). `on init`: `g.magicLimitMaster.setMagicLimit(params.magicLimit)`; `on finish`:
+  `g.magicLimitMaster.setMagicLimitToDefault()`.
+- `magicLimitMaster`: `pMagicLimit`, default `gMagicLimit` (the movie's global, set outside the
+  exported casts; taken as 100, no limit). `setMagicLimit` overwrites, so with two limiters in play
+  the last created wins, and either one finishing resets to the default.
+- `modAttack.calcAttackChargeMax` (`modAttack.txt:94-98`): `if pAttack.limitMagic then chargeMax =
+  chargeMax * g.magicLimitMaster.getMagicLimit() / 100`. The start is clamped to that max
+  (`calcAttackChargeStart`). Attacks with `#limitMagic true`: arcticBlast, energyBlast,
+  energyPulseSpell, energyBeamSpell, energyMines, monsterSummon, monsterSummonAi, so Merlin's own
+  spells and the wizards that cast them (Berlin, Amotonlin, Prestotolin, Verdanlin, Foelin) and the
+  goblin mages; not darkBlast, cBlast/cBlastAi or healBlast.
+- A room's objects are created on entering it and finished on leaving it (objRoom's store and
+  restore), so a limiter holds the limit while Merlin is in its room, and on coming back it is
+  created (and sets the limit) again.
+
+**The port.** `src/mr-open/mr-magic-limit.ts` (`magicLimitAfter`: finishing resets, the last
+created wins), `src/sim/magic-limit.ts` (`withMagicLimiters`), `SimState.magicLimit` (saved in
+snapshots; absent in older ones, which load with no limit). The limiters spawn from the objects
+layer as props (standing, kept with their room, never hit, targeted, in the way or counted for a
+room's clear; `isMagicLimiter`), and `ActorDef.createOnSolid` now skips the solid-tile spawn check
+as `actorMaster.startActor` does (the test maps put the limiters on walls). `changeRoom` finishes
+the old room's limiters and creates the new room's; `createSim` the start room's. Every
+`chargeLimits` call passes the limit: Merlin's charge and the gun's auto-fire
+(`tick-player-attack.ts`), a spell's start (`tick-spell.ts startSpell`) and the AI casters'
+charge (`tick-caster.ts`). The remake's volley spells carry `limitMagic true` too, so the limiters
+cap them as well. Test map: `?map=some_bugs/magicLimit` (also `works/magicLimit`).
+
+**Remake decision: limiters in a continuous world.** The continuous world keeps every room's
+objects alive, which would put every limiter on the map in play at once (the last spawned winning
+everywhere). Instead a room's limiters come into play as Merlin walks into the room and leave play
+as he walks out, as in the rooms mode (`settleContinuous`, like the room's music).
+
 ## Volley spells (remake)
 
 Owner design (2026-10-24), not in the engine: eight scrolls that fire a fan of an enemy's
