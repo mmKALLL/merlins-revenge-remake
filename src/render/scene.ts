@@ -93,8 +93,6 @@ function tealGlowFilter(): ColorMatrixFilter {
 const UNAVAILABLE_ICON_ALPHA = 0.5
 /** objSpellIcons pSpellStrip: the atlas holding the summon stage icons (one strip per spell name). */
 export const SPELL_ICONS = 'spellIcons'
-/** Cut scene characters drawn with an actor's sprite under another key (#merlin plays as the player). */
-const CUTSCENE_ACTOR: Record<string, string> = { merlin: 'player' }
 
 /**
  * The spell frame is a 1-bit black disc on a transparent background. Tint multiplies, so black stays
@@ -340,10 +338,10 @@ export class Scene {
 
   /**
    * A cut scene character's frame of its strip, `stripFrames` frames into it (looped by the frame
-   * delays): the sprite of the actor with its key (or its stand-in).
+   * delays): the sprite of the actor with its key (act_<character>'s #name).
    */
   private cutSceneFrame(character: string, strip: CutSceneStrip, stripFrames: number): CharacterFrame | undefined {
-    const name = this.defs[CUTSCENE_ACTOR[character] ?? character]?.name
+    const name = this.defs[character]?.name
     if (!name) return undefined
     const frame = sleepingFrame(this.sprites[name]?.anims[strip], stripFrames)
     const texture = this.frameFor(name, strip, frame)

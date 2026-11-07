@@ -293,7 +293,9 @@ export interface ActorDef {
 }
 
 /** Object types drawn with an animation atlas. */
-const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine', 'objChatter'])
+const SPRITE_OBJ_TYPES = new Set(['objCPUCharacter', 'objPlayerMerlinCharacter', 'objBullet', 'objSpell', 'objDwelling', 'objMine', 'objChatter', 'objActorPlayer'])
+/** Cut scene players (objActorPlayer) with no art: no anm_blackPotion_* member is in the archive, so the black potion draws nothing. */
+const PLAYERS_WITHOUT_ART: readonly string[] = ['blackPotion']
 /** Pickups: their atlas is named after the actor key (assets/sprites/<key>/, from its gfx members). */
 const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_TYPE])
 
@@ -302,9 +304,11 @@ const PICKUP_OBJ_TYPES = new Set([POTION_OBJ_TYPE, MEDIKIT_OBJ_TYPE, SCROLL_OBJ_
  * have a drawable objType but never set `#name`; only concrete actors that name themselves have art.
  * Pickups have no `#name`: a concrete one sets its `#character` (act_powerUp does not). Of the
  * scrolls only Merlin's, which the objects tilesets place, and the remake's volleys have art.
+ * Cut scene players are loaded for every map, as the endings may use them.
  */
 export function needsSprite(def: ActorDef): boolean {
   if (def.objType === SCROLL_OBJ_TYPE) return SCROLLS_WITH_ART.includes(def.key)
+  if (PLAYERS_WITHOUT_ART.includes(def.key)) return false
   if (PICKUP_OBJ_TYPES.has(def.objType)) return def.character !== null
   return SPRITE_OBJ_TYPES.has(def.objType) && typeof def.raw['name'] === 'string'
 }

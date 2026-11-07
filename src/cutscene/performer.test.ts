@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { TELEPORT_TICKS } from '../mr-open/mr-army'
+import { defs } from '../sim/test-data'
+import { cutSceneCast } from './cast'
 import {
-  BLACK, OFF_STAGE_DISTANCE, TIME_BETWEEN_LINES, TITLE_COLOUR, TITLE_DISPLAY_FRAMES, WASTED_BLEND, WASTED_HEIGHT, cutSceneView,
-  speechFrames, startCutScene, stepCutScene, type CutSceneState,
+  BLACK, DEFAULT_CAST_MEMBER, OFF_STAGE_DISTANCE, TIME_BETWEEN_LINES, TITLE_COLOUR, TITLE_DISPLAY_FRAMES, WASTED_BLEND, WASTED_HEIGHT, cutSceneView,
+  speechFrames, startCutScene, stepCutScene, type Cast, type CutSceneState,
 } from './performer'
 import { parseCutScene } from './script'
 
@@ -125,4 +128,85 @@ it('plays the script\'s sounds and finishes a script without waits at once', () 
   const { state, cues } = startCutScene(parseCutScene('characters\nlines\nplaySound end_level 100\n'), STAGE)
   expect(cues).toEqual([{ kind: 'sound', name: 'end_level', volume: 100 }])
   expect(state.finished).toBe(true)
+})
+
+describe('props (modProp)', () => {
+  const props = parseCutScene(
+    'characters\n#ochreHydra - o\n#blackPotion - bp\n#whiteScroll - ws\nlines\nsetStage\no at 400\no produceProp bp\nwait 1\no walkTo 300\nwait 20\no dropProp\nwait 1\no produceProp ws\nwait 1\no putAwayProp\nwait 1\n',
+  )
+  const cast: Cast = { ochreHydra: { ...DEFAULT_CAST_MEMBER, propCarryLoc: { x: 10, y: -10 } } }
+  const viewOf = (s: CutSceneState, character: string) => cutSceneView(s).players.find((p) => p.character === character)
+
+  it('a produced prop hangs from its holder at its propCarryLoc (mirrored by facing) and goes where it goes', () => {
+    let s = startCutScene(props, STAGE, cast).state
+    expect(viewOf(s, 'blackPotion')).toMatchObject({ x: 410, heldBy: { character: 'ochreHydra', carry: { x: 10, y: -10 } } })
+    ;[s] = runUntil(s, (t) => t.players[0]!.walkTarget !== null)
+    s = stepCutScene(s).state
+    const holder = viewOf(s, 'ochreHydra')!
+    expect(holder.facingLeft).toBe(true)
+    expect(viewOf(s, 'blackPotion')).toMatchObject({ x: holder.x - 10, facingLeft: true, heldBy: { carry: { x: -10, y: -10 } } })
+  })
+
+  it('a dropped prop stands on the stage where its holder stood; a put away one goes to the wings', () => {
+    let s = startCutScene(props, STAGE, cast).state
+    ;[s] = runUntil(s, (t) => t.players.find((p) => p.character === 'blackPotion')!.holder === null)
+    const dropped = viewOf(s, 'blackPotion')!
+    expect(dropped.heldBy).toBeNull()
+    expect(dropped.x).toBe(s.players[0]!.x)
+    ;[s] = runUntil(s, (t) => t.finished)
+    expect(viewOf(s, 'whiteScroll')).toBeUndefined()
+    expect(viewOf(s, 'blackPotion')).toBeDefined()
+  })
+})
+
+describe('teleports (modTeleport)', () => {
+  const teleports = parseCutScene('characters\n#ulin - u\nlines\nsetStage\nu teleportInAt 50\nwait 30\nu teleportOut\nwait 30\n')
+
+  it('teleportInAt stretches the player in at its spot and teleportOut out to the wings, each over TELEPORT_TICKS', () => {
+    let s = startCutScene(teleports, STAGE).state
+    expect(cutSceneView(s).players[0]).toMatchObject({ x: 50, teleport: { kind: 'in', age: 0 } })
+    let frames: number
+    ;[s, frames] = runUntil(s, (t) => t.players[0]!.teleport === null)
+    expect(frames).toBe(TELEPORT_TICKS)
+    ;[s] = runUntil(s, (t) => t.players[0]!.teleport?.kind === 'out')
+    ;[s, frames] = runUntil(s, (t) => t.players[0]!.x === null)
+    expect(frames).toBe(TELEPORT_TICKS)
+  })
+})
+
+describe('the cast (act_<character> data)', () => {
+  it('walks each player at its own #walkSpeed and faces it by #initFaceDir', () => {
+    const cast = cutSceneCast(defs)
+    expect(cast['ochreHydra']!.propCarryLoc).toEqual({ x: 10, y: -10 })
+    const script = parseCutScene('characters\n#ulin - u\nlines\nsetStage\nu at 300\nu walkTo 100\nwait 10\n')
+    let s = startCutScene(script, STAGE, cast).state
+    expect(s.players[0]!.facingLeft).toBe(true)
+    s = stepCutScene(s).state
+    expect(s.players[0]!.x).toBe(299) // act_ulin #walkSpeed 2, halved by the walking friction
+  })
+})
+
+describe('the MR3 intro (mr3IntroFull)', () => {
+  const intro = parseCutScene(readFileSync('assets/cut-scenes/mr3IntroFull.txt', 'utf8'))
+
+  it('plays to its end: the potion swap, the powerup sound and both teleports, then the lights go down', () => {
+    const started = startCutScene(intro, STAGE, cutSceneCast(defs))
+    let s = started.state
+    const cues = [...started.cues]
+    let swapped = false
+    let teleported = false
+    for (let i = 0; i < 40000 && !s.finished; i++) {
+      const r = stepCutScene(s)
+      s = r.state
+      cues.push(...r.cues)
+      const hp = s.players.find((p) => p.character === 'horriblePotion')!
+      swapped ||= hp.x !== null && hp.fade !== null
+      teleported ||= s.players.some((p) => p.teleport !== null)
+    }
+    expect(s.finished).toBe(true)
+    expect(swapped).toBe(true)
+    expect(teleported).toBe(true)
+    expect(cues).toEqual([{ kind: 'sound', name: 'collect_powerup_01', volume: 255 }])
+    expect(s.players.every((p) => p.blend === 0 || p.x === null)).toBe(true)
+  })
 })

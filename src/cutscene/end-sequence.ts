@@ -10,7 +10,7 @@
 //   movieMaster.cutSceneFinished) it goes to goScreen(#gameScreen, #loadGame): the save loads
 //   (main.ts; without a save the map starts again). Remake: the game over can be skipped
 //   (skipEndSequence) straight to that end.
-import { cutSceneView, startCutScene, stepCutScene, type CutSceneCue, type CutSceneState, type CutSceneView, type StageRect } from './performer'
+import { cutSceneView, startCutScene, stepCutScene, type Cast, type CutSceneCue, type CutSceneState, type CutSceneView, type StageRect } from './performer'
 import type { CutSceneScript } from './script'
 
 /** Which ending: gameMaster.gameComplete (the map is clear) or gameMaster.gameOver (Merlin died). */
@@ -41,15 +41,15 @@ export interface EndSequenceView {
 
 export const startEndSequence = (kind: EndingKind): EndSequence => ({ kind, phase: 'fadeOut', frame: 0 })
 
-/** One frame of the sequence; `script` is its ending's cut scene (ENDING_SCRIPTS). */
-export function stepEndSequence(seq: EndSequence, script: CutSceneScript, stage: StageRect): { seq: EndSequence; cues: CutSceneCue[] } {
+/** One frame of the sequence; `script` is its ending's cut scene (ENDING_SCRIPTS), played by `cast`. */
+export function stepEndSequence(seq: EndSequence, script: CutSceneScript, stage: StageRect, cast: Cast = {}): { seq: EndSequence; cues: CutSceneCue[] } {
   const { kind } = seq
   const playing = (scene: CutSceneState): EndSequence => (scene.finished ? { kind, phase: 'done' } : { kind, phase: 'cutScene', scene })
   switch (seq.phase) {
     case 'fadeOut': {
       const frame = seq.frame + 1
       if (frame < GAME_FADE_FRAMES) return { seq: { kind, phase: 'fadeOut', frame }, cues: [] }
-      const started = startCutScene(script, stage)
+      const started = startCutScene(script, stage, cast)
       return { seq: playing(started.state), cues: started.cues }
     }
     case 'cutScene': {

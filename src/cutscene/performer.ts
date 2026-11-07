@@ -6,11 +6,13 @@
 //
 // Supported: setStage, at, atPlayer, gotoWings, turnToFace, speakLine, wait, showTitle,
 // backgroundColour, backgroundColourTo, lightsUp, lightsDown, fadeDown (a player), fadeUp/fadeDown
-// (the stage: no-ops as in the engine), playSound, playMusic, goWastedMode, and the walks: walkTo,
-// walkToPlayer, enterStage* and exitStage* walk (modMoveToLoc) and the script runs on at once
-// (lineFinished does not wait for the walk). Teleporting is not animated: teleportInAt puts the
-// player at the destination, teleportOut sends it to the wings. Props, goMode, walkScroll* and
-// backgroundColourRandomFlash are skipped.
+// (the stage: no-ops as in the engine), playSound, playMusic, goWastedMode, the walks (walkTo,
+// walkToPlayer, enterStage* and exitStage* walk (modMoveToLoc) and the script runs on at once:
+// lineFinished does not wait for the walk), the teleports (teleportInAt, teleportOut: modTeleport's
+// stretch, the script running on) and the props (modProp: propAt, produceProp, dropProp,
+// putAwayProp). goMode, walkScroll* and backgroundColourRandomFlash are skipped.
+import { TELEPORT_TICKS } from '../mr-open/mr-army'
+import type { Vec } from '../mr-open/mr-geometry'
 import { arrived, frameMove } from '../mr-open/mr-pathfinding'
 import type { CutSceneScript, Rgb, ScriptLine, ScriptValue } from './script'
 
@@ -34,13 +36,19 @@ const INVISIBLE = 0
 export const WASTED_BLEND = 30
 export const WASTED_HEIGHT = 60
 /**
- * modMoveToLoc.moveTowardsLocSpeed sets the walk vector to the actor's walkSpeed (act_merlin
- * #walkSpeed 4, the cut scene Merlin), and objMoveXY's walking friction (50 %) halves it before the
- * move, as for every CPU walker (engine-mechanics-combat.md): 2 px a frame, the playable Merlin's
- * walking speed too. Only Merlin is drawn, so every character walks at his speed.
+ * modMoveToLoc.moveTowardsLocSpeed sets the walk vector to the actor's #walkSpeed (act_merlin 4,
+ * act_ulin 2), and objMoveXY's walking friction (50 %) halves it before the move, as for every CPU
+ * walker (engine-mechanics-combat.md): 2 px a frame for Merlin, the playable Merlin's walking
+ * speed too. A character the cast does not list walks at Merlin's speed.
  */
 const WALK_SPEED = 4
 const WALK_FRICTION = 0.5
+/**
+ * modProp #propCarryLoc: where a held prop's reg point hangs from its holder's, x mirrored by the
+ * holder's facing. Only act_ochreHydra sets one (point(10,-10)); this default (assumed, modProp is
+ * not in the notes) puts it at a 16 px character's hand.
+ */
+export const DEFAULT_PROP_CARRY_LOC: Vec = { x: 8, y: -8 }
 /**
  * objScriptPerformer.calcStageLeftOffLoc / calcStageRightOffLoc: a spot just past the stage's edge.
  * Assumed: one character width (Merlin's frames are 16 px) beyond it, so he is out of sight there.
@@ -49,6 +57,19 @@ export const OFF_STAGE_DISTANCE = 16
 
 /** The stage the players stand on, in the renderer's coordinates (cutSceneMaster.pStageRect). */
 export interface StageRect { left: number; right: number }
+
+/** A player's own data: the actor of its character's key (actorMaster.newActor, act_<character>). */
+export interface CastMember {
+  /** #walkSpeed: the walk vector's length before the walking friction */
+  walkSpeed: number
+  /** modProp #propCarryLoc */
+  propCarryLoc: Vec
+  /** #initFaceDir -1: it starts facing left */
+  startsFacingLeft: boolean
+}
+/** Character -> its actor's data; a character not listed takes DEFAULT_CAST_MEMBER. */
+export type Cast = Readonly<Record<string, CastMember>>
+export const DEFAULT_CAST_MEMBER: CastMember = { walkSpeed: WALK_SPEED, propCarryLoc: DEFAULT_PROP_CARRY_LOC, startsFacingLeft: false }
 
 /**
  * objTransformer: `curr` moves toward `target` by `speed` per frame, skipping the first frame (so
@@ -81,6 +102,9 @@ function colourAt(c: ColourChange): Rgb {
 /** The player's strip: modAnimSet shows the walk strip while modMoveToLoc moves it. */
 export type CutSceneStrip = 'stand' | 'walk'
 
+/** modTeleport: a teleport in or out playing, `age` frames into its TELEPORT_TICKS. */
+export interface CutSceneTeleport { kind: 'in' | 'out'; age: number }
+
 export interface CutScenePlayer {
   character: string
   /** stage x of the player's middle; null while it waits in the wings (off stage) */
@@ -95,6 +119,9 @@ export interface CutScenePlayer {
   stripFrames: number
   /** modWastedMode: the sprite's height in px; null keeps the frame's own */
   height: number | null
+  /** modProp: the player holding this prop (produceProp); it hangs from that player, its own x null */
+  holder: string | null
+  teleport: CutSceneTeleport | null
 }
 
 /** `x`: where the speech went up, centred on the speaker then (null: the speaker was in the wings). */
@@ -114,6 +141,7 @@ interface Title {
 export interface CutSceneState {
   script: CutSceneScript
   stage: StageRect
+  cast: Cast
   /** the next line to perform */
   next: number
   finished: boolean
@@ -133,17 +161,21 @@ export type CutSceneCue = { kind: 'sound'; name: string; volume: number } | { ki
 export interface CutSceneStep { state: CutSceneState; cues: CutSceneCue[] }
 
 /** cutSceneMaster.playCutScene -> objScriptPerformer.startPerformance: the lines up to the first that waits. */
-export function startCutScene(script: CutSceneScript, stage: StageRect): CutSceneStep {
+export function startCutScene(script: CutSceneScript, stage: StageRect, cast: Cast = {}): CutSceneStep {
   const state: CutSceneState = {
     script,
     stage,
+    cast,
     next: 0,
     finished: false,
     background: BLACK,
     backgroundChange: null,
     title: { text: '', colour: BLACK, change: null, mode: 'none', pending: '', displayLeft: null },
     // createMissingPlayers: every player starts in the wings
-    players: script.players.map((p) => ({ character: p.character, x: null, blend: OPAQUE, fade: null, facingLeft: false, walkTarget: null, stripFrames: 0, height: null })),
+    players: script.players.map((p) => ({
+      character: p.character, x: null, blend: OPAQUE, fade: null, facingLeft: castMember(cast, p.character).startsFacingLeft,
+      walkTarget: null, stripFrames: 0, height: null, holder: null, teleport: null,
+    })),
     speech: null,
     waitLeft: null,
     lightsPending: false,
@@ -165,8 +197,8 @@ export function stepCutScene(prev: CutSceneState): CutSceneStep {
   let fading = false
   s = {
     ...s,
-    players: s.players.map((walker) => {
-      const p = stepWalk(walker)
+    players: s.players.map((player) => {
+      const p = stepTeleport(stepWalk(player, castMember(s.cast, player.character).walkSpeed))
       if (!p.fade) return p
       const r = stepTransform(p.fade)
       if (!r.done) fading = true
@@ -199,21 +231,39 @@ export function stepCutScene(prev: CutSceneState): CutSceneStep {
 export interface CutSceneView {
   background: Rgb
   title: { text: string; colour: Rgb }
-  /** `height`: the sprite stretched to this many px tall (null: as drawn) */
-  players: { character: string; x: number; alpha: number; facingLeft: boolean; strip: CutSceneStrip; stripFrames: number; height: number | null }[]
+  players: CutScenePlayerView[]
   speech: { character: string; x: number; text: string } | null
 }
 
+export interface CutScenePlayerView {
+  character: string
+  x: number
+  alpha: number
+  facingLeft: boolean
+  strip: CutSceneStrip
+  stripFrames: number
+  /** the sprite stretched to this many px tall about its reg point (null: as drawn) */
+  height: number | null
+  teleport: CutSceneTeleport | null
+  /** a held prop: its reg point hangs `carry` px from its holder's (mirrored already) */
+  heldBy: { character: string; carry: Vec } | null
+}
+
 export function cutSceneView(s: CutSceneState): CutSceneView {
-  const onStage = s.players.filter((p): p is CutScenePlayer & { x: number } => p.x !== null)
   const speech = s.speech?.phase === 'display' && s.speech.x !== null ? { character: s.speech.character, x: s.speech.x, text: s.speech.text } : null
   return {
     background: s.background,
     title: { text: s.title.text, colour: s.title.colour },
-    players: onStage.map((p) => ({
-      character: p.character, x: p.x, alpha: p.blend / OPAQUE, facingLeft: p.facingLeft,
-      strip: stripOf(p), stripFrames: p.stripFrames, height: p.height,
-    })),
+    players: s.players.flatMap((p) => {
+      const x = playerX(s, p.character)
+      if (x === null) return []
+      const holder = p.holder === null ? undefined : s.players.find((h) => h.character === p.holder)
+      return [{
+        character: p.character, x, alpha: p.blend / OPAQUE, facingLeft: holder ? holder.facingLeft : p.facingLeft,
+        strip: stripOf(p), stripFrames: p.stripFrames, height: p.height, teleport: p.teleport,
+        heldBy: holder ? { character: holder.character, carry: carryOffset(s, holder) } : null,
+      }]
+    }),
     speech,
   }
 }
@@ -245,7 +295,7 @@ function performLine(s: CutSceneState, line: ScriptLine, cues: CutSceneCue[]): C
   switch (line.command) {
     case 'setStage':
       // putPlayersIntoWings, makePlayersInvisible, backgroundColour(pSetSceneColour)
-      return { ...s, backgroundChange: null, background: BLACK, players: s.players.map((p) => ({ ...p, x: null, blend: INVISIBLE, fade: null })) }
+      return { ...s, backgroundChange: null, background: BLACK, players: s.players.map((p) => ({ ...placed(p, null), blend: INVISIBLE, fade: null })) }
     case 'backgroundColour':
       return isRgb(value) ? { ...s, background: value, backgroundChange: null } : s
     case 'backgroundColourTo':
@@ -271,10 +321,24 @@ function performLine(s: CutSceneState, line: ScriptLine, cues: CutSceneCue[]): C
       return { ...autoTurn(s, who), speech: { character: who, text, x: playerX(s, who), phase: 'display', framesLeft: speechFrames(text) } }
   }
   if (who === null) return s // other stage commands (fadeUp, fadeDown, walkScroll*) only call lineFinished here
+  switch (line.command) {
+    case 'produceProp':
+      return other === null ? s : produceProp(s, who, other)
+    case 'dropProp':
+      return dropProp(s, who)
+    case 'putAwayProp':
+      return updateHeldProp(s, who, (prop) => placed(prop, null))
+  }
   return updatePlayer(s, who, (p) => {
     switch (line.command) {
-      case 'at': case 'propAt': case 'teleportInAt':
+      case 'at': case 'propAt':
         return placed(p, stageX(value) ?? p.x)
+      case 'teleportInAt': {
+        const x = stageX(value)
+        return x === null ? p : { ...placed(p, x), teleport: { kind: 'in', age: 0 } }
+      }
+      case 'teleportOut':
+        return p.x === null ? p : { ...p, walkTarget: null, teleport: { kind: 'out', age: 0 } }
       case 'atPlayer':
         return placed(p, playerX(s, other) ?? p.x)
       case 'walkTo':
@@ -290,7 +354,7 @@ function performLine(s: CutSceneState, line: ScriptLine, cues: CutSceneCue[]): C
         return walkTo(p, offStageX(s, 'left'))
       case 'exitStageRight':
         return walkTo(p, offStageX(s, 'right'))
-      case 'gotoWings': case 'teleportOut':
+      case 'gotoWings':
         return placed(p, null)
       case 'turnToFace':
         return faceToward(p, playerX(s, other))
@@ -306,9 +370,44 @@ function performLine(s: CutSceneState, line: ScriptLine, cues: CutSceneCue[]): C
 
 const stripOf = (p: CutScenePlayer): CutSceneStrip => (p.walkTarget === null ? 'stand' : 'walk')
 
-/** A player put somewhere (in the wings for null) at once: a walk stops there. */
+/** A player put somewhere (in the wings for null) at once: a walk or teleport stops there, a held prop is let go. */
 function placed(p: CutScenePlayer, x: number | null): CutScenePlayer {
-  return { ...p, x, walkTarget: null, stripFrames: p.walkTarget === null ? p.stripFrames : 0 }
+  return { ...p, x, walkTarget: null, stripFrames: p.walkTarget === null ? p.stripFrames : 0, holder: null, teleport: null }
+}
+
+const castMember = (cast: Cast, character: string): CastMember => cast[character] ?? DEFAULT_CAST_MEMBER
+
+/** Where a prop `holder` holds hangs from its reg point: its propCarryLoc, mirrored when it faces left. */
+function carryOffset(s: CutSceneState, holder: CutScenePlayer): Vec {
+  const loc = castMember(s.cast, holder.character).propCarryLoc
+  return { x: holder.facingLeft ? -loc.x : loc.x, y: loc.y }
+}
+
+/** modProp.produceProp: `prop` comes out of the wings (or off the stage) into `holder`'s hand; a prop it held before is put away. */
+function produceProp(s: CutSceneState, holder: string, prop: string): CutSceneState {
+  const emptyHanded = updateHeldProp(s, holder, (p) => placed(p, null))
+  return updatePlayer(emptyHanded, prop, (p) => ({ ...placed(p, null), holder }))
+}
+
+/**
+ * modProp.dropProp: the prop `holder` holds stands on the stage below its holder (assumed: at the
+ * holder's x; in the intro Merlin then walks to the dropped potion in the 37 frames the script gives him).
+ */
+function dropProp(s: CutSceneState, holder: string): CutSceneState {
+  const x = s.players.find((p) => p.character === holder)?.x ?? null
+  return updateHeldProp(s, holder, (prop) => placed(prop, x))
+}
+
+function updateHeldProp(s: CutSceneState, holder: string, fn: (prop: CutScenePlayer) => CutScenePlayer): CutSceneState {
+  return { ...s, players: s.players.map((p) => (p.holder === holder ? fn(p) : p)) }
+}
+
+/** modTeleport: a teleport in ends standing; one out ends in the wings. */
+function stepTeleport(p: CutScenePlayer): CutScenePlayer {
+  if (!p.teleport) return p
+  const age = p.teleport.age + 1
+  if (age < TELEPORT_TICKS) return { ...p, teleport: { ...p.teleport, age } }
+  return p.teleport.kind === 'in' ? { ...p, teleport: null } : placed(p, null)
 }
 
 /**
@@ -323,13 +422,13 @@ function walkTo(p: CutScenePlayer, x: number | null): CutScenePlayer {
 }
 
 /** modMoveToLoc.update: within the arrival distance the walk ends; else a frame's step toward the target. */
-function stepWalk(p: CutScenePlayer): CutScenePlayer {
+function stepWalk(p: CutScenePlayer, walkSpeed: number): CutScenePlayer {
   const stripFrames = p.stripFrames + 1
   if (p.walkTarget === null || p.x === null) return { ...p, stripFrames }
   const at = { x: p.x, y: 0 }
   const target = { x: p.walkTarget, y: 0 }
   if (arrived(at, target)) return { ...p, walkTarget: null, stripFrames: 0 }
-  return { ...p, x: p.x + frameMove(at, target, WALK_SPEED).x * (1 - WALK_FRICTION), stripFrames }
+  return { ...p, x: p.x + frameMove(at, target, walkSpeed).x * (1 - WALK_FRICTION), stripFrames }
 }
 
 const isRgb = (v: ScriptValue | undefined): v is Rgb => typeof v === 'object' && 'r' in v
@@ -345,8 +444,13 @@ function stageX(v: ScriptValue | undefined): number | null {
 const offStageX = (s: CutSceneState, side: 'left' | 'right'): number =>
   side === 'left' ? s.stage.left - OFF_STAGE_DISTANCE : s.stage.right + OFF_STAGE_DISTANCE
 
-const playerX = (s: CutSceneState, character: string | null): number | null =>
-  s.players.find((p) => p.character === character)?.x ?? null
+/** The player's stage x; a held prop's is its holder's, carried (null in the wings). */
+function playerX(s: CutSceneState, character: string | null): number | null {
+  const p = s.players.find((q) => q.character === character)
+  if (!p || p.holder === null) return p?.x ?? null
+  const holder = s.players.find((h) => h.character === p.holder)
+  return holder?.x == null ? null : holder.x + carryOffset(s, holder).x
+}
 
 /**
  * objScriptPerformer.getStageEntranceOnLoc: halfway between the stage edge and the outermost player

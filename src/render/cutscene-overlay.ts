@@ -4,9 +4,10 @@
 // animScreenGameOver layouts are not extracted, so the stage and title positions below are
 // assumptions within the 640x320 screen.
 import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js'
+import { teleportLook } from '../mr-open/mr-army'
 import type { Vec } from '../mr-open/mr-geometry'
 import type { EndSequenceView } from '../cutscene/end-sequence'
-import type { CutSceneStrip, CutSceneView, StageRect } from '../cutscene/performer'
+import type { CutScenePlayerView, CutSceneStrip, StageRect } from '../cutscene/performer'
 import type { Rgb } from '../cutscene/script'
 import type { Size } from './camera'
 import { PIXEL_TEXT } from './text-options'
@@ -71,7 +72,18 @@ export class CutSceneOverlay {
       this.stage.clear().rect(left, top, right - left, bottom - top).fill(hex(scene.background))
       this.title.text = scene.title.text
       this.title.style.fill = hex(scene.title.colour)
-      for (const p of scene.players) if (this.drawPlayer(p)) seen.add(p.character)
+      // standing players first, so the props they hold hang from them and in front of them
+      const regs = new Map<string, Vec>()
+      for (const p of scene.players) {
+        if (p.heldBy) continue
+        const reg = this.drawPlayer(p)
+        if (reg) regs.set(p.character, reg)
+      }
+      for (const p of scene.players) {
+        const holderReg = p.heldBy && regs.get(p.heldBy.character)
+        if (holderReg && this.drawHeldProp(p, holderReg)) seen.add(p.character)
+      }
+      for (const character of regs.keys()) seen.add(character)
       this.speech.visible = scene.speech !== null
       if (scene.speech) {
         this.speech.text = scene.speech.text
@@ -85,19 +97,47 @@ export class CutSceneOverlay {
 
   /**
    * The player's frame hung from its registration point, the frame's bottom on the stage floor; a
-   * set height stretches it about that point (a Director sprite's height keeps its loc).
+   * set height stretches it about that point (a Director sprite's height keeps its loc). A teleport
+   * stretches it with its bottom on the floor (modTeleport, as in the game). Returns where its
+   * registration point is drawn, or undefined when it has no frame.
    */
-  private drawPlayer(p: CutSceneView['players'][number]): boolean {
+  private drawPlayer(p: CutScenePlayerView): Vec | undefined {
     const frame = this.frameFor(p.character, p.strip, p.stripFrames)
-    if (!frame) return false
+    if (!frame) return undefined
+    const { texture, reg } = frame
+    const floor = CUTSCENE_STAGE.bottom - STAGE_FLOOR_HEIGHT
+    const at = { x: Math.round(p.x), y: floor - (texture.height - reg.y) }
+    const spr = this.styledSprite(p, frame, at)
+    spr.scale.y = p.height === null ? 1 : p.height / texture.height
+    if (p.teleport) {
+      const look = teleportLook(p.teleport.kind, p.teleport.age, texture.height)
+      spr.anchor.y = 1
+      spr.position.y = floor
+      spr.scale.y = look.height / texture.height
+      spr.alpha *= look.alpha
+    }
+    return at
+  }
+
+  /** A held prop (modProp): its registration point `carry` px from its holder's. */
+  private drawHeldProp(p: CutScenePlayerView, holderReg: Vec): boolean {
+    const frame = this.frameFor(p.character, p.strip, p.stripFrames)
+    if (!frame || !p.heldBy) return false
+    const { carry } = p.heldBy
+    this.styledSprite(p, frame, { x: holderReg.x + carry.x, y: holderReg.y + carry.y })
+    return true
+  }
+
+  /** The player's sprite on `frame`, its registration point at `at`, facing and faded as the view says. */
+  private styledSprite(p: CutScenePlayerView, frame: CharacterFrame, at: Vec): Sprite {
     const { texture, reg } = frame
     const spr = this.playerSprite(p.character)
     spr.texture = texture
     spr.anchor.set(reg.x / texture.width, reg.y / texture.height)
-    spr.position.set(Math.round(p.x), CUTSCENE_STAGE.bottom - STAGE_FLOOR_HEIGHT - (texture.height - reg.y))
-    spr.scale.set(p.facingLeft ? -1 : 1, p.height === null ? 1 : p.height / texture.height)
+    spr.position.set(at.x, at.y)
+    spr.scale.set(p.facingLeft ? -1 : 1, 1)
     spr.alpha = p.alpha
-    return true
+    return spr
   }
 
   private playerSprite(character: string): Sprite {
