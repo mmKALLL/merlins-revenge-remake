@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { energyBarLength, energyBarRect, energyPercent, multicolourBarColour } from './mr-hud'
+import { GAME_SCREEN, GAME_STAGE, energyBarLength, energyBarRect, energyPercent, multicolourBarColour, screenLayoutFor } from './mr-hud'
 
 describe('objMulticolourEnergyBar colour', () => {
   it('runs red to yellow below half energy and yellow to green above, green only when full', () => {
@@ -22,5 +22,25 @@ describe('objEnergyBar fill', () => {
     expect(energyBarLength(energyPercent(100, 200), bar.w)).toBe(48)
     expect(energyBarLength(energyPercent(-5, 200), bar.w)).toBe(0)
     expect(energyBarLength(energyPercent(250, 200), bar.w)).toBe(96)
+  })
+})
+
+describe('screenLayoutFor', () => {
+  it('gives the original screen for the standard 576x288 view', () => {
+    const layout = screenLayoutFor({ w: 576, h: 288 })
+    expect(layout.stage).toEqual(GAME_STAGE)
+    expect(layout.marks).toEqual(GAME_SCREEN)
+  })
+
+  it('keeps the margins and strips around a 16x9 or 16x12 room, the marks following its right and bottom edges', () => {
+    const narrow = screenLayoutFor({ w: 512, h: 288 })
+    expect(narrow.stage).toEqual({ w: 576, h: 320 })
+    expect(narrow.marks.army).toEqual({ x: 544, y: 16, w: 32, h: 288 })
+    expect(narrow.marks.potions.x + narrow.marks.potions.w).toBe(narrow.marks.map.x + 512)
+    const tall = screenLayoutFor({ w: 512, h: 384 })
+    expect(tall.stage).toEqual({ w: 576, h: 416 })
+    expect(tall.marks.healthSurround.y).toBe(GAME_SCREEN.healthSurround.y + 96)
+    expect(tall.marks.army.h).toBe(384)
+    expect(tall.marks.medikit).toEqual(GAME_SCREEN.medikit)
   })
 })

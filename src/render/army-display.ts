@@ -6,7 +6,7 @@
 import { Container, Sprite, Text, type Texture } from 'pixi.js'
 import type { LoadedSprite } from '../data/loaders'
 import type { ActorDef } from '../mr-open/mr-actor-data'
-import { GAME_SCREEN } from '../mr-open/mr-hud'
+import type { GameScreen } from '../mr-open/mr-hud'
 import { playerOf, wizardTypes } from '../sim/actors'
 import type { SimState } from '../sim/state'
 import { armyDisplayEntries, type ArmyDisplayMode, type ArmyEntry } from './army-entries'
@@ -14,23 +14,24 @@ import { PIXEL_TEXT } from './text-options'
 
 const FONT = { fontFamily: 'monospace', fontSize: 9, fill: 0xffffff }
 
-/** The right margin: one entry under another, the icon over its count, centred in the margin. */
+/** The right margin (the army mark): one entry under another, the icon over its count, centred in the margin. */
 const COLUMN = {
   iconBox: 26, // the largest icon side; frames are only ever shrunk
-  top: GAME_SCREEN.army.y + 4,
-  bottom: GAME_SCREEN.army.y + GAME_SCREEN.army.h,
+  topGap: 4, // from the margin's top to the first icon
   countGap: 1, // between an icon and its count
   entryGap: 4, // between one entry's count and the next icon
 }
 
 /** The weapon icon at the wizard mark is this wide (hud/weapon-selector, 18 x 16). */
 const WEAPON_ICON_WIDTH = 18
-/** The top strip: entries side by side, each icon with its count to its right. */
+/**
+ * The top strip: entries side by side, each icon with its count to its right, from leftGap right of
+ * the weapon icon to where potionMaster's display rect starts.
+ */
 const ROW = {
   iconBox: 14,
   top: 1,
-  left: GAME_SCREEN.wizard.x + WEAPON_ICON_WIDTH + 8,
-  right: GAME_SCREEN.potions.x, // potionMaster's display rect starts here
+  leftGap: 8,
   countGap: 1,
   countDrop: 3, // counts sit this much lower than the icons' tops, like the medikit counter
   entryGap: 6,
@@ -45,6 +46,7 @@ export class ArmyDisplay {
     private sprites: Record<string, LoadedSprite>,
     private defs: Record<string, ActorDef>,
     private mode: ArmyDisplayMode,
+    private marks: GameScreen,
   ) {
     this.wizards = wizardTypes(defs)
   }
@@ -66,11 +68,12 @@ export class ArmyDisplay {
 
   /** Stops at the margin's bottom: entries that do not fit are left out. */
   private drawColumn(entries: ArmyEntry[]): void {
-    const centre = GAME_SCREEN.army.x + GAME_SCREEN.army.w / 2
-    let y = COLUMN.top
+    const { army } = this.marks
+    const centre = army.x + army.w / 2
+    let y = army.y + COLUMN.topGap
     for (const e of entries) {
       const count = this.countText(e.count)
-      if (y + COLUMN.iconBox + COLUMN.countGap + count.height > COLUMN.bottom) {
+      if (y + COLUMN.iconBox + COLUMN.countGap + count.height > army.y + army.h) {
         count.destroy()
         break
       }
@@ -84,11 +87,11 @@ export class ArmyDisplay {
 
   /** Stops short of the potions: entries that do not fit are left out. */
   private drawRow(entries: ArmyEntry[]): void {
-    let x = ROW.left
+    let x = this.marks.wizard.x + WEAPON_ICON_WIDTH + ROW.leftGap
     for (const e of entries) {
       const count = this.countText(e.count)
       const countX = x + ROW.iconBox + ROW.countGap
-      if (countX + count.width > ROW.right) {
+      if (countX + count.width > this.marks.potions.x) {
         count.destroy()
         break
       }

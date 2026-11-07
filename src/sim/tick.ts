@@ -63,6 +63,7 @@ import { stepSpells } from './tick-spell'
 import { stepArmyKey, stepTeleports } from './tick-army'
 import { stepBuilders } from './tick-builder'
 import { stepMines } from './tick-mine'
+import { playViewFor } from './view'
 import type { WorldGrid } from './world-grid'
 
 export const EMPTY_ROOM: RoomState = { spawned: true, actors: [], graves: [], clear: false }
@@ -442,16 +443,17 @@ export function stepSim(s: SimState, input: InputSnapshot, cfg: SimConfig = DEFA
 
 function stepWorld(s: SimState, input: InputSnapshot, cfg: SimConfig): SimState {
   const t = beginTick(s)
+  const view = cfg.view ?? playViewFor(s.grid.map)
   stepCheats(t, input)
-  stepArmyKey(t, input, cfg.view)
+  stepArmyKey(t, input, view)
   const room = stepPlayerMove(t, input, cfg)
-  stepPlayerAttack(t, input, cfg.view)
+  stepPlayerAttack(t, input, view)
   // gameMaster.gameComplete finishes every actor (finishGame); the port keeps them but stills them
   if (!s.mapComplete) {
     stepPickups(t)
     stepBuilders(t)
     stepCpuAi(t)
-    if (s.worldMode === 'continuous') stepSleeperWanders(t, cfg.view)
+    if (s.worldMode === 'continuous') stepSleeperWanders(t, view)
     stepSpellCasters(t)
     stepDwellings(t)
   }
@@ -462,7 +464,7 @@ function stepWorld(s: SimState, input: InputSnapshot, cfg: SimConfig): SimState 
   stepAttackFrames(t)
   stepBullets(t)
   stepMines(t)
-  stepSpells(t, input, cfg.view)
+  stepSpells(t, input, view)
   stepTeleports(t)
   stepReelAndDeath(t)
   stepCooldownsAndRegen(t)

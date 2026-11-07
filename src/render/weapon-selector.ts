@@ -5,7 +5,7 @@
 import { Container, Sprite, Texture } from 'pixi.js'
 import type { WeaponSelectorTextures } from '../data/loaders'
 import type { Vec } from '../mr-open/mr-geometry'
-import { GAME_SCREEN } from '../mr-open/mr-hud'
+import type { GameScreen } from '../mr-open/mr-hud'
 import { SELECTOR_TICKS, iconAt, selectorLayout, type PaletteIcon } from '../mr-open/mr-weapon-selector'
 import type { Arsenal } from '../mr-open/mr-weapons'
 
@@ -18,8 +18,8 @@ export class WeaponSelectorLayer {
   private icons: PaletteIcon[] = []
   private drawnKey = ''
 
-  constructor(private textures: WeaponSelectorTextures | null) {
-    this.current.position.set(GAME_SCREEN.wizard.x, GAME_SCREEN.wizard.y)
+  constructor(private textures: WeaponSelectorTextures | null, marks: GameScreen) {
+    this.current.position.set(marks.wizard.x, marks.wizard.y)
     this.layer.addChild(this.current, this.palette)
   }
 

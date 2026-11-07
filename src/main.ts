@@ -32,7 +32,7 @@ import { ROGUELITE_MAP_ID, currentMapId, generateMap, generateMapSteps, isGenera
 import { rogueliteFloorMap } from './gen/roguelite-biomes'
 import { runStepsAsync } from './gen/steps'
 import type { Vec } from './mr-open/mr-geometry'
-import { GAME_SCREEN } from './mr-open/mr-hud'
+import { screenLayoutFor } from './mr-open/mr-hud'
 import type { MapDefinition } from './mr-open/mr-map-format'
 import type { CameraMode } from './render/camera'
 import { CUTSCENE_STAGE_X } from './render/cutscene-overlay'
@@ -48,7 +48,7 @@ import { collectedScrolls, holdsScroll, wizardsFound, wizardsToFind } from './si
 import { armyKeyAction } from './sim/tick-army'
 import { createSim, findStartPos, stepSim } from './sim/tick'
 import { buildWorldGrid, type WorldGrid } from './sim/world-grid'
-import { PLAY_VIEW } from './sim/view'
+import { cameraFor, openWorldOnly, playViewFor } from './sim/view'
 import { switchWorldMode } from './sim/world-mode'
 import { audioPause, nextAppState, PLAYING, simRuns, TITLE, visiblePanel, type AppAction, type AppState, type PanelKey } from './ui/app-state'
 import { helpPanel } from './ui/help-panel'
@@ -80,10 +80,8 @@ const linkedMap = upToDate(params.get('map'))
 const lastPlayedMap = (): string | null => upToDate(loadLastMap())
 const seed = Number(params.get('seed')) || (Date.now() >>> 0)
 
-const cfg: RenderConfig = {
-  logical: { w: 640, h: 320 },
-  playOffset: GAME_SCREEN.map, // the room's top-left on the stage (the score's dd_map_to_play mark)
-  view: PLAY_VIEW, // the sim's default SimConfig view too (Space aims on screen)
+/** The player's render settings; each map adds its screen layout (startGame). cameraMode is the camera the player asks for. */
+const cfg: Omit<RenderConfig, 'screen'> = {
   cameraMode: params.get('camera') === 'follow' ? 'follow' : 'room',
   spriteScale: 1,
   debug: loadDebugInfo(params.get('debug')),
@@ -237,8 +235,10 @@ interface Game {
   restart(seedChoice: 'same' | 'fresh'): void
   /** Carries the run on from the map's save; false, changing nothing, when the save no longer fits the game. */
   continueFrom(save: MapSave): boolean
-  /** Switches the camera, and the world mode with it, between ticks. */
+  /** Switches the camera, and the world mode with it, between ticks; an open-world-only map keeps the follow camera. */
   setCamera(camera: CameraMode): void
+  /** Remake: the map is one huge room (merlinart), played in the open world only. */
+  openWorldOnly: boolean
   /** Forgets the best scores held in memory after Settings reset them, so a run cannot write them back. */
   forgetBestScores(): void
   /** Plays the map's intro before its run (src/cutscene/intro.ts): the sim waits until it is over or skipped. */
@@ -319,6 +319,9 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     return { grid, startPos: findStartPos(grid, playerTile) }
   }
   let world = worldOf(map)
+  // the play view is one of the map's rooms (a generated map's floors are all of the standard size)
+  const screen = screenLayoutFor(playViewFor(map))
+  const startCamera = cameraFor(map, cfg.cameraMode)
   // the run's difficulty, taken from the setting as each run starts: Merlin's energy, his head start, and whether it counts
   let runDifficulty = shell.difficulty()
   const runDefs = () => withDifficultyDefs(defs, runDifficulty)
@@ -331,7 +334,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     const fresh = createSim(world.grid, runDefs(), teams, anims, simSeed, world.startPos, worldMode)
     return withDifficultyStart(run ? withRunStartArsenal(fresh) : fresh, runDifficulty)
   }
-  let sim = startSim(startSeed, worldModeFor(cfg.cameraMode))
+  let sim = startSim(startSeed, worldModeFor(startCamera))
   let buildingFloor = false
   audio.handle(sim.events) // the start room's music
   /** the seed in the URL: the layout's, and the sim's for Restart map */
@@ -513,10 +516,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     }
   })
 
-  const scene = new Scene(cfg, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud, weaponTextures)
+  const scene = new Scene({ ...cfg, cameraMode: startCamera, screen }, { backgroundPassive: passive, backgroundActive: active }, sprites, defs, exitArrows, hud, weaponTextures)
   await scene.init(document.getElementById('game') ?? document.body)
   const setCamera = (camera: CameraMode) => {
-    if (camera === scene.cameraMode) return
+    if (camera === scene.cameraMode || cameraFor(world.grid.map, camera) !== camera) return
     cfg.cameraMode = camera // the map lists show this mode's bests
     scene.setCameraMode(camera)
     sim = switchWorldMode(sim, worldModeFor(camera)) // voids the run's score
@@ -574,10 +577,10 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     skipGameOver()
     skipIntro()
   })
-  /** A client position in stage px (the logical 640x320 screen). */
+  /** A client position in stage px (the logical screen, 640x320 for the standard room). */
   const toStage = (client: Vec): Vec => {
     const rect = canvas.getBoundingClientRect()
-    const zoom = rect.width / cfg.logical.w
+    const zoom = rect.width / screen.stage.w
     return { x: (client.x - rect.left) / zoom, y: (client.y - rect.top) / zoom }
   }
   const pointerStage = (): Vec | null => (pointer ? toStage(pointer) : null)
@@ -585,7 +588,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
     const origin = scene.origin
     const at = pointerStage()
     if (!at || Number.isNaN(origin.x)) return null
-    return { x: at.x - cfg.playOffset.x + origin.x, y: at.y - cfg.playOffset.y + origin.y }
+    return { x: at.x - screen.marks.map.x + origin.x, y: at.y - screen.marks.map.y + origin.y }
   }
   // a click on an open weapon palette picks that weapon and charges nothing (objPalette.selectionMade)
   canvas.addEventListener('pointerdown', (e) => {
@@ -596,7 +599,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
   /** Merlin on the stage: where the weapon palettes open without a mouse position. */
   const playerStage = (): Vec => {
     const p = playerOf(sim)
-    return { x: p.pos.x - scene.origin.x + cfg.playOffset.x, y: p.pos.y - scene.origin.y + cfg.playOffset.y }
+    return { x: p.pos.x - scene.origin.x + screen.marks.map.x, y: p.pos.y - scene.origin.y + screen.marks.map.y }
   }
 
   // ticks only while no menu is open; the paused picture stays on the canvas under the menu
@@ -673,7 +676,7 @@ async function startGame(mapId: string, shell: Shell, onProgress: LoadProgress, 
   }
   requestAnimationFrame(frame)
   const forgetBestScores = () => { bests = NO_BEST_SCORES }
-  return { mapId, scene, restart, continueFrom, setCamera, forgetBestScores, playIntro }
+  return { mapId, scene, restart, continueFrom, setCamera, openWorldOnly: openWorldOnly(map), forgetBestScores, playIntro }
 }
 
 /** The map's intro script (MAP_INTROS), or null; one that fails to load is left out with a warning. */
@@ -807,7 +810,7 @@ function main(): void {
         saveZoom(z)
         game?.scene.setZoom(z)
       },
-      camera: () => cfg.cameraMode,
+      camera: () => game?.scene.cameraMode ?? cfg.cameraMode,
       setCamera: (c) => {
         if (game) game.setCamera(c)
         else {
@@ -815,6 +818,7 @@ function main(): void {
           rememberParam('camera', c)
         }
       },
+      cameraUnavailable: (c) => (game?.openWorldOnly && c === 'room' ? 'This map is one huge room: open world only' : null),
       spaceMode: () => input.spaceMode,
       setSpaceMode: (m) => input.setSpaceMode(m),
       randomMaps: () => randomMaps,

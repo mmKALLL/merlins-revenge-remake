@@ -244,6 +244,53 @@ describe('stepSim', () => {
   })
 })
 
+describe('rooms of other sizes (16x9, 16x12)', () => {
+  /** A 2x2 map of open rooms of `roomSize` tiles. */
+  function sizedMap(roomSize: { x: number; y: number }): MapDefinition {
+    const fill = (v: number) => Array.from({ length: roomSize.y }, () => Array<number>(roomSize.x).fill(v))
+    return {
+      mapSize: { x: 2, y: 2 }, roomSize, startRoom: { x: 1, y: 1 },
+      layers: [{ name: 'backgroundPassive', tileSet: 'p' }, { name: 'backgroundActive', tileSet: 'a' }, { name: 'objects', tileSet: 'o' }],
+      rooms: [1, 2, 3, 4].map((num) => ({ num, layers: { backgroundActive: fill(1), backgroundPassive: fill(1), objects: fill(0) } })),
+    }
+  }
+  /** Walks Merlin along `dir` until the room changes (or 60 ticks pass). */
+  const walk = (s: SimState, dir: { x: number; y: number }): SimState => {
+    const start = s.room
+    for (let i = 0; i < 60 && s.room.x === start.x && s.room.y === start.y; i++) s = stepSim(s, input(dir.x, dir.y), CFG30)
+    return s
+  }
+
+  for (const roomSize of [{ x: 16, y: 9 }, { x: 16, y: 12 }]) {
+    const w = roomSize.x * 32
+    const h = roomSize.y * 32
+    it(`changes room at the ${roomSize.x}x${roomSize.y} room's edges, in both directions`, () => {
+      const map = sizedMap(roomSize)
+      let s = withPlayerAt(make(map), { x: w - 10, y: h / 2 })
+      expect(s.room).toEqual({ x: 1, y: 1 })
+      s = walk(s, { x: 1, y: 0 })
+      expect(s.room).toEqual({ x: 2, y: 1 })
+      expect(player(s).pos.x).toBeGreaterThanOrEqual(w)
+      s = walk(s, { x: -1, y: 0 })
+      expect(s.room).toEqual({ x: 1, y: 1 })
+      s = walk(withPlayerAt(s, { x: w / 2, y: h - 10 }), { x: 0, y: 1 })
+      expect(s.room).toEqual({ x: 1, y: 2 })
+      expect(player(s).pos.y).toBeGreaterThanOrEqual(h)
+      s = walk(s, { x: 0, y: -1 })
+      expect(s.room).toEqual({ x: 1, y: 1 })
+    })
+
+    it(`spawns the ${roomSize.x}x${roomSize.y} room's actors at their tiles and keeps them in it`, () => {
+      const map = sizedMap(roomSize)
+      map.rooms[3]!.layers.objects![roomSize.y - 1]![roomSize.x - 1] = GOBLIN // room (2, 2), its bottom-right tile
+      const s = createSim(grid(map), defs, teams, anims, 1, { x: w + w / 2, y: h + h / 2 }, 'rooms')
+      expect(s.room).toEqual({ x: 2, y: 2 })
+      const goblin = s.actors.find((a) => a.def === 'goblinWarrior')!
+      expect(goblin.pos).toEqual({ x: 2 * w - 16, y: 2 * h - 16 })
+    })
+  }
+})
+
 describe('spawnRoomActors', () => {
   afterEach(() => vi.restoreAllMocks())
 

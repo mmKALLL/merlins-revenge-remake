@@ -19,6 +19,7 @@ export interface SettingsHost {
   setZoom(z: ZoomSetting): void
   camera(): CameraMode
   setCamera(c: CameraMode): void
+  cameraUnavailable(c: CameraMode): string | null // why the map being played cannot take this camera, null when it can
   spaceMode(): SpaceMode // what Space and the touch blast button fire at (F and the touch target button toggle nearest and farthest)
   setSpaceMode(m: SpaceMode): void
   randomMaps(): RandomMapsMode
@@ -56,22 +57,29 @@ const zoomChoice = (z: ZoomSetting): Choice<ZoomSetting> => ({
       : `${z} screen pixels per game pixel`,
 })
 
-/** A labelled row of buttons, one of them pressed; returns a function that repaints it. */
-function choiceRow<T>(parent: HTMLElement, label: string, choices: Choice<T>[], get: () => T, set: (v: T) => void): () => void {
+/**
+ * A labelled row of buttons, one of them pressed; returns a function that repaints it. A choice
+ * `unavailable` gives a reason for is disabled, with the reason as its title.
+ */
+function choiceRow<T>(parent: HTMLElement, label: string, choices: Choice<T>[], get: () => T, set: (v: T) => void, unavailable?: (v: T) => string | null): () => void {
   const row = el('div', 'setting')
   const name = el('span', 'setting-name', label)
   const group = el('div', 'choices')
   group.setAttribute('role', 'group')
   group.setAttribute('aria-label', label)
   const paint = () => {
-    for (const [c, b] of buttons) b.setAttribute('aria-pressed', String(c.value === get()))
+    for (const [c, b] of buttons) {
+      b.setAttribute('aria-pressed', String(c.value === get()))
+      const reason = unavailable?.(c.value) ?? null
+      b.disabled = reason !== null
+      b.title = reason ?? c.title ?? ''
+    }
   }
   const buttons = choices.map((c) => {
     const b = button(c.label, () => {
       set(c.value)
       paint()
     })
-    if (c.title) b.title = c.title
     group.appendChild(b)
     return [c, b] as const
   })
@@ -170,7 +178,7 @@ export function settingsPanel(host: SettingsHost, back: () => void): MenuPanel {
     choiceRow(body, 'Camera', [
       { value: 'room', label: 'Single room', title: 'Room by room, as in the original' },
       { value: 'follow', label: 'Open world', title: 'Follows Merlin through the whole map as one world (C)' },
-    ], host.camera, host.setCamera),
+    ], host.camera, host.setCamera, host.cameraUnavailable),
     choiceRow(body, 'Auto-save', [
       { value: true, label: 'on', title: 'Each room clear saves the map; a death carries on from there' },
       { value: false, label: 'off', title: 'No new saves (a map saved earlier can still be continued)' },

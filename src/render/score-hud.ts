@@ -1,13 +1,12 @@
 // The score (remake feature, engine notes hud "Scoring") in the strip below the play view, at its
 // right end: the map's total ("Score: 1234"), then the current room's points still to win in green
 // ("+1234"). The room points keep a slot as wide as "+9999" that ends at the play view's right edge
-// (x 608, where potionMaster right-aligns the potions above), so the total stays put as they count
+// (x 608 on the original screen, where potionMaster right-aligns the potions above), so the total stays put as they count
 // down. A run voided by a world mode switch shows a grey dash in place of the total's number.
 import { Container, Text } from 'pixi.js'
-import { GAME_SCREEN } from '../mr-open/mr-hud'
+import type { ScreenLayout } from '../mr-open/mr-hud'
 import { currentRoomPoints, ROOM_POINTS_MAX } from '../sim/score'
 import type { SimState } from '../sim/state'
-import type { Size } from '../sim/view'
 import { PIXEL_TEXT } from './text-options'
 
 const FONT = { fontFamily: 'monospace', fontSize: 11 }
@@ -26,10 +25,9 @@ export class ScoreHud {
   /** Where the total ends: GAP left of the room points' slot. */
   private readonly totalRight: number
 
-  /** stage: the logical screen; view: the play view on it, from GAME_SCREEN.map */
-  constructor(stage: Size, view: Size) {
-    const strip = { top: GAME_SCREEN.map.y + view.h, height: stage.h - GAME_SCREEN.map.y - view.h }
-    const right = GAME_SCREEN.map.x + view.w
+  constructor({ stage, view, marks }: ScreenLayout) {
+    const strip = { top: marks.map.y + view.h, height: stage.h - marks.map.y - view.h }
+    const right = marks.map.x + view.w
     this.voidMark.text = TOTAL_PREFIX + VOID_MARK
     this.room.text = `+${ROOM_POINTS_MAX}`
     this.total.text = TOTAL_PREFIX + '0'

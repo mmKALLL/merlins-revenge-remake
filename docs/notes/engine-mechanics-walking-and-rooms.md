@@ -175,6 +175,22 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
 - Room image size = `roomSize * tileSize * pDefaultScale` = **576 x 288 px** for the 18x9 merlinOpen rooms (`objRoom.getImageSize`, `objRoom.txt:364-369`; `pDefaultScale = 1`). The room is one bitmap member/sprite with reg point top-left (`objRoom.refreshImage`: `me.setRegPoint(#topLeft)`, `objRoom.txt:579-583`) placed at `pLocation` (`onScreen`: `me.setSpriteLoc(theLoc)`), with `locZ = pLayer` = `gMapLayer + (map index)` (`objMapController.txt:39-44`).
 - Where `pLocation` comes from: screens are defined by "mark" sprites placed in the Director score; `screenMaster.getMarks` (`screenMaster.txt:105-128`) records each sprite's member, loc, width, height. `objScreen.startObjects` (`objScreen.txt:391-408`) creates one controller object per mark whose member name matches `p[#objectKey] = [#map: "dd_map_", ...]` (`objScreen.txt:36`), passing `nLocation = nMark.loc` -> `mapController.newObject(defMember, location)` -> `objMap.pLocation`. So the map definition text member is named `dd_map_<mapName>` and its sprite position on the game-screen frame is the play-area origin. **The numeric position is not in the text export.** Constraints: the stage is 640 x 320 (`../dir_template.html:12`: `width=640 height=320`); `collisionMaster.initPlayArea` fallback `rect(0,0,gStageSize[1], 288)` implies the room occupies the top 288 px and the bottom 32 px are HUD; horizontally 640-576 leaves 64 px (either a 32 px margin on each side or a side bar).
 - HUD elements referenced: `health_bar_surround` (player energy bar, `objPlayerMerlinCharacter.txt:57-60`, locZ raised by `gMapBoundaryLayer`) and `room_bar_surround` (room init progress, `objMap.txt:135`); their positions are also score sprites. `gMapBoundary > 0` draws four `dot` sprites as a frame `inflate(mapRect, gMapBoundary, gMapBoundary)` around the room (`modBoundary.displayBoundary`, `modBoundary.txt:34-51`).
+- **Remake: room sizes.** 43 of the archive's 52 maps have 18x9 rooms. The others: 16x9
+  (`new/roads_to_aldevar`, `not_fully_tested/roads_to_aldevar`, `not_fully_tested/merlindemoviii`),
+  16x12 (`wont_work/merliniiidemo`) and the single rooms of the `wont_work/merlinart*` maps (35x18,
+  37x25, 64x64). The map, the world grid, room-from-position, the room rect, exits, room changes and
+  spawning all read the map's `roomSize`; the play view is one room (`playViewFor`, `src/sim/view.ts`:
+  512x288 for 16x9, 512x384 for 16x12), as the original drew it at roomPlayScale 1, and the screen is
+  built around it (engine notes hud §2a). The sim takes the same view for Space's on-screen aim and the
+  idle wander (`SimConfig.view` defaults to the map's), so a replay of a map uses its own view.
+- **Remake: huge rooms are open world only.** A room at least twice the standard room's width or
+  height (`openWorldOnly`: the merlinart maps) is a picture to walk around rather than a screen: the
+  map always starts in the continuous world with the follow camera and the standard 576x288 view
+  (`cameraFor`); C does nothing there, and Settings, Camera shows Single room disabled ("This map is
+  one huge room: open world only"). The player's camera choice is kept for other maps. The merlinart
+  maps have no `#player` tile, so Merlin starts at the room's centre (`findStartPos`); on
+  `merlinartii` and `merlinartiiv` that is among hostiles (dead within seconds), so map patches
+  (`assets/map-patches/wont_work/`) put a player tile at a quieter spot.
 - Display scale: the engine draws at scale 1 (`objRoom.pDefaultScale = 1`, `objTileSet.pDisplayScale` only used by the editor UI); `roomMapScale` (default 1/8; 0.0625 in nearly every map file) scales the map editor's whole-map overview (`objMap.displayRoomMap`, `objMap.txt:288-314`, called only by `objToolPalette`; the in-game mini-map is `modMiniMap`, engine notes minimap), `roomEditScale` prints "implement roomEditScale" (`objMap.txt:88-90`).
 
 ## 9. Other details needed for identical walking feel
@@ -289,7 +305,7 @@ Called with the candidate `newLoc` and the movement direction `dir` (each compon
   (F mid-charge only switches the aim: the charge goes on under the new input, `heldChargeKind`,
   and releases at the new mode's target; owner, 2026-10-25) only consider hostile units whose position lies inside the play view the follow camera shows
   (`viewRect`, `src/sim/view.ts`: the renderer's `cameraOrigin` around Merlin's position, clamped to
-  the map, with the view size from `SimConfig.view`, 576x288). With none on screen, or no hostile at
+  the map, with the view size from `SimConfig.view`, by default the map's play view: 576x288 for 18x9 rooms). With none on screen, or no hostile at
   all, the shot flies 100 px straight ahead (`AHEAD_PX`). In rooms mode the room is the view and
   nothing changes. Until 2026-10-25 that fallback was the mouse whenever its position was known
   (always, with a mouse on the page), so with the last hostile off screen or dead a Space shot went

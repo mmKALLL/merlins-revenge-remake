@@ -137,6 +137,19 @@ floor; roguelite snapshots that record the floor.
 
 ## Awaiting the owner's review
 
+- Map compatibility: other room sizes and the merlinart maps (2026-11-08, branch of this session;
+  engine notes walking-and-rooms §8, hud §2a, minimap §7). The play view is one of the map's rooms,
+  as the original drew it: 16x9 rooms (`new/roads_to_aldevar`, `not_fully_tested/roads_to_aldevar`,
+  `not_fully_tested/merlindemoviii`) show a 512x288 view on a 576x320 screen, 16x12 rooms
+  (`wont_work/merliniiidemo`) 512x384 on 576x416; the HUD keeps its margins and strips around the
+  room and the page zoom fits the new screen; 18x9 maps are unchanged. The merlinart maps (one huge
+  room each) play in the open world only: C does nothing there and Settings shows Single room
+  disabled; merlinartii and merlinartiiv got map patches starting Merlin away from the hostiles
+  around the room's centre (a guess at a spot). The open world mini-map now shows the room camera's
+  statuses, pickups included (a spell scroll's room is yellow until it is collected). To check: the
+  screen sizes (or would a fixed 640x320 screen with the room centred in it look better?), the
+  merlinart start spots, and walking the three maps of smaller rooms.
+
 - merliniii at full parity (2026-11-08, branch of this session; engine notes enemies-3 "Pit
   monsters", map-complete §2b-3). Its 80 pit monsters work from their data (an objMine: 4 s to
   prime, then a silent 50 px blast when Merlin or another hated unit comes within 50 px; it primes
