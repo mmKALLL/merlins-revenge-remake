@@ -93,8 +93,9 @@ floor; roguelite snapshots that record the floor.
   `tools/director-extract/dump_bitmaps.py maxikit_`; stand-ins now: the objects tile and the
   medikit's writing). The pickups save with the map (engine notes save-load).
 - **Cutscenes.** `cutSceneMaster`, `objScriptPerformer`, the archive's `cut_scenes/*.txt` and
-  in-game scenes (`scr_stones*`), title/credits/ending music. A minimal script player exists for the
-  map-complete and game over sequences (`src/cutscene/`); what a full system needs is in
+  in-game scenes (`scr_stones*`), title/credits/ending music. The script player (`src/cutscene/`)
+  plays the map-complete and game over sequences and MR3's intro (props, teleports, every
+  character's sprite); what a full system still needs is in
   `docs/notes/engine-mechanics-map-complete.md` §3.
 - **Turret summon.** A charge ladder of the original's stationary units fighting for Merlin: skeleton
   head -> plant -> goblin tower -> dwarf tower (monster summon's stage mechanism).
@@ -135,6 +136,18 @@ floor; roguelite snapshots that record the floor.
   Space's nearest/farthest never aiming at the mouse are done (2026-10-25, in review).
 
 ## Awaiting the owner's review
+
+- merliniii at full parity (2026-11-08, branch of this session; engine notes enemies-3 "Pit
+  monsters", map-complete §2b-3). Its 80 pit monsters work from their data (an objMine: 4 s to
+  prime, then a silent 50 px blast when Merlin or another hated unit comes within 50 px; it primes
+  again afterwards and never dies), Berlin's TV stands as a passable prop (its script,
+  `rescueBerlin_002`, is not in the archive, so it plays nothing), the ochreWizard tile places
+  nothing, as in the original. MR3's intro plays before the map (owner decision): only on a new game
+  from the title, the map list or a page opened on it, skippable with Enter, Space or a click/tap;
+  no music during it (the script asks for none), the start room's track after. The cut scene player
+  gained props, teleports and every character's own sprite and walking speed. To check: the intro's
+  look (stage, prop positions: guesses below), the pit monsters' re-priming (a guess), and Space
+  used to skip also starting a charge (as for the game over).
 
 - Faster map loading (2026-11-08, branch `sprite-pages-loading`; owner: the bar stalled at 63%).
   The converter packs every sprite's frames into six 1024 px pages named by a content hash

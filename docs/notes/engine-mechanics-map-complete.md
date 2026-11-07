@@ -95,7 +95,7 @@ frame by frame, `end-sequence.ts` chains a 15-frame fade of the game screen, the
 map; the map browser stays usable), for the game over (§2a) the restart. Assumptions: the fade
 length, the stage rect (x 32-608, y 112-288 on the 640x320 screen) and the title position/size,
 since the `animScreenEnd`/`animScreenGameOver` score layouts are not extracted. `#merlin` is drawn
-with the player's sprite (`mer`; it has no stand strip, so standing shows the first walk frame).
+with act_merlin's sprite (`mer`; it has no stand strip, so standing shows the first walk frame).
 
 - **Walking.** `walkTo`, `walkToPlayer`, `enterStage*` and `exitStage*` walk (modMoveToLoc): each
   frame `PointFrameMove` toward the target at act_merlin's `#walkSpeed` 4, halved by objMoveXY's
@@ -114,6 +114,39 @@ with the player's sprite (`mer`; it has no stand strip, so standing shows the fi
   Director sprite's height keeps its loc). wastedModeOff (blend 100) is not ported.
 - **Speech position (assumption).** A spoken line stays where it went up, centred on the speaker
   then, while the speaker walks on; it is not shown when the speaker was in the wings.
+- **The cast.** Each character is the actor of its key (`act_<character>`, `#inherit #actorPlayer`,
+  objActorPlayer; `src/cutscene/cast.ts`): drawn with its own `#name`'s sprite (Merlin `mer`, Ulin
+  `uli`, the TV `tvProp`, `treesRocks`, `ochreHydra`, `horriblePotion`, `whiteScroll`), walking at
+  its own `#walkSpeed` (Ulin 2: 1 px a frame) and starting to face left with `#initFaceDir -1`
+  (Ulin, Ochre's hydra). Their sprites load for every map. `act_blackPotion` names no member and
+  the archive has no `anm_blackPotion_*`, so the black potion draws nothing, as in the original.
+- **Props** (modProp; its Lingo is not in these notes, so the details are assumptions): `propAt x`
+  stands a prop on the stage; `produceProp p` puts `p` in the player's hand, its reg point
+  `#propCarryLoc` from the holder's (act_ochreHydra point(10,-10); others DEFAULT_PROP_CARRY_LOC
+  point(8,-8), a guess), x mirrored and facing as the holder, drawn in front of it and going where
+  it goes; a holder producing another prop puts the first away. `dropProp` stands the held prop on
+  the stage at the holder's x (a guess; at the walking speed of 4 px a frame Merlin would reach the
+  dropped potion exactly in the 37 frames `wait 37` gives him, at the port's 2 px he is halfway,
+  so the "Horrible Potion" caption appears before he gets there: one more hint that cut scene
+  walking may not be halved, which the game over's timing contradicts). `putAwayProp` sends it to
+  the wings. Every placing command (`at`, `gotoWings`, a teleport, `setStage`) lets a held prop go.
+- **Teleports** (modTeleport, as in the game: `teleportLook`): `teleportInAt x` puts the player at x
+  and stretches it in from 1000 px tall with its bottom on the floor, fading in, over 15 frames;
+  `teleportOut` stretches it out, fading, and then it is in the wings. The script runs on at once
+  (assumed, as for the walks).
+
+## 2b. The map intro (remake)
+
+`gIntroScript` plays on the original's intro screen before the game; Merlin Open's own
+(`cut_scene_to_play`) is empty. **Owner decision (2026-11-08):** MR3's intro
+(`cut_scenes/mr3IntroFull`: the Wizard's Council, then Ochre's potion at the end of MR2) plays
+before `some_bugs/merliniii` only (`MAP_INTROS`, `src/cutscene/intro.ts`). It plays when a new game
+of the map starts: from the title, the map list (New game too) or a page opened on it; not on Restart
+map, a death, Continue or the game over's reload. Enter, Space or a click/tap skips it. It is drawn
+like an ending's cut scene over a black screen (no fade-in or fade-out: assumed), the sim waits,
+and the map starts when it is over. The script asks for no music (no `playMusic` line), so the
+start room's track is held back until the map starts; its one sound (`playSound
+collect_powerup_01 255`, the potion) plays. Not ported: the original's intro screen layout.
 
 ## 2a. The game over sequence
 
@@ -151,16 +184,16 @@ middle and leaves just before the lights go down (about 14 s with the fade).
 ## 3. What a full cut scene system still needs (Cutscenes backlog)
 
 - **walkScroll\***: scrolls the scenery (`#treesRocks` props) under walking players.
-- **Teleport** (`teleportInAt`, `teleportOut`, modTeleport with modStretcher).
-- **Props**: `produceProp`, `dropProp`, `putAwayProp`, `propAt` (modProp; the TV, scrolls, potion).
-- **More characters**: sprites and actor data for `#ulin #berlin #king #ochre #ochreHydra
-  #scarletWizard #tv #goblinRunner` (only Merlin has an atlas now; others are skipped when drawn).
+- **More characters**: actor data and sprites for `#berlin #king #ochre #scarletWizard
+  #goblinRunner` and the props `#blackScroll #blueScroll #gmgBullets #treesRocksBW` (Merlin, Ulin,
+  the TV, Ochre's hydra, the trees and rocks, the potions and the white scroll are in).
 - **backgroundColourRandomFlash**, `goMode`, speech variables (`#key <action>` shows the bound key).
 - **The stage layout** of `animScreenEnd`/`animScreenIntro`/`animScreenGameOver` from the Director
   score (stage rect, title member font and position), and the `#fade` screen transition length.
-- **Other scripts**: the intro (`gIntroScript`, `cut_scene_to_play`), in-game scripts
-  (`scr_stones*`, played on the map with speech bubbles above heads: `#ingame` speech mode), the
-  credits screen after the end scene, and skipping (`scriptCancelled`).
+- **Other scripts**: in-game scripts (`scr_stones*`, and chatters' `#scriptToPerform` such as Berlin's
+  TV, whose `rescueBerlin_002` is not in the archive; played on the map with speech bubbles above
+  heads: `#ingame` speech mode), the credits screen after the end scene, and the original's skipping
+  (`scriptCancelled`; the remake skips the intro and the game over its own way).
 
 ## 4. Roguelite mode (remake)
 
